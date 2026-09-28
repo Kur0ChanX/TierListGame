@@ -3528,3 +3528,12 @@ renderTagChips();
 renderMoodChips();
 render();
 loadLists(); renderListBar(); if(state.view === 'list') render();
+
+// Dentro Claude (link claude.ai/artifact) Gemini, sincronizzazione e Novità con Gemini non possono funzionare: avviso ben visibile
+(function(){
+  if(!(window.claude && typeof window.claude.use === 'function')) return;
+  const bar = document.createElement('div');
+  bar.style.cssText = 'position:sticky;top:0;z-index:99999;background:#fff3cd;color:#5d3a00;border-bottom:2px solid #f5a300;padding:10px 14px;font:600 14px sans-serif;text-align:center';
+  bar.innerHTML = '⚠️ Questa è la versione dentro Claude: qui Gemini, Novità con Gemini e la sincronizzazione NON funzionano.<br><a href="https://kur0chanx.github.io/TierListGame/" target="_blank" rel="noopener" style="color:#0b57d0">👉 Apri la versione completa (GitHub)</a>';
+  document.body.insertBefore(bar, document.body.firstChild);
+})();
