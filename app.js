@@ -2275,6 +2275,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v74', date:'2026-09-29', items:[
+    'Su un dispositivo nuovo (es. il computer) Novità e Novità per genere ora spiegano che manca la chiave Gemini e hanno il pulsante "🔑 Inserisci la chiave". Per sicurezza la chiave non si sincronizza tra i dispositivi.'
+  ]},
   {version:'v73', date:'2026-09-29', items:[
     'Nuovo logo Raccoon Tier in alto (e come icona dell\'app).',
     'Nuovo: 🔎 Verifica generi online. In "Chiedi" → ⚙️ Impostazioni: confronta i generi dei tuoi giochi con Wikidata e ti propone le aggiunte, che confermi tu. I giochi nuovi che aggiungi vengono controllati da soli e ricevono i generi confermati da Wikidata.',
@@ -3412,12 +3415,16 @@ function renderNovitaSkippedListInto(panel, refreshFn){
     });
   });
 }
+// Messaggio quando nessun motore AI è configurato (es. su un dispositivo nuovo: la chiave Gemini non viaggia con la sincronizzazione)
+function needKeyHtml(){
+  return 'Per usare questa funzione serve la <b>chiave Gemini</b> su questo dispositivo (per sicurezza la chiave non si sincronizza: va incollata una volta su ogni telefono o computer).<br><br><button class="btn primary" onclick="openAsk()">🔑 Inserisci la chiave</button>';
+}
 function renderNovitaView(){ renderNovitaCard(); }
 function renderNovitaCard(){
   const panel = document.getElementById('novitaPanel');
   if(!panel) return;
   if(!llmAvailable()){
-    panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">🆕</div><div>Questa funzione non è disponibile in questa visualizzazione (serve restare connessi al tuo account Claude, non da un link "pubblico").</div></div>`;
+    panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">🆕</div><div>${needKeyHtml()}</div></div>`;
     return;
   }
   if(novitaSkippedListOpen){ renderNovitaSkippedListInto(panel, renderNovitaCard); return; }
@@ -3500,7 +3507,7 @@ function renderNovitaGenreCard(){
   const panel = document.getElementById('novitaGenrePanel');
   if(!panel) return;
   if(!llmAvailable()){
-    panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">🎭</div><div>Questa funzione non è disponibile in questa visualizzazione (serve restare connessi al tuo account Claude, non da un link "pubblico").</div></div>`;
+    panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">🎭</div><div>${needKeyHtml()}</div></div>`;
     return;
   }
   if(novitaGenreSkippedListOpen){ renderNovitaSkippedListInto(panel, renderNovitaGenreCard); return; }
@@ -3568,7 +3575,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v73';
+const DATA_BUILD_VERSION = 'v74';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
