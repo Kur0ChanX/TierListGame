@@ -3219,11 +3219,12 @@ async function fetchNovitaBatch(){
   novitaLoading = true; novitaErrorMsg = null; renderNovitaCard();
   const excludeNames = novitaKnownNames();
   try{
-    const prompt = buildNovitaPrompt(NOVITA_BATCH_COUNT, excludeNames);
+    // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
+    const prompt = buildNovitaGenrePrompt(NOVITA_BATCH_COUNT, excludeNames, TAG_ORDER.slice(), false);
     const result = await askLLM(prompt, {}, {search:true});
     const arr = parseNovitaJson(result && result.text);
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
-    const deduped = dedupeNovitaCandidates(arr, novitaKnownNames());
+    const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
     novitaQueue = deduped;
     novitaIdx = 0;
