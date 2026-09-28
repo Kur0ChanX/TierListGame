@@ -2137,6 +2137,11 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v64', date:'2026-09-28', items:[
+    'Nuovo: ⚠️ controllo doppioni molto più intelligente. Se chiedi a Claude di aggiungere un gioco che hai già (anche scritto in modo diverso: maiuscole, accenti, parentesi, "The"), compare un avviso giallo ben visibile "Il gioco è già nel tuo database!" con il tasto per aprire la scheda, e il gioco NON viene aggiunto.',
+    'Dietro le quinte: il progetto è stato diviso in file separati (pagina, stile, logica, dati) per aggiornarlo più facilmente. Nessuna funzione è cambiata o rimossa.',
+    'Foto in "Chiedi a Claude": i tasti 📷/📸 compaiono solo se la tua vista lo permette; se non li vedi, scrivi semplicemente il nome del gioco e Claude farà comunque il controllo doppioni.'
+  ]},
   {version:'v63', date:'2026-09-28', items:[
     'Nuovo: 👤 Profili utente! Ora c\'è il tuo profilo "Mario" e puoi aggiungere profili Ospite (rinominabili) — ognuno ha i propri preferiti, stati, tier list personale, abbonamenti e scelte su Novità, completamente separati. Utile se condividi il telefono/tablet con qualcun altro.',
     'I tuoi dati esistenti non sono stati toccati: il profilo Mario continua a usare esattamente gli stessi dati di sempre.'
@@ -2875,6 +2880,8 @@ async function sendAskMessage(){
         if(photoBtn) photoBtn.hidden = !askImagesSupported;
         const cameraBtn = document.getElementById('askCameraBtn');
         if(cameraBtn) cameraBtn.hidden = !askImagesSupported;
+        const hint = document.querySelector('.ask-hint');
+        if(hint && !askImagesSupported) hint.textContent = 'Chiedi consigli, confronta giochi o aggiungine di nuovi scrivendo il nome. Le foto non sono disponibili in questa vista (aprila dall\'app Claude per provare). Uso il tuo database personale per rispondere.';
       }).catch(()=>{});
     }
   }).catch(()=>{});
