@@ -2591,13 +2591,43 @@ function askToolLogMissingGame(input){
   showToast(`📝 Segnato "${name}" da aggiungere al database`);
   return {logged: true, name};
 }
+// ---- Anti-doppione: confronto nomi ignorando maiuscole, accenti, punteggiatura e parentesi ----
+function normGameName(n){
+  return String(n||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\([^)]*\)/g,' ').replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').replace(/\bthe\b/g,' ').replace(/\s+/g,' ').trim();
+}
+function findDuplicateGame(name){
+  const n = normGameName(name);
+  if(!n) return null;
+  return GAMES.find(g=> normGameName(g.name) === n) || null;
+}
+function showDuplicateBanner(g){
+  let el = document.getElementById('dupBackdrop');
+  if(!el){
+    el = document.createElement('div'); el.id = 'dupBackdrop'; el.className = 'dup-backdrop';
+    el.addEventListener('click', (e)=>{ if(e.target===el || e.target.closest('[data-dup-close]')) el.classList.remove('show'); });
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div class="dup-card" role="alertdialog" aria-live="assertive">
+    <div class="dup-icon">⚠️</div>
+    <div class="dup-title">Il gioco è già nel tuo database!</div>
+    <div class="dup-name">${escHtml(g.name)}</div>
+    <div class="dup-sub">Non è stato aggiunto di nuovo, così non hai doppioni.</div>
+    <div class="dup-actions"><button class="dup-open" data-dup-open>Apri la scheda</button><button class="dup-ok" data-dup-close>OK</button></div>
+  </div>`;
+  el.querySelector('[data-dup-open]').addEventListener('click', ()=>{ el.classList.remove('show'); try{ closeAsk(); }catch(e){} openModal(g); });
+  el.classList.add('show');
+}
 function askToolAddCustomGame(input, sourceLabel){
   input = input || {};
   sourceLabel = sourceLabel || 'Chiedi a Claude';
   const name = String(input.name || '').trim();
   if(!name) throw new Error('serve il nome del gioco da aggiungere');
-  const existing = GAMES.find(g=> g.name.toLowerCase() === name.toLowerCase());
-  if(existing) throw new Error(`"${existing.name}" è già nel database (id ${existing.id}): usa get_game_details su quell'id invece di aggiungerlo di nuovo`);
+  const existing = findDuplicateGame(name);
+  if(existing){
+    showDuplicateBanner(existing);
+    throw new Error(`DOPPIONE: "${existing.name}" è già nel database (id ${existing.id}) e NON è stato aggiunto. Dillo a Mario chiaramente e usa get_game_details su quell'id invece di riprovare ad aggiungerlo.`);
+  }
   if(!COVER_DB) throw new Error('Il database non è raggiungibile in questa pagina in questo momento: riprova più tardi o da un altro dispositivo/browser di Mario.');
   const id = nextCustomGameId();
   const tier = TIERS_LIST.includes(input.tier) ? input.tier : 'B';
@@ -2717,7 +2747,7 @@ Hai questi strumenti sul SUO database, usali sempre invece di inventare voti, ta
 - add_custom_game: quando Mario ti chiede consigli su giochi NON nel suo database e ne vuole aggiungere uno alla sua libreria (o te lo chiede esplicitamente, es. "aggiungilo", "mettilo nel database", "salvalo"), verifica prima con search_games che non ci sia già, poi usa add_custom_game per inserirlo DAVVERO con tutte le informazioni che conosci (piattaforma, anno, generi, un tuo voto/tier onesto, trama breve, e se puoi anche difficoltà/ore/lingua italiana) — comparirà nella sua classifica su ogni dispositivo esattamente come un gioco già catalogato. Non aggiungere mai un gioco senza che Mario lo abbia chiaramente chiesto.
 Quando ti chiede "consigliami qualcosa di nuovo" o "cosa mi manca", puoi anche attingere alla tua conoscenza generale di RPG/JRPG oltre al suo database (non sei limitato ai 765 titoli già catalogati): proponi titoli che potrebbero piacergli in base a get_taste_profile, verifica con search_games che non li abbia già, e offriti di aggiungerli con add_custom_game se gli interessano.
 Quando nomini un gioco che hai trovato nel database con search_games, get_game_details o add_custom_game, scrivi il suo id tra doppie graffe subito dopo il nome, così: Nome del gioco{{123}} — diventerà un link cliccabile nella pagina. Non farlo per giochi che non sono (ancora) nel database.
-Se Mario allega una foto (es. copertina vista in un negozio), riconosci il titolo e valuta se può piacergli in base ai suoi gusti reali, non a supposizioni generiche.`;
+Se Mario allega una foto (es. copertina vista in un negozio) o ti dà solo un nome, riconosci il titolo e come PRIMA cosa verifica con search_games se è già nel database: se c'è, dillo subito (con il link) e NON aggiungerlo. Poi valuta se può piacergli in base ai suoi gusti reali, non a supposizioni generiche.`;
 }
 function askFormatText(text){
   let t = escHtml(text);
