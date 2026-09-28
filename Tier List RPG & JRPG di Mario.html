@@ -146,7 +146,7 @@
     </div>
     <div class="ask-hint">Chiedi consigli, confronta giochi, o scatta una foto di una copertina in negozio per sapere se fa per te. Uso il tuo database personale per rispondere.</div>
     <details class="ask-engine" id="geminiSettings">
-      <summary>⚙️ Motore AI (Claude / Gemini)</summary>
+      <summary>⚙️ Impostazioni: Motore AI e Sincronizzazione</summary>
       <div class="ask-engine-body">
         <label>Motore
           <select id="llmEngineSelect">
@@ -160,6 +160,13 @@
         </label>
         <div class="ask-engine-actions"><button class="btn primary" id="geminiSaveBtn">Salva e verifica</button><button class="btn" id="geminiClearBtn">Rimuovi</button></div>
         <div class="ask-engine-status" id="geminiStatus">La chiave resta solo su questo dispositivo, nel browser.</div>
+        <hr>
+        <label>☁️ Sincronizzazione tra dispositivi (token GitHub)
+          <input type="password" id="syncTokenInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui il token GitHub">
+        </label>
+        <a href="https://github.com/settings/tokens/new?scopes=gist&description=TierList%20sync&default_expires_at=none" target="_blank" rel="noopener">1) Crea il token (il permesso giusto è già selezionato)</a>
+        <div class="ask-engine-actions"><button class="btn primary" id="syncSaveBtn">Attiva sincronizzazione</button><button class="btn" id="syncNowBtn">Sincronizza ora</button><button class="btn" id="syncOffBtn">Disattiva</button></div>
+        <div class="ask-engine-status" id="syncStatus">Salva preferiti, stati, giochi aggiunti e locandine (link) sul tuo GitHub e li ritrova su ogni dispositivo.</div>
       </div>
     </details>
     <div class="ask-thread" id="askThread"></div>
@@ -202,6 +209,7 @@
 </div>
 
 <script src="giochi.js"></script>
+<script src="sync.js"></script>
 <script src="app.js"></script>
 <script src="gemini.js"></script>
 </body>

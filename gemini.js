@@ -151,3 +151,17 @@ async function askLLM(input, opts, extra){
   document.getElementById('geminiClearBtn').addEventListener('click', ()=>{ setGeminiKey(''); keyEl.value = ''; say('Chiave rimossa.'); });
   refreshFab();
 })();
+
+// Selettore del motore riusabile (schermate Novità): stesso valore dell'impostazione in "Chiedi a Claude"
+function llmEngineSelectHtml(){
+  const cur = llmEngine();
+  const opt = (v, l)=> `<option value="${v}"${cur === v ? ' selected' : ''}>${l}</option>`;
+  return `<label class="novita-engine">🤖 Motore <select class="novita-engine-select">${opt('auto','Auto: Gemini solo se Claude è al limite')}${opt('claude','Solo Claude')}${opt('gemini','Solo Gemini')}</select></label>`;
+}
+document.addEventListener('change', (e)=>{
+  const t = e.target;
+  if(!t || !t.classList || !t.classList.contains('novita-engine-select')) return;
+  setLlmEngine(t.value);
+  document.querySelectorAll('.novita-engine-select, #llmEngineSelect').forEach(s=>{ s.value = t.value; });
+  if(t.value !== 'claude' && !geminiKey()) showToast('Per usare Gemini incolla la chiave in Chiedi → ⚙️ Motore AI', 4000);
+});
