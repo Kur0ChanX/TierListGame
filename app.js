@@ -2275,6 +2275,11 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v73', date:'2026-09-29', items:[
+    'Nuovo logo Raccoon Tier in alto (e come icona dell\'app).',
+    'Nuovo: 🔎 Verifica generi online. In "Chiedi" → ⚙️ Impostazioni: confronta i generi dei tuoi giochi con Wikidata e ti propone le aggiunte, che confermi tu. I giochi nuovi che aggiungi vengono controllati da soli e ricevono i generi confermati da Wikidata.',
+    'Le righe della classifica ora finiscono sopra i pulsanti in basso e, a schermo intero, il contenuto sale più in alto.'
+  ]},
   {version:'v72', date:'2026-09-29', items:[
     'Generi ricontrollati su tutti i 765 giochi: circa 130 correzioni (es. Secret of Mana, Legend of Mana, CrossCode, Ni no Kuni II, Granblue Relink sono Action-RPG; Luminous Arc, Agarest e Shadowrun sono Tattici; i Pokémon e Yo-kai Watch sono Cattura mostri). Persona 4 Arena e Granblue Versus sono ora Picchiaduro, Heroes of Mana e Realms of Ruin sono Strategia in tempo reale, e vanno nelle loro classifiche.',
     'Nella finestra ➕ Generi c\'è ora "Aggiungi tutti i generi che hanno giochi" per riempire la barra con un tocco.',
@@ -2846,6 +2851,7 @@ function askToolAddCustomGame(input, sourceLabel){
   };
   try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){}
   const newLists = ensureGenreLists(tags);
+  try{ if(typeof verifyNewGameGenres === 'function') verifyNewGameGenres(id, doc); }catch(e){}
   showAddedBanner(name, tags, newLists);
   return {id, name, added: true, resultNote: 'Salvato nel database di Mario: comparirà nella classifica su ogni suo dispositivo.'};
 }
@@ -3562,7 +3568,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v72';
+const DATA_BUILD_VERSION = 'v73';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
