@@ -145,6 +145,23 @@
       <button class="modal-close" id="askCloseBtn" aria-label="Chiudi">✕</button>
     </div>
     <div class="ask-hint">Chiedi consigli, confronta giochi, o scatta una foto di una copertina in negozio per sapere se fa per te. Uso il tuo database personale per rispondere.</div>
+    <details class="ask-engine" id="geminiSettings">
+      <summary>⚙️ Motore AI (Claude / Gemini)</summary>
+      <div class="ask-engine-body">
+        <label>Motore
+          <select id="llmEngineSelect">
+            <option value="auto">Automatico: Claude, Gemini se Claude è al limite</option>
+            <option value="claude">Solo Claude</option>
+            <option value="gemini">Solo Gemini</option>
+          </select>
+        </label>
+        <label>Chiave API Gemini (Google AI Studio)
+          <input type="password" id="geminiKeyInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave">
+        </label>
+        <div class="ask-engine-actions"><button class="btn primary" id="geminiSaveBtn">Salva e verifica</button><button class="btn" id="geminiClearBtn">Rimuovi</button></div>
+        <div class="ask-engine-status" id="geminiStatus">La chiave resta solo su questo dispositivo, nel browser.</div>
+      </div>
+    </details>
     <div class="ask-thread" id="askThread"></div>
     <div class="ask-inputrow">
       <label class="ask-photo-btn" id="askPhotoBtn" title="Allega una foto dalla galleria (es. copertina in negozio)">📷<input type="file" accept="image/*" id="askPhotoInput"></label>
@@ -186,6 +203,7 @@
 
 <script src="giochi.js"></script>
 <script src="app.js"></script>
+<script src="gemini.js"></script>
 </body>
 </html>
 

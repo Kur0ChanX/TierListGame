@@ -2137,6 +2137,11 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v65', date:'2026-09-28', items:[
+    'Nuovo: ✨ Gemini come alternativa a Claude. In "Chiedi a Claude" apri ⚙️ Motore AI, incolla la tua chiave gratuita di Google AI Studio e scegli: Automatico (Gemini prende il posto di Claude quando ha raggiunto il limite), solo Claude o solo Gemini.',
+    'Vale anche per Novità e Novità per genere (con ricerca web di Gemini per titoli nuovi). Con una chiave Gemini le foto di copertine si possono inviare anche dal browser del telefono. Il controllo doppioni resta attivo con entrambi i motori.',
+    'La chiave resta salvata solo nel tuo browser e non entra mai nel codice.'
+  ]},
   {version:'v64', date:'2026-09-28', items:[
     'Nuovo: ⚠️ controllo doppioni molto più intelligente. Se chiedi a Claude di aggiungere un gioco che hai già (anche scritto in modo diverso: maiuscole, accenti, parentesi, "The"), compare un avviso giallo ben visibile "Il gioco è già nel tuo database!" con il tasto per aprire la scheda, e il gioco NON viene aggiunto.',
     'Dietro le quinte: il progetto è stato diviso in file separati (pagina, stile, logica, dati) per aggiornarlo più facilmente. Nessuna funzione è cambiata o rimossa.',
@@ -2767,6 +2772,10 @@ function askFormatText(text){
 }
 function askErrorCopy(code){
   switch(code){
+    case 'gemini_bad_key': return 'Chiave Gemini non valida: controllala su Google AI Studio.';
+    case 'gemini_rate_limited': return 'Gemini ha raggiunto il suo limite gratuito: riprova più tardi.';
+    case 'gemini_network': return 'Non riesco a contattare Google da questa pagina (connessione bloccata o assente).';
+    case 'gemini_error': return 'Gemini ha restituito un errore: riprova tra poco.';
     case 'not_granted': return 'Hai negato il permesso di usare Claude in questa pagina.';
     case 'sampling_disabled': return 'Claude non è disponibile per questo account al momento.';
     case 'not_declared': return 'Questa funzione non è disponibile in questa versione della pagina.';
@@ -2827,7 +2836,7 @@ function autoResizeAskInput(){
 }
 async function sendAskMessage(){
   if(askBusy) return;
-  if(!askSample){ showToast('Chiedi a Claude non è disponibile in questa visualizzazione'); return; }
+  if(!llmAvailable()){ showToast('Chiedi a Claude non è disponibile qui: aggiungi una chiave Gemini in ⚙️ Motore AI'); return; }
   const input = document.getElementById('askInput');
   const text = input.value.trim();
   const img = askPendingImage;
@@ -2841,7 +2850,6 @@ async function sendAskMessage(){
   askStreamingText = null;
   renderAskThread();
   askController = new AbortController();
-  const turns = [{role:'user', content: askInstructions()}].concat(askHistory);
   try{
     const opts = {
       signal: askController.signal,
@@ -2849,8 +2857,8 @@ async function sendAskMessage(){
       onText: (u)=>{ askStreamingText = u.text; renderAskThread(); }
     };
     if(img) opts.images = img;
-    const result = await askSample(turns, opts);
-    askHistory.push({role:'assistant', content: result.text});
+    const result = await askLLM(askHistory, opts, {system: askInstructions()});
+    askHistory.push({role:'assistant', content: (result.engine === 'gemini' ? '✨ Risposta di Gemini\n\n' : '') + result.text});
     askStreamingText = null; askBusy = false;
     renderAskThread();
     if(result.truncated) showToast('Risposta interrotta per lunghezza: prova a chiedere qualcosa di più specifico.');
@@ -3066,12 +3074,12 @@ function dedupeNovitaCandidates(arr, known, tagEnum){
 }
 async function fetchNovitaBatch(){
   if(novitaLoading) return;
-  if(!askSample){ novitaErrorMsg = 'Questa funzione non è disponibile in questa visualizzazione.'; renderNovitaCard(); return; }
+  if(!llmAvailable()){ novitaErrorMsg = 'Questa funzione non è disponibile in questa visualizzazione.'; renderNovitaCard(); return; }
   novitaLoading = true; novitaErrorMsg = null; renderNovitaCard();
   const excludeNames = novitaKnownNames();
   try{
     const prompt = buildNovitaPrompt(NOVITA_BATCH_COUNT, excludeNames);
-    const result = await askSample(prompt, {});
+    const result = await askLLM(prompt, {}, {search:true});
     const arr = parseNovitaJson(result && result.text);
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames());
@@ -3090,14 +3098,14 @@ async function fetchNovitaBatch(){
 }
 async function fetchNovitaGenreBatch(){
   if(novitaGenreLoading) return;
-  if(!askSample){ novitaGenreErrorMsg = 'Questa funzione non è disponibile in questa visualizzazione.'; renderNovitaGenreCard(); return; }
+  if(!llmAvailable()){ novitaGenreErrorMsg = 'Questa funzione non è disponibile in questa visualizzazione.'; renderNovitaGenreCard(); return; }
   if(!NOVITA_GENRE_SELECTED.size){ novitaGenreErrorMsg = 'Seleziona almeno un genere prima di cercare.'; renderNovitaGenreCard(); return; }
   novitaGenreLoading = true; novitaGenreErrorMsg = null; renderNovitaGenreCard();
   const excludeNames = novitaKnownNames();
   const selectedTags = Array.from(NOVITA_GENRE_SELECTED);
   try{
     const prompt = buildNovitaGenrePrompt(NOVITA_BATCH_COUNT, excludeNames, selectedTags, novitaGenreIncludeOther);
-    const result = await askSample(prompt, {});
+    const result = await askLLM(prompt, {}, {search:true});
     const arr = parseNovitaJson(result && result.text);
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
@@ -3212,7 +3220,7 @@ function renderNovitaView(){ renderNovitaCard(); }
 function renderNovitaCard(){
   const panel = document.getElementById('novitaPanel');
   if(!panel) return;
-  if(!askSample){
+  if(!llmAvailable()){
     panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">🆕</div><div>Questa funzione non è disponibile in questa visualizzazione (serve restare connessi al tuo account Claude, non da un link "pubblico").</div></div>`;
     return;
   }
@@ -3295,7 +3303,7 @@ function renderNovitaGenreView(){ renderNovitaGenreCard(); }
 function renderNovitaGenreCard(){
   const panel = document.getElementById('novitaGenrePanel');
   if(!panel) return;
-  if(!askSample){
+  if(!llmAvailable()){
     panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">🎭</div><div>Questa funzione non è disponibile in questa visualizzazione (serve restare connessi al tuo account Claude, non da un link "pubblico").</div></div>`;
     return;
   }
