@@ -7,6 +7,7 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - `style.css`: tutto il CSS.
 - `app.js`: tutta la logica (storie, pro/contro, dopamina, filtri, locandine, profili...).
 - `gemini.js`: motore Gemini (riserva/alternativa a Claude) e impostazioni ⚙️ in "Chiedi a Claude". `askLLM()` è il punto unico per chiamare l'AI.
+- `sync.js`: sincronizzazione automatica dei dati `jrpg_*` (localStorage) su un Gist privato via token GitHub (permesso `gist`). Caricato PRIMA di app.js.
 - `giochi.js`: dati, `const GIOCHI_DATA = {games, sagaMap, enrich, dopa, labels, market};` (~1,9 MB).
 
 ## Regole per risparmiare token
@@ -18,3 +19,6 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - Non usare `fetch`/XHR per i dati locali: file:// li blocca. I dati vanno caricati con `<script src>`.
 - Per modifiche di routine (testi, colori, singoli dati) basta un modello leggero; per logica nuova o bug usare Sonnet.
 - La chiave Gemini dell'utente sta solo in localStorage (`jrpg_gemini_key`): non scriverla mai nel codice, nei commit o nei file.
+- Il token GitHub (`jrpg_sync_token`) sta solo in localStorage: mai nel codice, nei commit o nei file.
+- Fuori da Claude `COVER_DB` è un archivio locale (`makeLocalDb` in app.js) con la stessa interfaccia del db di Claude.
+- Ogni nuovo file JS va aggiunto a `.github/workflows/pages.yml` e alla pubblicazione dell'artifact.

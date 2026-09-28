@@ -1253,6 +1253,11 @@ function clampIntOrNull(v, min, max){
   if(isNaN(n)) return null;
   return Math.max(min, Math.min(max, n));
 }
+function cleanProsCons(pros, cons){
+  const f = arr=> Array.isArray(arr) ? arr.map(x=>String(x).trim()).filter(Boolean).slice(0,5) : [];
+  const p = f(pros), c = f(cons);
+  return (p.length || c.length) ? {pros:p, cons:c} : null;
+}
 function syncCustomGames(snap){
   const seen = new Set();
   (snap.docs || []).forEach(d=>{
@@ -1273,6 +1278,7 @@ function syncCustomGames(snap){
       story: v.story ? String(v.story) : '',
       tags: Array.isArray(v.tags) ? v.tags.filter(t=> TAG_INFO[t]) : [],
       custom: true,
+      proscons: cleanProsCons(v.pros, v.cons),
       label: (v.label && typeof v.label === 'object') ? v.label : null
     };
     const idx = GAMES.findIndex(x=>x.id===id);
@@ -1287,14 +1293,6 @@ function syncCustomGames(snap){
     }
   });
   try{ renderMetrics(); renderStats(); render(); }catch(e){}
-}
-// ---- Fuori da Claude (GitHub Pages / file locale) non c'è il database: i giochi aggiunti stanno in localStorage ----
-function localCustomLoad(){ try{ return JSON.parse(localStorage.getItem('jrpg_custom_games') || '{}') || {}; }catch(e){ return {}; } }
-function localCustomApply(all){ syncCustomGames({docs: Object.keys(all).map(k=>({id:k, data:()=>all[k]}))}); }
-function localCustomSave(id, doc){
-  const all = localCustomLoad(); all[id] = doc;
-  try{ localStorage.setItem('jrpg_custom_games', JSON.stringify(all)); }catch(e){}
-  localCustomApply(all);
 }
 async function pasteCover(g){
   coverLog('provo a leggere gli appunti');
@@ -1379,9 +1377,53 @@ async function handleCoverUpload(g, file){
     coverBusy = false; refreshCover(g);
   }
 }
+// ---- Fuori da Claude non c'è il database: un piccolo archivio in localStorage con la stessa interfaccia ----
+function makeLocalDb(){
+  const key = c=> 'jrpg_db_' + c;
+  const load = c=>{ try{ return JSON.parse(localStorage.getItem(key(c)) || '{}') || {}; }catch(e){ return {}; } };
+  const save = (c, m)=>{ try{ localStorage.setItem(key(c), JSON.stringify(m)); }catch(e){} };
+  const listeners = {};
+  const snapOf = c=>{ const m = load(c); return {docs: Object.keys(m).map(id=>({id, data:()=>m[id]}))}; };
+  const notify = c=>{ (listeners[c] || []).forEach(fn=>{ try{ fn(snapOf(c)); }catch(e){} }); };
+  return {
+    doc(path){
+      const [c, id] = path.split('/');
+      return {
+        set(d){ const m = load(c); m[id] = d; save(c, m); notify(c); return Promise.resolve(); },
+        delete(){ const m = load(c); delete m[id]; save(c, m); notify(c); return Promise.resolve(); }
+      };
+    },
+    collection(c){
+      return {
+        onSnapshot(fn){ (listeners[c] = listeners[c] || []).push(fn); setTimeout(()=>fn(snapOf(c)), 0); return ()=>{}; },
+        add(d){ const m = load(c); m['a' + Date.now() + Math.random().toString(36).slice(2,6)] = d; save(c, m); return Promise.resolve(); }
+      };
+    }
+  };
+}
+function attachDbListeners(){
+    try{
+      COVER_DB.collection('covers').onSnapshot(snap=>{
+        const next = {}, nextIds = {};
+        snap.docs.forEach(d=>{
+          const v = d.data();
+          if(!v) return;
+          if(typeof v.asset === 'string' && /^[0-9a-f]{32}$/.test(v.asset)){ next[d.id] = '/_blob/' + v.asset; nextIds[d.id] = v.asset; }
+          else if(typeof v.url === 'string' && /^https?:\/\//i.test(v.url)){ next[d.id] = v.url; }
+        });
+        USER_COVERS = next; USER_COVER_IDS = nextIds;
+        if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
+      }, ()=>{});
+    }catch(e){}
+    try{
+      COVER_DB.collection('customGames').onSnapshot(snap=>{ syncCustomGames(snap); }, ()=>{});
+    }catch(e){}
+}
 (function initCoverStore(){
   if(!(window.claude && typeof window.claude.use === 'function')){
     COVER_STATE = 'unavailable';
+    COVER_DB = makeLocalDb();
+    attachDbListeners();
     coverLog('window.claude non disponibile: pagina aperta fuori dalla piattaforma Claude (es. file salvato in locale)');
     return;
   }
@@ -1401,24 +1443,7 @@ async function handleCoverUpload(g, file){
     COVER_ASSETS = (db && assets) ? assets : null;
     COVER_STATE = COVER_ASSETS ? 'ready' : 'unavailable';
     coverLog('capacità risolte — db: ' + !!db + ', foto: ' + !!assets);
-    if(COVER_DB){
-      try{
-        COVER_DB.collection('covers').onSnapshot(snap=>{
-          const next = {}, nextIds = {};
-          snap.docs.forEach(d=>{
-            const v = d.data();
-            if(!v) return;
-            if(typeof v.asset === 'string' && /^[0-9a-f]{32}$/.test(v.asset)){ next[d.id] = '/_blob/' + v.asset; nextIds[d.id] = v.asset; }
-            else if(typeof v.url === 'string' && /^https?:\/\//i.test(v.url)){ next[d.id] = v.url; }
-          });
-          USER_COVERS = next; USER_COVER_IDS = nextIds;
-          if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
-        }, ()=>{});
-      }catch(e){}
-      try{
-        COVER_DB.collection('customGames').onSnapshot(snap=>{ syncCustomGames(snap); }, ()=>{});
-      }catch(e){}
-    }
+    if(COVER_DB) attachDbListeners();
     if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
   });
 })();
@@ -1444,8 +1469,18 @@ function dopaPanelHtml(g){
     ${d.watch ? `<p><span class="dopa-k">⚠️ Quando può stancare</span>${escHtml(d.watch)}</p>` : ''}
   </div>`;
 }
+function customProsConsHtml(g){
+  const pc = g.proscons;
+  if(!pc || !((pc.pros||[]).length || (pc.cons||[]).length)) return '';
+  return `<div class="modal-section-title">➕➖ Pro & Contro</div>
+    <div class="proscons">
+      <ul class="pros">${(pc.pros||[]).map(p=>`<li>${escHtml(p)}</li>`).join('')}</ul>
+      <ul class="cons">${(pc.cons||[]).map(c=>`<li>${escHtml(c)}</li>`).join('')}</ul>
+    </div>`;
+}
 function enrichHtml(g){
   const e = g.enrich;
+  if(!e && g.custom && customProsConsHtml(g)) return customProsConsHtml(g);
   if(!e){
     return `<div class="modal-section-title">🔍 Approfondimento</div><div class="modal-story placeholder">Analisi approfondita (voto nel tempo, gameplay, longevità, lingua...) in arrivo per questo titolo.</div>`;
   }
@@ -2145,6 +2180,12 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v66', date:'2026-09-28', items:[
+    'Nuovo: ☁️ Sincronizzazione automatica. In "Chiedi" → ⚙️ Impostazioni incolli un token GitHub (il link ti porta già al permesso giusto) e da quel momento preferiti, stati, tier list, abbonamenti, giochi aggiunti e locandine (link) si salvano da soli in un file privato del tuo GitHub e si ritrovano su ogni dispositivo.',
+    'Gemini ora aggiunge i giochi con le stesse informazioni di Claude: voto, tier, generi, trama, ritmo, lingua, fa per te se / lascia stare se, e anche Pro e Contro nella scheda.',
+    'Nelle schermate Novità c\'è la scelta del motore: Auto (Gemini solo se Claude ha raggiunto il limite), Solo Claude o Solo Gemini.',
+    'Fuori da Claude (GitHub Pages) i giochi aggiunti e le locandine da link si salvano nel browser e poi si sincronizzano.'
+  ]},
   {version:'v65', date:'2026-09-28', items:[
     'Nuovo: ✨ Gemini come alternativa a Claude. In "Chiedi a Claude" apri ⚙️ Motore AI, incolla la tua chiave gratuita di Google AI Studio e scegli: Automatico (Gemini prende il posto di Claude quando ha raggiunto il limite), solo Claude o solo Gemini.',
     'Vale anche per Novità e Novità per genere (con ricerca web di Gemini per titoli nuovi). Con una chiave Gemini le foto di copertine si possono inviare anche dal browser del telefono. Il controllo doppioni resta attivo con entrambi i motori.',
@@ -2647,7 +2688,7 @@ function askToolAddCustomGame(input, sourceLabel){
     showDuplicateBanner(existing);
     throw new Error(`DOPPIONE: "${existing.name}" è già nel database (id ${existing.id}) e NON è stato aggiunto. Dillo a Mario chiaramente e usa get_game_details su quell'id invece di riprovare ad aggiungerlo.`);
   }
-  if(!COVER_DB && (window.claude && window.claude.use)) throw new Error('Il database non è raggiungibile in questa pagina in questo momento: riprova più tardi o da un altro dispositivo/browser di Mario.');
+  if(!COVER_DB) throw new Error('Il database non è raggiungibile in questa pagina in questo momento: riprova più tardi o da un altro dispositivo/browser di Mario.');
   const id = nextCustomGameId();
   const tier = TIERS_LIST.includes(input.tier) ? input.tier : 'B';
   const score = clampIntOrNull(input.score, 0, 100);
@@ -2673,10 +2714,11 @@ function askToolAddCustomGame(input, sourceLabel){
     story: input.story ? String(input.story) : '',
     note: `Aggiunto da Mario tramite "${sourceLabel}" il ` + new Date().toLocaleDateString('it-IT') + ' — voto e dettagli sono una stima di Claude, non della classifica ufficiale curata a mano.',
     label,
+    pros: (cleanProsCons(input.pros, input.cons) || {pros:[]}).pros,
+    cons: (cleanProsCons(input.pros, input.cons) || {cons:[]}).cons,
     addedAt: new Date().toISOString()
   };
-  if(COVER_DB){ try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){} }
-  else localCustomSave(id, doc);
+  try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){}
   showToast(`✨ ${name} aggiunto alla tua libreria!`);
   return {id, name, added: true, resultNote: 'Salvato nel database di Mario: comparirà nella classifica su ogni suo dispositivo.'};
 }
@@ -2748,6 +2790,8 @@ const ASK_TOOLS = [
         pace: {type:'string', enum:['L','M','V'], description:'ritmo: L=lento, M=medio, V=veloce'},
         italian: {type:'string', enum:['S','F','N'], description:'lingua italiana: S=sottotitoli ufficiali, F=solo fan-translation, N=solo inglese/altro'},
         cost: {type:'string', enum:['S','M','H'], description:'fascia di prezzo indicativa: S=economico, M=medio, H=costoso'},
+        pros: {type:'array', items:{type:'string'}, description:'3-4 punti di forza concreti del gioco, frasi brevi'},
+        cons: {type:'array', items:{type:'string'}, description:'2-3 difetti o punti deboli concreti, frasi brevi'},
         fitIf: {type:'string', description:'completa: "fa per te se..." in una frase'},
         avoidIf: {type:'string', description:'completa: "lascia stare se..." in una frase'}
       },
@@ -3025,7 +3069,7 @@ function buildNovitaPrompt(count, excludeNames){
   return `Suggerisci ${count} RPG/JRPG (di qualunque epoca e piattaforma, anche poco conosciuti) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 Gusti di Mario: ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
-name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (1-3 valori tra questi codici: ${NOVITA_TAG_ENUM.join(',')}), story (1-2 frasi di trama senza spoiler pesanti), hours (ore indicative per finire la storia, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli ufficiali,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere A MARIO IN PARTICOLARE, in una frase, basandoti sui suoi gusti sopra), avoidIf (una frase su chi dovrebbe evitarlo).
+name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (1-3 valori tra questi codici: ${NOVITA_TAG_ENUM.join(',')}), story (1-2 frasi di trama senza spoiler pesanti), hours (ore indicative per finire la storia, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli ufficiali,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere A MARIO IN PARTICOLARE, in una frase, basandoti sui suoi gusti sopra), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
 Scegli titoli realmente esistenti, con dati il più possibile accurati. Varia epoche/piattaforme tra le ${count} proposte.`;
 }
 function buildNovitaGenrePrompt(count, excludeNames, selectedTags, includeOther){
@@ -3038,7 +3082,7 @@ ${scopeLine}
 Non scartare un gioco valido solo perché non rientra esattamente nei codici di genere che uso per le etichette (${NOVITA_GENRE_ALL_CODES.join(',')}): includilo comunque e assegna i tag più vicini possibile, oppure lascia l'elenco tags vuoto se nessuno si adatta bene — la categorizzazione delle etichette non deve mai essere un motivo per escludere un gioco valido.
 Contesto sui gusti abituali di Mario, soprattutto orientati a RPG/JRPG (utile SOLO per spiegare perché un titolo potrebbe piacergli comunque, MAI per restringere la ricerca al genere RPG, che qui è solo una delle tante opzioni possibili): ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
-name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (0-3 valori tra questi codici: ${NOVITA_GENRE_ALL_CODES.join(',')}, oppure elenco vuoto se nessuno si adatta), story (1-2 frasi che descrivono il gioco/la sua premessa, senza spoiler pesanti), hours (ore indicative per finirlo, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli/doppiaggio ufficiale in italiano,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere a Mario, in una frase), avoidIf (una frase su chi dovrebbe evitarlo).
+name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (0-3 valori tra questi codici: ${NOVITA_GENRE_ALL_CODES.join(',')}, oppure elenco vuoto se nessuno si adatta), story (1-2 frasi che descrivono il gioco/la sua premessa, senza spoiler pesanti), hours (ore indicative per finirlo, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli/doppiaggio ufficiale in italiano,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere a Mario, in una frase), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
 Scegli titoli realmente esistenti, con dati il più possibile accurati.`;
 }
 function parseNovitaJson(text){
@@ -3069,7 +3113,9 @@ function cleanNovitaCandidate(raw, tagEnum){
     italian: ['S','F','N'].includes(raw.italian) ? raw.italian : null,
     cost: ['S','M','H'].includes(raw.cost) ? raw.cost : null,
     fitIf: raw.fitIf ? String(raw.fitIf) : '',
-    avoidIf: raw.avoidIf ? String(raw.avoidIf) : ''
+    avoidIf: raw.avoidIf ? String(raw.avoidIf) : '',
+    pros: Array.isArray(raw.pros) ? raw.pros.map(String).slice(0,5) : [],
+    cons: Array.isArray(raw.cons) ? raw.cons.map(String).slice(0,5) : []
   };
 }
 function dedupeNovitaCandidates(arr, known, tagEnum){
@@ -3178,7 +3224,7 @@ function novitaDoneHtml(){
   </div>`;
 }
 function novitaSkippedTopbarHtml(count, btnId){
-  return count ? `<div class="novita-topbar"><button class="btn" id="${btnId}">📋 Scartati (${count})</button></div>` : '';
+  return `<div class="novita-topbar">${llmEngineSelectHtml()}${count ? `<button class="btn" id="${btnId}">📋 Scartati (${count})</button>` : ''}</div>`;
 }
 function novitaSkippedListHtml(){
   const keys = Object.keys(NOVITA_SKIPPED_DETAILS);
@@ -3395,4 +3441,3 @@ renderStats();
 renderTagChips();
 renderMoodChips();
 render();
-if(!(window.claude && window.claude.use)){ const _lc = localCustomLoad(); if(Object.keys(_lc).length) localCustomApply(_lc); }
