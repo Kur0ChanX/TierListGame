@@ -618,7 +618,10 @@ function openListPicker(){
   el.classList.add('show');
 }
 function ensureGenreLists(tags){
-  const added = (tags || []).filter(t=> EXTRA_GENRE_INFO[t] && !MY_LISTS.includes(t));
+  // crea la classifica del genere principale (primo tag) e di ogni genere non-RPG del gioco
+  const wanted = [];
+  (tags || []).forEach((t, i)=>{ if(TAG_INFO[t] && (i === 0 || EXTRA_GENRE_INFO[t]) && !wanted.includes(t)) wanted.push(t); });
+  const added = wanted.filter(t=> !MY_LISTS.includes(t));
   if(added.length){ added.forEach(t=> MY_LISTS.push(t)); saveLists(); renderListBar(); }
   return added;
 }
@@ -626,10 +629,11 @@ function ensureGenreLists(tags){
 function showAddedBanner(name, tags, newLists){
   let el = document.getElementById('addedBanner');
   if(!el){ el = document.createElement('div'); el.id = 'addedBanner'; el.className = 'added-banner'; document.body.appendChild(el); }
-  const extra = (tags || []).filter(t=> EXTRA_GENRE_INFO[t]);
-  const where = extra.length
-    ? extra.map(t=> `${TAG_INFO[t].icon} ${TAG_INFO[t].label}` + (newLists.includes(t) ? ' (nuova classifica)' : '')).join(', ')
-    : '🎮 JRPG / RPG';
+  const inJrpg = !(tags || []).some(t=> EXTRA_GENRE_INFO[t]);
+  const parts = [];
+  (tags || []).forEach(t=>{ if(MY_LISTS.includes(t) && TAG_INFO[t]) parts.push(`${TAG_INFO[t].icon} ${TAG_INFO[t].label}` + (newLists.includes(t) ? ' <b>(nuova classifica)</b>' : '')); });
+  if(inJrpg) parts.push('🎮 JRPG / RPG');
+  const where = parts.length ? parts.join(' · ') : '🌐 Tutti';
   el.innerHTML = `<div class="added-title">✅ Aggiunto alla tua libreria!</div><div class="added-name">${escHtml(name)}</div><div class="added-where">Lo trovi in: ${where}</div>`;
   el.classList.add('show');
   clearTimeout(el._h); el._h = setTimeout(()=> el.classList.remove('show'), 3200);
@@ -2266,6 +2270,10 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v70', date:'2026-09-29', items:[
+    'Quando aggiungi un gioco, la sua classifica di genere (es. Dungeon Crawler) viene creata da sola e la conferma dice chiaramente dove lo trovi: prima la classifica del genere, poi JRPG / RPG.',
+    'L\'avviso "Non nel tuo database" nelle proposte è ora una piccola etichetta in vetro, in basso sulla copertina, con un puntino che pulsa.'
+  ]},
   {version:'v69', date:'2026-09-29', items:[
     'Nuova grafica "Aurora glass": sfondo con luci animate, barre e pulsanti in vetro sfumato, badge dei tier con gradienti (il S+ brilla), finestre che salgono dal basso con effetto molla, conferme animate.',
     'Funzionale: ogni riga della classifica mostra una barra del voto, le barre delle statistiche crescono all\'apertura, la tabella sta sempre intera nello schermo del telefono e le schede cambiano con una dissolvenza.',
@@ -3289,8 +3297,8 @@ function currentNovitaGame(){ return novitaQueue[novitaIdx] || null; }
 function currentNovitaGenreGame(){ return novitaGenreQueue[novitaGenreIdx] || null; }
 function novitaCardHtml(c){
   return `<div class="discover-card" id="novitaCard">
-    <div class="novita-badge-new">Non nel tuo database</div>
     <div class="discover-cover"><div class="discover-cover-placeholder"><span class="pc-plat">${escHtml((c.plat||'').split('/')[0].trim())}</span><span class="pc-tier ${TIER_LABEL[c.tier]}">${c.tier}</span></div></div>
+    <div class="novita-badge-new"><i></i>Non nel tuo database</div>
     <div class="discover-body">
       <div class="discover-title">${escHtml(c.name)}</div>
       <div class="modal-plat">${escHtml(c.plat||'?')}${c.year ? ' · ' + escHtml(c.year) : ''}</div>
@@ -3535,7 +3543,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v69';
+const DATA_BUILD_VERSION = 'v70';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
