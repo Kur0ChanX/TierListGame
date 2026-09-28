@@ -22,7 +22,7 @@ jobs:
         run: |
           mkdir _site
           cp "Tier List RPG & JRPG di Mario.html" _site/index.html
-          cp style.css app.js gemini.js sync.js giochi.js _site/
+          cp style.css theme.css app.js gemini.js sync.js fx.js giochi.js _site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

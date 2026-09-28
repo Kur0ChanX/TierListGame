@@ -1,0 +1,165 @@
+/* ===== Tema "Aurora glass" — livello grafico sopra style.css (nessuna funzione toccata) ===== */
+:root{
+  --grad:linear-gradient(135deg,#7c5cff 0%,#b04cf5 55%,#ff6ec7 100%);
+  --grad-soft:linear-gradient(135deg,rgba(124,92,255,.16),rgba(255,110,199,.12));
+  --glass:rgba(255,255,255,.72);
+  --glass-line:rgba(120,90,200,.18);
+  --ring:0 0 0 1px var(--glass-line);
+  --shadow:0 1px 2px rgba(60,30,120,.06),0 8px 24px rgba(80,50,150,.10);
+  --ease:cubic-bezier(.2,.9,.25,1.15);
+  --aur1:rgba(124,92,255,.30); --aur2:rgba(255,110,199,.20); --aur3:rgba(56,189,248,.18);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --glass:rgba(32,26,51,.62); --glass-line:rgba(169,140,240,.20);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    --aur1:rgba(124,92,255,.34); --aur2:rgba(255,110,199,.16); --aur3:rgba(56,189,248,.14);
+  }
+}
+:root[data-theme="dark"]{
+  --glass:rgba(32,26,51,.62); --glass-line:rgba(169,140,240,.20);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  --aur1:rgba(124,92,255,.34); --aur2:rgba(255,110,199,.16); --aur3:rgba(56,189,248,.14);
+}
+
+html{background:var(--bg); scroll-behavior:smooth; -webkit-tap-highlight-color:transparent}
+body{background:transparent; font-family:ui-rounded,"SF Pro Rounded","Segoe UI Variable","Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; letter-spacing:.005em}
+
+/* sfondo aurora animato (solo trasformazioni: leggero per il telefono) */
+body::before{
+  content:""; position:fixed; inset:-25% -25%; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(38% 30% at 12% 8%, var(--aur1), transparent 70%),
+    radial-gradient(34% 28% at 88% 18%, var(--aur2), transparent 70%),
+    radial-gradient(44% 36% at 62% 92%, var(--aur3), transparent 70%);
+  animation:aurora 28s ease-in-out infinite alternate; will-change:transform;
+}
+@keyframes aurora{from{transform:translate3d(-2%,-1%,0) rotate(0deg) scale(1)}to{transform:translate3d(3%,2%,0) rotate(6deg) scale(1.08)}}
+
+/* barra superiore in vetro */
+.topbar{background:color-mix(in srgb,var(--bg) 72%,transparent); -webkit-backdrop-filter:blur(14px) saturate(140%); backdrop-filter:blur(14px) saturate(140%); border-bottom:1px solid var(--glass-line); margin:0 -14px; padding-left:14px; padding-right:14px}
+h1{font-size:1.12rem; font-weight:800; letter-spacing:-.01em}
+h1{background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent}
+.iconbtn{background:var(--glass); border:1px solid var(--glass-line); border-radius:14px; transition:transform .25s var(--ease),box-shadow .25s,background .25s; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px)}
+.iconbtn:active{transform:scale(.9)}
+.iconbtn.active{outline:none; background:var(--grad); box-shadow:0 6px 18px rgba(124,92,255,.45); color:#fff}
+#search{background:var(--glass); border:1px solid var(--glass-line); border-radius:16px; box-shadow:var(--shadow); transition:box-shadow .25s,border-color .25s,transform .25s var(--ease)}
+#search:focus{outline:none; border-color:var(--accent2); box-shadow:0 0 0 4px rgba(124,92,255,.22),var(--shadow); transform:translateY(-1px)}
+
+/* pillole: liste e schede */
+.view-tab,.list-chip,.tagchip,.genre-chip,.stat-chip,.similar-chip,.saga-game-chip{transition:transform .28s var(--ease),background .25s,box-shadow .25s,color .2s,border-color .25s}
+.view-tab,.list-chip{background:var(--glass); border:1px solid var(--glass-line); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px)}
+.view-tab:active,.list-chip:active{transform:scale(.93)}
+.view-tab.active,.list-chip.active,.tagchip.active,.genre-chip.active{background:var(--grad); color:#fff; border-color:transparent; box-shadow:0 6px 20px rgba(124,92,255,.42); transform:translateY(-1px)}
+.view-tab.active{animation:pillPop .45s var(--ease)}
+@keyframes pillPop{0%{transform:scale(.88)}100%{transform:translateY(-1px) scale(1)}}
+.list-bar{padding:8px 2px 10px}
+.list-cnt{background:rgba(120,90,200,.16); padding:1px 7px; border-radius:999px; margin-left:4px}
+.list-chip.active .list-cnt{background:rgba(255,255,255,.28)}
+
+/* contatori */
+.metric,.stat-chip{background:var(--glass); border:1px solid var(--glass-line); border-radius:16px; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px)}
+.stat-chip.active{box-shadow:0 0 0 2px var(--accent2),0 8px 20px rgba(124,92,255,.3)}
+.stat-chip .bar i,.chart-row .barwrap i{background:var(--grad); transform-origin:left; animation:grow .9s var(--ease) both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* badge dei tier: gradienti, bagliore, S+ con luce che scorre */
+.badge{box-shadow:0 2px 8px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.35); text-shadow:0 1px 1px rgba(0,0,0,.25)}
+.badge.Splus{background:linear-gradient(110deg,#f6c945 0%,#ffe88a 40%,#e08a1f 60%,#f6c945 100%); background-size:220% 100%; color:#3a2600; text-shadow:none; animation:sheen 3.2s linear infinite; box-shadow:0 0 14px rgba(246,201,69,.55),inset 0 1px 0 rgba(255,255,255,.6)}
+@keyframes sheen{from{background-position:120% 0}to{background-position:-120% 0}}
+.badge.S{background:linear-gradient(135deg,#7b3ff2,#c04cfd); box-shadow:0 0 12px rgba(160,80,250,.4),inset 0 1px 0 rgba(255,255,255,.35)}
+.badge.A{background:linear-gradient(135deg,#2f6bff,#3cc4ff)}
+.badge.B{background:linear-gradient(135deg,#1fa36b,#43d6a0)}
+.badge.C{background:linear-gradient(135deg,#f2c230,#ffd970); text-shadow:none}
+.badge.D{background:linear-gradient(135deg,#f0782a,#ffa15a)}
+.badge.E{background:linear-gradient(135deg,#e0393e,#ff6b70)}
+.badge.F{background:linear-gradient(135deg,#7a7f8c,#a3a8b5)}
+
+/* tabella */
+.table-wrap{background:var(--glass); border:1px solid var(--glass-line); border-radius:22px; box-shadow:var(--shadow); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px)}
+thead th{background:var(--grad); letter-spacing:.02em; font-weight:700; text-shadow:0 1px 1px rgba(0,0,0,.18)}
+tbody tr{border-top:1px solid var(--glass-line); transition:background .2s,box-shadow .2s,transform .2s; animation:rowIn .42s var(--ease) both}
+tbody tr:nth-child(even){background:color-mix(in srgb,var(--row-alt) 55%,transparent)}
+tbody tr:hover{background:var(--grad-soft); color:inherit; box-shadow:inset 3px 0 0 var(--accent2)}
+tbody tr:active{background:var(--grad-soft); transform:scale(.995)}
+tbody tr:nth-child(1){animation-delay:.00s}tbody tr:nth-child(2){animation-delay:.03s}tbody tr:nth-child(3){animation-delay:.06s}tbody tr:nth-child(4){animation-delay:.09s}tbody tr:nth-child(5){animation-delay:.12s}tbody tr:nth-child(6){animation-delay:.15s}tbody tr:nth-child(7){animation-delay:.18s}tbody tr:nth-child(8){animation-delay:.21s}tbody tr:nth-child(n+9){animation-delay:.24s}
+@keyframes rowIn{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
+td.score{font-variant-numeric:tabular-nums}
+td.score::after{content:""; display:block; height:3px; border-radius:3px; margin:4px auto 0; width:calc(var(--sc,0) * 1%); background:var(--grad); opacity:.85}
+td.fav{transition:transform .3s var(--ease)}
+td.fav:active{transform:scale(1.5) rotate(-12deg)}
+
+/* pulsanti */
+.btn{border-radius:14px; background:var(--glass); border:1px solid var(--glass-line); transition:transform .25s var(--ease),box-shadow .25s,filter .2s}
+.btn:active{transform:scale(.95)}
+.btn.primary{background:var(--grad); border-color:transparent; box-shadow:0 6px 18px rgba(124,92,255,.4)}
+.btn.primary:hover{filter:brightness(1.08)}
+
+/* schede (Scopri / Novità) */
+.discover-card{background:var(--glass); border:1px solid var(--glass-line); border-radius:26px; box-shadow:0 2px 4px rgba(0,0,0,.12),0 22px 50px rgba(80,50,150,.28); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); animation:cardIn .5s var(--ease)}
+@keyframes cardIn{from{opacity:0; transform:translateY(26px) scale(.94) rotate(-1.2deg)}to{opacity:1; transform:none}}
+.discover-cover-placeholder,.placeholder-cover{background:radial-gradient(120% 90% at 20% 0%,rgba(124,92,255,.35),transparent 60%),radial-gradient(90% 80% at 100% 100%,rgba(255,110,199,.28),transparent 60%),var(--row-alt)}
+.discover-btn{background:var(--glass); border:1px solid var(--glass-line); transition:transform .25s var(--ease),box-shadow .25s; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px)}
+.discover-btn:active{transform:scale(.86)}
+.discover-btn.like{box-shadow:0 8px 24px rgba(47,158,107,.45)}
+.discover-btn.nope{box-shadow:0 6px 18px rgba(201,58,58,.28)}
+.discover-swipe-tag{transition:opacity .15s}
+
+/* finestre: foglio dal basso con molla e sfondo sfocato */
+.modal-backdrop{-webkit-backdrop-filter:blur(7px); backdrop-filter:blur(7px)}
+.modal-card{background:var(--card); border:1px solid var(--glass-line); border-radius:26px; box-shadow:0 30px 80px rgba(0,0,0,.5); transform:translateY(40px) scale(.97); opacity:0; transition:transform .45s var(--ease),opacity .25s}
+.modal-backdrop.show .modal-card{transform:none; opacity:1}
+.modal-title{font-weight:800; letter-spacing:-.01em}
+.modal-close{border-radius:50%; transition:transform .25s var(--ease)}
+.modal-close:active{transform:rotate(90deg) scale(.9)}
+.glabel,.dna-box{border-radius:18px; border-color:var(--glass-line)}
+.glabel-bar i.on{background:var(--grad); animation:dotIn .5s var(--ease) both}
+.glabel-bar i.on:nth-child(2){animation-delay:.05s}.glabel-bar i.on:nth-child(3){animation-delay:.1s}.glabel-bar i.on:nth-child(4){animation-delay:.15s}.glabel-bar i.on:nth-child(5){animation-delay:.2s}
+@keyframes dotIn{from{transform:scale(0)}to{transform:scale(1)}}
+.proscons .pros li,.proscons .cons li{animation:rowIn .4s var(--ease) both}
+.dna-ring{animation:pillPop .6s var(--ease)}
+
+/* messaggi e conferme */
+.toast{background:var(--grad); border-radius:999px; box-shadow:0 10px 30px rgba(124,92,255,.5); transform:translate(-50%,16px) scale(.9); transition:opacity .25s,transform .4s var(--ease)}
+.toast.show{transform:translate(-50%,0) scale(1)}
+.added-banner,.dup-card{backdrop-filter:blur(10px)}
+.added-banner.show .added-title{animation:pillPop .55s var(--ease)}
+.dup-backdrop.show .dup-card{animation:cardIn .45s var(--ease)}
+
+/* pulsanti flottanti */
+.ask-fab{background:var(--grad); box-shadow:0 10px 28px rgba(124,92,255,.55); transition:transform .3s var(--ease)}
+.ask-fab::after{content:""; position:absolute; inset:-4px; border-radius:50%; border:2px solid rgba(176,76,245,.55); animation:ring 3.6s ease-out infinite; pointer-events:none}
+@keyframes ring{0%{transform:scale(.92); opacity:.8}70%,100%{transform:scale(1.35); opacity:0}}
+.scrolltop-fab{background:var(--grad); box-shadow:0 8px 22px rgba(124,92,255,.5)}
+
+/* chat */
+.ask-card{background:var(--card)}
+.ask-msg{border-radius:18px; animation:rowIn .35s var(--ease) both}
+.ask-msg.user{background:var(--grad); color:#fff}
+.ask-thinking{animation:breathe 1.6s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.45}}
+
+/* caricamenti e dettagli */
+.novita-spin{filter:drop-shadow(0 0 8px rgba(124,92,255,.6))}
+.dopa-panel{border-radius:16px}
+.changelog-entry{border-radius:16px}
+.profile-row{border-radius:16px; transition:transform .25s var(--ease)}
+.profile-row:active{transform:scale(.98)}
+.enrich-chip{border-radius:999px}
+
+/* accessibilità: chi preferisce meno movimento non vede animazioni */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important; transition:none !important; scroll-behavior:auto !important}
+}
+
+/* telefono: la tabella deve stare sempre intera nello schermo (colonne: ★, nome, anno, tier, voto, fonte, storia) */
+@media (max-width:560px){
+  table{table-layout:fixed; font-size:.83rem}
+  th,td{padding:8px 4px}
+  th:nth-child(1){width:28px} th:nth-child(5){width:54px} th:nth-child(6){width:46px} th:nth-child(7){width:44px} th:nth-child(8),th:nth-child(9){width:26px}
+  th:nth-child(8){font-size:0; padding:9px 0} th:nth-child(8)::before{content:"✔"; font-size:.78rem}
+  td.year{font-size:.72rem; white-space:normal; line-height:1.2}
+  td.method,td.storyicon{padding-left:0; padding-right:0}
+  td:nth-child(3){word-break:break-word}
+  .badge{padding:2px 8px; font-size:.74rem}
+}
