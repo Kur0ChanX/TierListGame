@@ -2863,7 +2863,7 @@ function renderAskThread(){
   } else if(askBusy){
     html += `<div class="ask-thinking">Sto pensando…</div>`;
   }
-  thread.innerHTML = html || `<div class="ask-thinking">Chiedimi consigli sui giochi (es. "3 JRPG tattici come Final Fantasy Tactics"), oppure allega la foto di una copertina vista in negozio.</div>`;
+  thread.innerHTML = html || (!llmAvailable() ? `<div class="ask-thinking">👆 Per usare Chiedi: incolla qui sopra la tua chiave Gemini e premi "Salva e verifica". Poi potrai scrivere, scattare una foto 📸 o caricarne una 📷.</div>` : `<div class="ask-thinking">Chiedimi consigli sui giochi (es. "3 JRPG tattici come Final Fantasy Tactics"), oppure allega la foto di una copertina vista in negozio.</div>`);
   thread.scrollTop = thread.scrollHeight;
   thread.querySelectorAll('.ask-gamelink').forEach(chip=>{
     chip.addEventListener('click', ()=>{
@@ -2947,6 +2947,8 @@ async function sendAskMessage(){
 const askBackdropEl = document.getElementById('askBackdrop');
 function openAsk(){
   askBackdropEl.classList.add('show');
+  const gs = document.getElementById('geminiSettings');
+  if(gs && !llmAvailable()) gs.open = true;
   renderAskThread();
   const inp = document.getElementById('askInput');
   if(inp) inp.focus();
@@ -3428,7 +3430,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v63';
+const DATA_BUILD_VERSION = 'v66';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
