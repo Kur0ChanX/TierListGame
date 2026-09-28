@@ -70,7 +70,8 @@ async function geminiGenerate(input, opts, extra){
     try{
       data = await geminiFetch(body, opts.signal);
     }catch(e){
-      if(body.tools && !tools.length && e.code === 'gemini_error' && e.status === 400){ delete body.tools; data = await geminiFetch(body, opts.signal); }
+      // la ricerca web (grounding) può non essere disponibile sul piano gratuito: riprovo senza
+      if(body.tools && !tools.length && ((e.code === 'gemini_error' && e.status === 400) || e.status === 429)){ delete body.tools; data = await geminiFetch(body, opts.signal); }
       else throw e;
     }
     const cand = data.candidates && data.candidates[0];
@@ -165,3 +166,9 @@ document.addEventListener('change', (e)=>{
   document.querySelectorAll('.novita-engine-select, #llmEngineSelect').forEach(s=>{ s.value = t.value; });
   if(t.value !== 'claude' && !geminiKey()) showToast('Per usare Gemini incolla la chiave in Chiedi → ⚙️ Motore AI', 4000);
 });
+
+// Messaggio d'errore per l'utente, con il dettaglio di Google quando è un errore Gemini
+function llmErrorText(e){
+  const base = askErrorCopy(e && e.code);
+  return (e && e.code && String(e.code).indexOf('gemini_') === 0 && e.message) ? base + ' (' + String(e.message).slice(0, 160) + ')' : base;
+}

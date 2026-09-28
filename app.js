@@ -2921,7 +2921,7 @@ async function sendAskMessage(){
     if(e && e.code === 'cancelled'){
       if(e.text) askHistory.push({role:'assistant', content: e.text});
     } else {
-      showToast(askErrorCopy(e && e.code) + (img ? ' Scrivi il nome del gioco al posto della foto.' : ''), img ? 6000 : 0);
+      showToast(llmErrorText(e) + (img ? ' Scrivi il nome del gioco al posto della foto.' : ''), img ? 6000 : 0);
     }
     renderAskThread();
   } finally {
@@ -3147,7 +3147,7 @@ async function fetchNovitaBatch(){
     novitaEverFetched = true;
   }catch(e){
     if(e instanceof Error && e.message === 'NOVITA_EMPTY') novitaErrorMsg = 'Non ho trovato nuovi titoli distinti da proporti adesso: riprova tra poco.';
-    else if(e && e.code) novitaErrorMsg = askErrorCopy(e.code);
+    else if(e && e.code) novitaErrorMsg = llmErrorText(e);
     else novitaErrorMsg = 'Non sono riuscito a trovare nuovi titoli adesso: riprova tra poco.';
   }finally{
     novitaLoading = false;
@@ -3173,7 +3173,7 @@ async function fetchNovitaGenreBatch(){
     novitaGenreEverFetched = true;
   }catch(e){
     if(e instanceof Error && e.message === 'NOVITA_EMPTY') novitaGenreErrorMsg = 'Non ho trovato nuovi titoli distinti da proporti per questi generi: prova ad allargare la selezione, o spunta "generi simili non elencati".';
-    else if(e && e.code) novitaGenreErrorMsg = askErrorCopy(e.code);
+    else if(e && e.code) novitaGenreErrorMsg = llmErrorText(e);
     else novitaGenreErrorMsg = 'Non sono riuscito a trovare nuovi titoli adesso: riprova tra poco.';
   }finally{
     novitaGenreLoading = false;
