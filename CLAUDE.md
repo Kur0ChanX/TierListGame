@@ -24,3 +24,4 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - Fuori da Claude `COVER_DB` è un archivio locale (`makeLocalDb` in app.js) con la stessa interfaccia del db di Claude.
 - Ogni nuovo file JS va aggiunto a `.github/workflows/pages.yml` e alla pubblicazione dell'artifact.
 - Classifiche per genere: `ACTIVE_LIST`, `MY_LISTS`, `inActiveList()` in app.js; `applyFilters()` parte sempre da `GAMES.filter(inActiveList)`. La lista `jrpg` è quella predefinita.
+- App installabile: `manifest.webmanifest` (display fullscreen), `sw.js` (nessuna cache) e `icons/`; il workflow Pages li copia. Il pulsante ⛶ è in `fx.js`.

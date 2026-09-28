@@ -17,4 +17,23 @@
       try{ document.startViewTransition(()=> orig(v)); }catch(e){ orig(v); }
     };
   }
+
+  // 4) schermo intero: nasconde barra del browser e barra di stato (orario, batteria)
+  const fs = document.getElementById('fsBtn');
+  const standalone = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches);
+  if(fs){
+    if(!document.documentElement.requestFullscreen || standalone){ fs.style.display = 'none'; }
+    fs.addEventListener('click', ()=>{
+      try{
+        if(document.fullscreenElement){ document.exitFullscreen(); }
+        else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{ if(typeof showToast === 'function') showToast('Il browser non permette lo schermo intero qui'); }); }
+      }catch(e){}
+    });
+    document.addEventListener('fullscreenchange', ()=>{ fs.textContent = document.fullscreenElement ? '🗗' : '⛶'; });
+  }
+
+  // 5) installabile come app (solo su http/https, mai dentro Claude)
+  if('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !(window.claude && window.claude.use)){
+    try{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(e){}
+  }
 })();
