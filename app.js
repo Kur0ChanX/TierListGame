@@ -789,10 +789,10 @@ function applyFilters(){
 function methodIcon(m){ return m==='V' ? '✅' : '🗳️'; }
 function methodLabel(m){ return m==='V' ? 'Metacritic / aggregato verificato' : 'Stima community / recensori specializzate'; }
 
-function showToast(msg){
+function showToast(msg, ms){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 1800);
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms || 1800);
 }
 
 function render(){
@@ -2140,7 +2140,7 @@ const CHANGELOG = [
   {version:'v64', date:'2026-09-28', items:[
     'Nuovo: ⚠️ controllo doppioni molto più intelligente. Se chiedi a Claude di aggiungere un gioco che hai già (anche scritto in modo diverso: maiuscole, accenti, parentesi, "The"), compare un avviso giallo ben visibile "Il gioco è già nel tuo database!" con il tasto per aprire la scheda, e il gioco NON viene aggiunto.',
     'Dietro le quinte: il progetto è stato diviso in file separati (pagina, stile, logica, dati) per aggiornarlo più facilmente. Nessuna funzione è cambiata o rimossa.',
-    'Foto in "Chiedi a Claude": i tasti 📷/📸 compaiono solo se la tua vista lo permette; se non li vedi, scrivi semplicemente il nome del gioco e Claude farà comunque il controllo doppioni.'
+    'Foto in "Chiedi a Claude": i tasti 📷 (galleria) e 📸 (fotocamera) ora sono sempre visibili. Se la tua vista non accetta le foto ti verrà detto e potrai scrivere il nome del gioco: il controllo doppioni funziona comunque.'
   ]},
   {version:'v63', date:'2026-09-28', items:[
     'Nuovo: 👤 Profili utente! Ora c\'è il tuo profilo "Mario" e puoi aggiungere profili Ospite (rinominabili) — ognuno ha i propri preferiti, stati, tier list personale, abbonamenti e scelte su Novità, completamente separati. Utile se condividi il telefono/tablet con qualcun altro.',
@@ -2859,7 +2859,7 @@ async function sendAskMessage(){
     if(e && e.code === 'cancelled'){
       if(e.text) askHistory.push({role:'assistant', content: e.text});
     } else {
-      showToast(askErrorCopy(e && e.code));
+      showToast(askErrorCopy(e && e.code) + (img ? ' Scrivi il nome del gioco al posto della foto.' : ''), img ? 6000 : 0);
     }
     renderAskThread();
   } finally {
@@ -2876,12 +2876,8 @@ async function sendAskMessage(){
     if(typeof askSample.limits === 'function'){
       askSample.limits().then(lim=>{
         askImagesSupported = !!(lim && lim.images);
-        const photoBtn = document.getElementById('askPhotoBtn');
-        if(photoBtn) photoBtn.hidden = !askImagesSupported;
-        const cameraBtn = document.getElementById('askCameraBtn');
-        if(cameraBtn) cameraBtn.hidden = !askImagesSupported;
         const hint = document.querySelector('.ask-hint');
-        if(hint && !askImagesSupported) hint.textContent = 'Chiedi consigli, confronta giochi o aggiungine di nuovi scrivendo il nome. Le foto non sono disponibili in questa vista (aprila dall\'app Claude per provare). Uso il tuo database personale per rispondere.';
+        if(hint && !askImagesSupported) hint.textContent = 'Chiedi consigli, confronta giochi o aggiungine di nuovi. I tasti 📷/📸 provano a inviare la foto, ma in alcune viste (es. browser del telefono) la piattaforma potrebbe rifiutarla: in tal caso scrivi il nome del gioco.';
       }).catch(()=>{});
     }
   }).catch(()=>{});
