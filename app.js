@@ -2266,6 +2266,11 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v69', date:'2026-09-29', items:[
+    'Nuova grafica "Aurora glass": sfondo con luci animate, barre e pulsanti in vetro sfumato, badge dei tier con gradienti (il S+ brilla), finestre che salgono dal basso con effetto molla, conferme animate.',
+    'Funzionale: ogni riga della classifica mostra una barra del voto, le barre delle statistiche crescono all\'apertura, la tabella sta sempre intera nello schermo del telefono e le schede cambiano con una dissolvenza.',
+    'Vibrazione leggera (Android) su preferiti, cuore/scarta e schede. Chi ha "riduci animazioni" attivo nel telefono non vede movimenti.'
+  ]},
   {version:'v68', date:'2026-09-29', items:[
     'Quando aggiungi un gioco (❤️ in Novità, o da Chiedi) compare una conferma grande al centro dello schermo con il nome del gioco e la classifica in cui lo trovi.',
     'Un gioco con un genere non RPG (es. Puzzle, Platform) ora sta solo nella sua classifica di genere e non più in "JRPG / RPG"; "Tutti" li mostra sempre tutti.',
@@ -3530,7 +3535,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v68';
+const DATA_BUILD_VERSION = 'v69';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

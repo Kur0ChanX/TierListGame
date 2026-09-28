@@ -8,6 +8,7 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - `app.js`: tutta la logica (storie, pro/contro, dopamina, filtri, locandine, profili...).
 - `gemini.js`: motore Gemini (riserva/alternativa a Claude) e impostazioni ⚙️ in "Chiedi a Claude". `askLLM()` è il punto unico per chiamare l'AI.
 - `sync.js`: sincronizzazione automatica dei dati `jrpg_*` (localStorage) su un Gist privato via token GitHub (permesso `gist`). Caricato PRIMA di app.js.
+- `theme.css`: tema grafico "Aurora glass" (solo override di style.css, caricato dopo). `fx.js`: piccoli effetti (barra voto, vibrazione, transizione tra schede).
 - `giochi.js`: dati, `const GIOCHI_DATA = {games, sagaMap, enrich, dopa, labels, market};` (~1,9 MB).
 
 ## Regole per risparmiare token
