@@ -29,7 +29,9 @@
         else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{ if(typeof showToast === 'function') showToast('Il browser non permette lo schermo intero qui'); }); }
       }catch(e){}
     });
-    document.addEventListener('fullscreenchange', ()=>{ fs.textContent = document.fullscreenElement ? '🗗' : '⛶'; });
+    const IC_ON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+    const IC_OFF = fs.innerHTML;
+    document.addEventListener('fullscreenchange', ()=>{ fs.innerHTML = document.fullscreenElement ? IC_ON : IC_OFF; });
   }
 
   // 5) installabile come app (solo su http/https, mai dentro Claude)

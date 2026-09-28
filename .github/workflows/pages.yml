@@ -18,6 +18,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Controllo dati (solo avvisi)
+        run: node tools/check-data.js
+        continue-on-error: true
       - name: Prepara il sito
         run: |
           mkdir _site
