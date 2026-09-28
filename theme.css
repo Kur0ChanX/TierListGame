@@ -177,3 +177,21 @@ td.fav:active{transform:scale(1.5) rotate(-12deg)}
 html:fullscreen .topbar{padding-top:calc(6px + env(safe-area-inset-top,0px))}
 .iconbtn svg{display:block}
 .lp-tools{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0}
+
+/* logo Raccoon Tier al posto del titolo */
+h1{background:none !important; -webkit-text-fill-color:initial !important; overflow:visible; align-items:center}
+.brand-logo{height:56px; width:auto; display:block; filter:drop-shadow(0 4px 10px rgba(124,92,255,.45)); animation:logoFloat 5s ease-in-out infinite; transform-origin:50% 90%}
+@keyframes logoFloat{50%{transform:translateY(-2px) rotate(-1.5deg)}}
+.brand-logo:active{animation:pillPop .5s var(--ease)}
+.sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+/* spazio per i pulsanti flottanti in basso: le righe finiscono sopra di loro */
+.wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px)) !important}
+/* schermo intero: contenuto più in alto */
+@media (display-mode:fullscreen){ .topbar{padding-top:calc(4px + env(safe-area-inset-top,0px) * .3) !important} .wrap{padding-top:2px} }
+html:fullscreen .topbar{padding-top:calc(4px + env(safe-area-inset-top,0px) * .3) !important}
+html:fullscreen .wrap{padding-top:2px}
+
+.gc-rows{display:flex; flex-direction:column; gap:6px; margin:8px 0; max-height:46vh; overflow:auto}
+.gc-row{display:flex; gap:10px; align-items:flex-start; padding:8px 10px; border:1px solid var(--glass-line); border-radius:12px; font-size:.82rem}
+.gc-row input{margin-top:3px}
