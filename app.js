@@ -609,7 +609,12 @@ function openListPicker(){
     document.body.appendChild(el);
   }
   const body = NOVITA_GENRE_SECTIONS.map(sec=> `<div class="lp-title">${escHtml(sec.title)}</div><div class="lp-chips">${sec.codes.map(c=> `<button class="list-chip${MY_LISTS.includes(c)?' active':''}" data-lp="${c}">${TAG_INFO[c].icon} ${escHtml(TAG_INFO[c].label)} <span class="list-cnt">${listCount(c)}</span></button>`).join('')}</div>`).join('');
-  el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>Le tue classifiche per genere</b><button class="btn" data-lp-close>Fatto</button></div><div class="lp-sub">Tocca un genere per aggiungerlo o toglierlo dalla barra. La classifica JRPG / RPG resta sempre disponibile.</div>${body}</div>`;
+  el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>Le tue classifiche per genere</b><button class="btn" data-lp-close>Fatto</button></div><div class="lp-sub">Tocca un genere per aggiungerlo o toglierlo dalla barra. La classifica JRPG / RPG resta sempre disponibile.</div><div class="lp-tools"><button class="btn" data-lp-all>➕ Aggiungi tutti i generi che hanno giochi</button><button class="btn" data-lp-none>Togli tutti</button></div>${body}</div>`;
+  el.querySelector('[data-lp-all]').addEventListener('click', ()=>{
+    NOVITA_GENRE_ALL_CODES.forEach(c=>{ if(!MY_LISTS.includes(c) && listCount(c) > 0) MY_LISTS.push(c); });
+    saveLists(); openListPicker();
+  });
+  el.querySelector('[data-lp-none]').addEventListener('click', ()=>{ MY_LISTS = []; ACTIVE_LIST = 'jrpg'; saveLists(); openListPicker(); });
   el.querySelectorAll('[data-lp]').forEach(b=> b.addEventListener('click', ()=>{
     const c = b.dataset.lp, i = MY_LISTS.indexOf(c);
     if(i >= 0){ MY_LISTS.splice(i, 1); if(ACTIVE_LIST === c) ACTIVE_LIST = 'jrpg'; } else MY_LISTS.push(c);
@@ -2270,6 +2275,12 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v72', date:'2026-09-29', items:[
+    'Generi ricontrollati su tutti i 765 giochi: circa 130 correzioni (es. Secret of Mana, Legend of Mana, CrossCode, Ni no Kuni II, Granblue Relink sono Action-RPG; Luminous Arc, Agarest e Shadowrun sono Tattici; i Pokémon e Yo-kai Watch sono Cattura mostri). Persona 4 Arena e Granblue Versus sono ora Picchiaduro, Heroes of Mana e Realms of Ruin sono Strategia in tempo reale, e vanno nelle loro classifiche.',
+    'Nella finestra ➕ Generi c\'è ora "Aggiungi tutti i generi che hanno giochi" per riempire la barra con un tocco.',
+    'Le nuove schede scritte da Claude/Gemini ricevono la data di oggi e il divieto di frasi come "uscito da poco", così non invecchiano più. Aggiunto anche un controllo automatico dei dati (tools/check-data.js).',
+    'Schermo intero: nuova icona e corretto il grosso spazio vuoto in alto.'
+  ]},
   {version:'v71', date:'2026-09-29', items:[
     'Nuovo: ⛶ schermo intero. Il pulsante in alto nasconde la barra del browser e la barra di stato (orario, batteria). Per averlo sempre così: menù ⋮ del browser → "Aggiungi a schermata Home" / "Installa app": si apre come un\'app vera.',
     'Generi corretti su 29 giochi (es. i Pokémon ora sono "Cattura mostri", Phantom Brave e XCOM 2 sono "Tattico a griglia", Slay the Spire è Roguelike, i Xenosaga sono Mecha).',
@@ -2916,8 +2927,11 @@ const ASK_TOOLS = [
     execute: (input)=> askToolAddCustomGame(input)
   }
 ];
+function todayLine(){
+  return 'Data di oggi: ' + new Date().toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) + '. Nei testi che scrivi NON usare espressioni legate al tempo che invecchiano ("uscito da poco", "recentissimo", "troppo presto per giudicare"): indica sempre l\'anno di uscita.\n';
+}
 function askInstructions(){
-  return `Sei l'assistente integrato nel database personale di giochi RPG/JRPG di Mario (${GAMES.length} giochi catalogati con voti, tag, "etichetta" stile valori nutrizionali, compatibilità DNA con i suoi gusti, e dove trovarli in abbonamento oggi). Rispondi sempre in italiano, in modo breve e colloquiale, come in una chat — evita elenchi puntati lunghi se non richiesti esplicitamente.
+  return todayLine() + `Sei l'assistente integrato nel database personale di giochi RPG/JRPG di Mario (${GAMES.length} giochi catalogati con voti, tag, "etichetta" stile valori nutrizionali, compatibilità DNA con i suoi gusti, e dove trovarli in abbonamento oggi). Rispondi sempre in italiano, in modo breve e colloquiale, come in una chat — evita elenchi puntati lunghi se non richiesti esplicitamente.
 Hai questi strumenti sul SUO database, usali sempre invece di inventare voti, tag o dettagli:
 - search_games: cerca giochi per nome, genere/tag, tier, voto minimo, preferiti o stato.
 - get_game_details: dettagli completi di un gioco (etichetta, DNA, abbonamenti, pro/contro, storia).
@@ -3185,7 +3199,7 @@ function novitaExcludeListText(excludeNames){
   return namesList || '(nessuno)';
 }
 function buildNovitaPrompt(count, excludeNames){
-  return `Suggerisci ${count} RPG/JRPG (di qualunque epoca e piattaforma, anche poco conosciuti) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
+  return todayLine() + `Suggerisci ${count} RPG/JRPG (di qualunque epoca e piattaforma, anche poco conosciuti) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 Gusti di Mario: ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
 name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (1-3 valori tra questi codici: ${NOVITA_TAG_ENUM.join(',')}), story (1-2 frasi di trama senza spoiler pesanti), hours (ore indicative per finire la storia, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli ufficiali,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere A MARIO IN PARTICOLARE, in una frase, basandoti sui suoi gusti sopra), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
@@ -3196,7 +3210,7 @@ function buildNovitaGenrePrompt(count, excludeNames, selectedTags, includeOther)
   const scopeLine = labels.length
     ? `Suggerisci SOLO videogiochi che rientrano in almeno uno di questi generi/stili: ${labels.join(', ')}.${includeOther ? ' Includi anche giochi molto simili a questi generi anche se non ci rientrano perfettamente, o stili affini non elencati qui.' : ' Scarta tutto ciò che non rientra chiaramente in questi generi.'} IMPORTANTE: NON limitarti agli RPG — se un genere qui sopra non è un gioco di ruolo (es. sport, corse, sparatutto, strategia, puzzle...), proponi comunque giochi di QUEL genere anche se non hanno alcun elemento da RPG.`
     : `Includi videogiochi di QUALSIASI genere possibile (non solo RPG), di ogni tipo, epoca e piattaforma: varia il più possibile tra i ${count} suggerimenti.`;
-  return `Suggerisci ${count} videogiochi (di qualunque genere, epoca e piattaforma, anche poco conosciuti — NON limitarti a RPG/JRPG) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
+  return todayLine() + `Suggerisci ${count} videogiochi (di qualunque genere, epoca e piattaforma, anche poco conosciuti — NON limitarti a RPG/JRPG) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 ${scopeLine}
 Non scartare un gioco valido solo perché non rientra esattamente nei codici di genere che uso per le etichette (${NOVITA_GENRE_ALL_CODES.join(',')}): includilo comunque e assegna i tag più vicini possibile, oppure lascia l'elenco tags vuoto se nessuno si adatta bene — la categorizzazione delle etichette non deve mai essere un motivo per escludere un gioco valido.
 Contesto sui gusti abituali di Mario, soprattutto orientati a RPG/JRPG (utile SOLO per spiegare perché un titolo potrebbe piacergli comunque, MAI per restringere la ricerca al genere RPG, che qui è solo una delle tante opzioni possibili): ${novitaTasteSummaryText()}
@@ -3548,7 +3562,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v71';
+const DATA_BUILD_VERSION = 'v72';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
