@@ -589,7 +589,7 @@ function saveLists(){ try{ localStorage.setItem(profileKey('jrpg_lists'), JSON.s
 function inActiveList(g){
   if(ACTIVE_LIST === 'all') return true;
   const tags = g.tags || [];
-  if(ACTIVE_LIST === 'jrpg') return !(tags.some(t=> EXTRA_GENRE_INFO[t]) && !tags.some(t=> !EXTRA_GENRE_INFO[t]));
+  if(ACTIVE_LIST === 'jrpg') return !tags.some(t=> EXTRA_GENRE_INFO[t]);
   return tags.includes(ACTIVE_LIST);
 }
 function listCount(id){ const prev = ACTIVE_LIST; ACTIVE_LIST = id; const n = GAMES.filter(inActiveList).length; ACTIVE_LIST = prev; return n; }
@@ -619,9 +619,20 @@ function openListPicker(){
 }
 function ensureGenreLists(tags){
   const added = (tags || []).filter(t=> EXTRA_GENRE_INFO[t] && !MY_LISTS.includes(t));
-  if(!added.length) return;
-  added.forEach(t=> MY_LISTS.push(t)); saveLists(); renderListBar();
-  showToast('Creata la classifica: ' + added.map(t=> TAG_INFO[t].label).join(', '), 3500);
+  if(added.length){ added.forEach(t=> MY_LISTS.push(t)); saveLists(); renderListBar(); }
+  return added;
+}
+// Conferma grande e ben visibile (al centro dello schermo) quando un gioco viene aggiunto
+function showAddedBanner(name, tags, newLists){
+  let el = document.getElementById('addedBanner');
+  if(!el){ el = document.createElement('div'); el.id = 'addedBanner'; el.className = 'added-banner'; document.body.appendChild(el); }
+  const extra = (tags || []).filter(t=> EXTRA_GENRE_INFO[t]);
+  const where = extra.length
+    ? extra.map(t=> `${TAG_INFO[t].icon} ${TAG_INFO[t].label}` + (newLists.includes(t) ? ' (nuova classifica)' : '')).join(', ')
+    : '🎮 JRPG / RPG';
+  el.innerHTML = `<div class="added-title">✅ Aggiunto alla tua libreria!</div><div class="added-name">${escHtml(name)}</div><div class="added-where">Lo trovi in: ${where}</div>`;
+  el.classList.add('show');
+  clearTimeout(el._h); el._h = setTimeout(()=> el.classList.remove('show'), 3200);
 }
 let state = {
   search:'', tiers:new Set(), method:'', decade:'', minScore:'', onlyFavs:false, onlyStory:false,
@@ -2255,6 +2266,11 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v68', date:'2026-09-29', items:[
+    'Quando aggiungi un gioco (❤️ in Novità, o da Chiedi) compare una conferma grande al centro dello schermo con il nome del gioco e la classifica in cui lo trovi.',
+    'Un gioco con un genere non RPG (es. Puzzle, Platform) ora sta solo nella sua classifica di genere e non più in "JRPG / RPG"; "Tutti" li mostra sempre tutti.',
+    'Novità non ripropone più giochi che hai già, anche se il nome è scritto in modo leggermente diverso.'
+  ]},
   {version:'v67', date:'2026-09-29', items:[
     'Nuovo: 🗂️ Classifiche per genere. Sopra le schede trovi la barra "🎮 JRPG / RPG" (la lista di sempre, con tutti i filtri) e, con ➕ Generi, puoi aggiungere una classifica per qualsiasi genere (Platform, Sparatutto, Strategia, Corse…) o toglierla quando vuoi. C\'è anche "🌐 Tutti".',
     'Quando aggiungi da Novità per genere un gioco di un genere non RPG, la sua classifica viene creata da sola.',
@@ -2800,8 +2816,8 @@ function askToolAddCustomGame(input, sourceLabel){
     addedAt: new Date().toISOString()
   };
   try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){}
-  ensureGenreLists(tags);
-  showToast(`✨ ${name} aggiunto alla tua libreria!`);
+  const newLists = ensureGenreLists(tags);
+  showAddedBanner(name, tags, newLists);
   return {id, name, added: true, resultNote: 'Salvato nel database di Mario: comparirà nella classifica su ogni suo dispositivo.'};
 }
 const ASK_TOOLS = [
@@ -3208,7 +3224,7 @@ function dedupeNovitaCandidates(arr, known, tagEnum){
   return arr.map(c=> cleanNovitaCandidate(c, tagEnum)).filter(c=>{
     if(!c) return false;
     const k = c.name.toLowerCase().trim();
-    if(known.has(k) || seenBatch.has(k)) return false;
+    if(known.has(k) || seenBatch.has(k) || findDuplicateGame(c.name)) return false;
     seenBatch.add(k);
     return true;
   });
@@ -3514,7 +3530,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v67';
+const DATA_BUILD_VERSION = 'v68';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

@@ -479,3 +479,10 @@ label.cover-pill.busy input[type=file]{pointer-events:none;}
 .lp-sub{font-size:.8rem;opacity:.8;margin-bottom:8px}
 .lp-title{font-weight:700;font-size:.85rem;margin:12px 0 6px;text-transform:uppercase;opacity:.75}
 .lp-chips{display:flex;flex-wrap:wrap;gap:6px}
+
+.added-banner{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.95);z-index:100001;background:#e8f5e9;color:#1b5e20;border:3px solid #43a047;border-radius:18px;padding:18px 22px;max-width:88vw;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.added-banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.added-title{font-size:20px;font-weight:800}
+.added-name{font-size:17px;font-weight:700;margin:8px 0;background:#fff;border-radius:10px;padding:6px 10px}
+.added-where{font-size:14px}
+@media (prefers-color-scheme:dark){.added-banner{background:#173a1c;color:#c8f7cc}.added-name{background:#0f2612}}
