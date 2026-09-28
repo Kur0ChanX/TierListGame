@@ -574,6 +574,55 @@ function moveToTier(id, tier){
   showToast(`${g.name} spostato in ${tier}`);
 }
 
+// ---- Classifiche per genere: "JRPG / RPG" (predefinita) + le liste per genere che scegli tu ----
+let ACTIVE_LIST = 'jrpg';   // 'jrpg' | 'all' | codice genere
+let MY_LISTS = [];          // codici genere aggiunti come classifica
+function loadLists(){
+  ACTIVE_LIST = 'jrpg'; MY_LISTS = [];
+  try{
+    const v = JSON.parse(localStorage.getItem(profileKey('jrpg_lists')) || 'null');
+    if(v && Array.isArray(v.mine)) MY_LISTS = v.mine.filter(c=> TAG_INFO[c]);
+    if(v && typeof v.sel === 'string' && (v.sel === 'jrpg' || v.sel === 'all' || MY_LISTS.includes(v.sel))) ACTIVE_LIST = v.sel;
+  }catch(e){}
+}
+function saveLists(){ try{ localStorage.setItem(profileKey('jrpg_lists'), JSON.stringify({sel: ACTIVE_LIST, mine: MY_LISTS})); }catch(e){} }
+function inActiveList(g){
+  if(ACTIVE_LIST === 'all') return true;
+  const tags = g.tags || [];
+  if(ACTIVE_LIST === 'jrpg') return !(tags.some(t=> EXTRA_GENRE_INFO[t]) && !tags.some(t=> !EXTRA_GENRE_INFO[t]));
+  return tags.includes(ACTIVE_LIST);
+}
+function listCount(id){ const prev = ACTIVE_LIST; ACTIVE_LIST = id; const n = GAMES.filter(inActiveList).length; ACTIVE_LIST = prev; return n; }
+function setActiveList(id){ ACTIVE_LIST = id; saveLists(); renderListBar(); if(typeof setView === 'function') setView(state.view); }
+function renderListBar(){
+  const bar = document.getElementById('listBar'); if(!bar) return;
+  const chip = (id, icon, label)=> `<button class="list-chip${ACTIVE_LIST===id?' active':''}" data-list="${id}">${icon} ${escHtml(label)} <span class="list-cnt">${listCount(id)}</span></button>`;
+  bar.innerHTML = chip('jrpg','🎮','JRPG / RPG') + MY_LISTS.map(c=> chip(c, TAG_INFO[c].icon, TAG_INFO[c].label)).join('') + chip('all','🌐','Tutti') + `<button class="list-chip list-add" id="listAddBtn">➕ Generi</button>`;
+  bar.querySelectorAll('[data-list]').forEach(b=> b.addEventListener('click', ()=> setActiveList(b.dataset.list)));
+  document.getElementById('listAddBtn').addEventListener('click', openListPicker);
+}
+function openListPicker(){
+  let el = document.getElementById('listPickerBackdrop');
+  if(!el){
+    el = document.createElement('div'); el.id = 'listPickerBackdrop'; el.className = 'dup-backdrop';
+    el.addEventListener('click', (e)=>{ if(e.target === el || e.target.closest('[data-lp-close]')){ el.classList.remove('show'); renderListBar(); } });
+    document.body.appendChild(el);
+  }
+  const body = NOVITA_GENRE_SECTIONS.map(sec=> `<div class="lp-title">${escHtml(sec.title)}</div><div class="lp-chips">${sec.codes.map(c=> `<button class="list-chip${MY_LISTS.includes(c)?' active':''}" data-lp="${c}">${TAG_INFO[c].icon} ${escHtml(TAG_INFO[c].label)} <span class="list-cnt">${listCount(c)}</span></button>`).join('')}</div>`).join('');
+  el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>Le tue classifiche per genere</b><button class="btn" data-lp-close>Fatto</button></div><div class="lp-sub">Tocca un genere per aggiungerlo o toglierlo dalla barra. La classifica JRPG / RPG resta sempre disponibile.</div>${body}</div>`;
+  el.querySelectorAll('[data-lp]').forEach(b=> b.addEventListener('click', ()=>{
+    const c = b.dataset.lp, i = MY_LISTS.indexOf(c);
+    if(i >= 0){ MY_LISTS.splice(i, 1); if(ACTIVE_LIST === c) ACTIVE_LIST = 'jrpg'; } else MY_LISTS.push(c);
+    saveLists(); openListPicker();
+  }));
+  el.classList.add('show');
+}
+function ensureGenreLists(tags){
+  const added = (tags || []).filter(t=> EXTRA_GENRE_INFO[t] && !MY_LISTS.includes(t));
+  if(!added.length) return;
+  added.forEach(t=> MY_LISTS.push(t)); saveLists(); renderListBar();
+  showToast('Creata la classifica: ' + added.map(t=> TAG_INFO[t].label).join(', '), 3500);
+}
 let state = {
   search:'', tiers:new Set(), method:'', decade:'', minScore:'', onlyFavs:false, onlyStory:false,
   tags:new Set(), status:'', sortKey:'id', sortDir:1, view:'list', mood:''
@@ -745,7 +794,7 @@ function renderStatsPanel(){
 }
 
 function applyFilters(){
-  let list = GAMES;
+  let list = GAMES.filter(inActiveList);
   if(state.tiers.size>0) list = list.filter(g=> state.tiers.has(state.view==='mytier' ? effectiveTier(g) : g.tier));
   if(state.method) list = list.filter(g=>g.m===state.method);
   if(state.decade){
@@ -799,7 +848,7 @@ function render(){
   const list = applyFilters();
   const tbody = document.getElementById('tbody');
   const emptyMsg = document.getElementById('emptyMsg');
-  document.getElementById('countLine').textContent = `${list.length} risultati su ${GAMES.length}`;
+  document.getElementById('countLine').textContent = `${list.length} risultati su ${GAMES.filter(inActiveList).length}`;
   document.getElementById('favCountLine').textContent = FAVS.size ? `★ ${FAVS.size} preferiti` : '';
 
   if(list.length===0){ tbody.innerHTML=''; emptyMsg.style.display='block'; return; }
@@ -1292,7 +1341,7 @@ function syncCustomGames(snap){
       CUSTOM_GAME_IDS.delete(id);
     }
   });
-  try{ renderMetrics(); renderStats(); render(); }catch(e){}
+  try{ renderMetrics(); renderStats(); render(); renderListBar(); }catch(e){}
 }
 async function pasteCover(g){
   coverLog('provo a leggere gli appunti');
@@ -1377,6 +1426,31 @@ async function handleCoverUpload(g, file){
     coverBusy = false; refreshCover(g);
   }
 }
+// Foto copertina fuori da Claude: ridotte (max 480px) e salvate in localStorage, poi sincronizzate con il resto
+function localBlobs(){ try{ return JSON.parse(localStorage.getItem('jrpg_db_blobs') || '{}') || {}; }catch(e){ return {}; } }
+function makeLocalAssets(){
+  const small = blob=> new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(blob), im = new Image();
+    im.onload = ()=>{
+      const s = Math.min(1, 480 / Math.max(im.naturalWidth, im.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * s)); c.height = Math.max(1, Math.round(im.naturalHeight * s));
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.72));
+    };
+    im.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('immagine non leggibile')); };
+    im.src = url;
+  });
+  return {
+    async upload(blob){
+      const dataUrl = await small(blob);
+      const id = Array.from({length:32}, ()=> Math.floor(Math.random()*16).toString(16)).join('');
+      const all = localBlobs(); all[id] = dataUrl;
+      try{ localStorage.setItem('jrpg_db_blobs', JSON.stringify(all)); }catch(e){ const err = new Error('spazio del browser esaurito'); err.code = 'quota'; throw err; }
+      return {id, url: dataUrl, sizeBytes: dataUrl.length, contentType: 'image/jpeg'};
+    },
+    async delete(id){ const all = localBlobs(); delete all[id]; try{ localStorage.setItem('jrpg_db_blobs', JSON.stringify(all)); }catch(e){} }
+  };
+}
 // ---- Fuori da Claude non c'è il database: un piccolo archivio in localStorage con la stessa interfaccia ----
 function makeLocalDb(){
   const key = c=> 'jrpg_db_' + c;
@@ -1408,7 +1482,7 @@ function attachDbListeners(){
         snap.docs.forEach(d=>{
           const v = d.data();
           if(!v) return;
-          if(typeof v.asset === 'string' && /^[0-9a-f]{32}$/.test(v.asset)){ next[d.id] = '/_blob/' + v.asset; nextIds[d.id] = v.asset; }
+          if(typeof v.asset === 'string' && /^[0-9a-f]{32}$/.test(v.asset)){ next[d.id] = localBlobs()[v.asset] || ('/_blob/' + v.asset); nextIds[d.id] = v.asset; }
           else if(typeof v.url === 'string' && /^https?:\/\//i.test(v.url)){ next[d.id] = v.url; }
         });
         USER_COVERS = next; USER_COVER_IDS = nextIds;
@@ -1421,8 +1495,9 @@ function attachDbListeners(){
 }
 (function initCoverStore(){
   if(!(window.claude && typeof window.claude.use === 'function')){
-    COVER_STATE = 'unavailable';
     COVER_DB = makeLocalDb();
+    COVER_ASSETS = makeLocalAssets();
+    COVER_STATE = 'ready';
     attachDbListeners();
     coverLog('window.claude non disponibile: pagina aperta fuori dalla piattaforma Claude (es. file salvato in locale)');
     return;
@@ -2180,6 +2255,12 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v67', date:'2026-09-29', items:[
+    'Nuovo: 🗂️ Classifiche per genere. Sopra le schede trovi la barra "🎮 JRPG / RPG" (la lista di sempre, con tutti i filtri) e, con ➕ Generi, puoi aggiungere una classifica per qualsiasi genere (Platform, Sparatutto, Strategia, Corse…) o toglierla quando vuoi. C\'è anche "🌐 Tutti".',
+    'Quando aggiungi da Novità per genere un gioco di un genere non RPG, la sua classifica viene creata da sola.',
+    'Copertine: il tasto per caricare/scattare la foto dal telefono torna disponibile anche sul sito GitHub (foto ridotte e sincronizzate con gli altri dati).',
+    'Gemini: se il modello è sovraccarico riprova da solo e poi passa al modello più leggero, così Novità non si blocca più con l\'errore "high demand".'
+  ]},
   {version:'v66', date:'2026-09-28', items:[
     'Nuovo: ☁️ Sincronizzazione automatica. In "Chiedi" → ⚙️ Impostazioni incolli un token GitHub (il link ti porta già al permesso giusto) e da quel momento preferiti, stati, tier list, abbonamenti, giochi aggiunti e locandine (link) si salvano da soli in un file privato del tuo GitHub e si ritrovano su ogni dispositivo.',
     'Gemini ora aggiunge i giochi con le stesse informazioni di Claude: voto, tier, generi, trama, ritmo, lingua, fa per te se / lascia stare se, e anche Pro e Contro nella scheda.',
@@ -2266,7 +2347,7 @@ function switchProfile(id){
   if(!PROFILES.some(p=>p.id===id)) return;
   ACTIVE_PROFILE_ID = id;
   saveActiveProfileId();
-  loadFavs(); loadStatuses(); loadMyTier(); loadMySubs(); loadDiscoverSkipped();
+  loadFavs(); loadStatuses(); loadMyTier(); loadMySubs(); loadDiscoverSkipped(); loadLists(); renderListBar();
   loadNovitaSkipped(); loadNovitaSkippedDetails(); loadNovitaGenreSelected(); loadNovitaGenreOther();
   // Le proposte di Novità già in corso appartengono al profilo precedente: si riparte da capo.
   novitaQueue = []; novitaIdx = 0; novitaErrorMsg = null; novitaEverFetched = false; novitaSkippedListOpen = false;
@@ -2719,6 +2800,7 @@ function askToolAddCustomGame(input, sourceLabel){
     addedAt: new Date().toISOString()
   };
   try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){}
+  ensureGenreLists(tags);
   showToast(`✨ ${name} aggiunto alla tua libreria!`);
   return {id, name, added: true, resultNote: 'Salvato nel database di Mario: comparirà nella classifica su ogni suo dispositivo.'};
 }
@@ -2829,6 +2911,7 @@ function askErrorCopy(code){
     case 'gemini_bad_key': return 'Chiave Gemini non valida: controllala su Google AI Studio.';
     case 'gemini_rate_limited': return 'Gemini ha raggiunto il suo limite gratuito: riprova più tardi.';
     case 'gemini_network': return 'Non riesco a contattare Google da questa pagina. Dentro la pagina Claude le connessioni esterne sono bloccate: apri la versione su GitHub Pages (o il file dal disco) per usare Gemini.';
+    case 'gemini_busy': return 'Gemini è molto richiesto in questo momento (ho già riprovato anche con il modello leggero): riprova tra qualche minuto.';
     case 'gemini_error': return 'Gemini ha restituito un errore: riprova tra poco.';
     case 'not_granted': return 'Hai negato il permesso di usare Claude in questa pagina.';
     case 'sampling_disabled': return 'Claude non è disponibile per questo account al momento.';
@@ -3430,7 +3513,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v66';
+const DATA_BUILD_VERSION = 'v67';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
@@ -3443,3 +3526,4 @@ renderStats();
 renderTagChips();
 renderMoodChips();
 render();
+loadLists(); renderListBar(); if(state.view === 'list') render();

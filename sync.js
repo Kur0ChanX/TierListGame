@@ -82,7 +82,12 @@
       const id = await findOrCreateGist();
       const g = await gh('/gists/' + id);
       let remote = {};
-      try{ remote = JSON.parse((g.files && g.files[FILE] && g.files[FILE].content) || '{}').keys || {}; }catch(e){}
+      try{
+        const f = g.files && g.files[FILE];
+        let txt = (f && f.content) || '{}';
+        if(f && f.truncated && f.raw_url){ const rr = await fetch(f.raw_url); if(rr.ok) txt = await rr.text(); }
+        remote = JSON.parse(txt).keys || {};
+      }catch(e){}
       const changed = mergeRemote(remote);
       const snap = snapshot();
       const needPush = Object.keys(snap).some(k=> !remote[k] || snap[k].t > remote[k].t);
