@@ -1288,6 +1288,14 @@ function syncCustomGames(snap){
   });
   try{ renderMetrics(); renderStats(); render(); }catch(e){}
 }
+// ---- Fuori da Claude (GitHub Pages / file locale) non c'è il database: i giochi aggiunti stanno in localStorage ----
+function localCustomLoad(){ try{ return JSON.parse(localStorage.getItem('jrpg_custom_games') || '{}') || {}; }catch(e){ return {}; } }
+function localCustomApply(all){ syncCustomGames({docs: Object.keys(all).map(k=>({id:k, data:()=>all[k]}))}); }
+function localCustomSave(id, doc){
+  const all = localCustomLoad(); all[id] = doc;
+  try{ localStorage.setItem('jrpg_custom_games', JSON.stringify(all)); }catch(e){}
+  localCustomApply(all);
+}
 async function pasteCover(g){
   coverLog('provo a leggere gli appunti');
   try{
@@ -2140,7 +2148,8 @@ const CHANGELOG = [
   {version:'v65', date:'2026-09-28', items:[
     'Nuovo: ✨ Gemini come alternativa a Claude. In "Chiedi a Claude" apri ⚙️ Motore AI, incolla la tua chiave gratuita di Google AI Studio e scegli: Automatico (Gemini prende il posto di Claude quando ha raggiunto il limite), solo Claude o solo Gemini.',
     'Vale anche per Novità e Novità per genere (con ricerca web di Gemini per titoli nuovi). Con una chiave Gemini le foto di copertine si possono inviare anche dal browser del telefono. Il controllo doppioni resta attivo con entrambi i motori.',
-    'La chiave resta salvata solo nel tuo browser e non entra mai nel codice.'
+    'La chiave resta salvata solo nel tuo browser e non entra mai nel codice.',
+    'Nella pagina Claude le connessioni esterne sono bloccate: per usare Gemini apri la versione su GitHub Pages. Lì i giochi aggiunti si salvano nel browser del dispositivo.'
   ]},
   {version:'v64', date:'2026-09-28', items:[
     'Nuovo: ⚠️ controllo doppioni molto più intelligente. Se chiedi a Claude di aggiungere un gioco che hai già (anche scritto in modo diverso: maiuscole, accenti, parentesi, "The"), compare un avviso giallo ben visibile "Il gioco è già nel tuo database!" con il tasto per aprire la scheda, e il gioco NON viene aggiunto.',
@@ -2638,7 +2647,7 @@ function askToolAddCustomGame(input, sourceLabel){
     showDuplicateBanner(existing);
     throw new Error(`DOPPIONE: "${existing.name}" è già nel database (id ${existing.id}) e NON è stato aggiunto. Dillo a Mario chiaramente e usa get_game_details su quell'id invece di riprovare ad aggiungerlo.`);
   }
-  if(!COVER_DB) throw new Error('Il database non è raggiungibile in questa pagina in questo momento: riprova più tardi o da un altro dispositivo/browser di Mario.');
+  if(!COVER_DB && (window.claude && window.claude.use)) throw new Error('Il database non è raggiungibile in questa pagina in questo momento: riprova più tardi o da un altro dispositivo/browser di Mario.');
   const id = nextCustomGameId();
   const tier = TIERS_LIST.includes(input.tier) ? input.tier : 'B';
   const score = clampIntOrNull(input.score, 0, 100);
@@ -2666,7 +2675,8 @@ function askToolAddCustomGame(input, sourceLabel){
     label,
     addedAt: new Date().toISOString()
   };
-  try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){}
+  if(COVER_DB){ try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){} }
+  else localCustomSave(id, doc);
   showToast(`✨ ${name} aggiunto alla tua libreria!`);
   return {id, name, added: true, resultNote: 'Salvato nel database di Mario: comparirà nella classifica su ogni suo dispositivo.'};
 }
@@ -2774,7 +2784,7 @@ function askErrorCopy(code){
   switch(code){
     case 'gemini_bad_key': return 'Chiave Gemini non valida: controllala su Google AI Studio.';
     case 'gemini_rate_limited': return 'Gemini ha raggiunto il suo limite gratuito: riprova più tardi.';
-    case 'gemini_network': return 'Non riesco a contattare Google da questa pagina (connessione bloccata o assente).';
+    case 'gemini_network': return 'Non riesco a contattare Google da questa pagina. Dentro la pagina Claude le connessioni esterne sono bloccate: apri la versione su GitHub Pages (o il file dal disco) per usare Gemini.';
     case 'gemini_error': return 'Gemini ha restituito un errore: riprova tra poco.';
     case 'not_granted': return 'Hai negato il permesso di usare Claude in questa pagina.';
     case 'sampling_disabled': return 'Claude non è disponibile per questo account al momento.';
@@ -3385,3 +3395,4 @@ renderStats();
 renderTagChips();
 renderMoodChips();
 render();
+if(!(window.claude && window.claude.use)){ const _lc = localCustomLoad(); if(Object.keys(_lc).length) localCustomApply(_lc); }
