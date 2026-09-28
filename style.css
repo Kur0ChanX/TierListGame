@@ -468,3 +468,14 @@ label.cover-pill.busy input[type=file]{pointer-events:none;}
 .novita-topbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .novita-engine{display:flex;align-items:center;gap:6px;font-size:.8rem}
 .novita-engine select{font:inherit;padding:6px;border-radius:8px;border:1px solid var(--border,#ccc);background:var(--row-alt,#fff);color:inherit;max-width:60vw}
+
+.list-bar{display:flex;gap:8px;overflow-x:auto;padding:6px 0;margin:4px 0;-webkit-overflow-scrolling:touch}
+.list-chip{flex:0 0 auto;font:inherit;font-size:.85rem;padding:6px 12px;border-radius:999px;border:1px solid var(--border,#ccc);background:var(--card,#fff);color:inherit;cursor:pointer;white-space:nowrap}
+.list-chip.active{background:var(--accent,#7c5cff);color:#fff;border-color:transparent}
+.list-cnt{opacity:.7;font-size:.75rem;margin-left:2px}
+.list-add{border-style:dashed}
+.lp-card{background:var(--card,#fff);color:var(--text,#222);border-radius:16px;padding:16px;max-width:520px;width:100%;max-height:85vh;overflow:auto}
+.lp-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.lp-sub{font-size:.8rem;opacity:.8;margin-bottom:8px}
+.lp-title{font-weight:700;font-size:.85rem;margin:12px 0 6px;text-transform:uppercase;opacity:.75}
+.lp-chips{display:flex;flex-wrap:wrap;gap:6px}

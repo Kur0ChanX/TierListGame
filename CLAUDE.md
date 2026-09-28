@@ -22,3 +22,4 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - Il token GitHub (`jrpg_sync_token`) sta solo in localStorage: mai nel codice, nei commit o nei file.
 - Fuori da Claude `COVER_DB` è un archivio locale (`makeLocalDb` in app.js) con la stessa interfaccia del db di Claude.
 - Ogni nuovo file JS va aggiunto a `.github/workflows/pages.yml` e alla pubblicazione dell'artifact.
+- Classifiche per genere: `ACTIVE_LIST`, `MY_LISTS`, `inActiveList()` in app.js; `applyFilters()` parte sempre da `GAMES.filter(inActiveList)`. La lista `jrpg` è quella predefinita.

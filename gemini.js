@@ -1,7 +1,8 @@
 // ---- Gemini come riserva/alternativa a Claude (chiave API di Google AI Studio) ----
 // La chiave NON sta nel codice: la incolla l'utente e resta solo in localStorage di questo browser.
 const GEMINI_MODEL = 'gemini-flash-latest';
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
+const GEMINI_FALLBACK_MODEL = 'gemini-flash-lite-latest';
+const geminiUrl = m=> 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent';
 const GEMINI_NO_FALLBACK = ['cancelled','refused','empty_completion','prompt_too_large','image_rejected'];
 
 function geminiKey(){ try{ return (localStorage.getItem('jrpg_gemini_key') || '').trim(); }catch(e){ return ''; } }
@@ -10,10 +11,10 @@ function llmEngine(){ try{ return localStorage.getItem('jrpg_engine') || 'auto';
 function setLlmEngine(v){ try{ localStorage.setItem('jrpg_engine', v); }catch(e){} }
 function llmAvailable(){ return !!(askSample || geminiKey()); }
 
-async function geminiFetch(body, signal){
+async function geminiFetch(body, signal, model){
   let r;
   try{
-    r = await fetch(GEMINI_URL, {method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':geminiKey()}, body:JSON.stringify(body), signal});
+    r = await fetch(geminiUrl(model || GEMINI_MODEL), {method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':geminiKey()}, body:JSON.stringify(body), signal});
   }catch(e){
     const err = new Error(e && e.message || 'rete');
     err.code = (e && e.name === 'AbortError') ? 'cancelled' : 'gemini_network';
@@ -24,10 +25,29 @@ async function geminiFetch(body, signal){
     try{ const j = await r.json(); msg = (j.error && j.error.message) || ''; }catch(e){}
     const err = new Error(msg || ('HTTP ' + r.status));
     err.status = r.status;
-    err.code = r.status === 429 ? 'gemini_rate_limited' : (r.status === 403 || (r.status === 400 && /api key/i.test(msg))) ? 'gemini_bad_key' : 'gemini_error';
+    err.code = r.status === 429 ? 'gemini_rate_limited' : r.status === 503 ? 'gemini_busy' : (r.status === 403 || (r.status === 400 && /api key/i.test(msg))) ? 'gemini_bad_key' : 'gemini_error';
     throw err;
   }
   return r.json();
+}
+
+const sleep = ms=> new Promise(r=> setTimeout(r, ms));
+// Se il modello è sovraccarico (503/500) riprova con calma, poi passa al modello più leggero; se è al limite (429) prova subito quello leggero
+async function callGemini(body, signal){
+  let lastErr;
+  for(const [mi, model] of [GEMINI_MODEL, GEMINI_FALLBACK_MODEL].entries()){
+    const attempts = mi === 0 ? 3 : 1;
+    for(let a = 0; a < attempts; a++){
+      try{ return await geminiFetch(body, signal, model); }
+      catch(e){
+        lastErr = e;
+        if(![429, 500, 503].includes(e.status)) throw e;
+        if(e.status === 429) break;
+        if(a < attempts - 1){ if(signal && signal.aborted) throw e; await sleep(1500 * (a + 1)); }
+      }
+    }
+  }
+  throw lastErr;
 }
 
 function blobToInlineData(blob){
@@ -68,10 +88,10 @@ async function geminiGenerate(input, opts, extra){
   for(let round = 0; round < 6; round++){
     let data;
     try{
-      data = await geminiFetch(body, opts.signal);
+      data = await callGemini(body, opts.signal);
     }catch(e){
       // la ricerca web (grounding) può non essere disponibile sul piano gratuito: riprovo senza
-      if(body.tools && !tools.length && ((e.code === 'gemini_error' && e.status === 400) || e.status === 429)){ delete body.tools; data = await geminiFetch(body, opts.signal); }
+      if(body.tools && !tools.length && ((e.code === 'gemini_error' && e.status === 400) || e.status === 429)){ delete body.tools; data = await callGemini(body, opts.signal); }
       else throw e;
     }
     const cand = data.candidates && data.candidates[0];
