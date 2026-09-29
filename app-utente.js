@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v126', date:'2026-09-30', items:[
+    'Sicurezza: le richieste con chiave (RAWG) non passano più dai ponti pubblici e il registro diagnostico nasconde le chiavi anche negli indirizzi annidati; il registro già salvato viene ripulito.',
+    'Ricerca più veloce e stabile: massimo di richieste contemporanee per sito, pausa automatica per le fonti mute (Steam e Reddit dietro ponti morti), Wikipedia sempre in accesso diretto, verifica dei giochi appena aggiunti uno alla volta e con fonti leggere, trama di una frase nelle proposte (la trama completa arriva con il ♥).',
+    'RAWG: gli «affini» ora usano generi e tag distintivi (la lista suggerita di RAWG è solo a pagamento).'
+  ]},
   {version:'v125', date:'2026-09-30', items:[
     'RAWG (chiave gratuita in ⚙️) usata ovunque: scoperta di giochi con anni, generi e ordinamenti sempre diversi, uscite dell\'ultimo anno e in arrivo, giochi affini ai tuoi preferiti, capitoli mancanti delle saghe (elenco ufficiale della serie), controllo di anno e voto Metacritic nel controllo dati e in «Aggiorna info», descrizione come fonte per le trame, giochi affini nelle schede e copertina di riserva.',
     'Icone a tema videogioco al posto di quelle lineari: barra delle viste (pergamena, inventario, carte, bacchetta), ricerca (lente a gradiente), generi (joypad, globo), preferiti (stella d\'oro). La finestra Chiedi non nasconde più il messaggio iniziale sotto le impostazioni; pulsante «Diagnostica fonti» in ⚙️.'

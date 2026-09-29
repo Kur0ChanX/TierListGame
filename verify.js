@@ -125,11 +125,13 @@
   async function rawgInfoFor(g){
     if(!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has())) return null;
     const i = await SearchHub.rawg.info(g.name); if(!i) return null;
-    try{ i.similar = (await SearchHub.rawg.suggested(i.id, 8)).filter(n=> n && n.toLowerCase() !== String(g.name).toLowerCase()).slice(0, 6); }catch(e){ i.similar = []; }
+    try{ i.similar = (await SearchHub.rawg.similar(i, 8)).filter(n=> n && n.toLowerCase() !== String(g.name).toLowerCase()).slice(0, 6); }catch(e){ i.similar = []; }
     return i;
   }
-  async function gather(g){
-    const [wiki, wd, itw, steam, pcgw, rawg] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), steamInfo(g.name), pcgwInfo(g.name), rawgInfoFor(g)]);
+  async function gather(g, lite){
+    // lite: solo le fonti leggere (Wikipedia, Wikidata, RAWG); Steam e PCGamingWiki (lingue) restano per «Aggiorna info»
+    const none = Promise.resolve(null);
+    const [wiki, wd, itw, steam, pcgw, rawg] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g)]);
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
     return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
@@ -313,11 +315,17 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   document.addEventListener('click', e=>{ if(e.target && e.target.id === 'updateInfoBtn' && typeof currentModalGame !== 'undefined' && currentModalGame) openUpdateInfo(currentModalGame); });
 
   // ----- giochi nuovi: controllo automatico di voto, generi e anno (senza AI) -----
-  window.verifyNewGameGenres = async function(id, doc){
+  // i giochi aggiunti (anche 30 di fila con il ♥) vengono verificati UNO alla volta, con fonti leggere: niente raffiche che intasano Wikipedia e i ponti
+  let vngQueue = Promise.resolve();
+  window.verifyNewGameGenres = function(id, doc){
+    vngQueue = vngQueue.then(()=> verifyNewOne(id, doc)).catch(()=>{}).then(()=> new Promise(r=> setTimeout(r, 1200)));
+    return vngQueue;
+  };
+  async function verifyNewOne(id, doc){
     try{
       const g = GAMES.find(x=> x.id === id); if(!g) return;
-      const src = await gather({name: doc.name});
-      const ch = factChanges(g, src);
+      const src = await gather({name: doc.name}, true);
+      const ch = factChanges(g, src).filter(c=> !c.off && c.id !== 'score3');   // in automatico solo le correzioni sicure
       if(!ch.length) return;
       await applyPatch(g, mergePatch(ch));
       showToast('🔎 Verificato su Wikipedia/Wikidata: ' + ch.map(c=> c.label).join(', ') + ' aggiornati', 5000);

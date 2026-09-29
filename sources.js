@@ -53,9 +53,23 @@
     else { h.fail++; h.streak = (h.streak || 0) + 1; if(h.streak >= 3){ h.cool = Date.now() + 10 * 60e3; h.streak = 0; } }   // 3 errori di fila: pausa di 10 minuti
     ls.set(HK, health);
   }
-  function flagNeedsRelay(host){ if(typeof navigator !== 'undefined' && navigator.onLine === false) return; needsRelay[host] = Date.now() + 3 * 3600e3; ls.set(NRK, needsRelay); }
+  // siti che permettono l'accesso diretto dal browser: non vanno mai spostati sui ponti (i ponti sono lenti e spesso morti)
+  const CORS_OK = new Set(['en.wikipedia.org', 'it.wikipedia.org', 'www.wikidata.org', 'query.wikidata.org', 'www.pcgamingwiki.com', 'api.rawg.io', 'www.cheapshark.com', 'steamspy.com']);
+  function flagNeedsRelay(host){
+    if(CORS_OK.has(host)) return; if(typeof navigator !== 'undefined' && navigator.onLine === false) return; needsRelay[host] = Date.now() + 30 * 60e3; ls.set(NRK, needsRelay); }
   H.relayStatus = ()=> RELAYS.map(r=> ({name: r.name, score: Math.round(relayScore(r.name) * 100), cooling: relayCooling(r.name), ...(health[r.name] || {})}));
 
+  // massimo di richieste contemporanee per sito (troppe insieme = lentezza e blocchi) e interruttore per le fonti mute
+  const MAXC = {'store.steampowered.com': 2, 'www.reddit.com': 1, 'old.reddit.com': 1, 'api.reddit.com': 1, 'query.wikidata.org': 1, 'api.rawg.io': 3, 'www.pcgamingwiki.com': 2};
+  const actC = {}, waitQ = {};
+  async function slot(host){
+    const max = MAXC[host] || 3;
+    while((actC[host] || 0) >= max) await new Promise(r=> (waitQ[host] = waitQ[host] || []).push(r));
+    actC[host] = (actC[host] || 0) + 1;
+    let done = false;
+    return ()=>{ if(done) return; done = true; actC[host]--; const w = (waitQ[host] || []).shift(); if(w) w(); };
+  }
+  const hostFails = {}, hostDown = {}, hostTrips = {};
   const cache = new Map();
   async function once(url, o){
     const ctrl = new AbortController(), tm = setTimeout(()=> ctrl.abort(), o.timeout || 12000);
@@ -74,11 +88,13 @@
     o = Object.assign({as: 'json', direct: true, relays: true, timeout: 12000, retries: 1, cache: true}, o || {});
     const ck = o.as + ':' + url, hit = cache.get(ck);
     if(o.cache && hit && Date.now() - hit.t < 10 * 60e3) return hit.v;
-    const host = hostOf(url), attempts = []; let lastErr = null;
-    const done = v=>{ if(o.cache) cache.set(ck, {t: Date.now(), v}); return v; };
+    const host = hostOf(url), attempts = []; let lastErr = null, usedRelay = false;
+    if(hostDown[host] && hostDown[host] > Date.now()){ const e = new Error('fonte in pausa (non risponde da un po\': riprovo tra qualche minuto)'); e.fast = true; throw e; }
+    const done = v=>{ hostFails[host] = 0; hostTrips[host] = 0; if(needsRelay[host] && !usedRelay){ delete needsRelay[host]; ls.set(NRK, needsRelay); } if(o.cache) cache.set(ck, {t: Date.now(), v}); return v; };
     if(o.direct && !(needsRelay[host] && needsRelay[host] > Date.now() && o.relays)){
       await gap(host);
       for(let a = 0; a <= o.retries; a++){
+        const rel = await slot(host);
         try{ return done(await once(url, o)); }
         catch(e){
           lastErr = e; attempts.push('diretto: ' + emsg(e));
@@ -89,7 +105,7 @@
           }
           if(!e.status && e.name !== 'AbortError') flagNeedsRelay(host);      // errore di rete/CORS: le prossime volte passo direttamente dai ponti
           break;
-        }
+        } finally { rel(); }
       }
     }
     if(o.relays){
@@ -98,20 +114,24 @@
       for(const R of list){
         const full = R.url(url);
         await gap(hostOf(full));
+        const relSlot = await slot(hostOf(full));
         try{
-          const v = await once(full, Object.assign({}, o, {timeout: Math.min(o.timeout || 12000, 8000)}));
+          usedRelay = true;
+          const v = await once(full, Object.assign({}, o, {timeout: Math.min(o.timeout || 12000, 7000)}));
           markRelay(R.name, true); LOG({kind: 'relay', src: R.name, ok: true, note: 'ponte riuscito per ' + host});
           return done(v);
         }catch(e){
           markRelay(R.name, false); lastErr = e; attempts.push(R.name + ': ' + emsg(e));
           LOG({kind: 'relay', src: R.name, ok: false, err: emsg(e) + ' (per ' + host + ')'});
-        }
+        } finally { relSlot(); }
       }
     }
     // ultima spiaggia: se avevo saltato l'accesso diretto perché in passato serviva un ponte, provo comunque una volta
     if(o.direct && o.relays && needsRelay[host] && needsRelay[host] > Date.now()){
       try{ return done(await once(url, o)); }catch(e){ lastErr = e; attempts.push('diretto (ultima spiaggia): ' + emsg(e)); }
     }
+    hostFails[host] = (hostFails[host] || 0) + 1;
+    if(hostFails[host] >= 3 && o.relays !== false){ hostTrips[host] = (hostTrips[host] || 0) + 1; const pause = Math.min(45e3 * Math.pow(2, hostTrips[host] - 1), 10 * 60e3); hostDown[host] = Date.now() + pause; hostFails[host] = 0; LOG({kind: 'relay', src: host, ok: false, note: 'fonte in pausa per ' + Math.round(pause / 1000) + ' s (3 tentativi completi falliti)'}); }
     const err = new Error('nessuna via ha risposto: ' + attempts.join(' | ')); err.attempts = attempts; err.status = lastErr && lastErr.status;
     throw err;
   };
@@ -275,7 +295,8 @@
     if(!rawgKey()) throw skipErr('chiave RAWG non impostata');
     const u = rawgUsage(); if(u.n >= RAWG_LIMIT) throw skipErr('limite mensile RAWG quasi raggiunto (' + u.n + ')');
     u.n++; ls.set(RUK, u);
-    return H.json('https://api.rawg.io/api/' + path + '?' + new URLSearchParams(Object.assign({key: rawgKey()}, params || {})).toString(), {timeout: 12000});
+    // la chiave sta nell'indirizzo: la richiesta NON passa mai dai ponti pubblici (li vedrebbero), solo accesso diretto
+    return H.json('https://api.rawg.io/api/' + path + '?' + new URLSearchParams(Object.assign({key: rawgKey()}, params || {})).toString(), {timeout: 12000, relays: false, retries: 1});
   }
   const RAWG_SLUG = {JRPG: 'role-playing-games-rpg', WRPG: 'role-playing-games-rpg', ACT: 'role-playing-games-rpg', TUR: 'role-playing-games-rpg', TAC: 'strategy', DUN: 'role-playing-games-rpg', MON: 'role-playing-games-rpg', CARD: 'card', ROG: 'role-playing-games-rpg',
     PLAT: 'platformer', PLAT3D: 'platformer', METR: 'platformer', PUZ: 'puzzle', FPS: 'shooter', TPS: 'shooter', SHMUP: 'shooter', FIGHT: 'fighting', BEAT: 'fighting', RACE: 'racing', KART: 'racing', SPORT: 'sports', RTS: 'strategy', TBS4X: 'strategy',
@@ -314,11 +335,10 @@
     const j = await rawgGet('games', params);
     return (j.results || []).map(g=> rawgItem(g, fl)).filter(rawgOk);
   };
-  M.rawgsimilar = async ctx=>{    // giochi affini ai preferiti secondo RAWG
+  M.rawgsimilar = async ctx=>{    // giochi affini ai preferiti: stessi generi e stessi tag distintivi su RAWG
     const seeds = ctx.seeds || []; if(!seeds.length) throw skipErr('nessun preferito da cui partire');
-    const name = pickOne(seeds), g = await H.rawg.find(name); if(!g) return [];
-    const j = await rawgGet('games/' + g.id + '/suggested', {page_size: '30'});
-    return (j.results || []).map(x=> Object.assign(rawgItem(x, []), {because: 'Consigliato da RAWG come affine a «' + name + '»'})).filter(rawgOk);
+    const name = pickOne(seeds), info = await H.rawg.info(name); if(!info) return [];
+    return (await H.rawg.similarItems(info)).map(c=> Object.assign(c, {because: 'Stessi tag su RAWG di «' + name + '»: ' + (info.tagNames || []).slice(0, 3).join(', ')}));
   };
   H.rawg = {
     has: ()=> !!rawgKey(),
@@ -334,9 +354,24 @@
       let d = null; try{ d = await rawgGet('games/' + g.id); }catch(e){}
       const x = d || g;
       return {id: g.id, name: g.name, url: 'https://rawg.io/games/' + (x.slug || g.slug), year: (x.released || '').slice(0, 4), mc: x.metacritic || null, rating: x.rating || null, playtime: x.playtime || 0, desc: (d && d.description_raw) || '',
-        genres: (x.genres || []).map(z=> z.name), platforms: (x.platforms || []).map(z=> z.platform && z.platform.name).filter(Boolean), cover: x.background_image || '', esrb: x.esrb_rating ? x.esrb_rating.name : ''};
+        genres: (x.genres || []).map(z=> z.name), genreSlugs: (x.genres || []).map(z=> z.slug), tags: (x.tags || []).map(t=> ({slug: t.slug, name: t.name, n: t.games_count || 0})), platforms: (x.platforms || []).map(z=> z.platform && z.platform.name).filter(Boolean), cover: x.background_image || '', esrb: x.esrb_rating ? x.esrb_rating.name : ''};
     },
-    async suggested(id, n){ const j = await rawgGet('games/' + id + '/suggested', {page_size: String(n || 12)}); return (j.results || []).map(g=> cleanTitle(g.name)); },
+    // affini per tag: la lista «suggested» di RAWG è solo per i piani a pagamento, quindi cerco i giochi con gli stessi generi e gli stessi tag distintivi
+    async similarItems(info){
+      const generic = /single|multi|steam|achiev|controller|cloud|co-?op|online|local|family|cross|partial|full audio|subtitle|remote|play|trading|leaderboard|stats|captions/i;
+      const tags = (info.tags || []).filter(t=> t.slug && !generic.test(t.name) && t.n >= 250 && t.n <= 60000).sort((a, b)=> a.n - b.n).slice(0, 3);
+      info.tagNames = tags.map(t=> t.name);
+      const gen = (info.genreSlugs || []).slice(0, 1).join(',');
+      for(let k = tags.length; k >= 1; k--){
+        const params = {tags: tags.slice(0, k).map(t=> t.slug).join(','), ordering: '-metacritic', metacritic: '55,100', page_size: '20'};
+        if(gen && k > 1) params.genres = gen;
+        const j = await rawgGet('games', params);
+        const list = (j.results || []).filter(g=> g.id !== info.id).map(g=> rawgItem(g, [])).filter(rawgOk);
+        if(list.length >= 4 || k === 1) return list;
+      }
+      return [];
+    },
+    async similar(info, n){ return (await H.rawg.similarItems(info)).slice(0, n || 6).map(c=> c.name); },
     async series(id){ const j = await rawgGet('games/' + id + '/game-series', {page_size: '40'}); return (j.results || []).map(g=> rawgItem(g, [])); }
   };
 

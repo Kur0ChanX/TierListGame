@@ -11,8 +11,11 @@
   let saveT = 0;
   const persist = ()=>{ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(buf.slice(-200))); }catch(e){} }, 1500); };
   const cut = (x, n)=> String(x == null ? '' : x).slice(0, n || 220);
+  // le chiavi vanno tolte anche quando l'indirizzo è annidato e codificato (es. dentro un ponte: ...%3Fkey%3D...)
+  const redact = u=> String(u).replace(/((?:\?|&|%3F|%26)(?:key|api_key|apikey|token|access_token)(?:=|%3D))[^&%\s]+/gi, '$1***');
+  buf = buf.map(e=>{ if(e && e.url) e.url = redact(e.url); if(e && e.err) e.err = redact(e.err); if(e && e.note) e.note = redact(e.note); return e; });
   window.DebugLog = {
-    add(e){ e = Object.assign({t: new Date().toISOString()}, e); if(e.url) e.url = cut(e.url.replace(/([?&](?:key|api_key|token|access_token)=)[^&]+/gi, '$1***'), 200); if(e.err) e.err = cut(e.err); if(e.note) e.note = cut(e.note); buf.push(e); if(buf.length > 300) buf = buf.slice(-300); persist(); },
+    add(e){ e = Object.assign({t: new Date().toISOString()}, e); if(e.url) e.url = cut(redact(e.url), 200); if(e.err) e.err = cut(e.err); if(e.note) e.note = cut(e.note); buf.push(e); if(buf.length > 300) buf = buf.slice(-300); persist(); },
     all(){ return buf.slice(); },
     clear(){ buf = []; try{ localStorage.removeItem(KEY); }catch(e){} },
     text(){ return buf.map(e=> `${e.t.slice(11, 19)} [${e.kind || 'note'}] ${e.src || ''} ${e.status != null ? 'HTTP ' + e.status : ''} ${e.ms != null ? e.ms + 'ms' : ''} ${e.ok === false ? 'ERRORE' : ''} ${e.url || ''} ${e.err || ''} ${e.note || ''}`.replace(/\s+/g, ' ').trim()).join('\n'); }
