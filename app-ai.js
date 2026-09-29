@@ -112,7 +112,7 @@ async function runEnrich(ids, opts){
       const part = todo.slice(i, i + 6);
       let arr = null;
       try{
-        const r = await askLLM(buildEnrichPrompt(part), {}, {search:true, label:'Completo le schede: simboli e dettagli…', silent: useProgress});
+        const r = await askLLM(buildEnrichPrompt(part), {}, {search:true, fast:true, label:'Completo le schede: simboli e dettagli…', silent: useProgress});
         arr = parseNovitaJson(r && r.text);
       }catch(e){}
       const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
@@ -572,6 +572,21 @@ function dedupeNovitaCandidates(arr, known, tagEnum){
     return true;
   });
 }
+// Ricerca in parallelo: la stessa richiesta viene divisa in due metà con orientamenti diversi (classici / moderni) e lanciata insieme:
+// tempo d'attesa circa dimezzato, stesse fonti e stessa qualità, più varietà. Se una delle due fallisce si usa l'altra.
+async function novitaSearchParallel(makePrompt, total){
+  const half = Math.ceil(total / 2);
+  const slant = [
+    "ORIENTAMENTO DI QUESTA RICERCA: privilegia titoli usciti fino al 2014 (classici, retro, poco noti ma apprezzati).",
+    "ORIENTAMENTO DI QUESTA RICERCA: privilegia titoli usciti dal 2015 in poi (moderni, recenti, indie di qualità)."];
+  const runs = slant.map(s=> askLLM(makePrompt(half) + '\n' + s, {}, {search:true, fast:true, label:'Cerco nuovi giochi…'}));
+  const res = await Promise.allSettled(runs);
+  const ok = res.filter(r=> r.status === 'fulfilled');
+  if(!ok.length) throw res[0].reason;
+  let all = [];
+  ok.forEach(r=>{ const arr = parseNovitaJson(r.value && r.value.text); if(arr) all = all.concat(arr); });
+  return all;
+}
 async function fetchNovitaBatch(){
   if(novitaLoading) return;
   if(!llmAvailable()){ novitaErrorMsg = 'Questa funzione non è disponibile in questa visualizzazione.'; renderNovitaCard(); return; }
@@ -579,9 +594,7 @@ async function fetchNovitaBatch(){
   const excludeNames = novitaKnownNames();
   try{
     // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
-    const prompt = buildNovitaGenrePrompt(NOVITA_BATCH_COUNT, excludeNames, TAG_ORDER.slice(), false);
-    const result = await askLLM(prompt, {}, {search:true, label:'Cerco nuovi giochi…'});
-    const arr = parseNovitaJson(result && result.text);
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT);
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -605,9 +618,7 @@ async function fetchNovitaGenreBatch(){
   const excludeNames = novitaKnownNames();
   const selectedTags = Array.from(NOVITA_GENRE_SELECTED);
   try{
-    const prompt = buildNovitaGenrePrompt(NOVITA_BATCH_COUNT, excludeNames, selectedTags, novitaGenreIncludeOther);
-    const result = await askLLM(prompt, {}, {search:true, label:'Cerco nuovi giochi…'});
-    const arr = parseNovitaJson(result && result.text);
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, selectedTags, novitaGenreIncludeOther), NOVITA_BATCH_COUNT);
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -886,7 +897,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v109';
+const DATA_BUILD_VERSION = 'v110';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

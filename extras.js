@@ -203,7 +203,7 @@
       const codes = Object.keys(TAG_INFO).map(c=> c + '=' + TAG_INFO[c].label).join(', ');
       const prompt = `Trasforma questa richiesta vocale in filtri per un catalogo di videogiochi. Richiesta: "${text}". Rispondi SOLO con JSON: {"search": testo da cercare nel nome o "" (solo se cita un titolo o una saga), "tags": [codici genere tra: ${codes}], "minScore": 70|80|90|null, "decade": 1980|1990|2000|2010|2020|null, "status": "played"|"playing"|"backlog"|"dropped"|null, "maxHours": numero|null, "italian": true|false, "onlyStory": true|false}`;
       try{
-        const r = await askLLM(prompt, {}, {label:'Capisco la tua richiesta…'});
+        const r = await askLLM(prompt, {}, {fast:true, label:'Capisco la tua richiesta…'});
         const s = String(r && r.text || ''), j = JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1));
         state.tags = new Set((j.tags || []).filter(c=> TAG_INFO[c]));
         const setSel = (id, v, key)=>{ const el = document.getElementById(id); if(el){ el.value = v; state[key] = v; } };
@@ -257,7 +257,7 @@
     if(typeof llmAvailable !== 'function' || !llmAvailable()){ if(verbose) toast('Per la data di uscita serve la chiave Gemini (⚙️ in Chiedi)'); return; }
     const prompt = todayLine() + `Cerca online la data di uscita in Italia/Europa del videogioco "${it.name}". Rispondi SOLO con JSON: {"released": true|false, "date": "AAAA-MM-GG" oppure "AAAA-MM" oppure "AAAA" oppure null se non annunciata, "note": frase breve in italiano (es. piattaforme, edizione)}`;
     try{
-      const r = await askLLM(prompt, {}, {search: true, silent: !verbose, label:'Controllo la data di uscita…'});
+      const r = await askLLM(prompt, {}, {search: true, fast:true, silent: !verbose, label:'Controllo la data di uscita…'});
       const s = String(r && r.text || ''), j = JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1));
       const w2 = wl(); if(!w2[id]) return;
       w2[id].date = /^\d{4}(-\d{2}(-\d{2})?)?$/.test(j.date || '') ? j.date : null;

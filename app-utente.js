@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v110', date:'2026-09-29', items:[
+    'Ricerche AI più veloci: Novità e Novità per genere ora lanciano due ricerche insieme (classici e moderni) con meno "ragionamento interno": attesa circa dimezzata, stesse fonti e stessa qualità, più varietà.',
+    'Barra di caricamento più onesta: la percentuale si calibra sui tempi reali delle ricerche precedenti e sale davvero quando una delle due ricerche finisce; se ci mette più del solito non resta ferma al 95%, ma mostra i secondi e "sto ancora aspettando".',
+    'Tolto il bidone fisso in fondo alla schermata principale: resta solo quello della barra di caricamento.'
+  ]},
   {version:'v109', date:'2026-09-29', items:[
     'I giochi aggiunti (da Novità, Novità per genere o Chiedi) ora hanno gli stessi simboli e dettagli dei giochi di base: 💕 storia romantica, 🤝 legame speciale, ✨ storia sorprendente, 💉 loop coinvolgente (dopamina) con il suo pannello, voto nel tempo, gameplay, perché potrebbe piacerti, longevità e lingua.',
     'Completamento automatico: all\'aggiunta e a ogni avvio (fino a 12 giochi) l\'app completa da sola le schede che ne sono prive; dal menu ✨ "Completa le schede dei giochi aggiunti" le completa tutte con la barra di avanzamento.'
