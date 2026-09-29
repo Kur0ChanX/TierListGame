@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v112', date:'2026-09-29', items:[
+    'Copertine automatiche vere: nella scheda di un gioco senza copertina c\'è "✨ Trova copertina", e di base la cerca da sola all\'apertura (si spegne dal menu ✨). Fonti aperte, senza chiavi né CAPTCHA: Wikidata (nome inglese e ID Steam), Steam (copertine verticali dei giochi PC), Libretro/RetroArch (box art originali di PS1, PS2, PSP, SNES, N64, Game Boy, DS, GameCube, Wii, Sega, PC Engine, Xbox) e Wikipedia.',
+    'Anche "Copertine automatiche" per tutta la collezione ora usa le stesse fonti. Nella griglia le box art grandi sono mostrate ridotte, per restare leggere.'
+  ]},
   {version:'v111', date:'2026-09-29', items:[
     'Scorrimento fluido: trovata la causa degli scatti (il vetro sfocato ricalcolato a ogni fotogramma sopra lo sfondo animato). Ora di base è spento: nel test lista e scheda gioco passano da 32 e 16 fotogrammi al secondo a 60 (il massimo che la prova permette). I colori sono gli stessi; dal menu ✨ si può riaccendere "Vetro sfocato e sfondo animato".',
     'Il completamento dei giochi aggiunti ora è un lavoro una tantum e silenzioso: niente più barra di caricamento a ogni avvio; una scheda completata non si rifà mai.',

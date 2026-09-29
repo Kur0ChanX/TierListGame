@@ -36,7 +36,7 @@
   function cardHtml(g){
     const c = coverOf(g), st = (typeof STATUSES !== 'undefined') && STATUSES[g.id];
     const fav = FAVS.has(g.id) ? '<span class="x-fav">★</span>' : '';
-    const img = c ? `<img src="${esc(c)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : '';
+    const img = c ? `<img src="${esc(coverThumb(c, MODE === 'grid' ? 360 : 160))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onerror="if(this.dataset.orig&&this.src!==this.dataset.orig){this.src=this.dataset.orig}else{this.remove()}">` : '';
     const ph = `<div class="x-ph" style="--tc:${TIER_COL[g.tier] || '#7c5cff'}"><span>${esc(g.name)}</span></div>`;
     const badge = `<span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>`;
     if(MODE === 'grid'){
@@ -106,10 +106,12 @@
         <button class="btn" data-a="share">📤 Condividi la tua tier list (immagine)</button>
         <button class="btn" data-a="badges">🏆 Traguardi</button>
         <a class="btn" href="backup-aurora/" title="La versione di prima delle palette, sempre disponibile">🛟 Versione di sicurezza (Aurora)</a>
+        <label class="ask-toggle"><input type="checkbox" id="xAutoCov" ${LS.get('jrpg_autocover', true)?'checked':''}> 🖼️ Cerca la copertina da sola quando apro un gioco che non ce l'ha</label>
         <label class="ask-toggle"><input type="checkbox" id="xFx" ${document.documentElement.classList.contains('fx-on')?'checked':''}> 🪟 Vetro sfocato e sfondo animato <small>(più bello, ma può rallentare lo scorrimento)</small></label>
         <label class="ask-toggle"><input type="checkbox" id="xTint" ${tint?'checked':''}> 🎨 Colori della scheda presi dalla copertina</label>
       </div>`);
     body.querySelectorAll('[data-m]').forEach(b=> b.addEventListener('click', ()=>{ setMode(b.dataset.m); document.getElementById('xMenu').classList.remove('show'); }));
+    body.querySelector('#xAutoCov').addEventListener('change', ev=>{ LS.set('jrpg_autocover', ev.target.checked); });
     body.querySelector('#xFx').addEventListener('change', ev=>{ LS.set('jrpg_fx', ev.target.checked ? 'on' : 'off'); document.documentElement.classList.toggle('fx-on', ev.target.checked); toast(ev.target.checked ? 'Effetti extra attivi' : 'Effetti extra spenti: scorrimento più fluido'); });
     body.querySelector('#xTint').addEventListener('change', e=>{ LS.set('jrpg_cover_tint', e.target.checked); toast(e.target.checked ? 'Apri un gioco con copertina per vedere i colori' : 'Colori standard'); });
     body.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); ({complete: ()=> window.completeCustomGames && window.completeCustomGames(), palette: ()=> window.openPalettePicker && window.openPalettePicker(), covers: openCovers, wish: openWishlist, share: shareTierImage, badges: openBadges})[b.dataset.a](); }));
@@ -146,10 +148,96 @@
     USER_COVERS[String(g.id)] = url;
     try{ if(COVER_DB) await COVER_DB.doc('covers/' + String(g.id)).set({url, name: g.name, auto: true, updatedAt: new Date().toISOString()}); }catch(e){}
   }
+
+  // ---- Ricerca copertina "a catena" (solo fonti ufficiali/aperte, niente pagine da "grattare", niente chiavi, niente CAPTCHA) ----
+  // 1) Wikidata: nome inglese ufficiale, ID Steam, voce Wikipedia   2) Steam: copertina verticale 600x900 (giochi PC moderni)
+  // 3) Libretro Thumbnails (RetroArch): box art ufficiali di PS1/PS2/PSP/SNES/N64/GB/GBA/DS/GameCube/Wii/Sega/NEC/Xbox
+  // 4) Wikipedia: immagine principale della voce del gioco
+  const LR = 'https://thumbnails.libretro.com/';
+  const LR_SYS = [
+    [/\bps1\b|playstation(?! ?[2-5]| portable| vita)|\bpsx\b/i, 'Sony - PlayStation'], [/\bps2\b|playstation 2/i, 'Sony - PlayStation 2'], [/\bpsp\b/i, 'Sony - PlayStation Portable'],
+    [/\bps3\b/i, 'Sony - PlayStation 3'], [/vita/i, 'Sony - PlayStation Vita'],
+    [/\bsnes\b|super nintendo|super famicom/i, 'Nintendo - Super Nintendo Entertainment System'], [/\bnes\b|famicom(?!.*super)/i, 'Nintendo - Nintendo Entertainment System'],
+    [/\bn64\b|nintendo 64/i, 'Nintendo - Nintendo 64'], [/\bgbc\b|game boy color/i, 'Nintendo - Game Boy Color'], [/\bgba\b|game boy advance/i, 'Nintendo - Game Boy Advance'],
+    [/\bgb\b|game ?boy(?! (color|advance))/i, 'Nintendo - Game Boy'], [/\b3ds\b/i, 'Nintendo - Nintendo 3DS'], [/\bnds\b|\bds\b|nintendo ds/i, 'Nintendo - Nintendo DS'],
+    [/gamecube|\bgc\b|\bngc\b/i, 'Nintendo - GameCube'], [/wii ?u/i, 'Nintendo - Wii U'], [/\bwii\b(?! ?u)/i, 'Nintendo - Wii'],
+    [/mega ?drive|genesis/i, 'Sega - Mega Drive - Genesis'], [/saturn/i, 'Sega - Saturn'], [/dreamcast/i, 'Sega - Dreamcast'], [/mega-?cd|sega cd/i, 'Sega - Mega-CD - Sega CD'],
+    [/master system/i, 'Sega - Master System - Mark III'], [/game gear/i, 'Sega - Game Gear'], [/pc ?engine ?cd|turbografx-?cd/i, 'NEC - PC Engine CD - TurboGrafx-CD'],
+    [/pc ?engine|turbografx/i, 'NEC - PC Engine - TurboGrafx 16'], [/xbox 360/i, 'Microsoft - Xbox 360'], [/\bxbox\b(?! ?(360|one|series))/i, 'Microsoft - Xbox']
+  ];
+  const lrSystems = plat=>{ const out = []; String(plat || '').split(/\s*\/\s*/).forEach(tok=> LR_SYS.forEach(([re, s])=>{ if(re.test(tok) && !out.includes(s)) out.push(s); })); return out.slice(0, 3); };
+  const lrSafe = s=> s.replace(/[&*\/:`<>?\\|"]/g, '_');
+  function lrTitles(names){
+    const out = [];
+    names.filter(Boolean).forEach(n=>{
+      const b = cleanT(n).replace(/\s+/g, ' ').trim();
+      const dash = b.replace(/\s*:\s*/g, ' - ');
+      const the = t=> /^the\s+/i.test(t) ? t.replace(/^the\s+(.*?)((\s+-\s+.*)?)$/i, (m, a, rest)=> a + ', The' + (rest || '')) : null;
+      [dash, the(dash), b.replace(/\s*:.*$/, '')].forEach(x=>{ if(x && !out.includes(x)) out.push(x); });
+    });
+    return out.slice(0, 3);
+  }
+  const LR_REG = ['(USA)', '(Europe)', '(USA) (Disc 1)', '(Europe) (Disc 1)', '(Japan)', '(USA, Europe)', '(World)', '(Europe) (En,Fr,De,Es,It)', '(Italy)'];
+  function probeImg(url, ms){
+    return new Promise(res=>{ const im = new Image(); let t = setTimeout(()=>{ im.src = ''; res(false); }, ms || 8000);
+      im.onload = ()=>{ clearTimeout(t); res(im.naturalWidth >= 80 && im.naturalHeight >= 80); }; im.onerror = ()=>{ clearTimeout(t); res(false); }; im.src = url; });
+  }
+  async function firstOk(urls, par){
+    for(let i = 0; i < urls.length; i += (par || 6)){
+      const part = urls.slice(i, i + (par || 6));
+      const r = await Promise.all(part.map(u=> probeImg(u)));
+      const k = r.indexOf(true); if(k >= 0) return part[k];
+    }
+    return null;
+  }
+  async function wikidataInfo(name){
+    const W = 'https://www.wikidata.org/w/api.php?';
+    const q = cleanT(name), target = normGameName(q);
+    const s = await (await fetch(W + new URLSearchParams({action:'wbsearchentities', search:q, language:'en', uselang:'en', type:'item', limit:'7', format:'json', origin:'*'}))).json();
+    const hit = (s.search || []).find(x=> /video ?game|role-playing|game/i.test(x.description || '') && !/series|franchise|soundtrack|film|character/i.test(x.description || '') && normGameName(x.label || '') === target)
+      || (s.search || []).find(x=> /video ?game/i.test(x.description || '') && !/series|franchise/i.test(x.description || '') && (normGameName(x.label || '').startsWith(target) || target.startsWith(normGameName(x.label || ''))));
+    if(!hit) return null;
+    const d = await (await fetch(W + new URLSearchParams({action:'wbgetentities', ids: hit.id, props:'claims|sitelinks|labels', languages:'en', sitefilter:'enwiki', format:'json', origin:'*'}))).json();
+    const en = d.entities && d.entities[hit.id]; if(!en) return null;
+    const c = en.claims || {}, val = p=> ((c[p] || [])[0] || {}).mainsnak;
+    const steam = (c.P1733 || []).map(x=> x.mainsnak && x.mainsnak.datavalue && x.mainsnak.datavalue.value).filter(Boolean);
+    return {qid: hit.id, label: en.labels && en.labels.en && en.labels.en.value, enwiki: en.sitelinks && en.sitelinks.enwiki && en.sitelinks.enwiki.title, steam};
+  }
+  async function wikiPageImage(title){
+    const j = await wpq({action:'query', titles: title, redirects:'1', prop:'pageimages', piprop:'thumbnail', pithumbsize:'500', pilicense:'any'});
+    const p = ((j.query && j.query.pages) || [])[0];
+    return p && p.thumbnail ? p.thumbnail.source : null;
+  }
+  // trova la copertina migliore; restituisce {url, source} oppure null
+  async function findCover(g, opts){
+    opts = opts || {}; const say = opts.onStep || (()=>{});
+    let wd = null;
+    say('Wikidata…'); try{ wd = await wikidataInfo(g.name); }catch(e){}
+    if(wd && wd.steam && wd.steam.length){
+      say('Steam…');
+      const u = await firstOk(wd.steam.slice(0, 2).map(id=> `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/library_600x900.jpg`));
+      if(u) return {url: u, source: 'Steam'};
+    }
+    const sys = lrSystems(g.plat);
+    if(sys.length){
+      say('Libretro (box art ufficiali)…');
+      const titles = lrTitles([wd && wd.label, g.name]);
+      const regs = opts.quick ? LR_REG.slice(0, 4) : LR_REG;
+      const urls = []; titles.forEach(t=> sys.forEach(s=> regs.forEach(r=> urls.push(LR + encodeURIComponent(s) + '/Named_Boxarts/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png')))));   // prima il titolo completo su tutte le console, poi le varianti più corte
+      const u = await firstOk(urls, 8);
+      if(u) return {url: u, source: 'Libretro'};
+    }
+    say('Wikipedia…');
+    try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); if(u) return {url: u, source: 'Wikipedia'}; }catch(e){}
+    return null;
+  }
+  window.findGameCover = findCover;
+  // le box art Libretro sono PNG grandi: in lista/griglia le mostro ridotte da un servizio di ridimensionamento (se non risponde, si usa l'originale)
+  window.coverThumb = (u, w)=> /^https:\/\/thumbnails\.libretro\.com\//.test(u || '') ? 'https://wsrv.nl/?url=' + encodeURIComponent(u) + '&w=' + (w || 360) + '&output=webp' : u;
   let coversRunning = false;
   function openCovers(){
     const missing = GAMES.filter(g=> !coverOf(g));
-    const body = sheet('xCovers', '🖼️ Copertine automatiche', `<div class="lp-sub">Cerco su Wikipedia la copertina ufficiale dei <b>${missing.length}</b> giochi che non ce l'hanno. Le copertine che hai già messo tu non vengono toccate. Si salvano e si sincronizzano come le altre.</div>
+    const body = sheet('xCovers', '🖼️ Copertine automatiche', `<div class="lp-sub">Cerco la copertina ufficiale dei <b>${missing.length}</b> giochi che non ce l'hanno, da fonti aperte: Wikipedia, Steam (copertine verticali), Libretro/RetroArch (box art originali delle console) e Wikidata. Le copertine che hai già messo tu non vengono toccate. Si salvano e si sincronizzano come le altre.</div>
       <div class="lp-tools"><button class="btn primary" id="xCovGo" ${coversRunning || !missing.length ? 'disabled' : ''}>${missing.length ? 'Avvia' : 'Tutte le copertine ci sono già'}</button></div><div class="lp-sub" id="xCovSt"></div><div class="x-bar"><i id="xCovBar"></i></div>`);
     const st = body.querySelector('#xCovSt'), bar = body.querySelector('#xCovBar');
     body.querySelector('#xCovGo').addEventListener('click', async e=>{
@@ -167,7 +255,7 @@
         }
         done = missing.length - left.length;
         for(const g of left){                               // 2° giro: ricerca, uno alla volta e con calma
-          try{ const u = await searchCover(g.name); if(u){ await saveAutoCover(g, u); found++; } }catch(err){}
+          try{ const r = await findCover(g, {quick:true}); if(r){ await saveAutoCover(g, r.url); found++; } }catch(err){}
           done++; step(); await new Promise(r=> setTimeout(r, 700));
           if(!document.getElementById('xCovers').classList.contains('show') && done % 20 === 0) toast(`Copertine: ${found} trovate finora…`);
         }
@@ -319,9 +407,31 @@
         bar.querySelector('#xWishBtn').addEventListener('click', ev=>{ toggleWish(g); const now = !!wl()[g.id]; ev.target.className = 'btn' + (now ? ' primary' : ''); ev.target.textContent = now ? '🎁 In wishlist' : '🎁 Wishlist'; });
       }
       tintModal(g);
+      coverAssist(g);
     }catch(e){}
     return r;
   };
+  // scheda del gioco senza copertina: pulsante "Trova copertina" e (se attivo) ricerca automatica all'apertura
+  let assistToken = 0;
+  function coverAssist(g){
+    if(!g || coverOf(g)) return;
+    const block = document.getElementById('coverBlock'); if(!block) return;
+    const my = ++assistToken;
+    const row = document.createElement('div'); row.className = 'x-autocover';
+    row.innerHTML = '<button class="btn primary" type="button">✨ Trova copertina</button><span class="x-ac-st"></span>';
+    const tools = block.querySelector('.cover-tools'); (tools || block).insertAdjacentElement('afterend', row);
+    const btn = row.querySelector('button'), st = row.querySelector('.x-ac-st');
+    const run = async ()=>{
+      btn.disabled = true; st.textContent = 'Cerco…';
+      const r = await findCover(g, {onStep: s=>{ if(my === assistToken) st.textContent = 'Cerco su ' + s; }});
+      if(my !== assistToken) return;
+      if(r){ await saveAutoCover(g, r.url); st.textContent = '✅ Trovata su ' + r.source + ' e salvata';
+        try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ render(); }catch(e){} toast('🖼️ Copertina trovata su ' + r.source); }
+      else { st.textContent = 'Non trovata nelle fonti aperte: usa "Cerca copertina" qui sopra.'; btn.disabled = false; }
+    };
+    btn.addEventListener('click', run);
+    if(LS.get('jrpg_autocover', true)) run();
+  }
   function tintModal(g){
     const card = document.getElementById('modalCard'); if(!card) return;
     card.classList.remove('x-tinted'); card.style.removeProperty('--x-tint');

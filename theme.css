@@ -530,3 +530,5 @@ html:not(.fx-on) .table-wrap, html:not(.fx-on) .glabel, html:not(.fx-on) .filter
 .table-wrap{contain:layout paint; overscroll-behavior:contain}
 .modal-card svg.gi, .modal-card .badge{filter:none}
 .mini-icon{cursor:pointer; padding:3px 2px; margin-right:1px}
+.x-autocover{display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px}
+.x-autocover .x-ac-st{font-size:.78rem; color:var(--sub)}
