@@ -1,0 +1,269 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<style>body{padding-top:30px !important}</style><div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#3b2a78;color:#fff;font:600 12px system-ui;padding:6px 10px;text-align:center">🛟 Versione di sicurezza (Aurora, prima delle palette). <a href="../" style="color:#ffd970">↩ Torna alla versione attuale</a></div>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>[Versione di sicurezza Aurora] Raccoon Tier — Tier List RPG & JRPG di Mario</title>
+
+<meta name="theme-color" content="#161221">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div id="intro" aria-label="Apertura: Raccoon Tier">
+  <div class="intro-bg"></div>
+  <div class="intro-frame">
+    <img class="intro-img" src="icons/intro.jpg" alt="Raccoon Tier: il procione e il bidone Frugu Frugu pieni di giochi" width="720" height="1290" fetchpriority="high">
+    <div class="intro-frugu"><b style="background-image:url(icons/intro.jpg)"></b></div>
+    <div class="intro-sparks"></div>
+    <div class="intro-ui">
+      <div class="intro-start">▶ TOCCA PER ENTRARE</div>
+      <div class="intro-bar"><i></i></div>
+      <div class="intro-msg">Carico la tua collezione…</div>
+    </div>
+  </div>
+</div>
+<script src="intro.js"></script>
+<div class="wrap">
+  <div class="topbar">
+    <div class="topbar-row1">
+      <h1><img class="brand-logo" src="icons/logo.png" alt="Raccoon Tier" width="53" height="56"><span class="sr-only">Raccoon Tier — Tier List RPG &amp; JRPG di Mario</span></h1>
+      <button class="iconbtn" id="fsBtn" aria-label="Schermo intero" title="Schermo intero (nasconde barra del browser e orario)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button class="iconbtn lbl" id="profileBtn" aria-label="Profilo"><span class="ib-ic">👤</span><span class="ib-lb">Profilo</span></button>
+      <button class="iconbtn lbl" id="changelogBtn" aria-label="Novità del programma"><span class="ib-ic">🆕</span><span class="ib-lb">Novità</span></button>
+      <button class="iconbtn lbl" id="themeBtn" aria-label="Cambia tema"><span class="ib-ic">🌓</span><span class="ib-lb">Tema</span></button>
+      <button class="iconbtn lbl" id="filtersBtn" aria-label="Mostra/nascondi filtri"><span class="ib-ic">🔧</span><span class="ib-lb">Filtri</span><b class="ib-badge" id="filtersBadge" hidden></b></button>
+    </div>
+    <div class="topbar-row2">
+      <input id="search" type="text" placeholder="🔍 Cerca per nome, piattaforma o anno...">
+    </div>
+    <div class="count-line">
+      <span id="countLine"></span>
+      <span id="favCountLine"></span>
+    </div>
+    <div class="count-line" id="buildLine"></div>
+
+    <div id="filtersPanel">
+      <div class="quick-filters" id="quickFilters">
+        <button class="qf-chip" type="button" data-qf="fav">★ Preferiti</button>
+        <button class="qf-chip" type="button" data-qf="played">✅ Giocati</button>
+        <button class="qf-chip" type="button" data-qf="playing">▶️ In corso</button>
+        <button class="qf-chip" type="button" data-qf="backlog">📌 Da giocare</button>
+        <button class="qf-chip" type="button" data-qf="top">🏆 90+</button>
+        <button class="qf-chip" type="button" data-qf="story">📖 Con storia</button>
+        <button class="qf-chip qf-reset" type="button" data-qf="reset">↺ Azzera</button>
+      </div>
+      <div class="stats-row" id="statsRow"></div>
+      <div class="controls">
+        <select id="methodFilter">
+          <option value="">Tutte le fonti</option>
+          <option value="V">✅ Metacritic verificato</option>
+          <option value="S">🗳️ Stima community</option>
+        </select>
+        <select id="decadeFilter">
+          <option value="">Tutte le epoche</option>
+          <option value="1980">Anni '80</option>
+          <option value="1990">Anni '90</option>
+          <option value="2000">Anni 2000</option>
+          <option value="2010">Anni 2010</option>
+          <option value="2020">Anni 2020</option>
+        </select>
+        <select id="scoreFilter">
+          <option value="">Ogni voto</option>
+          <option value="90">90+ (capolavori)</option>
+          <option value="80">80+</option>
+          <option value="70">70+</option>
+        </select>
+        <select id="storyFilter">
+          <option value="">Ogni scheda</option>
+          <option value="yes">📖 Solo con storia</option>
+        </select>
+        <select id="statusFilter">
+          <option value="">Ogni stato</option>
+          <option value="played">✅ Giocato</option>
+          <option value="playing">▶️ In corso</option>
+          <option value="backlog">📌 Da giocare</option>
+          <option value="dropped">⛔ Droppato</option>
+          <option value="none">⚪ Non segnato</option>
+        </select>
+      </div>
+      <details class="filters-more"><summary>🏷️ Generi e umore</summary>
+        <div class="tagchips" id="tagChips"></div>
+        <div class="tagchips" id="moodChips"></div>
+      </details>
+      <div class="controls">
+        <button class="btn" id="favBtn">★ Solo preferiti</button>
+        <button class="btn" id="randomBtn">🎲 Sorprendimi</button>
+        <button class="btn" id="dnaSortBtn">🧬 Più adatti a te</button>
+        <button class="btn" id="wizardBtn">🧭 Cosa gioco stasera?</button>
+        <button class="btn" id="resetBtn">↺ Reset filtri</button>
+      </div>
+      <details class="filters-more"><summary>🛠️ Strumenti, numeri e link</summary>
+        <div class="metrics" id="metricsRow"></div>
+        <div class="linkbox">
+          🔗 Link condivisibile:
+          <input id="shareLink" readonly value="">
+          <button class="btn" id="copyLinkBtn">Copia</button>
+        </div>
+        <div class="controls">
+          <button class="btn" id="exportBtn">⬇ Esporta CSV</button>
+          <button class="btn" id="exportDataBtn">💾 Esporta i miei dati</button>
+          <button class="btn" id="importDataBtn">📥 Importa i miei dati</button>
+          <input type="file" id="importDataFile" accept="application/json" style="display:none;">
+          <button class="btn" id="qualityCheckBtn">🩺 Verifica qualità dati</button>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="list-bar" id="listBar"></div>
+  <div class="view-tabs" id="viewTabs">
+    <button class="view-tab active" data-view="list" title="Classifica"><span class="vt-ic">📋</span><span class="vt-tx vt-full">Classifica</span><span class="vt-tx vt-short">Classifica</span></button>
+    <button class="view-tab" data-view="discover" title="Scopri"><span class="vt-ic">🔀</span><span class="vt-tx vt-full">Scopri</span><span class="vt-tx vt-short">Scopri</span></button>
+    <button class="view-tab" data-view="novita" title="Novità"><span class="vt-ic">🆕</span><span class="vt-tx vt-full">Novità</span><span class="vt-tx vt-short">Novità</span></button>
+    <button class="view-tab" data-view="novitagenere" title="Novità per genere"><span class="vt-ic">🎭</span><span class="vt-tx vt-full">Novità per genere</span><span class="vt-tx vt-short">Per genere</span></button>
+    <button class="view-tab" data-view="mytier" title="La mia Tier List"><span class="vt-ic">🎯</span><span class="vt-tx vt-full">La mia Tier List</span><span class="vt-tx vt-short">Mia tier</span></button>
+    <button class="view-tab" data-view="saga" title="Per saga"><span class="vt-ic">🗂️</span><span class="vt-tx vt-full">Per saga</span><span class="vt-tx vt-short">Saghe</span></button>
+    <button class="view-tab" data-view="stats" title="Statistiche"><span class="vt-ic">📊</span><span class="vt-tx vt-full">Statistiche</span><span class="vt-tx vt-short">Statistiche</span></button>
+  </div>
+
+  <div class="table-wrap" id="tableWrap">
+    <table id="gameTable">
+      <thead>
+        <tr>
+          <th data-key="fav" style="width:30px;">★</th>
+          <th data-key="id" class="mobhide">#<span class="arrow"></span></th>
+          <th data-key="name">Nome<span class="arrow"></span></th>
+          <th data-key="plat" class="mobhide">Piattaforma<span class="arrow"></span></th>
+          <th data-key="ysort">Anno<span class="arrow"></span></th>
+          <th data-key="tier">Tier<span class="arrow"></span></th>
+          <th data-key="score">Voto<span class="arrow"></span></th>
+          <th data-key="m">Fonte<span class="arrow"></span></th>
+          <th style="width:24px;">📖</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="emptyMsg" style="display:none;">Nessun gioco trovato con questi filtri.</div>
+
+  <div id="myTierWrap" style="display:none;">
+    <div class="mytier-toolbar">
+      <span class="mytier-hint">Trascina i giochi tra i tier per creare la tua classifica personale (desktop), oppure tocca ⇅ su un gioco per spostarlo (mobile). Salvata solo su questo dispositivo.</span>
+      <button class="btn" id="resetMyTierBtn">↺ Reset alla classifica ufficiale</button>
+    </div>
+    <div id="myTierSections"></div>
+  </div>
+
+  <div id="statsPanel" style="display:none;"></div>
+
+  <div id="sagaPanel" style="display:none;"></div>
+  <div id="discoverPanel" style="display:none;"></div>
+  <div id="novitaPanel" style="display:none;"></div>
+  <div id="novitaGenrePanel" style="display:none;"></div>
+
+</div>
+
+<div class="frugu-foot" aria-hidden="true"><img src="icons/frugu.gif" alt="" width="120" height="94"></div>
+
+<button class="scrolltop-fab" id="scrollTopBtn" aria-label="Torna su" title="Torna su">↑</button>
+<button class="ask-fab" id="askFab" aria-label="Chiedi a Claude" title="Chiedi a Claude">💬</button>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-card" id="modalCard"></div>
+</div>
+
+<div class="modal-backdrop" id="askBackdrop">
+  <div class="modal-card ask-card" id="askCard">
+    <div class="modal-head">
+      <div class="modal-title">💬 Chiedi a Claude</div>
+      <button class="modal-close" id="askCloseBtn" aria-label="Chiudi">✕</button>
+    </div>
+    <div class="ask-hint">Chiedi consigli, confronta giochi, o scatta una foto di una copertina in negozio per sapere se fa per te. Uso il tuo database personale per rispondere.</div>
+    <details class="ask-engine" id="geminiSettings">
+      <summary>⚙️ Impostazioni: Motore AI e Sincronizzazione</summary>
+      <div class="ask-engine-body">
+        <label>Motore
+          <select id="llmEngineSelect">
+            <option value="auto">Automatico: Claude, Gemini se Claude è al limite</option>
+            <option value="claude">Solo Claude</option>
+            <option value="gemini">Solo Gemini</option>
+          </select>
+        </label>
+        <label>Chiave API Gemini (Google AI Studio)
+          <input type="password" id="geminiKeyInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave">
+        </label>
+        <div class="ask-engine-actions"><button class="btn primary" id="geminiSaveBtn">Salva e verifica</button><button class="btn" id="geminiClearBtn">Rimuovi</button></div>
+        <div class="ask-engine-status" id="geminiStatus">La chiave resta solo su questo dispositivo, nel browser.</div>
+        <hr>
+        <label>☁️ Sincronizzazione tra dispositivi (token GitHub)
+          <input type="password" id="syncTokenInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui il token GitHub">
+        </label>
+        <a href="https://github.com/settings/tokens/new?scopes=gist&description=TierList%20sync&default_expires_at=none" target="_blank" rel="noopener">1) Crea il token (il permesso giusto è già selezionato)</a>
+        <div class="ask-engine-actions"><button class="btn primary" id="syncSaveBtn">Attiva sincronizzazione</button><button class="btn" id="syncNowBtn">Sincronizza ora</button><button class="btn" id="syncOffBtn">Disattiva</button></div>
+        <label class="ask-toggle"><input type="checkbox" id="introToggle" checked> Mostra l'apertura animata all'avvio</label>
+        <label class="ask-toggle"><input type="checkbox" id="autoFsToggle" checked> Avvia a schermo intero (al primo tocco)</label>
+        <div class="ask-engine-actions"><button class="btn" id="genreCheckBtn">🔎 Verifica generi online (Wikidata)</button></div>
+        <div class="ask-engine-status" id="syncStatus">Salva preferiti, stati, giochi aggiunti e locandine (link) sul tuo GitHub e li ritrova su ogni dispositivo.</div>
+      </div>
+    </details>
+    <div class="ask-thread" id="askThread"></div>
+    <div class="ask-inputrow">
+      <label class="ask-photo-btn" id="askPhotoBtn" title="Allega una foto dalla galleria (es. copertina in negozio)">📷<input type="file" accept="image/*" id="askPhotoInput"></label>
+      <label class="ask-photo-btn" id="askCameraBtn" title="Scatta una foto adesso con la fotocamera">📸<input type="file" accept="image/*" capture="environment" id="askCameraInput"></label>
+      <textarea id="askInput" placeholder="Es: dammi 3 JRPG tattici come Final Fantasy Tactics" rows="1"></textarea>
+      <button class="btn primary" id="askSendBtn">➤</button>
+    </div>
+    <div class="ask-photo-preview" id="askPhotoPreview" hidden></div>
+  </div>
+</div>
+
+<div class="lightbox-backdrop" id="lightboxBackdrop">
+  <button class="lightbox-close" id="lightboxCloseBtn" aria-label="Chiudi">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="compare-tray" id="compareTray" style="display:none;">
+  <div class="compare-tray-items" id="compareTrayItems"></div>
+  <button class="btn primary" id="compareGoBtn" disabled>⚖️ Confronta</button>
+</div>
+
+<div class="modal-backdrop" id="wizardBackdrop">
+  <div class="modal-card" id="wizardCard"></div>
+</div>
+
+<div class="modal-backdrop" id="changelogBackdrop">
+  <div class="modal-card" id="changelogCard"></div>
+</div>
+
+<div class="modal-backdrop" id="qualityBackdrop">
+  <div class="modal-card" id="qualityCard"></div>
+</div>
+
+<div class="modal-backdrop" id="profileBackdrop">
+  <div class="modal-card" id="profileCard"></div>
+</div>
+
+<script src="../giochi.js"></script>
+<script src="sync.js"></script>
+<script src="app.js"></script>
+<script src="app-schede.js"></script>
+<script src="app-utente.js"></script>
+<script src="app-ai.js"></script>
+<script src="gemini.js"></script>
+<script src="genres.js"></script>
+<script src="verify.js"></script>
+<script src="fx.js"></script>
+<script src="extras.js"></script>
+</body>
+</html>
+

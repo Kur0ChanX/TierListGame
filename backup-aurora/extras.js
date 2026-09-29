@@ -85,7 +85,7 @@
   const cl = document.querySelector('.count-line');
   if(cl){
     const tb = document.createElement('span'); tb.className = 'x-toolbar';
-    tb.innerHTML = `<button type="button" data-x-mode="table" title="Tabella" aria-label="Tabella"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lines"/></svg></button><button type="button" data-x-mode="grid" title="Copertine" aria-label="Copertine"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg></button><button type="button" data-x-mode="cards" title="Schede" aria-label="Schede"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cards"/></svg></button><button type="button" id="xMenuBtn" title="Strumenti extra" aria-label="Extra"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkle"/></svg></button>`;
+    tb.innerHTML = `<button type="button" data-x-mode="table" title="Tabella">☰</button><button type="button" data-x-mode="grid" title="Copertine">▦</button><button type="button" data-x-mode="cards" title="Schede">▤</button><button type="button" id="xMenuBtn" title="Strumenti extra">✨</button>`;
     cl.appendChild(tb);
     tb.addEventListener('click', e=>{ const b = e.target.closest('button'); if(!b) return; if(b.dataset.xMode) setMode(b.dataset.xMode); else openMenu(); });
   }
@@ -99,17 +99,15 @@
       <div class="lp-sub">Vista della classifica</div>
       <div class="lp-tools"><button class="btn${MODE==='table'?' primary':''}" data-m="table">☰ Tabella</button><button class="btn${MODE==='grid'?' primary':''}" data-m="grid">▦ Copertine</button><button class="btn${MODE==='cards'?' primary':''}" data-m="cards">▤ Schede</button></div>
       <div class="x-menu">
-        <button class="btn" data-a="palette">🎨 Palette colori <small>(34 temi)</small></button>
         <button class="btn" data-a="covers">🖼️ Copertine automatiche <small>(Wikipedia)</small></button>
         <button class="btn" data-a="wish">🎁 Wishlist e date di uscita</button>
         <button class="btn" data-a="share">📤 Condividi la tua tier list (immagine)</button>
         <button class="btn" data-a="badges">🏆 Traguardi</button>
-        <a class="btn" href="backup-aurora/" title="La versione di prima delle palette, sempre disponibile">🛟 Versione di sicurezza (Aurora)</a>
         <label class="ask-toggle"><input type="checkbox" id="xTint" ${tint?'checked':''}> 🎨 Colori della scheda presi dalla copertina</label>
       </div>`);
     body.querySelectorAll('[data-m]').forEach(b=> b.addEventListener('click', ()=>{ setMode(b.dataset.m); document.getElementById('xMenu').classList.remove('show'); }));
     body.querySelector('#xTint').addEventListener('change', e=>{ LS.set('jrpg_cover_tint', e.target.checked); toast(e.target.checked ? 'Apri un gioco con copertina per vedere i colori' : 'Colori standard'); });
-    body.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); ({palette: ()=> window.openPalettePicker && window.openPalettePicker(), covers: openCovers, wish: openWishlist, share: shareTierImage, badges: openBadges})[b.dataset.a](); }));
+    body.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); ({covers: openCovers, wish: openWishlist, share: shareTierImage, badges: openBadges})[b.dataset.a](); }));
   }
 
   // =====================================================================
@@ -222,7 +220,7 @@
   }
   if(row2 && search){
     const mic = document.createElement('button');
-    mic.type = 'button'; mic.className = 'x-mic'; mic.title = 'Cerca a voce'; mic.innerHTML = '<svg class="gi" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><use href="#g-mic"/></svg>'; mic.setAttribute('aria-label', 'Cerca a voce');
+    mic.type = 'button'; mic.className = 'x-mic'; mic.title = 'Cerca a voce'; mic.textContent = '🎤';
     row2.appendChild(mic);
     mic.addEventListener('click', ()=>{
       if(!SR){ toast('Questo browser non supporta la ricerca a voce (prova Chrome o Safari aggiornati)', 4000); return; }
