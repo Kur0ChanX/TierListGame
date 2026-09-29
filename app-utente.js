@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v103', date:'2026-09-29', items:[
+    'Interfaccia in stile Apple: nuove icone vettoriali (Profilo, Novità, Tema, Filtri, Schermo, viste, ricerca, microfono e le 7 schede) su tessere "squircle" con curvatura continua, come le app iOS; la scheda attiva nella barra in basso è una tessera colorata.',
+    'Riflessi rifatti: un solo filo di luce sul bordo, schiarita morbida dall\'alto e ombre ampie e sfumate, al posto delle fasce lucide. Sfondo con sfumature senza bande e grana finissima. Palette predefinita: Apple.',
+    'Nuova icona dell\'app (installazione/Home) in stile Apple: squircle in vetro con il procione.'
+  ]},
   {version:'v102', date:'2026-09-29', items:[
     'Palette rifatte in stile "Liquid Glass": sfondo con i colori del tema sfumati, superfici in vetro con riflesso sul bordo, pulsanti lucidi con luce dall\'alto e bagliore colorato. Ora il colore del tema tinge anche sfondo, tabella, schede, filtri, barra in basso, titoli e barre del voto.'
   ]},

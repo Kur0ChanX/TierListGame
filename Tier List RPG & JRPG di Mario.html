@@ -9,13 +9,31 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="theme.css">
 <script src="palettes.js"></script>
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>
+<symbol id="i-list" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3.4"/><path d="M8 10h8M8 14h5"/></symbol>
+<symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M4 7h3c1.6 0 3 .8 3.9 2.1l1.7 2.8c.9 1.3 2.3 2.1 3.9 2.1H20M4 17h3c1.6 0 3-.8 3.9-2.1M14.6 8.4A4.7 4.7 0 0 1 17.6 7H20"/><path d="M17.8 4.8 20 7l-2.2 2.2M17.8 14.8 20 17l-2.2 2.2"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11 4l1.7 4.6L17.3 10.3l-4.6 1.7L11 16.6 9.3 12 4.7 10.3 9.3 8.6z"/><path d="M18.5 3.8v3.4M16.8 5.5h3.4M18 14.5v3M16.5 16h3"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.8" height="6.8" rx="2.2"/><rect x="13.2" y="4" width="6.8" height="6.8" rx="2.2"/><rect x="4" y="13.2" width="6.8" height="6.8" rx="2.2"/><rect x="13.2" y="13.2" width="6.8" height="6.8" rx="2.2"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r=".6"/></symbol>
+<symbol id="i-stack" viewBox="0 0 24 24"><path d="M12 4.2 20 8.2 12 12.2 4 8.2z"/><path d="M4 12l8 4 8-4M4 15.8l8 4 8-4"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M6 19v-6M12 19V5M18 19v-9" stroke-width="2.6"/></symbol>
+<symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8.6" r="3.7"/><path d="M5 19.6c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16.6V11a6 6 0 0 1 12 0v5.6l1.6 1.5H4.4z"/><path d="M10 20.6a2.3 2.3 0 0 0 4 0"/></symbol>
+<symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h8.6M17.4 7H20M4 17h2.6M11.4 17H20"/><circle cx="15" cy="7" r="2.4"/><circle cx="9" cy="17" r="2.4"/></symbol>
+<symbol id="i-lines" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></symbol>
+<symbol id="i-cards" viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="6.2" rx="2.2"/><rect x="4" y="13.3" width="16" height="6.2" rx="2.2"/></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.8 11.5a6.2 6.2 0 0 0 12.4 0M12 17.7V20.5M8.8 20.5h6.4"/></symbol>
+<symbol id="i-fs" viewBox="0 0 24 24"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></symbol>
+<symbol id="i-fsx" viewBox="0 0 24 24"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4M20 9h-3.5A1.5 1.5 0 0 1 15 7.5V4M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20M4 15h3.5A1.5 1.5 0 0 1 9 16.5V20"/></symbol>
+</defs></svg>
 <div id="intro" aria-label="Apertura: Raccoon Tier">
   <div class="intro-bg"></div>
   <div class="intro-frame">
@@ -34,14 +52,14 @@
   <div class="topbar">
     <div class="topbar-row1">
       <h1><img class="brand-logo" src="icons/logo.png" alt="Raccoon Tier" width="53" height="56"><span class="sr-only">Raccoon Tier — Tier List RPG &amp; JRPG di Mario</span></h1>
-      <button class="iconbtn" id="fsBtn" aria-label="Schermo intero" title="Schermo intero (nasconde barra del browser e orario)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-      <button class="iconbtn lbl" id="profileBtn" aria-label="Profilo"><span class="ib-ic">👤</span><span class="ib-lb">Profilo</span></button>
-      <button class="iconbtn lbl" id="changelogBtn" aria-label="Novità del programma"><span class="ib-ic">🆕</span><span class="ib-lb">Novità</span></button>
-      <button class="iconbtn lbl" id="themeBtn" aria-label="Cambia tema"><span class="ib-ic">🌓</span><span class="ib-lb">Tema</span></button>
-      <button class="iconbtn lbl" id="filtersBtn" aria-label="Mostra/nascondi filtri"><span class="ib-ic">🔧</span><span class="ib-lb">Filtri</span><b class="ib-badge" id="filtersBadge" hidden></b></button>
+      <button class="iconbtn lbl" id="fsBtn" aria-label="Schermo intero" title="Schermo intero (nasconde barra del browser e orario)"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fs"/></svg></span><span class="ib-lb">Schermo</span></button>
+      <button class="iconbtn lbl" id="profileBtn" aria-label="Profilo"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-person"/></svg></span><span class="ib-lb">Profilo</span></button>
+      <button class="iconbtn lbl" id="changelogBtn" aria-label="Novità del programma"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bell"/></svg></span><span class="ib-lb">Novità</span></button>
+      <button class="iconbtn lbl" id="themeBtn" aria-label="Cambia tema"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-theme"/></svg></span><span class="ib-lb">Tema</span></button>
+      <button class="iconbtn lbl" id="filtersBtn" aria-label="Mostra/nascondi filtri"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-filter"/></svg></span><span class="ib-lb">Filtri</span><b class="ib-badge" id="filtersBadge" hidden></b></button>
     </div>
     <div class="topbar-row2">
-      <input id="search" type="text" placeholder="🔍 Cerca per nome, piattaforma o anno...">
+      <input id="search" type="text" placeholder="Cerca per nome, piattaforma o anno...">
     </div>
     <div class="count-line">
       <span id="countLine"></span>
@@ -124,13 +142,13 @@
 
   <div class="list-bar" id="listBar"></div>
   <div class="view-tabs" id="viewTabs">
-    <button class="view-tab active" data-view="list" title="Classifica"><span class="vt-ic">📋</span><span class="vt-tx vt-full">Classifica</span><span class="vt-tx vt-short">Classifica</span></button>
-    <button class="view-tab" data-view="discover" title="Scopri"><span class="vt-ic">🔀</span><span class="vt-tx vt-full">Scopri</span><span class="vt-tx vt-short">Scopri</span></button>
-    <button class="view-tab" data-view="novita" title="Novità"><span class="vt-ic">🆕</span><span class="vt-tx vt-full">Novità</span><span class="vt-tx vt-short">Novità</span></button>
-    <button class="view-tab" data-view="novitagenere" title="Novità per genere"><span class="vt-ic">🎭</span><span class="vt-tx vt-full">Novità per genere</span><span class="vt-tx vt-short">Per genere</span></button>
-    <button class="view-tab" data-view="mytier" title="La mia Tier List"><span class="vt-ic">🎯</span><span class="vt-tx vt-full">La mia Tier List</span><span class="vt-tx vt-short">Mia tier</span></button>
-    <button class="view-tab" data-view="saga" title="Per saga"><span class="vt-ic">🗂️</span><span class="vt-tx vt-full">Per saga</span><span class="vt-tx vt-short">Saghe</span></button>
-    <button class="view-tab" data-view="stats" title="Statistiche"><span class="vt-ic">📊</span><span class="vt-tx vt-full">Statistiche</span><span class="vt-tx vt-short">Statistiche</span></button>
+    <button class="view-tab active" data-view="list" title="Classifica"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-list"/></svg></span><span class="vt-tx vt-full">Classifica</span><span class="vt-tx vt-short">Classifica</span></button>
+    <button class="view-tab" data-view="discover" title="Scopri"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shuffle"/></svg></span><span class="vt-tx vt-full">Scopri</span><span class="vt-tx vt-short">Scopri</span></button>
+    <button class="view-tab" data-view="novita" title="Novità"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkle"/></svg></span><span class="vt-tx vt-full">Novità</span><span class="vt-tx vt-short">Novità</span></button>
+    <button class="view-tab" data-view="novitagenere" title="Novità per genere"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg></span><span class="vt-tx vt-full">Novità per genere</span><span class="vt-tx vt-short">Per genere</span></button>
+    <button class="view-tab" data-view="mytier" title="La mia Tier List"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg></span><span class="vt-tx vt-full">La mia Tier List</span><span class="vt-tx vt-short">Mia tier</span></button>
+    <button class="view-tab" data-view="saga" title="Per saga"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-stack"/></svg></span><span class="vt-tx vt-full">Per saga</span><span class="vt-tx vt-short">Saghe</span></button>
+    <button class="view-tab" data-view="stats" title="Statistiche"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chart"/></svg></span><span class="vt-tx vt-full">Statistiche</span><span class="vt-tx vt-short">Statistiche</span></button>
   </div>
 
   <div class="table-wrap" id="tableWrap">
