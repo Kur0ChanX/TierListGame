@@ -365,17 +365,45 @@ html.intro-on{overflow:hidden}
 @media (max-width:760px){ #filtersPanel.open{max-height:40vh} .wrap:has(#filtersPanel.open){padding-bottom:calc(var(--navh) + 10px) !important} .wrap:has(#filtersPanel.open) .table-wrap, .wrap:has(#filtersPanel.open) .alt-view{margin-bottom:calc(var(--navh) + 12px)} }
 html:has(#filtersPanel.open), body:has(#filtersPanel.open){height:auto; min-height:100%}
 
-/* ===== Stile "raffinato" per le palette (tutte tranne Aurora originale): superfici pulite, ombre morbide, niente effetti lucidi ===== */
-html.pal-refined thead th{background:var(--surface-tint); color:var(--text); text-shadow:none; font-weight:650; border-bottom:1px solid var(--border)}
-html.pal-refined .table-wrap{border-radius:16px; box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.08)}
-html.pal-refined .view-tab.active, html.pal-refined .list-chip.active, html.pal-refined .tagchip.active, html.pal-refined .genre-chip.active, html.pal-refined .qf-chip.active, html.pal-refined .iconbtn.active{box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(var(--a1rgb),.18); transform:none; color:var(--on-accent)}
-html.pal-refined .btn.primary{box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(var(--a1rgb),.18); color:var(--on-accent)}
-html.pal-refined .ask-fab{box-shadow:0 2px 6px rgba(0,0,0,.18),0 10px 24px rgba(var(--a1rgb),.22); color:var(--on-accent)}
-html.pal-refined .ask-fab::after{border-color:rgba(var(--a1rgb),.28)}
-html.pal-refined .scrolltop-fab{box-shadow:0 2px 6px rgba(0,0,0,.18),0 8px 18px rgba(var(--a1rgb),.18); color:var(--on-accent)}
-html.pal-refined .toast{box-shadow:0 2px 8px rgba(0,0,0,.2),0 12px 28px rgba(var(--a1rgb),.2); color:var(--on-accent)}
-html.pal-refined .x-mic, html.pal-refined .x-toolbar button.active, html.pal-refined .ask-msg.user{box-shadow:none; color:var(--on-accent)}
+/* ===== Stile "Liquid Glass" per le palette (tutte tranne Aurora originale) =====
+   vetro traslucido con riflesso sul bordo alto, sfondo "mesh" nei colori del tema, pulsanti lucidi con luce dall'alto e bagliore colorato */
+html.pal-refined body::before{inset:-30%; filter:blur(10px); animation-duration:45s;
+  background:
+    radial-gradient(42% 34% at 10% 6%, var(--aur1), transparent 72%),
+    radial-gradient(38% 30% at 92% 14%, var(--aur2), transparent 72%),
+    radial-gradient(50% 40% at 70% 96%, var(--aur3), transparent 72%),
+    radial-gradient(36% 30% at 18% 78%, var(--aur2), transparent 72%)}
+/* superfici grandi in vetro */
+html.pal-refined .table-wrap, html.pal-refined .modal-card, html.pal-refined .lp-card, html.pal-refined .filters-more, html.pal-refined .x-row, html.pal-refined .glabel{
+  background:linear-gradient(180deg, var(--glass-strong), var(--glass)); border:1px solid var(--glass-line);
+  box-shadow:inset 0 1px 0 var(--hl), 0 1px 2px rgba(0,0,0,.10), 0 18px 40px -12px rgba(0,0,0,.35), 0 8px 30px -10px var(--glow);
+  -webkit-backdrop-filter:blur(18px) saturate(170%); backdrop-filter:blur(18px) saturate(170%)}
+html.pal-refined .topbar, html.pal-refined .view-tabs{background:linear-gradient(180deg, var(--glass-strong), var(--glass)); border-color:var(--glass-line); box-shadow:inset 0 -1px 0 var(--glass-line)}
+@media (max-width:760px){ html.pal-refined .view-tabs{box-shadow:inset 0 1px 0 var(--hl), 0 -8px 30px -8px var(--glow)} }
+/* elementi piccoli: vetro leggero senza sfocatura (leggero per il telefono) */
+html.pal-refined .iconbtn, html.pal-refined .view-tab, html.pal-refined .list-chip, html.pal-refined .qf-chip, html.pal-refined .tagchip, html.pal-refined .genre-chip, html.pal-refined .stat-chip, html.pal-refined .btn:not(.primary), html.pal-refined select, html.pal-refined #search, html.pal-refined .x-toolbar, html.pal-refined .cover-pill, html.pal-refined .pal{
+  background:linear-gradient(180deg, rgba(var(--a1rgb),.10), rgba(var(--a1rgb),.03)), var(--glass); border:1px solid var(--glass-line); box-shadow:inset 0 1px 0 var(--hl), 0 2px 8px rgba(0,0,0,.10); color:var(--text)}
+html.pal-refined #search:focus{box-shadow:inset 0 1px 0 var(--hl), 0 0 0 3px rgba(var(--a1rgb),.28)}
+/* elementi attivi e pulsanti principali: lucidi, luce dall'alto, bagliore del colore del tema */
+html.pal-refined .view-tab.active, html.pal-refined .list-chip.active, html.pal-refined .tagchip.active, html.pal-refined .genre-chip.active, html.pal-refined .qf-chip.active, html.pal-refined .iconbtn.active, html.pal-refined .stat-chip.active,
+html.pal-refined .btn.primary, html.pal-refined .ask-fab, html.pal-refined .scrolltop-fab, html.pal-refined .toast, html.pal-refined .x-mic, html.pal-refined .x-toolbar button.active, html.pal-refined .ask-msg.user, html.pal-refined .pal.on{
+  background:linear-gradient(180deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.06) 48%, rgba(0,0,0,.06) 100%), var(--grad) !important; color:var(--on-accent);
+  border-color:transparent; box-shadow:inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.18), 0 6px 18px -4px var(--glow), 0 2px 4px rgba(0,0,0,.15) !important; transform:none}
 html.pal-refined .view-tab.active{animation:none}
-html.pal-refined body::before{animation-duration:60s}
-html.pal-refined td.score::after{opacity:.7}
-@media (max-width:760px){ html.pal-refined .view-tab.active .vt-ic{filter:none} html.pal-refined .view-tab.active{color:var(--accent)} }
+html.pal-refined .ask-fab::after{border-color:rgba(var(--a1rgb),.4)}
+/* tabella */
+html.pal-refined thead th{background:linear-gradient(180deg, rgba(var(--a1rgb),.34), rgba(var(--a1rgb),.18)), var(--glass-strong); color:var(--text); text-shadow:none; font-weight:700; border-bottom:1px solid var(--glass-line); box-shadow:inset 0 1px 0 var(--hl)}
+html.pal-refined tbody tr:nth-child(even){background:rgba(var(--a1rgb),.045)}
+html.pal-refined tbody tr:hover{background:linear-gradient(90deg, rgba(var(--a1rgb),.20), rgba(var(--a2rgb),.06)); box-shadow:inset 3px 0 0 var(--accent)}
+html.pal-refined td.score::after, html.pal-refined .glabel-bar i.on, html.pal-refined .stat-chip .bar i{background:var(--grad); box-shadow:0 0 8px var(--glow)}
+/* titoli di sezione e dettagli nel colore del tema */
+html.pal-refined .modal-section-title, html.pal-refined .novita-genre-section-title, html.pal-refined .pal-group, html.pal-refined .glabel-title{color:var(--accent)}
+html.pal-refined .modal-backdrop, html.pal-refined .dup-backdrop{background:rgba(var(--a1rgb),.10)}
+html.pal-refined .x-card .x-cover, html.pal-refined .x-thumb{box-shadow:inset 0 1px 0 var(--hl), 0 10px 24px -8px var(--glow), 0 4px 10px rgba(0,0,0,.25)}
+/* telefono: scheda attiva nella barra in basso */
+@media (max-width:760px){
+  html.pal-refined .view-tab, html.pal-refined .view-tab.active{background:transparent !important; box-shadow:none !important; border:none}
+  html.pal-refined .view-tab.active{color:var(--accent)}
+  html.pal-refined .view-tab.active .vt-ic{filter:drop-shadow(0 3px 10px var(--glow))}
+}
+html.pal-refined .x-mic{transform:translateY(-50%)}

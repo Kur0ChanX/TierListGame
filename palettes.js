@@ -50,19 +50,23 @@
   function vars(p, dark){
     const [a1, a2, a3] = p.c, t = p.t == null ? .07 : p.t, o = (dark ? p.dk : p.lt) || {};
     const accent = dark ? (lum(a1) < .12 ? mix(a1, '#ffffff', .35) : a1) : (lum(a1) > .35 ? mix(a1, '#000000', .35) : a1);
-    const bg = o.bg || (dark ? mix('#0e0e13', a1, t) : mix('#f6f6f8', a1, t * .6));
-    const card = o.card || (dark ? mix('#1b1b23', a1, t * 1.4) : '#ffffff');
-    const border = o.border || (dark ? mix('#2f2f3a', a1, Math.max(.08, t * 2)) : mix('#e4e4ea', a1, .14));
-    const row = o.row || (dark ? mix('#202029', a1, t * 1.2) : mix('#fafafc', a1, .05));
-    const text = dark ? '#f2f1f7' : '#1c1b22', sub = dark ? mix('#a9a8b5', a1, .18) : mix('#6b6a76', a1, .12);
+    // fondo profondo tinto dal colore del tema (scuro) o pastello luminoso (chiaro)
+    const bg = o.bg || (dark ? mix('#07070b', a1, Math.max(.10, t * 2)) : mix('#f7f7fa', a1, Math.max(.06, t)));
+    const card = o.card || (dark ? mix('#15151c', a1, Math.max(.12, t * 2.2)) : mix('#ffffff', a1, .03));
+    const border = o.border || (dark ? mix('#2c2c38', a1, .28) : mix('#e2e2ea', a1, .22));
+    const row = dark ? mix(card, a1, .06) : mix('#ffffff', a1, .05);
+    const text = dark ? '#f4f3f9' : '#17161d', sub = dark ? mix('#b2b1bf', a1, .22) : mix('#62616e', a1, .16);
+    const cr = rgb(card), A1 = rgb(a1), A2 = rgb(a2), A3 = rgb(a3);
     return `--bg:${bg}; --card:${card}; --text:${text}; --sub:${sub}; --border:${border}; --row-alt:${row};
-      --accent:${accent}; --accent2:${a2}; --a1rgb:${rgb(a1)}; --a2rgb:${rgb(a2)}; --a3rgb:${rgb(a3)};
-      --grad:linear-gradient(160deg,${mix(a1, '#ffffff', .1)} 0%,${a1} 45%,${mix(a1, a2, .3)} 100%);
-      --grad-soft:linear-gradient(135deg,rgba(${rgb(a1)},.16),rgba(${rgb(a3)},.12));
-      --glass:${dark ? `rgba(${rgb(card)},.62)` : 'rgba(255,255,255,.72)'}; --glass-line:rgba(${rgb(a1)},${dark ? .22 : .18});
-      --aur1:rgba(${rgb(a1)},${dark ? .16 : .10}); --aur2:rgba(${rgb(a2)},${dark ? .08 : .06}); --aur3:rgba(${rgb(a3)},${dark ? .06 : .05});
-      --surface-tint:${dark ? mix(card, a1, .10) : mix('#ffffff', a1, .07)}; --on-accent:${lum(a1) > .45 ? '#141414' : '#ffffff'};
-      --dopa-bg:${dark ? mix(card, a1, .12) : mix('#ffffff', a1, .08)}; --dopa-border:${mix(dark ? card : '#ffffff', a1, .35)}; --dopa-ink:${dark ? mix(a1, '#ffffff', .55) : mix(a1, '#000000', .3)};`;
+      --accent:${accent}; --accent2:${a2}; --a1rgb:${A1}; --a2rgb:${A2}; --a3rgb:${A3}; --cardrgb:${cr};
+      --grad:linear-gradient(135deg,${mix(a1, '#ffffff', .12)} 0%,${a1} 40%,${mix(a1, a2, .65)} 100%);
+      --grad-soft:linear-gradient(135deg,rgba(${A1},.20),rgba(${A2},.10));
+      --glass:${dark ? `rgba(${cr},.58)` : `rgba(255,255,255,.62)`}; --glass-strong:${dark ? `rgba(${cr},.82)` : 'rgba(255,255,255,.86)'};
+      --glass-line:${dark ? 'rgba(255,255,255,.09)' : `rgba(${A1},.16)`}; --hl:${dark ? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.9)'};
+      --glow:rgba(${A1},${dark ? .38 : .28});
+      --aur1:rgba(${A1},${dark ? .42 : .30}); --aur2:rgba(${A2},${dark ? .30 : .24}); --aur3:rgba(${A3},${dark ? .26 : .22});
+      --surface-tint:${dark ? mix(card, a1, .16) : mix('#ffffff', a1, .10)}; --on-accent:${lum(a1) > .45 ? '#141414' : '#ffffff'};
+      --dopa-bg:${dark ? mix(card, a1, .14) : mix('#ffffff', a1, .08)}; --dopa-border:${mix(dark ? card : '#ffffff', a1, .35)}; --dopa-ink:${dark ? mix(a1, '#ffffff', .55) : mix(a1, '#000000', .3)};`;
   }
   function css(p){
     const L = vars(p, false), D = vars(p, true);
