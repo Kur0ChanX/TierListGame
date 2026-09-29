@@ -20,9 +20,10 @@ const TAG_INFO = {
   REMAKE:{icon:'♻️', label:'Remake / Remaster'},
   LIFE:{icon:'🌾', label:'Vita / Crafting'},
   ROG:{icon:'🎲', label:'Roguelike'},
-  WRPG:{icon:'🧙', label:'RPG occidentale (WRPG)'}
+  WRPG:{icon:'🧙', label:'RPG occidentale (WRPG)'},
+  JRPG:{icon:'🗾', label:'RPG giapponese (JRPG)'}
 };
-const TAG_ORDER = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','WRPG'];
+const TAG_ORDER = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','WRPG','JRPG'];
 
 // Generi extra (NON RPG) usati solo dalla scheda "Novità per genere", per poter cercare titoli di
 // qualunque genere videoludico e non solo RPG/JRPG. Vengono uniti a TAG_INFO (così icona/etichetta
@@ -70,7 +71,8 @@ Object.assign(TAG_INFO, EXTRA_GENRE_INFO);
 // Sezioni per il selettore generi di "Novità per genere": copre RPG + praticamente ogni genere
 // videoludico, raggruppato in modo schematico invece di un listone unico.
 const NOVITA_GENRE_SECTIONS = [
-  {title:'RPG e stili affini', codes: TAG_ORDER.slice()},
+  {title:'RPG — giapponesi e occidentali', codes:['JRPG','WRPG','TUR','ACT','TAC']},
+  {title:'RPG — sottogeneri e stili', codes: TAG_ORDER.filter(c=> !['JRPG','WRPG','TUR','ACT','TAC'].includes(c))},
   {title:'Azione e avventura', codes:['HNS','SURV','PLAT','BEAT','FIGHT','STEALTH','ADV','ACTADV','OPENW','WALK']},
   {title:'Sparatutto e battle', codes:['FPS','TPS','SHMUP','BR']},
   {title:'Sport e corse', codes:['SPORT','RACE','SIMVEH']},
@@ -97,6 +99,7 @@ const GENRE_HINT = {
   ECOSIM:'gestionale economico (tycoon)',
   SIMVEH:'simulatori di volo, treni o veicoli',
   MMO:'gioco online persistente con tanti giocatori (WoW, FFXIV)',
+  JRPG:'RPG giapponese (Final Fantasy, Dragon Quest, Persona, Xenoblade): storia lineare, party fisso, combattimenti a turni o d\'azione',
   WRPG:'RPG occidentale (Skyrim, Baldur\'s Gate, The Witcher, Dragon Age): scelte, dialoghi e mondo aperto; i giapponesi sono JRPG',
   HNS:'hack & slash: combattimento frenetico contro orde di nemici (Diablo, Devil May Cry, Bayonetta) — se ha progressione da RPG usa ACT',
   SURV:'survival horror: risorse scarse e tensione (Resident Evil, Silent Hill, Dead Space)',

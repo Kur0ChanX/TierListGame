@@ -491,7 +491,7 @@ let novitaGenreLoading = false;
 let novitaGenreErrorMsg = null;
 let novitaGenreEverFetched = false;
 let novitaGenreSkippedListOpen = false;
-const NOVITA_TAG_ENUM = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','WRPG'];
+const NOVITA_TAG_ENUM = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','WRPG','JRPG'];
 function novitaKnownNames(){
   const s = new Set();
   GAMES.forEach(g=> s.add(g.name.toLowerCase().trim()));
@@ -956,7 +956,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v119';
+const DATA_BUILD_VERSION = 'v120';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
