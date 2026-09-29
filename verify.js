@@ -1,0 +1,168 @@
+// ---- Aggiorna info: controlla un gioco su fonti pubbliche (Wikipedia, Wikidata) e propone correzioni ----
+// Voto = Metascore riportato da Wikipedia; generi e anno = Wikidata; testi riscritti dall'AI SOLO a partire dagli estratti di Wikipedia.
+// Non cambia nulla senza conferma. Sui giochi nuovi controlla in automatico voto, generi e anno (senza AI).
+(function(){
+  const OV = 'jrpg_game_overrides';
+  const tierOf = s=> s >= 95 ? 'S+' : s >= 90 ? 'S' : s >= 85 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : s >= 40 ? 'E' : 'F';
+  const loadOv = ()=>{ try{ return JSON.parse(localStorage.getItem(OV) || '{}') || {}; }catch(e){ return {}; } };
+  const saveOv = o=>{ try{ localStorage.setItem(OV, JSON.stringify(o)); }catch(e){} };
+  const baseName = n=> String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*[-–:]\s*(definitive|remaster|remake|complete|hd|edition|reborn|reloaded).*$/i, '').trim();
+  const yearsOf = g=> (String(g.year || '').match(/\d{4}/g) || []).map(Number);
+
+  window.applyGameOverrides = function(){
+    const ov = loadOv();
+    GAMES.forEach(g=>{
+      const o = ov[g.id]; if(!o || g.custom) return;
+      ['score','tier','m','tags','year','ysort','story','note'].forEach(k=>{ if(o[k] !== undefined) g[k] = Array.isArray(o[k]) ? o[k].slice() : o[k]; });
+      if(o.enrich){ g.enrich = g.enrich || {}; Object.assign(g.enrich, o.enrich); }
+    });
+  };
+
+  async function wp(params){
+    const r = await fetch('https://en.wikipedia.org/w/api.php?' + new URLSearchParams(Object.assign({format:'json', origin:'*'}, params)));
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+  async function wikiPage(name){
+    const base = baseName(name), target = normGameName(base);
+    const s = await wp({action:'query', list:'search', srsearch: base + ' video game', srlimit:'6'});
+    const hits = (s.query && s.query.search) || [];
+    const strip = t=> normGameName(t.replace(/\s*\([^)]*\)\s*$/, ''));
+    const pick = hits.find(h=> strip(h.title) === target) || hits.find(h=> /video game/i.test(h.snippet || '') && strip(h.title).includes(target));
+    if(!pick) return null;
+    const ex = await wp({action:'query', prop:'extracts', explaintext:'1', exsectionformat:'plain', titles: pick.title, redirects:'1'});
+    const text = (Object.values(ex.query.pages)[0] || {}).extract || '';
+    let mc = null;
+    try{
+      const w = await wp({action:'parse', page: pick.title, prop:'wikitext', redirects:'1'});
+      const m = (w.parse.wikitext['*'] || '').match(/\|\s*MC\d*\s*=\s*(\d{2,3})\s*(?:\/\s*100)?/);
+      if(m) mc = +m[1];
+    }catch(e){}
+    const cm = text.match(/Metacritic[^.]{0,200}?(?:based on|from)\s+(\d+)\s+(?:critic )?reviews/i);
+    return {title: pick.title, url: 'https://en.wikipedia.org/wiki/' + encodeURIComponent(pick.title.replace(/ /g, '_')), text, mc, count: cm ? +cm[1] : null};
+  }
+  // estratto utile per l'AI: introduzione + gameplay + accoglienza (max ~9000 caratteri)
+  function digest(text){
+    const t = String(text || '');
+    const i = t.search(/\n\s*Reception\s*\n/i);
+    const head = t.slice(0, 5200);
+    const rec = i > 0 ? t.slice(i, i + 3600) : '';
+    return (head + (rec ? '\n[...]\n' + rec : '')).slice(0, 9000);
+  }
+  async function gather(g){
+    const [wiki, wd] = await Promise.allSettled([wikiPage(g.name), wikidataGenreCodes(g.name)]);
+    return {wiki: wiki.status === 'fulfilled' ? wiki.value : null, wd: wd.status === 'fulfilled' ? wd.value : null,
+            errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
+  }
+  // proposte "di fatto" (senza AI)
+  function factChanges(g, src){
+    const ch = [];
+    const nowY = new Date().getFullYear();
+    if(src.wiki && src.wiki.mc && src.wiki.mc !== g.score){
+      ch.push({id:'score', label:'Voto', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${src.wiki.mc} (Metacritic, da Wikipedia)`, patch:{score: src.wiki.mc, tier: tierOf(src.wiki.mc), m:'V'}});
+    }
+    if(src.wd && src.wd.codes){
+      const add = src.wd.codes.filter(c=> TAG_INFO[c] && !g.tags.includes(c));
+      if(add.length){
+        const warn = add.some(c=> EXTRA_GENRE_INFO[c]);
+        ch.push({id:'tags', label:'Generi', from: g.tags.map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', '), to: '+ ' + add.map(c=> TAG_INFO[c].label).join(', ') + (warn ? ' ⚠️ (esce da JRPG / RPG)' : '') + ' (Wikidata)', patch:{tags: g.tags.concat(add).slice(0, 6)}});
+      }
+    }
+    if(src.wd && src.wd.years && src.wd.years.length){
+      const mine = yearsOf(g), wy = src.wd.years;
+      if(mine.length && !mine.some(y=> wy.some(z=> Math.abs(y - z) <= 1))){
+        const y = Math.min(...wy);
+        ch.push({id:'year', label:'Anno', from: g.year, to: String(y) + ' (Wikidata)', patch:{year: String(y), ysort: y}});
+      }
+      if(Math.min(...wy) > nowY) ch.push({id:'unreleased', label:'⚠️ Non ancora uscito', from:'', to:'Wikidata indica un\'uscita nel ' + Math.min(...wy) + ': voto e recensioni non possono essere reali', patch:{note:'Non ancora uscito (uscita prevista ' + Math.min(...wy) + '): voto provvisorio.', m:'S'}});
+    }
+    return ch;
+  }
+  function parseJson(t){
+    const s = String(t || '').replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+    const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if(a < 0 || b < a) return null;
+    try{ return JSON.parse(s.slice(a, b + 1)); }catch(e){ return null; }
+  }
+  async function textChanges(g, src){
+    if(!llmAvailable() || !src.wiki || !src.wiki.text) return {changes:[], note: !src.wiki ? 'Nessuna pagina Wikipedia trovata: testi non riscritti.' : 'Nessun motore AI configurato: testi non riscritti.'};
+    const prompt = todayLine() + `Aggiorna la scheda del videogioco "${g.name}" (${g.year}, ${g.plat}) usando SOLO le fonti qui sotto. Se una informazione non è nelle fonti scrivi null: non inventare nulla. Niente espressioni come "recente" o "uscito da poco": usa gli anni.
+Rispondi SOLO con un oggetto JSON valido con questi campi (in italiano): story (1-2 frasi di trama senza spoiler pesanti), pros (3-4 punti di forza concreti, emersi dalla critica), cons (2-3 difetti concreti, emersi dalla critica), agingNote (1-2 frasi su come regge oggi, con gli anni), whyLikeIt (1 frase: a chi piace).
+FONTE — Wikipedia (${src.wiki.title}):
+${digest(src.wiki.text)}`;
+    const r = await askLLM(prompt, {}, {});
+    const j = parseJson(r && r.text);
+    if(!j) return {changes:[], note:'L\'AI non ha restituito un risultato leggibile: riprova.'};
+    const arr = a=> Array.isArray(a) ? a.map(x=> String(x).trim()).filter(Boolean).slice(0, 5) : [];
+    const en = {}; const ch = [];
+    const pros = arr(j.pros), cons = arr(j.cons);
+    if(pros.length && cons.length){ en.pros = pros; en.cons = cons; ch.push({id:'proscons', label:'Pro e Contro', from: ((g.enrich && g.enrich.pros) || (g.proscons && g.proscons.pros) || []).slice(0,2).join(' · ') || '—', to: pros.slice(0,2).join(' · ') + ' … (riscritti dalle fonti)', patch:{enrich:{pros, cons}}}); }
+    if(typeof j.agingNote === 'string' && j.agingNote.length > 20){ ch.push({id:'aging', label:'Come regge oggi', from: ((g.enrich && g.enrich.agingNote) || '—').slice(0, 90), to: j.agingNote.slice(0, 140), patch:{enrich:{agingNote: j.agingNote}}}); }
+    if(typeof j.whyLikeIt === 'string' && j.whyLikeIt.length > 15){ ch.push({id:'why', label:'Perché potrebbe piacerti', from: ((g.enrich && g.enrich.whyLikeIt) || '—').slice(0, 90), to: j.whyLikeIt.slice(0, 140), patch:{enrich:{whyLikeIt: j.whyLikeIt}}}); }
+    if(typeof j.story === 'string' && j.story.length > 30){ ch.push({id:'story', label:'Trama', from: (g.story || '—').slice(0, 90), to: j.story.slice(0, 160), patch:{story: j.story}}); }
+    return {changes: ch, note: ''};
+  }
+  function mergePatch(list){
+    const p = {};
+    list.forEach(c=>{ Object.keys(c.patch).forEach(k=>{ if(k === 'enrich') p.enrich = Object.assign(p.enrich || {}, c.patch.enrich); else p[k] = c.patch[k]; }); });
+    return p;
+  }
+  async function applyPatch(g, p){
+    if(g.custom){
+      const doc = {name: g.name, plat: g.plat, year: p.year || g.year, tier: p.tier || g.tier, score: p.score != null ? p.score : g.score, tags: p.tags || g.tags, story: p.story != null ? p.story : g.story, note: p.note || g.note, label: g.label,
+        pros: (p.enrich && p.enrich.pros) || (g.proscons && g.proscons.pros) || [], cons: (p.enrich && p.enrich.cons) || (g.proscons && g.proscons.cons) || [], addedAt: new Date().toISOString()};
+      if(COVER_DB) await COVER_DB.doc('customGames/' + String(g.id)).set(doc);
+    } else {
+      const ov = loadOv(); const cur = ov[g.id] || {};
+      ov[g.id] = Object.assign({}, cur, p, {enrich: Object.assign({}, cur.enrich || {}, p.enrich || {})});
+      saveOv(ov); applyGameOverrides();
+    }
+    try{ ensureGenreLists(p.tags || []); renderListBar(); render(); }catch(e){}
+  }
+
+  // ----- interfaccia -----
+  function panel(){
+    let el = document.getElementById('updInfoBackdrop');
+    if(!el){ el = document.createElement('div'); el.id = 'updInfoBackdrop'; el.className = 'dup-backdrop'; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
+    return el;
+  }
+  window.openUpdateInfo = async function(g){
+    if(!g) return;
+    const el = panel();
+    const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔄 Aggiorna info — ${escHtml(g.name)}</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
+    el.innerHTML = shell('<div class="lp-sub" id="uiStatus">Cerco su Wikipedia e Wikidata…</div>');
+    el.classList.add('show');
+    const status = t=>{ const s = el.querySelector('#uiStatus'); if(s) s.textContent = t; };
+    let src;
+    try{ src = await gather(g); }catch(e){ src = {wiki:null, wd:null, errors:2}; }
+    if(!src.wiki && !src.wd){ el.innerHTML = shell('<div class="lp-sub">❌ Non riesco a consultare le fonti (rete assente o pagina non trovata). Riprova più tardi.</div>'); return; }
+    let changes = factChanges(g, src), note = '';
+    status('Fonti trovate. Riscrivo trama e pro/contro dalle fonti…');
+    try{ const t = await textChanges(g, src); changes = changes.concat(t.changes); note = t.note; }catch(e){ note = 'Testi non riscritti: ' + llmErrorText(e); }
+    const sources = [src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].filter(Boolean).join(' · ');
+    if(!changes.length){ el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
+    el.innerHTML = shell(`<div class="lp-sub">Fonti: ${sources}. Togli la spunta a ciò che non ti convince.${note ? '<br>' + escHtml(note) : ''}</div>
+      <div class="gc-rows">${changes.map((c,i)=> `<label class="gc-row"><input type="checkbox" data-i="${i}" checked> <span><b>${escHtml(c.label)}</b><br><small>Prima: ${escHtml(c.from || '—')}</small><br>Dopo: ${escHtml(c.to)}</span></label>`).join('')}</div>
+      <div class="lp-tools"><button class="btn primary" id="uiApply">Applica i selezionati</button></div>`);
+    el.querySelector('#uiApply').addEventListener('click', async ()=>{
+      const chosen = [...el.querySelectorAll('input[data-i]:checked')].map(cb=> changes[+cb.dataset.i]);
+      await applyPatch(g, mergePatch(chosen));
+      el.classList.remove('show'); showToast('✅ Scheda aggiornata', 3000);
+      try{ openModal(GAMES.find(x=> x.id === g.id) || g); }catch(e){}
+    });
+  };
+  document.addEventListener('click', e=>{ if(e.target && e.target.id === 'updateInfoBtn' && typeof currentModalGame !== 'undefined' && currentModalGame) openUpdateInfo(currentModalGame); });
+
+  // ----- giochi nuovi: controllo automatico di voto, generi e anno (senza AI) -----
+  window.verifyNewGameGenres = async function(id, doc){
+    try{
+      const g = GAMES.find(x=> x.id === id); if(!g) return;
+      const src = await gather({name: doc.name});
+      const ch = factChanges(g, src);
+      if(!ch.length) return;
+      await applyPatch(g, mergePatch(ch));
+      showToast('🔎 Verificato su Wikipedia/Wikidata: ' + ch.map(c=> c.label).join(', ') + ' aggiornati', 5000);
+    }catch(e){}
+  };
+  try{ applyGameOverrides(); renderListBar(); if(state.view === 'list') render(); }catch(e){}
+})();

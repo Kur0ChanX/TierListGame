@@ -10,6 +10,7 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - `sync.js`: sincronizzazione automatica dei dati `jrpg_*` (localStorage) su un Gist privato via token GitHub (permesso `gist`). Caricato PRIMA di app.js.
 - `theme.css`: tema grafico "Aurora glass" (solo override di style.css, caricato dopo). `fx.js`: piccoli effetti (barra voto, vibrazione, transizione tra schede).
 - `genres.js`: verifica dei generi su Wikidata (nuovi giochi in automatico; controllo completo con conferma). `icons/logo.png`: logo Raccoon Tier.
+- `verify.js`: pulsante "Aggiorna info" nella scheda gioco (Wikipedia/Wikidata + AI vincolata alle fonti) e verifica automatica dei giochi nuovi; le correzioni ai giochi di base stanno in `jrpg_game_overrides` (localStorage, sincronizzato).
 - `giochi.js`: dati, `const GIOCHI_DATA = {games, sagaMap, enrich, dopa, labels, market};` (~1,9 MB).
 
 ## Regole per risparmiare token
