@@ -444,7 +444,7 @@ function novitaSkipCandidate(c){
   saveNovitaSkipped();
   saveNovitaSkippedDetails();
 }
-const NOVITA_BATCH_COUNT = 30;   // massimo di giochi accumulati per ricerca (si può interrompere prima)
+const NOVITA_BATCH_COUNT = 60;   // massimo di giochi accumulati per ricerca (si può interrompere prima): 60 sono leggeri; oltre, la libreria personale cresce troppo in una volta
 let novitaQueue = [];
 let novitaIdx = 0;
 let novitaLoading = false;
@@ -621,7 +621,7 @@ function novitaFocusSets(codes, size){
 async function novitaSearchParallel(makePrompt, total, strategies, focusSets, extraOpts){
   extraOpts = extraOpts || {};
   const STR = strategies || NOVITA_STRATEGIES;
-  const MAX = Math.min(30, Math.max(1, total || NOVITA_BATCH_COUNT));
+  const MAX = Math.min(NOVITA_BATCH_COUNT, Math.max(1, total || NOVITA_BATCH_COUNT));
   const found = [], seen = new Set();
   let stopped = false, wake = null, lastErr = null, aiErrors = 0;
   const stopP = new Promise(res=>{ wake = res; });
@@ -844,6 +844,7 @@ function renderNovitaCard(){
   }
   if(novitaSkippedListOpen){ renderNovitaSkippedListInto(panel, renderNovitaCard); return; }
   const topBar = novitaSkippedTopbarHtml(Object.keys(NOVITA_SKIPPED_DETAILS).length, 'novitaViewSkippedBtn');
+  if(novitaReport && novitaReport.kind === 'novita'){ panel.innerHTML = `<div class="novita-wrap">${novitaReportHtml(novitaReport)}</div>`; wireNovitaAccept(panel, 'novita', renderNovitaCard); return; }
   if(novitaLoading){ panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${novitaLoadingHtml()}</div></div>`; wireNovitaTopbar(); return; }
   if(novitaErrorMsg){ panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${novitaErrorHtml(novitaErrorMsg)}</div></div>`; wireNovitaCard(); wireNovitaTopbar(); return; }
   const c = currentNovitaGame();
@@ -854,9 +855,9 @@ function renderNovitaCard(){
   }
   panel.innerHTML = `<div class="novita-wrap">${topBar}
     <div class="discover-stage">${novitaCardHtml(c)}</div>
-    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaQueue).length} da vedere in questo giro</div>${novitaFilterHtml(novitaQueue)}
+    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaQueue)}${novitaFilterHtml(novitaQueue)}
   </div>`;
-  wireNovitaCard(); wireNovitaTopbar();
+  wireNovitaCard(); wireNovitaTopbar(); wireNovitaAccept(panel, 'novita', renderNovitaCard);
 }
 function novitaAdvanceSkip(){
   const c = currentNovitaGame(); if(!c) return;
@@ -873,6 +874,44 @@ function novitaAdvanceLike(){
   }
   novitaQueue.splice(novitaQueue.indexOf(c), 1);
   renderNovitaCard();
+}
+
+// ---- «Accetta tutto»: aggiunge in un colpo solo tutte le proposte visibili e mostra poi l'elenco essenziale di ciò che è stato accettato ----
+let novitaReport = null;      // {kind, items:[{name, score, tier, plat, year, genre}], failed:n}
+function novitaAcceptAllHtml(q){
+  const n = novitaVisible(q).length;
+  return n >= 2 ? `<div class="novita-acceptall"><button class="btn" type="button" data-accept-all>${giIcon('check')} Accetta tutto (${n})</button></div>` : '';
+}
+function novitaAcceptAll(kind){
+  const q = kind === 'genre' ? novitaGenreQueue : novitaQueue;
+  const list = novitaVisible(q).slice();
+  if(list.length < 2) return;
+  if(!confirm('Aggiungo alla tua libreria tutti i ' + list.length + ' giochi proposti? Poi vedrai l\'elenco di quelli accettati.')) return;
+  const label = kind === 'genre' ? 'Novità per genere' : 'Novità';
+  const items = []; let failed = 0;
+  window.__bulkAdd = true;
+  list.forEach(c=>{
+    try{
+      askToolAddCustomGame(c, label);
+      const t0 = (c.tags || []).find(t=> TAG_INFO[t]);
+      items.push({name: c.name, score: c.score, tier: c.tier, plat: c.plat || '', year: c.year || '', genre: t0 ? TAG_INFO[t0].label : ''});
+    }catch(e){ failed++; }
+    const i = q.indexOf(c); if(i > -1) q.splice(i, 1);
+  });
+  window.__bulkAdd = false;
+  novitaReport = {kind, items, failed};
+  try{ showToast(items.length + ' giochi aggiunti' + (failed ? ' (' + failed + ' saltati: doppioni o errori)' : ''), 3500); }catch(e){}
+  (kind === 'genre' ? renderNovitaGenreCard : renderNovitaCard)();
+}
+function novitaReportHtml(r){
+  const rows = r.items.map(i=> `<tr><td>${escHtml(i.name)}</td><td>${i.score != null ? i.score : '–'}</td><td><span class="badge ${TIER_LABEL[i.tier] || ''}">${escHtml(i.tier || '')}</span></td><td>${escHtml(i.plat || '–')}</td><td>${escHtml(i.year || '–')}</td><td>${escHtml(i.genre || '–')}</td></tr>`).join('');
+  return `<div class="novita-report"><div class="discover-title">${giIcon('check')} Giochi accettati: ${r.items.length}</div>${r.failed ? `<div class="discover-hint">${r.failed} non aggiunti (doppioni o errori).</div>` : ''}
+    <div class="novita-report-scroll"><table><thead><tr><th>Nome</th><th>Voto</th><th>Tier</th><th>Piattaforma</th><th>Anno</th><th>Genere</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <button class="btn primary" type="button" data-report-close>Chiudi elenco</button></div>`;
+}
+function wireNovitaAccept(panel, kind, rerender){
+  const b = panel.querySelector('[data-accept-all]'); if(b) b.addEventListener('click', ()=> novitaAcceptAll(kind));
+  const c = panel.querySelector('[data-report-close]'); if(c) c.addEventListener('click', ()=>{ novitaReport = null; rerender(); });
 }
 function wireNovitaCard(){
   const gg = document.getElementById('novitaGenreGoBtn'); if(gg) gg.addEventListener('click', ()=> setView('novitagenere'));
@@ -920,6 +959,7 @@ function renderNovitaGenreCard(){
   }
   if(novitaGenreSkippedListOpen){ renderNovitaSkippedListInto(panel, renderNovitaGenreCard); return; }
   const topBar = novitaSkippedTopbarHtml(Object.keys(NOVITA_SKIPPED_DETAILS).length, 'novitaGenreViewSkippedBtn');
+  if(novitaReport && novitaReport.kind === 'genre'){ panel.innerHTML = `<div class="novita-wrap">${novitaReportHtml(novitaReport)}</div>`; wireNovitaAccept(panel, 'genre', renderNovitaGenreCard); return; }
   if(novitaGenreLoading){ panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${novitaLoadingHtml()}</div></div>`; wireNovitaGenreTopbar(); return; }
   const c = currentNovitaGenreGame();
   if(!c){
@@ -931,9 +971,9 @@ function renderNovitaGenreCard(){
   }
   panel.innerHTML = `<div class="novita-wrap">${topBar}
     <div class="discover-stage">${novitaCardHtml(c, {nope:'novitaGenreNopeBtn', like:'novitaGenreLikeBtn'})}</div>
-    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaGenreQueue).length} da vedere in questo giro</div>${novitaFilterHtml(novitaGenreQueue)}
+    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaGenreQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaGenreQueue)}${novitaFilterHtml(novitaGenreQueue)}
   </div>`;
-  wireNovitaGenreCard(); wireNovitaGenreTopbar();
+  wireNovitaGenreCard(); wireNovitaGenreTopbar(); wireNovitaAccept(panel, 'genre', renderNovitaGenreCard);
 }
 function novitaGenreAdvanceSkip(){
   const c = currentNovitaGenreGame(); if(!c) return;
@@ -985,8 +1025,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-10-02';
-const DATA_BUILD_VERSION = 'v128';
+const DATA_BUILD_DATE = '2026-10-03';
+const DATA_BUILD_VERSION = 'v129';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
