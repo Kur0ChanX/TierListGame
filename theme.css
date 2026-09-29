@@ -212,7 +212,7 @@ h1{flex:0 1 auto !important; min-width:0}
 @keyframes introIn{from{opacity:0}to{opacity:1}}
 .intro-img{position:absolute; inset:0; width:100%; height:100%; display:block}
 /* FRUGU FRUGU: solo la scritta si muove (copia ritagliata che pulsa e dondola + alone). Tutto con transform/opacity: gira anche mentre la pagina carica */
-.intro-frugu{position:absolute; left:30%; top:63.5%; width:41%; height:14%; pointer-events:none; -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); animation:fruguHue 3.6s linear infinite}
+.intro-frugu{position:absolute; left:30%; top:63.5%; width:41%; height:14%; pointer-events:none; -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); animation:fruguHue 1.4s linear infinite}
 /* la scritta resta ferma (niente doppioni): cambiano solo i colori, che scorrono in tutto l'arcobaleno */
 .intro-frugu b{position:absolute; width:243.9%; height:714.3%; left:-73.17%; top:-453.6%; background-size:100% 100%}
 @keyframes fruguHue{0%{filter:hue-rotate(0deg) saturate(1.35) brightness(1.08)}100%{filter:hue-rotate(360deg) saturate(1.35) brightness(1.08)}}
@@ -532,3 +532,55 @@ html:not(.fx-on) .table-wrap, html:not(.fx-on) .glabel, html:not(.fx-on) .filter
 .mini-icon{cursor:pointer; padding:3px 2px; margin-right:1px}
 .x-autocover{display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px}
 .x-autocover .x-ac-st{font-size:.78rem; color:var(--sub)}
+
+/* ===== v119: box di caricamento senza testo tagliato, contatore, pulsante «Basta frugare», avviso di aggiunta discreto ===== */
+.rt-title,.rt-sub{white-space:normal !important; overflow:visible !important; text-overflow:clip !important; height:auto !important; overflow-wrap:anywhere}
+.rt-sub{min-height:1.2em}
+.rt-count{font:800 .72rem/1.2 ui-monospace,Menlo,monospace; color:#ffe066; background:rgba(7,11,60,.75); border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:4px 8px; justify-self:start}
+.rt-stop{font:800 .72rem/1.1 system-ui,sans-serif; letter-spacing:.02em; color:#fff; background:linear-gradient(180deg,#ff7a59,#e04a2b); border:2px solid #fff; border-radius:999px; padding:8px 12px; margin-top:4px; cursor:pointer; box-shadow:0 2px 0 #7a1f0e}
+.rt-stop:disabled{opacity:.6; cursor:default}
+.rt-stop[hidden],.rt-count[hidden]{display:none !important}
+.added-banner{top:auto !important; bottom:calc(var(--navh,0px) + 78px) !important; left:auto !important; right:12px !important; transform:translateY(10px) !important; padding:8px 12px !important; border-width:2px !important; border-radius:14px !important; max-width:min(78vw,300px) !important; text-align:left !important; box-shadow:0 6px 18px rgba(0,0,0,.35) !important; font-size:12px}
+.added-banner.show{transform:translateY(0) !important}
+.added-banner .added-title{font-size:13px !important}
+.added-banner .added-name{font-size:12px !important; margin:4px 0 !important; padding:3px 8px !important}
+.added-banner .added-where{display:none}
+/* badge fisso «modifiche da approvare» */
+.au-badge{position:fixed; left:12px; bottom:calc(var(--navh,0px) + 14px + env(safe-area-inset-bottom,0px)); z-index:100400; display:none; align-items:center; gap:6px; padding:9px 14px; border-radius:999px; border:2px solid #fff; background:linear-gradient(180deg,#3b82f6,#1d4ed8); color:#fff; font:800 13px/1 system-ui,sans-serif; box-shadow:0 6px 18px rgba(29,78,216,.5); cursor:pointer}
+.au-badge.show{display:inline-flex}
+/* revisione unica per gioco: PRIMA e DOPO ben separati, testo intero */
+.au-rev{max-height:calc(100dvh - 190px); overflow-y:auto; -webkit-overflow-scrolling:touch; display:grid; gap:14px; padding:2px}
+.au-chg{border:1px solid rgba(128,128,160,.35); border-radius:14px; padding:10px; display:grid; gap:8px}
+.au-chg h4{margin:0; font-size:14px}
+.au-box{border-radius:10px; padding:9px 11px; font-size:13px; line-height:1.4; white-space:pre-wrap; overflow-wrap:anywhere}
+.au-box small{display:block; font-weight:800; letter-spacing:.06em; margin-bottom:4px; opacity:.85}
+.au-before{background:rgba(220,80,80,.12); border:1px solid rgba(220,80,80,.4)}
+.au-after{background:rgba(60,170,110,.14); border:1px solid rgba(60,170,110,.5); margin-top:2px}
+.au-actions{position:sticky; bottom:0; display:flex; flex-wrap:wrap; gap:8px; padding:10px 0 2px; background:linear-gradient(180deg,transparent,var(--card,#fff) 30%)}
+
+/* scheda di ricerca compatta: titolo, ✕ e ♥ sulla stessa riga, tutto senza scorrere */
+.novita-compact{padding:12px 14px; display:grid; gap:8px; cursor:default}
+.novita-head{display:flex; align-items:center; gap:10px}
+.novita-head .discover-title{flex:1; min-width:0; margin:0; font-size:1.05rem; line-height:1.2; overflow-wrap:anywhere}
+.novita-acts{display:flex; gap:8px; flex:none}
+.novita-acts .discover-btn{width:44px; height:44px; font-size:1.25rem}
+.novita-meta{display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:.85rem}
+.novita-clamp{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:.8rem}
+.novita-compact .novita-links{display:flex; flex-wrap:wrap; gap:6px}
+
+/* v119: le mie vibes */
+.vb-wrap{display:grid; gap:10px; margin:0 0 16px; padding:12px; border-radius:20px; background:var(--glass,rgba(255,255,255,.08)); border:1px solid var(--glass-line,rgba(255,255,255,.18))}
+.vb-title{font-weight:800; font-size:1rem}
+.vb-chips{display:flex; flex-wrap:wrap; gap:6px}
+.vb-chip{font-size:.78rem; padding:5px 9px; border-radius:999px; background:rgba(var(--a1rgb),.18); border:1px solid rgba(var(--a1rgb),.4); cursor:pointer}
+.vb-chip b{margin-left:4px; opacity:.7; cursor:pointer}
+.vb-empty,.vb-hint{font-size:.78rem; opacity:.8}
+.vb-add{display:flex; gap:6px}
+.vb-add input{flex:1; min-width:0; padding:9px 12px; border-radius:12px; border:1px solid var(--border,#888); background:var(--card,#fff); color:inherit; font-size:.9rem}
+.vb-sec{font-weight:800; font-size:.9rem; margin-top:4px}
+.vb-loc{padding:8px 10px; border-radius:12px; background:rgba(128,128,160,.12); cursor:pointer; font-size:.85rem}
+.vb-card{border:1px solid var(--glass-line,rgba(255,255,255,.2)); border-radius:16px; background:var(--card,rgba(255,255,255,.06))}
+.vb-because{font-size:.85rem; line-height:1.35}
+.novita-compact .novita-badge-new{position:static !important; transform:none !important; justify-self:start; margin:0}
+.novita-compact .novita-link-btn{display:inline-flex; align-items:center; gap:4px; white-space:nowrap}
+body:has(.dup-backdrop.show) .au-badge, body:has(.modal-backdrop.show) .au-badge{display:none !important}

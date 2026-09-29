@@ -19,9 +19,10 @@ const TAG_INFO = {
   HOR:{icon:'👻', label:'Horror'},
   REMAKE:{icon:'♻️', label:'Remake / Remaster'},
   LIFE:{icon:'🌾', label:'Vita / Crafting'},
-  ROG:{icon:'🎲', label:'Roguelike'}
+  ROG:{icon:'🎲', label:'Roguelike'},
+  WRPG:{icon:'🧙', label:'RPG occidentale (WRPG)'}
 };
-const TAG_ORDER = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG'];
+const TAG_ORDER = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','WRPG'];
 
 // Generi extra (NON RPG) usati solo dalla scheda "Novità per genere", per poter cercare titoli di
 // qualunque genere videoludico e non solo RPG/JRPG. Vengono uniti a TAG_INFO (così icona/etichetta
@@ -60,17 +61,20 @@ const EXTRA_GENRE_INFO = {
   ARCADE:{icon:'👾', label:'Arcade / retro'},
   IDLE:{icon:'⏳', label:'Idle / clicker'},
   RUN:{icon:'🏃', label:'Endless runner'},
-  COOP:{icon:'🤝', label:'Cooperativo / multiplayer sociale'}
+  COOP:{icon:'🤝', label:'Cooperativo / multiplayer sociale'},
+  HNS:{icon:'🪓', label:'Hack & Slash'},
+  SURV:{icon:'🧟', label:'Survival Horror'},
+  STRATTAC:{icon:'🎖️', label:'Strategia a turni tattica (non RPG)'}
 };
 Object.assign(TAG_INFO, EXTRA_GENRE_INFO);
 // Sezioni per il selettore generi di "Novità per genere": copre RPG + praticamente ogni genere
 // videoludico, raggruppato in modo schematico invece di un listone unico.
 const NOVITA_GENRE_SECTIONS = [
   {title:'RPG e stili affini', codes: TAG_ORDER.slice()},
-  {title:'Azione e avventura', codes:['PLAT','BEAT','FIGHT','STEALTH','ADV','ACTADV','OPENW','WALK']},
+  {title:'Azione e avventura', codes:['HNS','SURV','PLAT','BEAT','FIGHT','STEALTH','ADV','ACTADV','OPENW','WALK']},
   {title:'Sparatutto e battle', codes:['FPS','TPS','SHMUP','BR']},
   {title:'Sport e corse', codes:['SPORT','RACE','SIMVEH']},
-  {title:'Strategia e gestionale', codes:['RTS','TBS4X','MOBA','CITY','TOWERDEF','ECOSIM']},
+  {title:'Strategia e gestionale', codes:['RTS','TBS4X','STRATTAC','MOBA','CITY','TOWERDEF','ECOSIM']},
   {title:'Puzzle e party', codes:['PUZ','PARTY','RHY','BOARDG','TRIVIA']},
   {title:'Sandbox e simulazione', codes:['SAND','SIMLIFE']},
   {title:'Arcade e altro', codes:['ARCADE','IDLE','RUN','COOP','MMO']}
@@ -93,6 +97,10 @@ const GENRE_HINT = {
   ECOSIM:'gestionale economico (tycoon)',
   SIMVEH:'simulatori di volo, treni o veicoli',
   MMO:'gioco online persistente con tanti giocatori (WoW, FFXIV)',
+  WRPG:'RPG occidentale (Skyrim, Baldur\'s Gate, The Witcher, Dragon Age): scelte, dialoghi e mondo aperto; i giapponesi sono JRPG',
+  HNS:'hack & slash: combattimento frenetico contro orde di nemici (Diablo, Devil May Cry, Bayonetta) — se ha progressione da RPG usa ACT',
+  SURV:'survival horror: risorse scarse e tensione (Resident Evil, Silent Hill, Dead Space)',
+  STRATTAC:'strategia a turni su griglia SENZA elementi RPG di crescita personaggi (Advance Wars, Into the Breach)',
   TUR:'RPG a turni classico', ACT:'RPG d\'azione in tempo reale', REMAKE:'remake o remaster di un titolo già uscito'
 };
 function genreGlossary(codes){ return codes.map(c=> `${c} = ${TAG_INFO[c] ? TAG_INFO[c].label : c}${GENRE_HINT[c] ? ' (' + GENRE_HINT[c] + ')' : ''}`).join('; '); }

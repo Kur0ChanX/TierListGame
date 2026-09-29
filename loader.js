@@ -6,16 +6,19 @@
 (function(){
   const GIF = 'icons/frugu-hd.gif';
   const FLAVOR = ['Frugu Frugu fruga tra i giochi…', 'Consulto le fonti…', 'Leggo le recensioni…', 'Controllo i dettagli…', 'Quasi fatto: metto in ordine il bottino…'];
-  let el = null, depth = 0, exact = false, pct = 0, target = 0, label = '', t0 = 0, timer = 0, hideT = 0, raf = 0, manual = 0;
+  let logText = '', cnt = null, stopFn = null, el = null, depth = 0, exact = false, pct = 0, target = 0, label = '', t0 = 0, timer = 0, hideT = 0, raf = 0, manual = 0;
 
   function build(){
     el = document.createElement('div'); el.className = 'rt-loader'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
     el.innerHTML = `<div class="rt-pet"><img alt="" width="120" height="94" decoding="async"></div>
       <div class="rt-main"><div class="rt-title"></div><div class="rt-sub"></div>
-      <div class="rt-row"><span class="rt-tag">PE</span><div class="rt-bar"><i></i></div><b class="rt-pct">0%</b></div></div>
+      <div class="rt-count" hidden></div>
+      <div class="rt-row"><span class="rt-tag">PE</span><div class="rt-bar"><i></i></div><b class="rt-pct">0%</b></div>
+      <button class="rt-stop" type="button" hidden>Basta frugare! Mostra bottino</button></div>
       <button class="rt-x" type="button" aria-label="Nascondi">✕</button>`;
     document.body.appendChild(el);
     el.querySelector('.rt-x').addEventListener('click', ()=> el.classList.remove('show'));
+    el.querySelector('.rt-stop').addEventListener('click', ()=>{ const f = stopFn; if(f){ el.querySelector('.rt-stop').disabled = true; try{ f(); }catch(e){} } });
     return el;
   }
   function paint(){
@@ -27,7 +30,9 @@
     el.classList.toggle('waiting', waiting);
     const el2 = Math.round((performance.now() - t0) / 1000);
     el.querySelector('.rt-title').textContent = label;
-    el.querySelector('.rt-sub').textContent = waiting ? 'Ci sta mettendo più del solito: sto ancora aspettando la risposta…' : FLAVOR[Math.min(FLAVOR.length - 1, Math.floor(shown / 22))] + (el2 >= 4 ? ` · ${el2}s` : '');
+    const cEl = el.querySelector('.rt-count'); cEl.hidden = !cnt; if(cnt) cEl.textContent = `🗑️ Giochi trovati nel bidone: ${cnt.n} / ${cnt.max}`;
+    const sEl = el.querySelector('.rt-stop'); sEl.hidden = !stopFn;
+    el.querySelector('.rt-sub').textContent = logText ? logText : waiting ? 'Ci sta mettendo più del solito: sto ancora aspettando la risposta…' : FLAVOR[Math.min(FLAVOR.length - 1, Math.floor(shown / 22))] + (el2 >= 4 ? ` · ${el2}s` : '');
     el.classList.toggle('done', shown >= 100);
   }
   // Stima calibrata: per ogni richiesta uso la durata media REALE delle volte scorse (salvata per tipo di ricerca).
@@ -71,14 +76,18 @@
     hideT = setTimeout(()=>{                       // piccola attesa: se parte subito un'altra richiesta la barra continua (niente lampeggi)
       if(depth > 0 || manual > 0) return;
       target = 100; exact = true;
-      const fin = ()=>{ if(pct < 99.5 && el.classList.contains('show')){ requestAnimationFrame(fin); return; } setTimeout(()=>{ if(depth === 0 && manual === 0 && el){ el.classList.remove('show'); exact = false; } }, 500); };
+      const fin = ()=>{ if(pct < 99.5 && el.classList.contains('show')){ requestAnimationFrame(fin); return; } setTimeout(()=>{ if(depth === 0 && manual === 0 && el){ el.classList.remove('show'); exact = false; logText = ''; cnt = null; stopFn = null; } }, 500); };
       if(!raf) raf = requestAnimationFrame(tick); fin();
     }, 650);
   }
   window.Progress = {
     begin(txt){ manual++; exact = true; open(txt); },
     set(p, txt){ exact = true; target = Math.max(target, Math.min(100, p)); if(txt) label = txt; open(); },
-    end(){ manual = Math.max(0, manual - 1); if(!manual) close(); }
+    end(){ manual = Math.max(0, manual - 1); if(!manual) close(); },
+    log(t){ logText = t || ''; if(el) paint(); },                       // riga di log a tema Frugu Frugu (fonte attuale, giochi trovati…)
+    counter(n, max){ cnt = (n == null) ? null : {n, max}; if(el) paint(); },
+    onStop(fn){ stopFn = fn || null; if(el){ const b = el.querySelector('.rt-stop'); if(b){ b.disabled = false; b.hidden = !fn; } } },
+    reset(){ logText = ''; cnt = null; stopFn = null; if(el) paint(); }
   };
   // ogni richiesta all'AI accende la barra (tranne quelle "silent" in background)
   if(typeof window.askLLM === 'function'){
