@@ -22,19 +22,37 @@
     if(!el) return;
     const shown = Math.max(0, Math.min(100, Math.round(pct)));
     el.querySelector('.rt-bar i').style.width = shown + '%';
-    el.querySelector('.rt-pct').textContent = (exact ? '' : '~') + shown + '%';
+    const waiting = overdue && !exact && depth > 0;
+    el.querySelector('.rt-pct').textContent = waiting ? Math.round((performance.now() - t0) / 1000) + 's' : (exact ? '' : '~') + shown + '%';
+    el.classList.toggle('waiting', waiting);
     const el2 = Math.round((performance.now() - t0) / 1000);
     el.querySelector('.rt-title').textContent = label;
-    el.querySelector('.rt-sub').textContent = FLAVOR[Math.min(FLAVOR.length - 1, Math.floor(shown / 22))] + (el2 >= 4 ? ` · ${el2}s` : '');
+    el.querySelector('.rt-sub').textContent = waiting ? 'Ci sta mettendo più del solito: sto ancora aspettando la risposta…' : FLAVOR[Math.min(FLAVOR.length - 1, Math.floor(shown / 22))] + (el2 >= 4 ? ` · ${el2}s` : '');
     el.classList.toggle('done', shown >= 100);
+  }
+  // Stima calibrata: per ogni richiesta uso la durata media REALE delle volte scorse (salvata per tipo di ricerca).
+  // Con più richieste in parallelo la percentuale sale davvero quando una finisce. Se una richiesta supera il tempo abituale
+  // non resto fermo su un numero finto: passo a "sto ancora cercando…" con i secondi e la barra che scorre.
+  const AVG_KEY = 'jrpg_rt_avg';
+  const avgs = ()=>{ try{ return JSON.parse(localStorage.getItem(AVG_KEY) || '{}') || {}; }catch(e){ return {}; } };
+  const expectedFor = (lb, search)=> avgs()[lb] || (search ? 14 : 7);
+  const learn = (lb, sec)=>{ try{ const m = avgs(); m[lb] = m[lb] ? Math.round((m[lb] * 0.6 + sec * 0.4) * 10) / 10 : sec; localStorage.setItem(AVG_KEY, JSON.stringify(m)); }catch(e){} };
+  let calls = [], sessionDone = 0, overdue = false;
+  function estimate(){
+    const now = performance.now(); let partial = 0; overdue = false;
+    calls.forEach(c=>{
+      const el = (now - c.t0) / 1000, ex = c.expected;
+      const p = el <= ex ? 0.9 * (el / ex) : 0.9 + 0.05 * (1 - Math.exp(-(el - ex) / ex));
+      partial += Math.min(0.95, p);
+      if(el > ex * 1.15) overdue = true;
+    });
+    const total = calls.length + sessionDone;
+    return total ? (sessionDone + partial) / total * 100 : 0;
   }
   function tick(){
     raf = 0;
-    if(!exact && depth > 0){                       // stima: sale veloce all'inizio e rallenta verso il 95%
-      const t = (performance.now() - t0) / 1000;
-      target = Math.max(target, 95 * (1 - Math.exp(-t / 9)));
-    }
-    pct += (target - pct) * 0.12 + (target > pct ? 0.05 : 0);   // scorrimento morbido verso il valore
+    if(!exact && depth > 0) target = Math.max(target, estimate());
+    pct += (target - pct) * 0.12 + (target > pct ? 0.05 : 0);
     if(pct > target) pct = target;
     paint();
     if(el && el.classList.contains('show') && (depth > 0 || manual > 0 || pct < 100)) raf = requestAnimationFrame(tick);
@@ -68,10 +86,18 @@
     window.askLLM = function(input, opts, extra){
       extra = extra || {};
       if(extra.silent) return orig.apply(this, arguments);
-      depth++; if(manual === 0) exact = false;
-      open(extra.label || (extra.search ? 'Cerco online…' : 'Sto pensando…'));
-      let p; try{ p = orig.apply(this, arguments); }catch(e){ depth--; if(!depth) close(); throw e; }
-      return Promise.resolve(p).finally(()=>{ depth--; if(depth <= 0){ depth = 0; close(); } });
+      const lb = extra.label || (extra.search ? 'Cerco online…' : 'Sto pensando…');
+      const rec = {t0: performance.now(), label: lb, expected: expectedFor(lb, !!extra.search)};
+      if(depth === 0){ calls = []; sessionDone = 0; target = Math.max(0, pct < 100 ? target : 0); }
+      calls.push(rec); depth++; if(manual === 0) exact = false;
+      open(lb);
+      const finish = ok=>{
+        if(ok) learn(lb, (performance.now() - rec.t0) / 1000);
+        calls = calls.filter(c=> c !== rec); sessionDone++; depth--;
+        if(depth <= 0){ depth = 0; close(); }
+      };
+      let p; try{ p = orig.apply(this, arguments); }catch(e){ finish(false); throw e; }
+      return Promise.resolve(p).then(r=>{ finish(true); return r; }, e=>{ finish(false); throw e; });
     };
   }
   // scarica la GIF ad alta risoluzione a riposo, così è già pronta quando serve

@@ -163,7 +163,7 @@
 Rispondi SOLO con un oggetto JSON valido con questi campi (in italiano): story (1-2 frasi di trama senza spoiler pesanti), pros (3-4 punti di forza concreti, emersi dalla critica), cons (2-3 difetti concreti, emersi dalla critica), agingNote (1-2 frasi su come regge oggi, con gli anni), whyLikeIt (1 frase: a chi piace).
 FONTE — Wikipedia (${src.wiki.title}):
 ${digest(src.wiki.text)}`;
-    const r = await askLLM(prompt, {}, {label:'Riscrivo la scheda dalle fonti…'});
+    const r = await askLLM(prompt, {}, {fast:true, label:'Riscrivo la scheda dalle fonti…'});
     const j = parseJson(r && r.text);
     if(!j) return {changes:[], note:'L\'AI non ha restituito un risultato leggibile: riprova.'};
     const arr = a=> Array.isArray(a) ? a.map(x=> String(x).trim()).filter(Boolean).slice(0, 5) : [];

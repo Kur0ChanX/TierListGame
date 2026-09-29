@@ -31,6 +31,7 @@ async function geminiFetch(body, signal, model){
   return r.json();
 }
 
+let geminiNoThink = false;
 const sleep = ms=> new Promise(r=> setTimeout(r, ms));
 // Se il modello è sovraccarico (503/500) riprova con calma, poi passa al modello più leggero; se è al limite (429) prova subito quello leggero
 async function callGemini(body, signal){
@@ -85,13 +86,16 @@ async function geminiGenerate(input, opts, extra){
   if(extra.system) body.systemInstruction = {parts:[{text: extra.system}]};
   if(tools.length) body.tools = [{functionDeclarations: tools.map(t=>({name:t.name, description:t.description, parameters:t.inputSchema}))}];
   else if(extra.search) body.tools = [{google_search:{}}];
+  // richieste "veloci" (Novità, completamento schede, voce...): poco ragionamento interno = risposte molto più rapide a parità di qualità del risultato
+  if(extra.fast && !geminiNoThink) body.generationConfig = {thinkingConfig:{thinkingBudget: 512}};
   for(let round = 0; round < 6; round++){
     let data;
     try{
       data = await callGemini(body, opts.signal);
     }catch(e){
       // la ricerca web (grounding) può non essere disponibile sul piano gratuito: riprovo senza
-      if(body.tools && !tools.length && ((e.code === 'gemini_error' && e.status === 400) || e.status === 429)){ delete body.tools; data = await callGemini(body, opts.signal); }
+      if(body.generationConfig && e.status === 400 && /think/i.test(e.message || '')){ geminiNoThink = true; delete body.generationConfig; data = await callGemini(body, opts.signal); }   // il modello non accetta il parametro: si va avanti senza
+      else if(body.tools && !tools.length && ((e.code === 'gemini_error' && e.status === 400) || e.status === 429)){ delete body.tools; data = await callGemini(body, opts.signal); }
       else throw e;
     }
     const cand = data.candidates && data.candidates[0];
