@@ -388,9 +388,20 @@ function loadNovitaGenreSelected(){
 }
 loadNovitaGenreSelected();
 function saveNovitaGenreSelected(){ try{ localStorage.setItem(profileKey('jrpg_novita_genre_selected'), JSON.stringify(Array.from(NOVITA_GENRE_SELECTED))); }catch(e){} }
+// Console per "Novità per genere", in ordine di uscita. Nessuna selezionata = qualsiasi piattaforma.
+const NOVITA_CONSOLES = [
+  ['Atari 2600',1977],['NES / Famicom',1983],['Master System',1985],['PC Engine',1987],['Mega Drive',1988],['Game Boy',1989],['SNES',1990],['Neo Geo',1990],['Game Gear',1990],
+  ['Sega Saturn',1994],['PlayStation',1994],['Nintendo 64',1996],['Dreamcast',1998],['Game Boy Color',1998],['PlayStation 2',2000],['Game Boy Advance',2001],['GameCube',2001],['Xbox',2001],
+  ['Nintendo DS',2004],['PSP',2004],['Xbox 360',2005],['PlayStation 3',2006],['Wii',2006],['Nintendo 3DS',2011],['PS Vita',2011],['Wii U',2012],['PlayStation 4',2013],['Xbox One',2013],
+  ['Nintendo Switch',2017],['PlayStation 5',2020],['Xbox Series X|S',2020],['Nintendo Switch 2',2025],['PC (Steam/GOG)',null],['Mobile (iOS/Android)',null]
+].sort((a,b)=> (a[1]==null) - (b[1]==null) || (a[1]||0) - (b[1]||0));
+let NOVITA_CONSOLE_SELECTED = new Set();
+function loadNovitaConsoles(){ NOVITA_CONSOLE_SELECTED = new Set(); try{ const v = localStorage.getItem(profileKey('jrpg_novita_consoles')); if(v) NOVITA_CONSOLE_SELECTED = new Set(JSON.parse(v)); }catch(e){} }
+function saveNovitaConsoles(){ try{ localStorage.setItem(profileKey('jrpg_novita_consoles'), JSON.stringify(Array.from(NOVITA_CONSOLE_SELECTED))); }catch(e){} }
+loadNovitaConsoles();
 let novitaGenreIncludeOther = true;
 function loadNovitaGenreOther(){
-  novitaGenreIncludeOther = true;
+  novitaGenreIncludeOther = true; loadNovitaConsoles();
   try{ const go = localStorage.getItem(profileKey('jrpg_novita_genre_other')); if(go!=null) novitaGenreIncludeOther = JSON.parse(go); }catch(e){}
 }
 loadNovitaGenreOther();
@@ -446,7 +457,8 @@ function buildNovitaGenrePrompt(count, excludeNames, selectedTags, includeOther)
   const scopeLine = labels.length
     ? `Suggerisci SOLO videogiochi che rientrano in almeno uno di questi generi/stili: ${labels.join(', ')}.${includeOther ? ' Includi anche giochi molto simili a questi generi anche se non ci rientrano perfettamente, o stili affini non elencati qui.' : ' Scarta tutto ciò che non rientra chiaramente in questi generi.'} IMPORTANTE: NON limitarti agli RPG — se un genere qui sopra non è un gioco di ruolo (es. sport, corse, sparatutto, strategia, puzzle...), proponi comunque giochi di QUEL genere anche se non hanno alcun elemento da RPG.`
     : `Includi videogiochi di QUALSIASI genere possibile (non solo RPG), di ogni tipo, epoca e piattaforma: varia il più possibile tra i ${count} suggerimenti.`;
-  return todayLine() + `Suggerisci ${count} videogiochi (di qualunque genere, epoca e piattaforma, anche poco conosciuti — NON limitarti a RPG/JRPG) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
+  const consoleLine = NOVITA_CONSOLE_SELECTED.size ? `PIATTAFORME: suggerisci SOLO giochi usciti su almeno una di queste piattaforme: ${NOVITA_CONSOLES.map(c=> c[0]).filter(n=> NOVITA_CONSOLE_SELECTED.has(n)).join(', ')} (giochi validi e apprezzati di ogni epoca, anche retro e poco noti; indica in plat le piattaforme reali). ` : 'PIATTAFORME: qualsiasi console o PC, di ogni epoca (anche retro), purché giochi validi e apprezzati. ';
+  return todayLine() + consoleLine + `Suggerisci ${count} videogiochi (di qualunque genere, epoca e piattaforma, anche poco conosciuti — NON limitarti a RPG/JRPG) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 ${scopeLine}
 Non scartare un gioco valido solo perché non rientra esattamente nei codici di genere che uso per le etichette (${genreGlossary(NOVITA_GENRE_ALL_CODES)}): includilo comunque e assegna i tag più vicini possibile, oppure lascia l'elenco tags vuoto se nessuno si adatta bene — la categorizzazione delle etichette non deve mai essere un motivo per escludere un gioco valido.
 Contesto sui gusti abituali di Mario, soprattutto orientati a RPG/JRPG (utile SOLO per spiegare perché un titolo potrebbe piacergli comunque, MAI per restringere la ricerca al genere RPG, che qui è solo una delle tante opzioni possibili): ${novitaTasteSummaryText()}
@@ -723,7 +735,10 @@ function novitaGenrePickerHtml(){
   }).join('');
   const total = NOVITA_GENRE_ALL_CODES.length;
   const activeCount = NOVITA_GENRE_SELECTED.size;
+  const consoleChips = NOVITA_CONSOLES.map(([n,y])=> `<button class="genre-chip${NOVITA_CONSOLE_SELECTED.has(n)?' active':''}" type="button" data-console-chip="${escHtml(n)}">${escHtml(n)}${y ? ` <small>${y}</small>` : ''}</button>`).join('');
   return `<div class="novita-genre-picker">
+    <div class="novita-genre-section"><div class="novita-genre-section-title">🎮 Console (in ordine di uscita) · ${NOVITA_CONSOLE_SELECTED.size ? NOVITA_CONSOLE_SELECTED.size + ' scelte' : 'nessuna scelta = tutte'}</div><div class="genre-chip-grid">${consoleChips}</div>
+      <div class="novita-genre-picker-actions"><button class="btn small" type="button" id="novitaConsoleClearBtn">Tutte le console</button></div></div>
     <div class="novita-genre-picker-label">Sono selezionati TUTTI i generi videoludici (così la ricerca non ne salta nessuno): togli la spunta a quelli che NON ti interessano, es. "Sportivi", oppure usa i pulsanti qui sotto.</div>
     <div class="novita-genre-picker-actions">
       <button class="btn small" type="button" id="novitaGenreSelectAllBtn">✅ Seleziona tutti</button>
@@ -781,6 +796,11 @@ function novitaGenreAdvanceLike(){
   renderNovitaGenreCard();
 }
 function wireNovitaGenreCard(){
+  document.querySelectorAll('#novitaGenrePanel [data-console-chip]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ const n = btn.dataset.consoleChip; if(NOVITA_CONSOLE_SELECTED.has(n)) NOVITA_CONSOLE_SELECTED.delete(n); else NOVITA_CONSOLE_SELECTED.add(n); saveNovitaConsoles(); renderNovitaGenreCard(); });
+  });
+  const clrC = document.getElementById('novitaConsoleClearBtn');
+  if(clrC) clrC.addEventListener('click', ()=>{ NOVITA_CONSOLE_SELECTED = new Set(); saveNovitaConsoles(); renderNovitaGenreCard(); });
   document.querySelectorAll('#novitaGenrePanel [data-genre-chip]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const t = btn.dataset.genreChip;
@@ -808,7 +828,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v95';
+const DATA_BUILD_VERSION = 'v96';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
