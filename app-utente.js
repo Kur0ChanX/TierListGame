@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v102', date:'2026-09-29', items:[
+    'Palette rifatte in stile "Liquid Glass": sfondo con i colori del tema sfumati, superfici in vetro con riflesso sul bordo, pulsanti lucidi con luce dall\'alto e bagliore colorato. Ora il colore del tema tinge anche sfondo, tabella, schede, filtri, barra in basso, titoli e barre del voto.'
+  ]},
   {version:'v101', date:'2026-09-29', items:[
     'Palette più professionali: colori pieni con una sfumatura appena percettibile (niente più arcobaleni a 3 colori), intestazione della tabella neutra, ombre morbide, sfondo più discreto. Nel selettore ogni palette ha un\'anteprima dell\'app invece delle sfere lucide. La palette Aurora originale resta com\'era.'
   ]},
