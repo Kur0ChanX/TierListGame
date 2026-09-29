@@ -197,3 +197,9 @@ html:fullscreen .wrap{padding-top:2px}
 .gc-row input{margin-top:3px}
 
 .btn.upd-done{background:linear-gradient(135deg,#2e9e5b,#3cc47a) !important; color:#fff !important; border-color:transparent !important; box-shadow:0 6px 16px rgba(46,158,91,.4)}
+
+/* animazione Frugu Frugu accanto al logo */
+.brand-frugu{height:44px; width:auto; display:block; margin-left:-4px; image-rendering:auto; filter:drop-shadow(0 3px 8px rgba(124,92,255,.35)); flex:0 0 auto}
+h1{flex:0 1 auto !important; min-width:0}
+@media (max-width:430px){ .brand-frugu{height:38px} .topbar-row1{gap:6px} .iconbtn{padding-left:9px; padding-right:9px} }
+@media (prefers-reduced-motion:reduce){ .brand-frugu{display:none} }
