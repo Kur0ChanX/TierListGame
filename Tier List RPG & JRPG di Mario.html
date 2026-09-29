@@ -16,6 +16,24 @@
 <link rel="stylesheet" href="theme.css">
 </head>
 <body>
+<div id="intro" aria-label="Apertura: Raccoon Tier">
+  <div class="intro-bg"></div>
+  <div class="intro-frame">
+    <div class="intro-kb">
+      <img class="intro-img" src="icons/intro.jpg" alt="Raccoon Tier: il procione e il bidone Frugu Frugu pieni di giochi" width="720" height="1290" fetchpriority="high">
+      <div class="intro-hero" style="background-image:url(icons/intro.jpg)"></div>
+      <div class="intro-shine"></div>
+    </div>
+    <canvas class="intro-canvas"></canvas>
+    <div class="intro-scan"></div>
+    <div class="intro-ui">
+      <div class="intro-start">▶ TOCCA PER ENTRARE</div>
+      <div class="intro-bar"><i></i></div>
+      <div class="intro-msg">Carico la tua collezione…</div>
+    </div>
+  </div>
+</div>
+<script src="intro.js"></script>
 <div class="wrap">
   <div class="topbar">
     <div class="topbar-row1">
@@ -176,6 +194,7 @@
         </label>
         <a href="https://github.com/settings/tokens/new?scopes=gist&description=TierList%20sync&default_expires_at=none" target="_blank" rel="noopener">1) Crea il token (il permesso giusto è già selezionato)</a>
         <div class="ask-engine-actions"><button class="btn primary" id="syncSaveBtn">Attiva sincronizzazione</button><button class="btn" id="syncNowBtn">Sincronizza ora</button><button class="btn" id="syncOffBtn">Disattiva</button></div>
+        <label class="ask-toggle"><input type="checkbox" id="introToggle" checked> Mostra l'apertura animata all'avvio</label>
         <div class="ask-engine-actions"><button class="btn" id="genreCheckBtn">🔎 Verifica generi online (Wikidata)</button></div>
         <div class="ask-engine-status" id="syncStatus">Salva preferiti, stati, giochi aggiunti e locandine (link) sul tuo GitHub e li ritrova su ogni dispositivo.</div>
       </div>
