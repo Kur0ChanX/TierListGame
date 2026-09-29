@@ -448,6 +448,23 @@
     rawg: {name: 'RAWG', key: 'rawg'}, reddit: {name: 'Reddit', key: 'reddit'}
   };
   H.directKeys = Object.keys(DIRECT_INFO);
+  // ---------- ORDINE DI PRIORITÀ delle fonti (1 = si interroga per prima; le mediocri per ultime) ----------
+  // Criterio: affidabilità dei dati (voti e giochi reali) · velocità (locale = istantaneo) · nessun rischio di blocco. Un numero alto pesa di più: la fonte gira meno spesso.
+  // Se una fonte dà molti giochi nuovi sale, se dà zero scende (vedi H.scout).
+  H.PRIORITY = {
+    discover: ['scoperte', 'rawgnew', 'rawg', 'steamsearch', 'gog', 'cheapshark', 'wikicat', 'wikidata', 'wikisearch', 'steamspy', 'reddit', 'rawgsimilar'],
+    // dove prendere i DATI di un gioco (il primo che li ha vince; gli altri servono da conferma): dal più sicuro al meno
+    info: {
+      lingua: ['facts.js (Steam ufficiale)', 'Steam', 'PCGamingWiki', 'it.wikipedia'],
+      voto: ['Metacritic via Wikipedia', 'facts.js (Metascore Steam/CheapShark)', 'RAWG (Metacritic)', '% recensioni Steam'],
+      anno: ['Wikidata', 'facts.js (Steam)', 'RAWG', 'Wikipedia'],
+      generi: ['Wikidata', 'RAWG', 'Wikipedia'],
+      prezzo: ['facts.js (Steam in euro)', 'CheapShark dal vivo'],
+      copertina: ['Steam', 'Libretro', 'Wikidata/Wikipedia'],
+      testi: ['Wikipedia + RAWG riscritti dall\'AI', 'AI con ricerca web (ultima spiaggia)']
+    }
+  };
+  const RANK = {}; H.PRIORITY.discover.forEach((k, i)=> RANK[k] = i);
   H.methods = M;
 
   // facts.js e discoveries.js (aggiornati ogni settimana da GitHub) si caricano dopo l'avvio, così non rallentano la prima schermata
@@ -476,7 +493,7 @@
     const dk = (opts.directKeys || H.directKeys).filter(k=> M[k]);
     const aiOn = !!(opts.ai && opts.ai.available && opts.ai.available());
     const A = aiOn ? (opts.ai.strategies || []).map(s=> ({kind: 'ai', id: 'ai:' + s.src, s, name: s.src, key: s.key || 'ai'})) : [];
-    const D = dk.map(k=> ({kind: 'direct', id: k, name: DIRECT_INFO[k].name, key: DIRECT_INFO[k].key, run: M[k]})).sort((a, b)=> ((/^(rawg|scoperte)/.test(b.id) ? 1 : 0) - (/^(rawg|scoperte)/.test(a.id) ? 1 : 0)));
+    const D = dk.map(k=> ({kind: 'direct', id: k, name: DIRECT_INFO[k].name, key: DIRECT_INFO[k].key, run: M[k]})).sort((a, b)=> (RANK[a.id] == null ? 99 : RANK[a.id]) - (RANK[b.id] == null ? 99 : RANK[b.id]));
     const rawgSkip = !H.rawg.has();
     const st = {}; A.concat(D).forEach(m=> st[m.id] = {streak: 0, cool: 0, yield: 0, runs: 0});
     let rounds = 0, aiCool = 0, fi = ri(0, 50);
@@ -493,8 +510,14 @@
       const worker = async wi=>{
         while(alive()){
           // prossimo metodo non in pausa
-          let m = null;
-          for(let k = 0; k < list.length; k++){ const c = list[(cur + k) % list.length]; if(st[c.id].cool > rounds && list.length > 1) continue; if(c.kind === 'ai' && Date.now() < aiCool) continue; m = c; cur = (cur + k + 1) % list.length; break; }
+          // sceglie la fonte con il «costo» più basso: chi ha più priorità (rango basso) e ha già reso di più viene interrogata più spesso; le mediocri per ultime
+          let m = null, best = Infinity;
+          for(const c of list){
+            if(st[c.id].cool > rounds && list.length > 1) continue; if(c.kind === 'ai' && Date.now() < aiCool) continue;
+            const q = st[c.id], rk = c.kind === 'ai' ? 0 : (RANK[c.id] == null ? 8 : RANK[c.id]);
+            const cost = (q.runs + 1) * (1 + rk * 0.45) - Math.min(q.yield, 20) * 0.35;
+            if(cost < best){ best = cost; m = c; }
+          }
           if(!m){ await nap(1200); if(list.every(c=> st[c.id].cool > rounds)) rounds++; continue; }
           const s0 = st[m.id]; s0.runs++; rounds++; ran++;
           const focus = (staleCount >= 2 || !(opts.focusSets && opts.focusSets.length)) ? [] : opts.focusSets[(fi++) % opts.focusSets.length];

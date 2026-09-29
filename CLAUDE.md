@@ -24,6 +24,7 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - `facts.js` / `discoveries.js`: generati ogni lunedì dal workflow `.github/workflows/dati-settimanali.yml` con `tools/build-facts.js` (lingua italiana Steam, prezzi, voti, anni per i giochi del DB; `GAME_FACTS`) e `tools/build-discoveries.js` (giochi da scoprire da Steam/GOG/CheapShark/Wikipedia/RAWG; `DISCOVERIES`). Lancio a mano: `NODE_USE_ENV_PROXY=1 node tools/build-facts.js [--offset N]`. Devono esistere (pages.yml li copia). Secret opzionale `RAWG_API_KEY`.
 - `extras2.js`: backup e spazio del browser (promemoria mensile, `navigator.storage.persist`), livello, cronologia, carta profilo, prezzi wishlist, backlog e affidabilità in Statistiche, joypad. `sw.js`: network-first con cache offline (aggiungere ogni nuovo file a SHELL: `check-data.js` lo verifica). `sync.js` unisce per singolo documento (`_u`, lapidi `_d`).
 - Priorità dell'app: ricerca dei giochi e informazioni dei giochi fatte al meglio.
+- Ordine delle fonti: `SearchHub.PRIORITY` in sources.js (discover = ordine delle fonti dirette di «Fruga», con pesi; info = da dove prendere lingua/voto/anno/generi/prezzo/copertina/testi, dal più affidabile). Ogni nuova fonte va inserita lì al posto giusto.
 
 ## Regole per risparmiare token
 - NON leggere mai `giochi.js` per intero e non usare Read senza `limit`: è enorme. Cerca con Grep (`-o`, `head_limit`) o interroga con uno script Node/jq.
