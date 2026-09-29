@@ -93,6 +93,8 @@
   // =====================================================================
   // 2) MENU EXTRA
   // =====================================================================
+  let auToastAt = 0;
+  window.addEventListener('audit-update', ()=>{ if(Date.now() - auToastAt < 10 * 60e3) return; auToastAt = Date.now(); try{ toast('🔎 Ci sono modifiche da approvare: ✨ → Controllo dati'); }catch(e){} });
   function openMenu(){
     const tint = LS.get('jrpg_cover_tint', false);
     const body = sheet('xMenu', '✨ Extra', `
@@ -102,7 +104,7 @@
         <button class="btn" data-a="palette">🎨 Palette colori <small>(34 temi)</small></button>
         <button class="btn" data-a="complete">🧩 Completa le schede dei giochi aggiunti <small>(💕🤝✨💉)</small></button>
         <button class="btn" data-a="covers">🖼️ Copertine automatiche <small>(Wikipedia)</small></button>
-        <button class="btn" data-a="audit">🔎 Controllo dati <small>(verifica il database in background)</small></button>
+        <button class="btn" data-a="audit">🔎 Controllo dati <small>(${window.auditStats ? auditStats().props : 0} da approvare · ${window.auditStats ? auditStats().done : 0}/765 controllati)</small></button>
         <button class="btn" data-a="wish">🎁 Wishlist e date di uscita</button>
         <button class="btn" data-a="share">📤 Condividi la tua tier list (immagine)</button>
         <button class="btn" data-a="badges">🏆 Traguardi</button>
