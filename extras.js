@@ -221,7 +221,7 @@
   }
   if(row2 && search){
     const mic = document.createElement('button');
-    mic.type = 'button'; mic.className = 'x-mic'; mic.title = 'Cerca a voce'; mic.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mic"/></svg>'; mic.setAttribute('aria-label', 'Cerca a voce');
+    mic.type = 'button'; mic.className = 'x-mic'; mic.title = 'Cerca a voce'; mic.innerHTML = '<img class="i3d" src="icons/3d/mic.png" alt="" width="26" height="26">'; mic.setAttribute('aria-label', 'Cerca a voce');
     row2.appendChild(mic);
     mic.addEventListener('click', ()=>{
       if(!SR){ toast('Questo browser non supporta la ricerca a voce (prova Chrome o Safari aggiornati)', 4000); return; }

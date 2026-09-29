@@ -1,3 +1,14 @@
+// ---- Guardia di versione: se la pagina (HTML) in cache è più vecchia degli script, la ricarico una volta sola saltando la cache ----
+(function(){
+  try{
+    const mb = document.querySelector('meta[name="build"]');
+    if(typeof DATA_BUILD_VERSION === 'string' && (!mb || mb.content !== DATA_BUILD_VERSION) && /^https?:$/.test(location.protocol) && !sessionStorage.getItem('jrpg_build_reload')){
+      sessionStorage.setItem('jrpg_build_reload', '1');
+      const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href));
+      Promise.all(urls.map(u=> fetch(u, {cache:'reload'}).catch(()=>{}))).then(()=> location.reload());
+    }
+  }catch(e){}
+})();
 // ---- Effetti funzionali: barra voto nelle righe, vibrazione leggera, transizione morbida tra le schede ----
 (function(){
   // 1) barra del voto (variabile CSS --sc) su ogni riga della classifica
@@ -29,8 +40,8 @@
         else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{ if(typeof showToast === 'function') showToast('Il browser non permette lo schermo intero qui'); }); }
       }catch(e){}
     });
-    const wrapIc = (id, lb)=> `<span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#${id}"/></svg></span><span class="ib-lb">${lb}</span>`;
-    const IC_ON = wrapIc('i-fsx', 'Esci'), IC_OFF = wrapIc('i-fs', 'Schermo');
+    const wrapIc = lb=> `<span class="ib-ic"><img class="i3d" src="icons/3d/tv.png" alt="" width="40" height="40" decoding="async"></span><span class="ib-lb">${lb}</span>`;
+    const IC_ON = wrapIc('Esci'), IC_OFF = wrapIc('Schermo');
     document.addEventListener('fullscreenchange', ()=>{ fs.innerHTML = document.fullscreenElement ? IC_ON : IC_OFF; });
   }
 
