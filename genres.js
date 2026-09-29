@@ -44,10 +44,9 @@
     [/beat 'em up|beat em up/i, 'BEAT']
   ];
   const codesFrom = labels=>{ const out = []; labels.forEach(l=> MAP.forEach(([re, c])=>{ if(re.test(l) && !out.includes(c)) out.push(c); })); return out; };
+  const fj = (u, o)=> window.SearchHub ? SearchHub.json(u, o) : fetch(u).then(r=>{ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   async function wd(params){
-    const r = await fetch(WD + '?' + new URLSearchParams(Object.assign({format:'json', origin:'*'}, params)));
-    if(!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
+    return fj(WD + '?' + new URLSearchParams(Object.assign({format:'json', origin:'*'}, params)));
   }
   const cleanName = n=> String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*[-–:]\s*(definitive|remaster|remake|complete|hd|edition|reborn|reloaded).*$/i, '').trim();
   async function genreCodes(name){

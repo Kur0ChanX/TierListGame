@@ -611,35 +611,6 @@ const NOVITA_STRATEGIES = [
   {key:'retro', src:'giochi retro e di nicchia', hint:"Concentrati su titoli usciti prima del 2005 e su giochi di nicchia o dimenticati."},
   {key:'indie', src:'indie e novità recenti', hint:"Concentrati su indie di qualità e su titoli usciti negli ultimi anni."}
 ];
-// ---- Fonti dirette (senza AI) usate come riserva quando le altre restano vuote: RAWG (con chiave gratuita) e Wikidata ----
-const RAWG_GENRE = {JRPG:'role-playing-games-rpg', WRPG:'role-playing-games-rpg', ACT:'role-playing-games-rpg', TUR:'role-playing-games-rpg', TAC:'strategy', DUN:'role-playing-games-rpg', MON:'role-playing-games-rpg', CARD:'card', PLAT:'platformer', PLAT3D:'platformer', PUZ:'puzzle', FPS:'shooter', TPS:'shooter', SHMUP:'shooter', FIGHT:'fighting', BEAT:'fighting', RACE:'racing', KART:'racing', SPORT:'sports', RTS:'strategy', TBS4X:'strategy', ADV:'adventure', ACTADV:'action', HNS:'action', ARCADE:'arcade', SIMLIFE:'simulation', CITY:'simulation', BOARDG:'board-games', PARTY:'family', MMO:'massively-multiplayer'};
-const tierFromScore = n=> n >= 95 ? 'S+' : n >= 90 ? 'S' : n >= 85 ? 'A' : n >= 80 ? 'B' : n >= 70 ? 'C' : n >= 60 ? 'D' : n >= 40 ? 'E' : 'F';
-async function rawgSource(focus){
-  let key = ''; try{ key = (localStorage.getItem('jrpg_rawg_key') || '').trim(); }catch(e){}
-  if(!key){ const e = new Error('chiave RAWG non impostata'); e.skip = true; throw e; }
-  const slugs = [...new Set((focus || []).map(c=> RAWG_GENRE[c]).filter(Boolean))].sort(()=> Math.random() - .5).slice(0, 3);
-  const url = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(key) + '&page_size=40&page=' + (1 + Math.floor(Math.random() * 12)) + '&metacritic=50,100&ordering=-added' + (slugs.length ? '&genres=' + slugs.join(',') : '');
-  const r = await fetch(url); if(!r.ok) throw new Error('RAWG HTTP ' + r.status);
-  const j = await r.json();
-  return (j.results || []).map(g=>{
-    const score = g.metacritic || (g.rating ? Math.round(g.rating * 20) : null);
-    const names = (g.genres || []).map(x=> x.name);
-    return {name: g.name, plat: (g.platforms || []).map(x=> x.platform && x.platform.name).filter(Boolean).slice(0, 4).join(' / '), year: (g.released || '').slice(0, 4), score, tier: score != null ? tierFromScore(score) : 'B',
-      tags: (window.wikidataCodesFrom ? window.wikidataCodesFrom(names) : []).slice(0, 3), story: '', fitIf: ''};
-  });
-}
-async function wikidataSource(focus){
-  const y1 = 1984 + Math.floor(Math.random() * 38), y2 = y1 + 4;
-  const q = `SELECT ?itemLabel ?date ?genreLabel WHERE { ?item wdt:P31 wd:Q7889; wdt:P577 ?date; wdt:P136 ?genre; wikibase:sitelinks ?sl. FILTER(?sl > 9) FILTER(YEAR(?date) >= ${y1} && YEAR(?date) <= ${y2}) SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } LIMIT 200`;
-  const r = await fetch('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), {headers: {Accept: 'application/sparql-results+json'}});
-  if(!r.ok) throw new Error('Wikidata HTTP ' + r.status);
-  const rows = ((await r.json()).results || {}).bindings || [], by = {};
-  rows.forEach(b=>{ const n = b.itemLabel && b.itemLabel.value; if(!n || /^Q\d+$/.test(n)) return; const o = by[n] = by[n] || {name: n, year: String(b.date.value).slice(0, 4), genres: []}; if(b.genreLabel) o.genres.push(b.genreLabel.value); });
-  let list = Object.values(by).map(o=> ({name: o.name, plat: '', year: o.year, score: null, tier: 'B', tags: (window.wikidataCodesFrom ? window.wikidataCodesFrom(o.genres) : []).slice(0, 3), story: '', fitIf: ''}));
-  if(focus && focus.length){ const pref = list.filter(c=> c.tags.some(t=> focus.includes(t))); if(pref.length >= 4) list = pref; }
-  return list.sort(()=> Math.random() - .5).slice(0, 30);
-}
-const NOVITA_ADAPTERS = [{name: 'RAWG', key: 'rawg', run: rawgSource}, {name: 'Wikidata', key: 'wikidata', run: wikidataSource}];
 // gruppi di generi da far ruotare tra le richieste (mescolati): così la ricerca non si incastra su un solo tipo di gioco
 function novitaFocusSets(codes, size){
   const sets = [];
@@ -647,65 +618,55 @@ function novitaFocusSets(codes, size){
   for(let i = sets.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [sets[i], sets[j]] = [sets[j], sets[i]]; }
   return sets;
 }
-async function novitaSearchParallel(makePrompt, total, strategies, focusSets){
+async function novitaSearchParallel(makePrompt, total, strategies, focusSets, extraOpts){
+  extraOpts = extraOpts || {};
   const STR = strategies || NOVITA_STRATEGIES;
   const MAX = Math.min(30, Math.max(1, total || NOVITA_BATCH_COUNT));
   const found = [], seen = new Set();
-  let stopped = false, wake = null;
+  let stopped = false, wake = null, lastErr = null, aiErrors = 0;
   const stopP = new Promise(res=>{ wake = res; });
   const P = window.Progress;
   const say = t=>{ try{ P && P.log && P.log(t); }catch(e){} };
   if(P){ P.begin('Frugu Frugu cerca nuovi giochi…'); P.counter && P.counter(0, MAX); P.onStop && P.onStop(()=>{ stopped = true; wake(); }); say('Frugu Frugu si tuffa nel bidone…'); }
-  const accept = arr=>{
+  const nn = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  const know = new Set(); try{ novitaKnownNames().forEach(n=> know.add(nn(n))); }catch(e){}
+  const tf = extraOpts.tagFilter ? new Set(extraOpts.tagFilter) : null;
+  const accept = (arr, srcName, kind)=>{
     const before = found.length;
     dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES).forEach(c=>{
-      const k = c.name.toLowerCase().trim();
-      if(seen.has(k) || found.length >= MAX) return;
+      if(tf && kind === 'direct' && !(c.tags || []).some(t=> tf.has(t))) return;   // le fonti dirette devono rispettare i generi scelti
+      const k = c.name.toLowerCase().trim(), k2 = nn(c.name);
+      if(seen.has(k) || seen.has(k2) || found.length >= MAX) return;
       if(c.score != null && c.score < 50) return;                 // sotto il 5/10: spazzatura
-      seen.add(k); found.push(c);
+      seen.add(k); seen.add(k2); c.viaSource = srcName || ''; found.push(c);
     });
     return found.length - before;
   };
-  let errors = 0, lastErr = null, emptyRounds = 0, round = 0, fi = Math.floor(Math.random() * 100);
+  const crit = "\nCRITERIO: includi qualsiasi gioco reale valutato almeno 5/10 (50/100 su Metacritic/Steam), oppure senza voto ma apprezzato dalla community; scarta solo quelli sotto il 5/10. Per ogni titolo: se non conosci un dato, stima con onestà ma NON inventare giochi inesistenti.";
+  const runAi = (st, focus)=>{
+    const need = Math.min(14, MAX - found.length + 4);
+    const excl = found.length ? '\nNON riproporre nemmeno questi titoli appena trovati: ' + found.map(c=> c.name).join('; ') + '.' : '';
+    const fo = focus && focus.length ? '\nGIRO DI RICERCA: in questo giro privilegia giochi di questi generi/stili: ' + focus.map(c=> TAG_INFO[c] ? TAG_INFO[c].label : c).join(', ') + '. VARIETÀ: al massimo 2 titoli dello stesso sottogenere e nessuna raffica di giochi dello stesso tipo (es. non solo Metroidvania): alterna generi, epoche e piattaforme.' : '\nVARIETÀ: al massimo 2 titoli dello stesso sottogenere; alterna generi, epoche e piattaforme.';
+    return askLLM(makePrompt(need) + '\nFONTE DI QUESTA RICERCA (" ' + st.src + ' "): ' + st.hint + crit + fo + excl, {}, {search: true, fast: true, silent: true, label: 'Cerco nuovi giochi…'})
+      .then(r=>{ const arr = parseNovitaJson(r && r.text); if(!arr) throw new Error('risposta AI non leggibile'); return arr; })
+      .catch(e=>{ aiErrors++; lastErr = e; throw e; });
+  };
+  const llmOk = ()=>{ try{ return typeof llmAvailable === 'function' && llmAvailable(); }catch(e){ return false; } };
   try{
-    while(!stopped && found.length < MAX && round < STR.length && emptyRounds < 4){
-      const pair = [STR[round], STR[round + 1]].filter(Boolean); round += 2;
-      try{ P && P.source && P.source(pair.map(x=> x.key)); }catch(e){}
-      const need = Math.min(14, MAX - found.length + 4);
-      const excl = found.length ? '\nNON riproporre nemmeno questi titoli appena trovati: ' + found.map(c=> c.name).join('; ') + '.' : '';
-      const crit = "\nCRITERIO: includi qualsiasi gioco reale valutato almeno 5/10 (50/100 su Metacritic/Steam), oppure senza voto ma apprezzato dalla community; scarta solo quelli sotto il 5/10. Per ogni titolo: se non conosci un dato, stima con onestà ma NON inventare giochi inesistenti.";
-      const runs = pair.map(st=>{ const fo = (focusSets && focusSets.length) ? focusSets[(fi++) % focusSets.length] : null;
-        const focus = fo ? '\nGIRO DI RICERCA: in questo giro privilegia giochi di questi generi/stili: ' + fo.map(c=> TAG_INFO[c] ? TAG_INFO[c].label : c).join(', ') + '. VARIETÀ: al massimo 2 titoli dello stesso sottogenere e nessuna raffica di giochi dello stesso tipo (es. non solo Metroidvania): alterna generi, epoche e piattaforme.' : '\nVARIETÀ: al massimo 2 titoli dello stesso sottogenere; alterna generi, epoche e piattaforme.';
-        return askLLM(makePrompt(need) + '\nFONTE DI QUESTA RICERCA (" ' + st.src + ' "): ' + st.hint + crit + focus + excl, {}, {search:true, fast:true, silent:true, label:'Cerco nuovi giochi…'}); });
-      const res = await Promise.race([Promise.allSettled(runs), stopP.then(()=> null)]);
-      if(!res || stopped) break;
-      let got = 0;
-      res.forEach(r=>{
-        if(r.status === 'fulfilled'){ const arr = parseNovitaJson(r.value && r.value.text); if(arr) got += accept(arr); }
-        else { errors++; lastErr = r.reason; }
+    if(window.SearchHub){
+      await SearchHub.scout({
+        max: MAX, focusSets, seeds: extraOpts.seeds || [], directKeys: extraOpts.directKeys, allowed: extraOpts.tagFilter || [], know,
+        ai: {strategies: STR, run: runAi, available: llmOk},
+        accept, found: ()=> found.length, stopped: ()=> stopped, stopP,
+        onSource: keys=>{ try{ P && P.source && P.source(keys); }catch(e){} },
+        onSay: say,
+        onCount: n=>{ try{ P && P.counter && P.counter(n, MAX); P && P.set && P.set(Math.round(n / MAX * 100)); }catch(e){} },
+        maxMs: extraOpts.maxMs || 8 * 60e3
       });
-      try{ DebugLog.add({kind: 'scout', src: pair.map(x=> x.src).join(' + '), ok: got > 0, note: 'trovati ' + got + ' nuovi · errori AI ' + res.filter(r=> r.status === 'rejected').length + (res.some(r=> r.status === 'rejected') ? ' · ' + String((res.find(r=> r.status === 'rejected').reason || {}).code || (res.find(r=> r.status === 'rejected').reason || {}).message || '').slice(0, 80) : '')}); }catch(e){}
-      // riserva istantanea: se le fonti AI sono vuote o in errore passo subito a RAWG e Wikidata (dati diretti), senza fermare la ricerca
-      if(got < 3 && !stopped){
-        const foNow = (focusSets && focusSets.length) ? focusSets[fi % focusSets.length] : [];
-        for(const ad of NOVITA_ADAPTERS){
-          if(stopped || found.length >= MAX) break;
-          try{
-            say('Bidone vuoto o bloccato: Frugu Frugu passa a ' + ad.name + '…'); P && P.source && P.source(ad.key);
-            const arr = await Promise.race([ad.run(foNow), stopP.then(()=> null)]);
-            const n = arr ? accept(arr) : 0; got += n;
-            DebugLog.add({kind: 'scout', src: ad.name + ' (riserva)', ok: n > 0, note: 'trovati ' + n + ' nuovi su ' + (arr ? arr.length : 0)});
-            if(n) break;
-          }catch(e){ if(!e.skip) DebugLog.add({kind: 'scout', src: ad.name + ' (riserva)', ok: false, err: e && e.message}); }
-        }
-      }
-      if(got === 0){ emptyRounds++; say('Bidone vuoto, passo al prossimo…'); }
-      else { emptyRounds = 0; say('Trovati ' + got + ' giochi luccicanti! Totale ' + found.length + '.'); }
-      try{ P && P.counter && P.counter(found.length, MAX); P && P.set && P.set(Math.round(found.length / MAX * 100)); }catch(e){}
     }
-    if(!found.length && !stopped && errors && lastErr) throw lastErr;
+    if(!found.length && !stopped && lastErr) throw lastErr;
   } finally {
-    try{ if(P){ P.onStop && P.onStop(null); P.counter && P.counter(null); P.log && P.log(''); P.end && P.end(); } }catch(e){}
+    try{ if(P){ P.onStop && P.onStop(null); P.counter && P.counter(null); P.log && P.log(''); P.end && P.end(); if(stopped && P.hideNow) P.hideNow(); } }catch(e){}
   }
   return found;
 }
@@ -716,7 +677,7 @@ async function fetchNovitaBatch(){
   const excludeNames = novitaKnownNames();
   try{
     // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4));
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: ['wikicat', 'wikidata', 'steamspy', 'steamsearch', 'gog', 'rawg', 'reddit']});
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -740,7 +701,7 @@ async function fetchNovitaGenreBatch(){
   const excludeNames = novitaKnownNames();
   const selectedTags = Array.from(NOVITA_GENRE_SELECTED);
   try{
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, selectedTags, novitaGenreIncludeOther), NOVITA_BATCH_COUNT, null, novitaFocusSets(selectedTags, 4));
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, selectedTags, novitaGenreIncludeOther), NOVITA_BATCH_COUNT, null, novitaFocusSets(selectedTags, 4), selectedTags.length >= 60 ? {} : {tagFilter: selectedTags, directKeys: SearchHub.directKeys.filter(k=> k !== 'cheapshark')});
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -1025,7 +986,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-30';
-const DATA_BUILD_VERSION = 'v123';
+const DATA_BUILD_VERSION = 'v124';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

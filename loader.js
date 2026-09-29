@@ -17,7 +17,7 @@
     clear(){ buf = []; try{ localStorage.removeItem(KEY); }catch(e){} },
     text(){ return buf.map(e=> `${e.t.slice(11, 19)} [${e.kind || 'note'}] ${e.src || ''} ${e.status != null ? 'HTTP ' + e.status : ''} ${e.ms != null ? e.ms + 'ms' : ''} ${e.ok === false ? 'ERRORE' : ''} ${e.url || ''} ${e.err || ''} ${e.note || ''}`.replace(/\s+/g, ' ').trim()).join('\n'); }
   };
-  const HOSTS = [[/wikipedia\.org/, 'Wikipedia', 'wikipedia'], [/query\.wikidata|wikidata\.org/, 'Wikidata', 'wikidata'], [/steampowered|steamstatic/, 'Steam', 'steam'], [/pcgamingwiki/, 'PCGamingWiki', 'pcgw'], [/rawg\.io/, 'RAWG', 'rawg'], [/generativelanguage/, 'Gemini', null], [/wsrv\.nl/, 'wsrv (copertine)', 'covers'], [/libretro/, 'Libretro (copertine)', 'covers'], [/api\.github\.com|gist\.github/, 'GitHub Gist', 'gist'], [/corsproxy|allorigins|codetabs|thingproxy/, 'Proxy CORS', 'proxy']];
+  const HOSTS = [[/wikipedia\.org/, 'Wikipedia', 'wikipedia'], [/query\.wikidata|wikidata\.org/, 'Wikidata', 'wikidata'], [/steampowered|steamstatic/, 'Steam', 'steam'], [/pcgamingwiki/, 'PCGamingWiki', 'pcgw'], [/rawg\.io/, 'RAWG', 'rawg'], [/reddit\.com/, 'Reddit', 'reddit'], [/cheapshark\.com/, 'CheapShark', 'cheapshark'], [/steamspy\.com/, 'SteamSpy', 'steamspy'], [/catalog\.gog\.com|gog\.com/, 'GOG', 'gog'], [/r\.jina\.ai|cors\.eu\.org|yacdn\.org/, 'Proxy CORS', 'proxy'], [/generativelanguage/, 'Gemini', null], [/wsrv\.nl/, 'wsrv (copertine)', 'covers'], [/libretro/, 'Libretro (copertine)', 'covers'], [/api\.github\.com|gist\.github/, 'GitHub Gist', 'gist'], [/corsproxy|allorigins|codetabs|thingproxy/, 'Proxy CORS', 'proxy']];
   const of = window.fetch;
   if(typeof of === 'function') window.fetch = function(input, init){
     let url = ''; try{ url = typeof input === 'string' ? input : (input && input.url) || String(input); }catch(e){}
@@ -81,6 +81,9 @@
     indie: ['Setaccio gli indie: piccoli bidoni, grandi tesori…', 'Indie e novità: Frugu Frugu annusa qualcosa di fresco…'],
     covers: ['Cerco la locandina giusta tra gli scaffali…', 'Frugu Frugu lucida le copertine prima di appenderle…'],
     gist: ['Metto al sicuro il bottino sul tuo GitHub…', 'Sincronizzo: nascondo le noccioline nella tana…'],
+    cheapshark: ['Seguo le tracce di sconti e voti su CheapShark: qui i capolavori si fanno pagare poco…', 'CheapShark: Frugu Frugu annusa le offerte e i punteggi Metacritic…'],
+    steamspy: ['SteamSpy: conto i pollici su e giù dei giocatori di Steam…', 'Scoperchio le classifiche di SteamSpy alla ricerca di gemme…'],
+    gog: ['Fatturando nei cassonetti di GOG: i classici fanno capolino…', 'GOG: rovisto tra i titoli senza DRM e senza pietà…'],
     proxy: ['Passo dal passaggio segreto per aggirare i blocchi…', 'Un cunicolo laterale per raggiungere la fonte…'],
     ai: ['Frugu Frugu consulta il web con l\'aiuto di Gemini…', 'Scoperchio i bidoni del web e leggo le fonti…', 'Lavando il cibo e verificando i voti degli utenti…', 'Fatturando nei cassonetti più profondi della rete…', 'Annuso qualcosa di buono…', 'Le zampette sono stanche ma il bottino cresce…']
   };
@@ -178,6 +181,7 @@
     active(){ return depth > 0 || manual > 0; },                       // riga di log a tema Frugu Frugu (fonte attuale, giochi trovati…)
     counter(n, max){ cnt = (n == null) ? null : {n, max}; if(el) paint(); },
     onStop(fn){ stopFn = fn || null; if(el){ const b = el.querySelector('.rt-stop'); if(b){ b.disabled = false; b.hidden = !fn; } } },
+    hideNow(){ clearTimeout(hideT); manual = 0; depth = 0; if(el){ el.classList.remove('show'); } exact = false; logText = ''; cnt = null; stopFn = null; stopSource(); },
     reset(){ logText = ''; cnt = null; stopFn = null; stopSource(); if(el) paint(); }
   };
   // ogni richiesta all'AI accende la barra (tranne quelle "silent" in background)
