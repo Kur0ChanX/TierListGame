@@ -2276,6 +2276,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v81', date:'2026-09-29', items:[
+    'Accanto al logo Raccoon Tier c\'è ora il bidone animato "Frugu Frugu" con le zampe che frugano (si ferma se hai "riduci animazioni" attivo).'
+  ]},
   {version:'v80', date:'2026-09-29', items:[
     'Il tasto "Aggiorna info" diventa verde con "✅ Info aggiornate il [data]" dopo il controllo di un gioco, così sai quali hai già verificato. Puoi rifarlo quando vuoi.'
   ]},
@@ -3604,7 +3607,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v80';
+const DATA_BUILD_VERSION = 'v81';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
