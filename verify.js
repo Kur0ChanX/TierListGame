@@ -66,14 +66,29 @@
     const rec = i > 0 ? t.slice(i, i + 3600) : '';
     return (head + (rec ? '\n[...]\n' + rec : '')).slice(0, 9000);
   }
+  // prova diretta dell'italiano: la voce di it.wikipedia con la tabella "Doppiatore italiano" (nessuna AI, nessuna stima)
+  async function itWikiLang(name){
+    const base = baseName(name), target = normGameName(base);
+    const q = new URLSearchParams({format:'json', origin:'*', action:'query', list:'search', srsearch: base + ' videogioco', srlimit:'3'});
+    const s = await (await fetch('https://it.wikipedia.org/w/api.php?' + q)).json();
+    const hit = ((s.query && s.query.search) || []).find(h=> normGameName(h.title.replace(/\s*\([^)]*\)\s*$/, '')) === target);
+    if(!hit) return null;
+    const q2 = new URLSearchParams({format:'json', origin:'*', action:'parse', page: hit.title, prop:'wikitext', redirects:'1'});
+    const w = await (await fetch('https://it.wikipedia.org/w/api.php?' + q2)).json();
+    const txt = (w.parse && w.parse.wikitext && w.parse.wikitext['*']) || '';
+    return {title: hit.title, url: 'https://it.wikipedia.org/wiki/' + encodeURIComponent(hit.title.replace(/ /g, '_')), dub: /doppiatore italiano|doppiaggio italiano|doppiato in italiano/i.test(txt)};
+  }
   async function gather(g){
-    const [wiki, wd] = await Promise.allSettled([wikiPage(g.name), wikidataGenreCodes(g.name)]);
-    return {wiki: wiki.status === 'fulfilled' ? wiki.value : null, wd: wd.status === 'fulfilled' ? wd.value : null,
+    const [wiki, wd, itw] = await Promise.allSettled([wikiPage(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name)]);
+    return {wiki: wiki.status === 'fulfilled' ? wiki.value : null, wd: wd.status === 'fulfilled' ? wd.value : null, itw: itw.status === 'fulfilled' ? itw.value : null,
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
   function factChanges(g, src){
     const ch = [];
+    if(src.itw && src.itw.dub && (g.label || {}).it !== 'D'){
+      ch.push({id:'itdub', label:'🎙️ Doppiaggio italiano', from: `italiano: ${(g.label || {}).it || '—'}`, to: `testi e doppiaggio in italiano (prova: la voce di it.wikipedia "${src.itw.title}" elenca i doppiatori italiani) ${src.itw.url}`, patch:{label:{it:'D'}}});
+    }
     const nowY = new Date().getFullYear();
     if(src.wiki && src.wiki.mc && src.wiki.mc !== g.score){
       ch.push({id:'score', label:'Voto', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${src.wiki.mc} (Metacritic, da Wikipedia)`, patch:{score: src.wiki.mc, tier: tierOf(src.wiki.mc), m:'V'}});

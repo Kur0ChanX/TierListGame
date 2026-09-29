@@ -2276,6 +2276,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v86', date:'2026-09-29', items:[
+    '"Aggiorna info" ora controlla direttamente it.wikipedia: se la voce elenca i doppiatori italiani propone "testi e doppiaggio in italiano" con il link come prova (senza AI). The Legend of Dragoon: fonte aggiunta.'
+  ]},
   {version:'v85', date:'2026-09-29', items:[
     'Apertura più corta (2 secondi) e visibile subito: la scritta Frugu Frugu pulsa e dondola, stelline che brillano e coriandoli che cadono. Un tocco su "Entra" apre il programma a schermo intero (dove il browser lo permette).'
   ]},
@@ -3619,7 +3622,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v85';
+const DATA_BUILD_VERSION = 'v86';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
