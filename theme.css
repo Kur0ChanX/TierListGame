@@ -211,11 +211,10 @@ h1{flex:0 1 auto !important; min-width:0}
 @keyframes introIn{from{opacity:0}to{opacity:1}}
 .intro-img{position:absolute; inset:0; width:100%; height:100%; display:block}
 /* FRUGU FRUGU: solo la scritta si muove (copia ritagliata che pulsa e dondola + alone). Tutto con transform/opacity: gira anche mentre la pagina carica */
-.intro-frugu{position:absolute; left:30%; top:63.5%; width:41%; height:14%; pointer-events:none; -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%)}
-.intro-frugu i{position:absolute; inset:-30%; background:radial-gradient(ellipse at 50% 50%, rgba(190,255,90,.75), rgba(90,255,190,.3) 45%, transparent 70%); animation:fruguGlow .8s ease-in-out infinite alternate}
-.intro-frugu b{position:absolute; width:243.9%; height:714.3%; left:-73.17%; top:-453.6%; background-size:100% 100%; transform-origin:65% 70.5%; animation:fruguPop .9s ease-in-out infinite alternate; will-change:transform}
-@keyframes fruguGlow{from{opacity:.1}to{opacity:1}}
-@keyframes fruguPop{0%{transform:scale(1) rotate(-2.5deg)}100%{transform:scale(1.09) rotate(2.5deg)}}
+.intro-frugu{position:absolute; left:30%; top:63.5%; width:41%; height:14%; pointer-events:none; -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); animation:fruguHue 3.6s linear infinite}
+/* la scritta resta ferma (niente doppioni): cambiano solo i colori, che scorrono in tutto l'arcobaleno */
+.intro-frugu b{position:absolute; width:243.9%; height:714.3%; left:-73.17%; top:-453.6%; background-size:100% 100%}
+@keyframes fruguHue{0%{filter:hue-rotate(0deg) saturate(1.35) brightness(1.08)}100%{filter:hue-rotate(360deg) saturate(1.35) brightness(1.08)}}
 /* stelline lucenti e coriandoli che cadono (transform/opacity, niente filtri) */
 .intro-sparks{position:absolute; inset:0; pointer-events:none; overflow:hidden}
 .intro-sparks s{position:absolute; text-decoration:none; font-size:var(--s); line-height:1; color:var(--c); text-shadow:0 0 8px var(--c), 0 0 14px var(--c); opacity:0; animation:twinkle var(--d) var(--w) ease-in-out infinite; will-change:transform,opacity}
@@ -230,7 +229,7 @@ h1{flex:0 1 auto !important; min-width:0}
 @keyframes introBar{to{transform:scaleX(1)}}
 .intro-msg{font:600 12px/1 system-ui,sans-serif; color:#fff; text-shadow:0 1px 4px #000; opacity:.9}
 html.intro-on{overflow:hidden}
-@media (prefers-reduced-motion:reduce){ .intro-frame,.intro-start{animation:none !important} .intro-frugu b{animation-duration:2s} .intro-sparks u{display:none} #intro{transition:opacity .3s} }
+@media (prefers-reduced-motion:reduce){ .intro-frame,.intro-start{animation:none !important} .intro-frugu{animation-duration:8s} .intro-sparks u{display:none} #intro{transition:opacity .3s} }
 .ask-toggle{display:flex; gap:8px; align-items:center; font-size:.85rem}
 
 /* Frugu Frugu: fisso in basso al centro, solo nello spazio libero sotto la lista (misurato da fx.js); non cambia la lunghezza della pagina e non copre nulla */
