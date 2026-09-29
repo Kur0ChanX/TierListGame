@@ -1175,7 +1175,7 @@ function setView(v){
   else if(v==='novitagenere') renderNovitaGenreView();
 }
 document.querySelectorAll('.view-tab').forEach(tab=>{
-  tab.addEventListener('click', ()=> setView(tab.dataset.view));
+  tab.addEventListener('click', ()=>{ if(tab.dataset.view) setView(tab.dataset.view); else if(tab.dataset.ask && typeof openAsk === 'function') openAsk(); });
 });
 
 // ---- "La mia Tier List" (drag & drop personal editor) ----

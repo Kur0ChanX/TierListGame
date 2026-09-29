@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v123', date:'2026-09-30', items:[
+    'Barra in basso: «Chiedi» al posto di «Per genere» (il selettore per genere è ora sotto «Fruga altri titoli» nella schermata Novità); tolto il pulsante flottante rosa. Badge «da approvare» in basso a sinistra, speculare a «Torna su». Impostazioni senza testo coperto.',
+    'Ricerca: fonti di riserva istantanee (RAWG con chiave gratuita facoltativa e Wikidata) se le altre restano vuote o bloccate; stato live nel box di caricamento con frasi a tema Frugu Frugu; registro diagnostico nascosto (5 tocchi su «Database aggiornato…» o ?debug=1) con fonte, esito, tempi e status HTTP, senza chiavi.'
+  ]},
   {version:'v122', date:'2026-09-30', items:[
     '⚡ Controllo dati Turbo (✨ → Controllo dati): un gioco ogni ~12 secondi, fino a 800 al giorno, per finire il giro di tutto il database più in fretta. Il controllo ora prosegue con Gemini anche se Wikipedia/Wikidata non rispondono.'
   ]},

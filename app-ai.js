@@ -602,15 +602,44 @@ function dedupeNovitaCandidates(arr, known, tagEnum){
 // Se una fonte sbaglia o non trova nulla non ci si ferma: si passa alla successiva. Accetta ogni gioco da 5/10 in su (50/100) o senza voto.
 // Il pulsante «Basta frugare! Mostra bottino» (nel box di caricamento) interrompe subito e restituisce ciò che è stato trovato.
 const NOVITA_STRATEGIES = [
-  {src:'Metacritic e OpenCritic', hint:"Cerca nelle classifiche e nelle liste di Metacritic e OpenCritic (anche i giochi con voti medi)."},
-  {src:'Steam', hint:"Cerca sulle pagine dello store Steam e nei suoi elenchi per tag/genere (recensioni almeno 'Nella media')."},
-  {src:'Wikipedia', hint:"Cerca nelle liste e nelle categorie di Wikipedia (elenchi di videogiochi per genere, piattaforma e anno)."},
-  {src:'RPGFan, RPGamer e riviste', hint:"Cerca su RPGFan, RPGamer, Eurogamer, IGN, Multiplayer.it e nelle liste 'best of' delle riviste."},
-  {src:'Reddit e forum', hint:"Cerca nelle discussioni di Reddit (r/patientgamers, r/JRPG, r/rpg_gamers, r/gaming), ResetEra e forum specializzati: giochi consigliati dagli utenti, anche di nicchia."},
-  {src:'IGDB e MobyGames', hint:"Cerca su IGDB e MobyGames, includendo titoli poco noti e retro."},
-  {src:'giochi retro e di nicchia', hint:"Concentrati su titoli usciti prima del 2005 e su giochi di nicchia o dimenticati."},
-  {src:'indie e novità recenti', hint:"Concentrati su indie di qualità e su titoli usciti negli ultimi anni."}
+  {key:'metacritic', src:'Metacritic e OpenCritic', hint:"Cerca nelle classifiche e nelle liste di Metacritic e OpenCritic (anche i giochi con voti medi)."},
+  {key:'steam', src:'Steam', hint:"Cerca sulle pagine dello store Steam e nei suoi elenchi per tag/genere (recensioni almeno 'Nella media')."},
+  {key:'wikipedia', src:'Wikipedia', hint:"Cerca nelle liste e nelle categorie di Wikipedia (elenchi di videogiochi per genere, piattaforma e anno)."},
+  {key:'riviste', src:'RPGFan, RPGamer e riviste', hint:"Cerca su RPGFan, RPGamer, Eurogamer, IGN, Multiplayer.it e nelle liste 'best of' delle riviste."},
+  {key:'reddit', src:'Reddit e forum', hint:"Cerca nelle discussioni di Reddit (r/patientgamers, r/JRPG, r/rpg_gamers, r/gaming), ResetEra e forum specializzati: giochi consigliati dagli utenti, anche di nicchia."},
+  {key:'igdb', src:'IGDB e MobyGames', hint:"Cerca su IGDB e MobyGames, includendo titoli poco noti e retro."},
+  {key:'retro', src:'giochi retro e di nicchia', hint:"Concentrati su titoli usciti prima del 2005 e su giochi di nicchia o dimenticati."},
+  {key:'indie', src:'indie e novità recenti', hint:"Concentrati su indie di qualità e su titoli usciti negli ultimi anni."}
 ];
+// ---- Fonti dirette (senza AI) usate come riserva quando le altre restano vuote: RAWG (con chiave gratuita) e Wikidata ----
+const RAWG_GENRE = {JRPG:'role-playing-games-rpg', WRPG:'role-playing-games-rpg', ACT:'role-playing-games-rpg', TUR:'role-playing-games-rpg', TAC:'strategy', DUN:'role-playing-games-rpg', MON:'role-playing-games-rpg', CARD:'card', PLAT:'platformer', PLAT3D:'platformer', PUZ:'puzzle', FPS:'shooter', TPS:'shooter', SHMUP:'shooter', FIGHT:'fighting', BEAT:'fighting', RACE:'racing', KART:'racing', SPORT:'sports', RTS:'strategy', TBS4X:'strategy', ADV:'adventure', ACTADV:'action', HNS:'action', ARCADE:'arcade', SIMLIFE:'simulation', CITY:'simulation', BOARDG:'board-games', PARTY:'family', MMO:'massively-multiplayer'};
+const tierFromScore = n=> n >= 95 ? 'S+' : n >= 90 ? 'S' : n >= 85 ? 'A' : n >= 80 ? 'B' : n >= 70 ? 'C' : n >= 60 ? 'D' : n >= 40 ? 'E' : 'F';
+async function rawgSource(focus){
+  let key = ''; try{ key = (localStorage.getItem('jrpg_rawg_key') || '').trim(); }catch(e){}
+  if(!key){ const e = new Error('chiave RAWG non impostata'); e.skip = true; throw e; }
+  const slugs = [...new Set((focus || []).map(c=> RAWG_GENRE[c]).filter(Boolean))].sort(()=> Math.random() - .5).slice(0, 3);
+  const url = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(key) + '&page_size=40&page=' + (1 + Math.floor(Math.random() * 12)) + '&metacritic=50,100&ordering=-added' + (slugs.length ? '&genres=' + slugs.join(',') : '');
+  const r = await fetch(url); if(!r.ok) throw new Error('RAWG HTTP ' + r.status);
+  const j = await r.json();
+  return (j.results || []).map(g=>{
+    const score = g.metacritic || (g.rating ? Math.round(g.rating * 20) : null);
+    const names = (g.genres || []).map(x=> x.name);
+    return {name: g.name, plat: (g.platforms || []).map(x=> x.platform && x.platform.name).filter(Boolean).slice(0, 4).join(' / '), year: (g.released || '').slice(0, 4), score, tier: score != null ? tierFromScore(score) : 'B',
+      tags: (window.wikidataCodesFrom ? window.wikidataCodesFrom(names) : []).slice(0, 3), story: '', fitIf: ''};
+  });
+}
+async function wikidataSource(focus){
+  const y1 = 1984 + Math.floor(Math.random() * 38), y2 = y1 + 4;
+  const q = `SELECT ?itemLabel ?date ?genreLabel WHERE { ?item wdt:P31 wd:Q7889; wdt:P577 ?date; wdt:P136 ?genre; wikibase:sitelinks ?sl. FILTER(?sl > 9) FILTER(YEAR(?date) >= ${y1} && YEAR(?date) <= ${y2}) SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } LIMIT 200`;
+  const r = await fetch('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), {headers: {Accept: 'application/sparql-results+json'}});
+  if(!r.ok) throw new Error('Wikidata HTTP ' + r.status);
+  const rows = ((await r.json()).results || {}).bindings || [], by = {};
+  rows.forEach(b=>{ const n = b.itemLabel && b.itemLabel.value; if(!n || /^Q\d+$/.test(n)) return; const o = by[n] = by[n] || {name: n, year: String(b.date.value).slice(0, 4), genres: []}; if(b.genreLabel) o.genres.push(b.genreLabel.value); });
+  let list = Object.values(by).map(o=> ({name: o.name, plat: '', year: o.year, score: null, tier: 'B', tags: (window.wikidataCodesFrom ? window.wikidataCodesFrom(o.genres) : []).slice(0, 3), story: '', fitIf: ''}));
+  if(focus && focus.length){ const pref = list.filter(c=> c.tags.some(t=> focus.includes(t))); if(pref.length >= 4) list = pref; }
+  return list.sort(()=> Math.random() - .5).slice(0, 30);
+}
+const NOVITA_ADAPTERS = [{name: 'RAWG', key: 'rawg', run: rawgSource}, {name: 'Wikidata', key: 'wikidata', run: wikidataSource}];
 // gruppi di generi da far ruotare tra le richieste (mescolati): così la ricerca non si incastra su un solo tipo di gioco
 function novitaFocusSets(codes, size){
   const sets = [];
@@ -641,7 +670,7 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets){
   try{
     while(!stopped && found.length < MAX && round < STR.length && emptyRounds < 4){
       const pair = [STR[round], STR[round + 1]].filter(Boolean); round += 2;
-      say('Frugu Frugu nel bidone «' + pair.map(x=> x.src).join('» e «') + '»…');
+      try{ P && P.source && P.source(pair.map(x=> x.key)); }catch(e){}
       const need = Math.min(14, MAX - found.length + 4);
       const excl = found.length ? '\nNON riproporre nemmeno questi titoli appena trovati: ' + found.map(c=> c.name).join('; ') + '.' : '';
       const crit = "\nCRITERIO: includi qualsiasi gioco reale valutato almeno 5/10 (50/100 su Metacritic/Steam), oppure senza voto ma apprezzato dalla community; scarta solo quelli sotto il 5/10. Per ogni titolo: se non conosci un dato, stima con onestà ma NON inventare giochi inesistenti.";
@@ -655,6 +684,21 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets){
         if(r.status === 'fulfilled'){ const arr = parseNovitaJson(r.value && r.value.text); if(arr) got += accept(arr); }
         else { errors++; lastErr = r.reason; }
       });
+      try{ DebugLog.add({kind: 'scout', src: pair.map(x=> x.src).join(' + '), ok: got > 0, note: 'trovati ' + got + ' nuovi · errori AI ' + res.filter(r=> r.status === 'rejected').length + (res.some(r=> r.status === 'rejected') ? ' · ' + String((res.find(r=> r.status === 'rejected').reason || {}).code || (res.find(r=> r.status === 'rejected').reason || {}).message || '').slice(0, 80) : '')}); }catch(e){}
+      // riserva istantanea: se le fonti AI sono vuote o in errore passo subito a RAWG e Wikidata (dati diretti), senza fermare la ricerca
+      if(got < 3 && !stopped){
+        const foNow = (focusSets && focusSets.length) ? focusSets[fi % focusSets.length] : [];
+        for(const ad of NOVITA_ADAPTERS){
+          if(stopped || found.length >= MAX) break;
+          try{
+            say('Bidone vuoto o bloccato: Frugu Frugu passa a ' + ad.name + '…'); P && P.source && P.source(ad.key);
+            const arr = await Promise.race([ad.run(foNow), stopP.then(()=> null)]);
+            const n = arr ? accept(arr) : 0; got += n;
+            DebugLog.add({kind: 'scout', src: ad.name + ' (riserva)', ok: n > 0, note: 'trovati ' + n + ' nuovi su ' + (arr ? arr.length : 0)});
+            if(n) break;
+          }catch(e){ if(!e.skip) DebugLog.add({kind: 'scout', src: ad.name + ' (riserva)', ok: false, err: e && e.message}); }
+        }
+      }
       if(got === 0){ emptyRounds++; say('Bidone vuoto, passo al prossimo…'); }
       else { emptyRounds = 0; say('Trovati ' + got + ' giochi luccicanti! Totale ' + found.length + '.'); }
       try{ P && P.counter && P.counter(found.length, MAX); P && P.set && P.set(Math.round(found.length / MAX * 100)); }catch(e){}
@@ -758,7 +802,8 @@ function novitaIntroHtml(){
   return `<div class="novita-intro">
     <div class="novita-intro-icon">🆕</div>
     <div><b>Trova nuovi giochi da aggiungere</b><br>Claude ti propone RPG/JRPG che non hai ancora nel database, in base ai tuoi gusti. Per ognuno trovi copertina, foto gameplay, un video gameplay in italiano e le recensioni ITA da controllare prima di decidere: sei sempre tu a scegliere se aggiungerlo.</div>
-    <button class="btn primary" id="novitaFindBtn">🔎 Trova nuovi titoli</button>
+    <button class="btn primary" id="novitaFindBtn">🔎 Fruga altri titoli</button>
+    <button class="btn" id="novitaGenreGoBtn">🗂️ Fruga per genere</button>
   </div>`;
 }
 function novitaLoadingHtml(){
@@ -771,7 +816,8 @@ function novitaDoneHtml(){
   return `<div class="discover-empty">
     <div class="discover-empty-icon">🎉</div>
     <div>Hai deciso su tutte le proposte di questo giro.</div>
-    <button class="btn primary" id="novitaFindBtn">🔎 Trova altri titoli</button>
+    <button class="btn primary" id="novitaFindBtn">🔎 Fruga altri titoli</button>
+    <button class="btn" id="novitaGenreGoBtn">🗂️ Fruga per genere</button>
   </div>`;
 }
 function novitaSkippedTopbarHtml(count, btnId){
@@ -868,6 +914,7 @@ function novitaAdvanceLike(){
   renderNovitaCard();
 }
 function wireNovitaCard(){
+  const gg = document.getElementById('novitaGenreGoBtn'); if(gg) gg.addEventListener('click', ()=> setView('novitagenere'));
   wireNovitaFilter(document.getElementById('novitaPanel'), renderNovitaCard);
   const findBtn = document.getElementById('novitaFindBtn');
   const retryBtn = document.getElementById('novitaRetryBtn');
@@ -977,8 +1024,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v122';
+const DATA_BUILD_DATE = '2026-09-30';
+const DATA_BUILD_VERSION = 'v123';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

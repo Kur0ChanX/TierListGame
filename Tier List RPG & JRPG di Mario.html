@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raccoon Tier — Tier List RPG & JRPG di Mario</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="build" content="v122">
+<meta name="build" content="v123">
 <meta name="theme-color" content="#161221">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -183,7 +183,7 @@
     <button class="view-tab active" data-view="list" title="Classifica"><span class="vt-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-trophy"/></svg></span><span class="vt-tx vt-full">Classifica</span><span class="vt-tx vt-short">Classifica</span></button>
     <button class="view-tab" data-view="discover" title="Scopri"><span class="vt-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-dice"/></svg></span><span class="vt-tx vt-full">Scopri</span><span class="vt-tx vt-short">Scopri</span></button>
     <button class="view-tab" data-view="novita" title="Novità"><span class="vt-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-star"/></svg></span><span class="vt-tx vt-full">Novità</span><span class="vt-tx vt-short">Novità</span></button>
-    <button class="view-tab" data-view="novitagenere" title="Novità per genere"><span class="vt-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-genres"/></svg></span><span class="vt-tx vt-full">Novità per genere</span><span class="vt-tx vt-short">Per genere</span></button>
+    <button class="view-tab" id="askTab" data-ask="1" title="Chiedi a Claude"><span class="vt-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-chat"/></svg></span><span class="vt-tx vt-full">Chiedi</span><span class="vt-tx vt-short">Chiedi</span></button>
     <button class="view-tab" data-view="mytier" title="La mia Tier List"><span class="vt-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-target"/></svg></span><span class="vt-tx vt-full">La mia Tier List</span><span class="vt-tx vt-short">Mia tier</span></button>
     <button class="view-tab" data-view="saga" title="Per saga"><span class="vt-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-layers"/></svg></span><span class="vt-tx vt-full">Per saga</span><span class="vt-tx vt-short">Saghe</span></button>
     <button class="view-tab" data-view="stats" title="Statistiche"><span class="vt-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-bars"/></svg></span><span class="vt-tx vt-full">Statistiche</span><span class="vt-tx vt-short">Statistiche</span></button>
@@ -258,6 +258,9 @@
         </label>
         <label>Modello Gemini (facoltativo)
           <input type="text" id="geminiModelInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="vuoto = gemini-flash-latest (sempre l'ultimo Flash)">
+        </label>
+        <label>Chiave RAWG (facoltativa, gratuita su rawg.io/apidocs): fonte di riserva per «Fruga altri titoli»
+          <input type="password" id="rawgKeyInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave RAWG">
         </label>
         <div class="ask-engine-actions"><button class="btn primary" id="geminiSaveBtn">Salva e verifica</button><button class="btn" id="geminiClearBtn">Rimuovi</button></div>
         <div class="ask-engine-status" id="geminiStatus">La chiave resta solo su questo dispositivo, nel browser.</div>
