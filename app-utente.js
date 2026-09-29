@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v108', date:'2026-09-29', items:[
+    'Barra di caricamento stile JRPG: quando cerchi con l\'AI (Novità, Chiedi, Aggiorna info, voce, wishlist) compare una finestra blu con il bidone Frugu Frugu che fruga (GIF ad alta risoluzione) e la barra dei punti con la percentuale. Con le copertine automatiche e la verifica dei generi la percentuale è reale; con le richieste all\'AI è stimata (~).'
+  ]},
   {version:'v107', date:'2026-09-29', items:[
     'Nuovo logo (Frugu Frugu Raccoon Tier) in alto a sinistra, con più respiro: i pulsanti Schermo, Profilo, Novità, Tema e Filtri sono spostati a destra e non lo toccano.'
   ]},

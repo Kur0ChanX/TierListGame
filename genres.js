@@ -102,15 +102,17 @@
     const todo = GAMES.filter(g=> !(g.id in cache));
     let done = 0, fail = 0, idx = 0;
     const status = el.querySelector('#gcStatus');
+    if(window.Progress) Progress.begin('Verifico i generi su Wikidata…');
     const worker = async ()=>{
       while(idx < todo.length){
         const g = todo[idx++];
         try{ const r = await genreCodes(g.name); cache[g.id] = r ? r.codes : []; labs[g.id] = r ? r.labels : null; }catch(e){ fail++; }
         done++;
+        if(window.Progress) Progress.set(done / Math.max(1, todo.length) * 100, `Generi: ${done}/${todo.length}`);
         if(done % 8 === 0){ status.textContent = `Controllo… ${done}/${todo.length}`; try{ localStorage.setItem(cacheKey, JSON.stringify(cache)); localStorage.setItem(labKey, JSON.stringify(labs)); }catch(_){} }
       }
     };
-    try{ await Promise.all([worker(), worker(), worker()]); }finally{ running = false; }
+    try{ await Promise.all([worker(), worker(), worker()]); }finally{ running = false; if(window.Progress) Progress.end(); }
     try{ localStorage.setItem(cacheKey, JSON.stringify(cache)); localStorage.setItem(labKey, JSON.stringify(labs)); }catch(_){}
     if(todo.length && fail === todo.length){ status.textContent = 'Non riesco a contattare Wikidata da questa pagina (bloccato in Claude? usa la versione GitHub).'; return; }
     status.textContent = 'Controllo completato.';
