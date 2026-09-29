@@ -10,6 +10,8 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - `sync.js`: sincronizzazione automatica dei dati `jrpg_*` (localStorage) su un Gist privato via token GitHub (permesso `gist`). Caricato PRIMA di app.js.
 - `theme.css`: tema grafico "Aurora glass" (solo override di style.css, caricato dopo). `fx.js`: piccoli effetti (barra voto, vibrazione, transizione tra schede). `intro.js` + `icons/intro.jpg`: apertura animata (si salta con `jrpg_intro=off`, `?intro=force` la forza).
 - `extras.js` (caricato per ultimo): viste Tabella/Copertine/Schede (`jrpg_view_mode`), menu ✨, copertine automatiche da Wikipedia (a gruppi di 50), ricerca a voce, wishlist con date di uscita (`jrpg_wishlist`), tier list come immagine, traguardi (`jrpg_badges`), colori dalla copertina (`jrpg_cover_tint`). Si aggancia avvolgendo render/setView/openModal/applyFilters.
+- `palettes.js` (nell'<head>, dopo theme.css): 34 palette; calcola le variabili CSS (--bg, --card, --grad, --a1rgb/--a2rgb/--a3rgb, --glass, --aur*) per chiaro e scuro; scelta in `jrpg_palette`. In theme.css usa `rgba(var(--a1rgb),x)` invece dei viola fissi.
+- L'HTML deve iniziare con `<!DOCTYPE html>`: non incollare la riga "impacchettata" dell'artifact (sposta l'<head> nel <body>).
 - `genres.js`: verifica dei generi su Wikidata (nuovi giochi in automatico; controllo completo con conferma). `icons/logo.png`: logo Raccoon Tier.
 - `verify.js`: pulsante "Aggiorna info" nella scheda gioco (Wikipedia/Wikidata + AI vincolata alle fonti) e verifica automatica dei giochi nuovi; le correzioni ai giochi di base stanno in `jrpg_game_overrides` (localStorage, sincronizzato).
 - `giochi.js`: dati, `const GIOCHI_DATA = {games, sagaMap, enrich, dopa, labels, market};` (~1,9 MB).

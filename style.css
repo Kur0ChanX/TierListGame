@@ -1,3 +1,5 @@
+/* regole di base che prima arrivavano da una riga in cima all'HTML (tolta perché spostava l'intestazione nel corpo pagina) */
+:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
 :root{
   --bg:#f6f4fb; --card:#ffffff; --text:#211a35; --sub:#665f7a; --border:#e3ddf2;
   --accent:#5b3aa8; --accent2:#8a63e8; --shadow:0 2px 10px rgba(80,50,150,0.08);
