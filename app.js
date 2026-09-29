@@ -2276,6 +2276,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v87', date:'2026-09-29', items:[
+    'Il tocco su "Entra" non finisce più sul gioco sotto. Schermo intero di default (al tocco, si spegne da ⚙️). Il bidone Frugu Frugu è ora grande in fondo alla pagina, al centro, senza coprire nulla.'
+  ]},
   {version:'v86', date:'2026-09-29', items:[
     '"Aggiorna info" ora controlla direttamente it.wikipedia: se la voce elenca i doppiatori italiani propone "testi e doppiaggio in italiano" con il link come prova (senza AI). The Legend of Dragoon: fonte aggiunta.'
   ]},
@@ -3622,7 +3625,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v86';
+const DATA_BUILD_VERSION = 'v87';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
