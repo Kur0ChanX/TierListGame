@@ -102,6 +102,7 @@
         <button class="btn" data-a="palette">🎨 Palette colori <small>(34 temi)</small></button>
         <button class="btn" data-a="complete">🧩 Completa le schede dei giochi aggiunti <small>(💕🤝✨💉)</small></button>
         <button class="btn" data-a="covers">🖼️ Copertine automatiche <small>(Wikipedia)</small></button>
+        <button class="btn" data-a="audit">🔎 Controllo dati <small>(verifica il database in background)</small></button>
         <button class="btn" data-a="wish">🎁 Wishlist e date di uscita</button>
         <button class="btn" data-a="share">📤 Condividi la tua tier list (immagine)</button>
         <button class="btn" data-a="badges">🏆 Traguardi</button>
@@ -114,7 +115,7 @@
     body.querySelector('#xAutoCov').addEventListener('change', ev=>{ LS.set('jrpg_autocover', ev.target.checked); });
     body.querySelector('#xFx').addEventListener('change', ev=>{ LS.set('jrpg_fx', ev.target.checked ? 'on' : 'off'); document.documentElement.classList.toggle('fx-on', ev.target.checked); toast(ev.target.checked ? 'Effetti extra attivi' : 'Effetti extra spenti: scorrimento più fluido'); });
     body.querySelector('#xTint').addEventListener('change', e=>{ LS.set('jrpg_cover_tint', e.target.checked); toast(e.target.checked ? 'Apri un gioco con copertina per vedere i colori' : 'Colori standard'); });
-    body.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); ({complete: ()=> window.completeCustomGames && window.completeCustomGames(), palette: ()=> window.openPalettePicker && window.openPalettePicker(), covers: openCovers, wish: openWishlist, share: shareTierImage, badges: openBadges})[b.dataset.a](); }));
+    body.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); ({audit: ()=> window.openAuditPanel && window.openAuditPanel(), complete: ()=> window.completeCustomGames && window.completeCustomGames(), palette: ()=> window.openPalettePicker && window.openPalettePicker(), covers: openCovers, wish: openWishlist, share: shareTierImage, badges: openBadges})[b.dataset.a](); }));
   }
 
   // =====================================================================
