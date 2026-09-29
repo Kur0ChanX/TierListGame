@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v127', date:'2026-10-01', items:[
+    'La colonna dei libri (📖) ora mostra la lingua italiana di ogni gioco: ITA = testi e doppiaggio, sub = sottotitoli, fan = traduzione dei fan, no = nessuna, ? = non ancora verificata. Non viene più tagliata a destra.',
+    'Lista più lunga (arriva fino alla barra in basso); badge «da approvare» e freccia «Torna su» più piccoli; icone a tema videogioco anche nei pulsanti «Fruga altri titoli», «Fruga per genere», «Aggiorna info», preferiti e capitoli mancanti.',
+    'Ponte personale facoltativo (Cloudflare Worker gratuito, codice in tools/cloudflare-worker.js) per riattivare Steam, GOG e Reddit; GOG corretto (genere «rpg»).'
+  ]},
   {version:'v126', date:'2026-09-30', items:[
     'Sicurezza: le richieste con chiave (RAWG) non passano più dai ponti pubblici e il registro diagnostico nasconde le chiavi anche negli indirizzi annidati; il registro già salvato viene ripulito.',
     'Ricerca più veloce e stabile: massimo di richieste contemporanee per sito, pausa automatica per le fonti mute (Steam e Reddit dietro ponti morti), Wikipedia sempre in accesso diretto, verifica dei giochi appena aggiunti uno alla volta e con fonti leggere, trama di una frase nelle proposte (la trama completa arriva con il ♥).',
