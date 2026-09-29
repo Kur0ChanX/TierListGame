@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v96', date:'2026-09-29', items:[
+    'Novità per genere: in cima c\'è la scelta della console, tutte in ordine di uscita (dall\'Atari 2600 alla Switch 2, poi PC e Mobile). Nessuna scelta = qualsiasi console, di ogni epoca. La scelta resta salvata.'
+  ]},
   {version:'v95', date:'2026-09-29', items:[
     'Generi: trovata la causa degli errori (l\'AI riceveva i codici dei generi senza spiegazione e leggeva ADV come "avventura qualsiasi": Elden Ring, Portal, Stardew finivano in Avventura punta e clicca). Ora riceve significato ed esempi per ogni genere, con una regola di sicurezza. La "Verifica generi online" propone anche di TOGLIERE i tag Avventura non confermati da Wikidata.',
     'Novità per genere: nuovi generi (Avventura d\'azione, Open world, MMO, Simulatori, Quiz) e 16 proposte per ricerca invece di 10. Anche lingua italiana con doppiaggio (D) nelle proposte.'
