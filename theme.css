@@ -477,3 +477,14 @@ html:fullscreen .topbar{padding-top:calc(16px + env(safe-area-inset-top,0px) * .
 .topbar-row1 h1{margin-right:14px}
 .topbar-row1 .brand-logo{margin-right:2px}
 @media (max-width:430px){ .topbar-row1 h1{margin-right:12px} }
+
+/* v107: nuovo logo largo a sinistra con respiro; i pulsanti sono spinti a destra */
+.topbar-row1{justify-content:space-between; gap:6px}
+.topbar-row1 h1{flex:0 1 auto; margin:0 22px 0 0 !important; min-width:0}
+.brand-logo{height:54px; width:auto; max-width:100%; animation:none; filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))}
+.topbar-row1 .brand-logo{margin:0}
+.topbar-row1 > .iconbtn{flex:0 0 auto}
+@media (max-width:430px){ .topbar-row1 h1{margin-right:14px !important} .brand-logo{height:50px} }
+.topbar-row1 h1{flex:0 0 auto}
+.brand-logo{max-width:none}
+@media (max-width:380px){ .iconbtn.lbl{width:41px} .iconbtn.lbl .ib-ic{width:36px; height:36px} .iconbtn.lbl .ib-lb{font-size:.56rem} .topbar-row1 h1{margin-right:8px !important} .topbar-row1{gap:1px} .brand-logo{height:46px} }

@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v107', date:'2026-09-29', items:[
+    'Nuovo logo (Frugu Frugu Raccoon Tier) in alto a sinistra, con più respiro: i pulsanti Schermo, Profilo, Novità, Tema e Filtri sono spostati a destra e non lo toccano.'
+  ]},
   {version:'v106', date:'2026-09-29', items:[
     'Icone in alto un po\' più in basso (lontane dal foro della fotocamera) e staccate dal logo del procione.'
   ]},
