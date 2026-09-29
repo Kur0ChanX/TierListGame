@@ -4,10 +4,18 @@ function normGameName(n){
   return String(n||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/\([^)]*\)/g,' ').replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').replace(/\bthe\b/g,' ').replace(/\s+/g,' ').trim();
 }
+// Stesso gioco con la parola dell'edizione in più ("Disco Elysium" = "Disco Elysium - The Final Cut"): solo per edizioni, così "Fire Emblem: Engage" e "Fire Emblem: Three Houses" restano diversi
+const EDITION_TAIL = /^(final cut|definitive edition|director s cut|directors cut|remastered|remaster|complete edition|complete|goty|game of the year edition|game of the year|deluxe edition|deluxe|enhanced edition|hd|hd remaster|special edition|ultimate edition|legendary edition|royal|intergrade|reloaded|anniversary edition|gold edition|standard edition)$/;
+function sameGameName(a, b){
+  if(!a || !b) return false;
+  if(a === b) return true;
+  const [s, l] = a.length <= b.length ? [a, b] : [b, a];
+  return s.length >= 6 && l.startsWith(s + ' ') && EDITION_TAIL.test(l.slice(s.length + 1).replace(/^the /, '').replace(/^the /, ''));
+}
 function findDuplicateGame(name){
   const n = normGameName(name);
   if(!n) return null;
-  return GAMES.find(g=> normGameName(g.name) === n) || null;
+  return GAMES.find(g=> sameGameName(normGameName(g.name), n)) || null;
 }
 function showDuplicateBanner(g){
   let el = document.getElementById('dupBackdrop');
@@ -540,8 +548,9 @@ async function fetchNovitaGenreBatch(){
     renderNovitaGenreCard();
   }
 }
-function currentNovitaGame(){ return novitaQueue[novitaIdx] || null; }
-function currentNovitaGenreGame(){ return novitaGenreQueue[novitaGenreIdx] || null; }
+// salta le proposte che nel frattempo sono già nel database (aggiunte a mano, da un altro dispositivo o da Chiedi)
+function currentNovitaGame(){ while(novitaQueue[novitaIdx] && findDuplicateGame(novitaQueue[novitaIdx].name)) novitaIdx++; return novitaQueue[novitaIdx] || null; }
+function currentNovitaGenreGame(){ while(novitaGenreQueue[novitaGenreIdx] && findDuplicateGame(novitaGenreQueue[novitaGenreIdx].name)) novitaGenreIdx++; return novitaGenreQueue[novitaGenreIdx] || null; }
 function novitaCardHtml(c){
   return `<div class="discover-card" id="novitaCard">
     <div class="discover-cover"><div class="discover-cover-placeholder"><span class="pc-plat">${escHtml((c.plat||'').split('/')[0].trim())}</span><span class="pc-tier ${TIER_LABEL[c.tier]}">${c.tier}</span></div></div>
@@ -794,7 +803,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v93';
+const DATA_BUILD_VERSION = 'v94';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

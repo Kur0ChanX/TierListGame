@@ -236,3 +236,4 @@ html.intro-on{overflow:hidden}
 .frugu-foot{position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; align-items:flex-end; pointer-events:none; z-index:5; visibility:hidden}
 .frugu-foot.show{visibility:visible}
 .frugu-foot img{display:block; height:var(--fh,0px); width:auto; max-width:calc(100vw - 180px); object-fit:contain; margin:0 auto 8px; filter:drop-shadow(0 4px 10px rgba(124,92,255,.35))}
+.added-banner{top:20%}
