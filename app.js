@@ -1803,6 +1803,7 @@ function openModal(g){
     <div class="modal-actions">
       <button class="btn" id="modalFavBtn">${isFav ? '★ Nei preferiti' : '☆ Aggiungi ai preferiti'}</button>
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
+      <button class="btn" id="updateInfoBtn" title="Controlla voto, generi, anno e testi su Wikipedia e Wikidata">🔄 Aggiorna info</button>
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
     </div>
   `;
@@ -2275,6 +2276,10 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v77', date:'2026-09-29', items:[
+    'Nuovo: 🔄 Aggiorna info, in ogni scheda di gioco. Controlla il gioco su Wikipedia e Wikidata (voto Metacritic, generi, anno) e, se c\'è un motore AI, riscrive trama e pro/contro usando solo gli estratti di Wikipedia. Ti mostra "prima / dopo" e applichi solo ciò che ti convince.',
+    'I giochi nuovi che aggiungi vengono verificati in automatico su Wikipedia/Wikidata (voto, generi, anno, giochi non ancora usciti). Le istruzioni all\'AI ora vietano di inventare dati e di parlare di giochi non usciti.'
+  ]},
   {version:'v76', date:'2026-09-29', items:[
     'Controllo dei dati con Metacritic: 105 voti che non corrispondevano alla critica sono stati corretti (con almeno 15 recensioni alla base), con i relativi tier. Prima molti giochi avevano un voto provvisorio di 72: ora quelli verificabili hanno il voto reale e la fonte "verificato".',
     'Tre giochi non ancora usciti (Fate/Extra Record, Decapolice, SacriFire) avevano recensioni e pro/contro inventati: ora sono segnati come "non ancora usciti" con la data prevista.',
@@ -2946,7 +2951,7 @@ const ASK_TOOLS = [
   }
 ];
 function todayLine(){
-  return 'Data di oggi: ' + new Date().toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) + '. Nei testi che scrivi NON usare espressioni legate al tempo che invecchiano ("uscito da poco", "recentissimo", "troppo presto per giudicare"): indica sempre l\'anno di uscita.\n';
+  return 'Data di oggi: ' + new Date().toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) + '. Nei testi che scrivi NON usare espressioni legate al tempo che invecchiano ("uscito da poco", "recentissimo", "troppo presto per giudicare"): indica sempre l\'anno di uscita. Parla SOLO di giochi già usciti e realmente esistenti: se non conosci con certezza un dato (voto, ore, lingua, data di uscita) NON inventarlo, scrivi che non è noto.\n';
 }
 function askInstructions(){
   return todayLine() + `Sei l'assistente integrato nel database personale di giochi RPG/JRPG di Mario (${GAMES.length} giochi catalogati con voti, tag, "etichetta" stile valori nutrizionali, compatibilità DNA con i suoi gusti, e dove trovarli in abbonamento oggi). Rispondi sempre in italiano, in modo breve e colloquiale, come in una chat — evita elenchi puntati lunghi se non richiesti esplicitamente.
@@ -3584,7 +3589,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v76';
+const DATA_BUILD_VERSION = 'v77';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

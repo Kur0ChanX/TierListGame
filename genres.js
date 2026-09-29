@@ -53,10 +53,11 @@
     const e = await wd({action:'wbgetentities', ids: cand.id, props:'claims'});
     const claims = (e.entities && e.entities[cand.id] && e.entities[cand.id].claims) || {};
     const gids = (claims.P136 || []).map(c=> c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id).filter(Boolean);
-    if(!gids.length) return {qid: cand.id, labels: [], codes: []};
+    const years = (claims.P577 || []).map(c=> c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.time).filter(Boolean).map(t=> parseInt(String(t).slice(1,5),10)).filter(Boolean);
+    if(!gids.length) return {qid: cand.id, labels: [], codes: [], years};
     const l = await wd({action:'wbgetentities', ids: gids.join('|'), props:'labels', languages:'en'});
     const labels = gids.map(id=> l.entities && l.entities[id] && l.entities[id].labels && l.entities[id].labels.en && l.entities[id].labels.en.value).filter(Boolean);
-    return {qid: cand.id, labels, codes: codesFrom(labels)};
+    return {qid: cand.id, labels, codes: codesFrom(labels), years};
   }
   window.wikidataGenreCodes = genreCodes;
 
