@@ -79,7 +79,8 @@
     };
     const sched = ()=>{ if(!raf) raf = requestAnimationFrame(place); };
     window.addEventListener('resize', sched); window.addEventListener('scroll', sched, {passive:true});
-    try{ new ResizeObserver(sched).observe(document.querySelector('.wrap')); }catch(e){}
+    try{ const ro = new ResizeObserver(sched); ro.observe(document.querySelector('.wrap')); Array.from(document.querySelector('.wrap').children).forEach(x=> ro.observe(x)); }catch(e){}
+    document.addEventListener('click', ()=> setTimeout(sched, 60), true);   // pannelli che si aprono/chiudono (Filtri, generi...)
     if(img && !img.complete) img.addEventListener('load', sched);
     sched(); setTimeout(sched, 600);
   }
@@ -91,4 +92,29 @@
     const tabs = document.querySelectorAll('#viewTabs .view-tab');
     if(/^[1-9]$/.test(e.key) && tabs[+e.key - 1]){ tabs[+e.key - 1].click(); }
   });
+  // 10) filtri rapidi (usano gli stessi comandi del pannello) + numero di filtri attivi sul pulsante Filtri
+  const qf = document.getElementById('quickFilters'), badge = document.getElementById('filtersBadge');
+  const setSel = (id, v)=>{ const el = document.getElementById(id); if(el){ el.value = v; el.dispatchEvent(new Event('change')); } };
+  function syncQuick(){
+    if(typeof state === 'undefined') return;
+    const on = {fav: state.onlyFavs, played: state.status === 'played', playing: state.status === 'playing', backlog: state.status === 'backlog', top: state.minScore === '90', story: state.onlyStory};
+    if(qf) qf.querySelectorAll('[data-qf]').forEach(b=> b.classList.toggle('active', !!on[b.dataset.qf]));
+    const n = [state.onlyFavs, state.status, state.minScore, state.onlyStory, state.method, state.decade, state.mood, state.tags && state.tags.size, state.tiers && state.tiers.size].filter(Boolean).length;
+    if(badge){ badge.hidden = !n; badge.textContent = n; }
+  }
+  if(qf) qf.addEventListener('click', e=>{
+    const b = e.target.closest('[data-qf]'); if(!b) return;
+    const k = b.dataset.qf;
+    if(k === 'fav'){ const fb = document.getElementById('favBtn'); if(fb) fb.click(); }
+    else if(k === 'played' || k === 'playing' || k === 'backlog') setSel('statusFilter', state.status === k ? '' : k);
+    else if(k === 'top') setSel('scoreFilter', state.minScore === '90' ? '' : '90');
+    else if(k === 'story') setSel('storyFilter', state.onlyStory ? '' : 'yes');
+    else if(k === 'reset'){ const rb = document.getElementById('resetBtn'); if(rb) rb.click(); }
+    syncQuick();
+  });
+  // si aggiorna anche quando i filtri cambiano da altri comandi (tier, generi, reset...)
+  const tbq = document.getElementById('tbody');
+  if(tbq) new MutationObserver(syncQuick).observe(tbq, {childList:true});
+  document.addEventListener('change', syncQuick);
+  syncQuick();
 })();

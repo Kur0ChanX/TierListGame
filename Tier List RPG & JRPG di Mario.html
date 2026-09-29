@@ -35,10 +35,10 @@
     <div class="topbar-row1">
       <h1><img class="brand-logo" src="icons/logo.png" alt="Raccoon Tier" width="53" height="56"><span class="sr-only">Raccoon Tier — Tier List RPG &amp; JRPG di Mario</span></h1>
       <button class="iconbtn" id="fsBtn" aria-label="Schermo intero" title="Schermo intero (nasconde barra del browser e orario)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-      <button class="iconbtn" id="profileBtn" aria-label="Profilo">👤</button>
-      <button class="iconbtn" id="changelogBtn" aria-label="Novità del programma">🆕</button>
-      <button class="iconbtn" id="themeBtn" aria-label="Cambia tema">🌓</button>
-      <button class="iconbtn" id="filtersBtn" aria-label="Mostra/nascondi filtri">🔧 Filtri</button>
+      <button class="iconbtn lbl" id="profileBtn" aria-label="Profilo"><span class="ib-ic">👤</span><span class="ib-lb">Profilo</span></button>
+      <button class="iconbtn lbl" id="changelogBtn" aria-label="Novità del programma"><span class="ib-ic">🆕</span><span class="ib-lb">Novità</span></button>
+      <button class="iconbtn lbl" id="themeBtn" aria-label="Cambia tema"><span class="ib-ic">🌓</span><span class="ib-lb">Tema</span></button>
+      <button class="iconbtn lbl" id="filtersBtn" aria-label="Mostra/nascondi filtri"><span class="ib-ic">🔧</span><span class="ib-lb">Filtri</span><b class="ib-badge" id="filtersBadge" hidden></b></button>
     </div>
     <div class="topbar-row2">
       <input id="search" type="text" placeholder="🔍 Cerca per nome, piattaforma o anno...">
@@ -50,12 +50,15 @@
     <div class="count-line" id="buildLine"></div>
 
     <div id="filtersPanel">
-      <div class="linkbox">
-        🔗 Link condivisibile:
-        <input id="shareLink" readonly value="">
-        <button class="btn" id="copyLinkBtn">Copia</button>
+      <div class="quick-filters" id="quickFilters">
+        <button class="qf-chip" type="button" data-qf="fav">★ Preferiti</button>
+        <button class="qf-chip" type="button" data-qf="played">✅ Giocati</button>
+        <button class="qf-chip" type="button" data-qf="playing">▶️ In corso</button>
+        <button class="qf-chip" type="button" data-qf="backlog">📌 Da giocare</button>
+        <button class="qf-chip" type="button" data-qf="top">🏆 90+</button>
+        <button class="qf-chip" type="button" data-qf="story">📖 Con storia</button>
+        <button class="qf-chip qf-reset" type="button" data-qf="reset">↺ Azzera</button>
       </div>
-      <div class="metrics" id="metricsRow"></div>
       <div class="stats-row" id="statsRow"></div>
       <div class="controls">
         <select id="methodFilter">
@@ -90,20 +93,32 @@
           <option value="none">⚪ Non segnato</option>
         </select>
       </div>
-      <div class="tagchips" id="tagChips"></div>
-      <div class="tagchips" id="moodChips"></div>
+      <details class="filters-more"><summary>🏷️ Generi e umore</summary>
+        <div class="tagchips" id="tagChips"></div>
+        <div class="tagchips" id="moodChips"></div>
+      </details>
       <div class="controls">
         <button class="btn" id="favBtn">★ Solo preferiti</button>
         <button class="btn" id="randomBtn">🎲 Sorprendimi</button>
         <button class="btn" id="dnaSortBtn">🧬 Più adatti a te</button>
         <button class="btn" id="wizardBtn">🧭 Cosa gioco stasera?</button>
-        <button class="btn" id="exportBtn">⬇ Esporta CSV</button>
-        <button class="btn" id="exportDataBtn">💾 Esporta i miei dati</button>
-        <button class="btn" id="importDataBtn">📥 Importa i miei dati</button>
-        <input type="file" id="importDataFile" accept="application/json" style="display:none;">
-        <button class="btn" id="qualityCheckBtn">🩺 Verifica qualità dati</button>
         <button class="btn" id="resetBtn">↺ Reset filtri</button>
       </div>
+      <details class="filters-more"><summary>🛠️ Strumenti, numeri e link</summary>
+        <div class="metrics" id="metricsRow"></div>
+        <div class="linkbox">
+          🔗 Link condivisibile:
+          <input id="shareLink" readonly value="">
+          <button class="btn" id="copyLinkBtn">Copia</button>
+        </div>
+        <div class="controls">
+          <button class="btn" id="exportBtn">⬇ Esporta CSV</button>
+          <button class="btn" id="exportDataBtn">💾 Esporta i miei dati</button>
+          <button class="btn" id="importDataBtn">📥 Importa i miei dati</button>
+          <input type="file" id="importDataFile" accept="application/json" style="display:none;">
+          <button class="btn" id="qualityCheckBtn">🩺 Verifica qualità dati</button>
+        </div>
+      </details>
     </div>
   </div>
 
