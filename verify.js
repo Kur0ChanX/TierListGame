@@ -274,11 +274,15 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
     try{ const d = await deepChanges(g); if(d.changes.some(c=> c.id === 'aging')) changes = changes.filter(c=> c.id !== 'aging'); changes = changes.concat(d.changes); deepSrc = d.sources; if(d.note) note += (note ? ' ' : '') + d.note; }catch(e){ note += (note ? ' ' : '') + 'Ricerca approfondita non riuscita: ' + llmErrorText(e); }
     const sources = [src.itw && `<a href="${src.itw.url}" target="_blank" rel="noopener">it.wikipedia</a>`, src.steam && `<a href="${src.steam.url}" target="_blank" rel="noopener">Steam</a>`, src.pcgw && `<a href="${src.pcgw.url}" target="_blank" rel="noopener">PCGamingWiki</a>`, src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
     if(!changes.length){ markChecked(g.id); el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
-    el.innerHTML = shell(`<div class="lp-sub">Fonti: ${sources}. Togli la spunta a ciò che non ti convince.${note ? '<br>' + escHtml(note) : ''}</div>
-      <div class="gc-rows">${changes.map((c,i)=> `<label class="gc-row"><input type="checkbox" data-i="${i}" ${c.off ? '' : 'checked'}> <span><b>${escHtml(c.label)}</b><br><small>Prima: ${escHtml(c.from || '—')}</small><br>Dopo: ${escHtml(c.to)}</span></label>`).join('')}</div>
-      <div class="lp-tools"><button class="btn primary" id="uiApply">Applica i selezionati</button></div>`);
+    el.innerHTML = shell(`<div class="lp-sub">Fonti: ${sources || 'nessuna'}. ${changes.length} ${changes.length === 1 ? 'modifica proposta' : 'modifiche proposte'}: scorri per vedere tutto e togli la spunta a ciò che non ti convince.${note ? '<br>' + escHtml(note) : ''}</div>
+      <div class="au-rev">${changes.map((c,i)=> `<div class="au-chg"><label><h4><input type="checkbox" data-i="${i}" ${(c.off || c.warn) ? '' : 'checked'}> ${escHtml(c.label)}</h4></label>
+        <div class="au-box au-before"><small>PRIMA (quello che c'è ora)</small>${escHtml(c.from || '—')}</div>
+        <div class="au-box au-after"><small>DOPO (proposta)</small>${escHtml(c.to)}</div></div>`).join('')}
+        <div class="au-actions"><button class="btn primary" id="uiApply">✅ Approva le modifiche spuntate</button><button class="btn" id="uiKeep">↩️ Tieni precedente</button><button class="btn" data-ui-close>⏭️ Decido dopo</button></div></div>`);
+    el.querySelector('#uiKeep').addEventListener('click', ()=>{ markChecked(g.id); el.classList.remove('show'); showToast('Tenuti i dati precedenti', 2000); });
     el.querySelector('#uiApply').addEventListener('click', async ()=>{
       const chosen = [...el.querySelectorAll('input[data-i]:checked')].map(cb=> changes[+cb.dataset.i]);
+      if(!chosen.length){ showToast('Spunta almeno una modifica, oppure scegli «Tieni precedente»', 2500); return; }
       await applyPatch(g, mergePatch(chosen)); markChecked(g.id);
       el.classList.remove('show'); showToast('✅ Scheda aggiornata', 3000);
       try{ openModal(GAMES.find(x=> x.id === g.id) || g); }catch(e){}

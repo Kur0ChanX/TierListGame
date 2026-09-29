@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v120', date:'2026-09-30', items:[
+    'Anche «Aggiorna info» nella scheda del gioco usa ora la revisione a schede scrollabili con «Prima» e «Dopo» separati e un solo gruppo di pulsanti (Approva / Tieni precedente / Decido dopo). Generi: aggiunto JRPG e i generi RPG sono raggruppati in due sezioni.'
+  ]},
   {version:'v119', date:'2026-09-30', items:[
     '🦝 Ricerca senza sosta: «Trova nuovi titoli» accumula fino a 30 giochi passando da una fonte all\'altra (Metacritic, Steam, Wikipedia, riviste, Reddit e forum, IGDB/MobyGames…), accetta i giochi da 5/10 in su, mostra il contatore «Giochi trovati nel bidone» e il pulsante «Basta frugare! Mostra bottino».',
     'Scheda di ricerca compatta: titolo, ✕ e ♥ sulla stessa riga. Con il ♥ il gioco viene completato con la scheda intera (trama ricca, a colpo d\'occhio, pro e contro, prima di comprarlo).',
