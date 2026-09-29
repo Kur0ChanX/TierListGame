@@ -214,7 +214,7 @@ document.addEventListener('change', (e)=>{
   if(!t || !t.classList || !t.classList.contains('novita-engine-select')) return;
   setLlmEngine(t.value);
   document.querySelectorAll('.novita-engine-select, #llmEngineSelect').forEach(s=>{ s.value = t.value; });
-  if(t.value !== 'claude' && !geminiKey()) showToast('Per usare Gemini incolla la chiave in Chiedi → ⚙️ Motore AI', 4000);
+  if(t.value !== 'claude' && !geminiKey()) showToast('Per usare Gemini incolla la chiave in Chiedi → ⚙️ Impostazioni', 4000);
 });
 
 // Messaggio d'errore per l'utente, con il dettaglio di Google quando è un errore Gemini

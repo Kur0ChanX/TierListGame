@@ -669,3 +669,46 @@ td.storyicon{width:44px !important; text-align:center; white-space:nowrap; paddi
 .au-badge{width:30px !important; height:30px !important; bottom:calc(var(--navh,0px) + 8px + env(safe-area-inset-bottom,0px)) !important}
 .au-badge::before{font-size:14px !important}
 .au-badge b{font-size:9px !important; min-width:15px !important; height:15px !important; top:-5px !important; right:-5px !important; border-width:1.5px !important; padding:0 3px !important}
+
+.fx-steam{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:8px 0; padding:8px 10px; border-radius:12px; background:rgba(56,189,248,.12); border:1px solid rgba(56,189,248,.35); font-size:.85rem}
+.fx-steam small{opacity:.7; margin-left:auto}
+.fx-disc{color:#16a34a}
+
+/* v128: backup, livello, cronologia, carta, backlog, affidabilità, joypad */
+.bk-bar{height:12px; border-radius:8px; background:rgba(128,128,160,.25); overflow:hidden; margin:6px 0 10px}
+.bk-bar i{display:block; height:100%; background:linear-gradient(90deg,#38bdf8,#7c5cff); border-radius:8px}
+.bk-bar i.mid{background:linear-gradient(90deg,#facc15,#f97316)}
+.bk-bar i.bad{background:linear-gradient(90deg,#f97316,#dc2626)}
+.bk-keys{display:grid; gap:4px; font-size:.8rem; margin:6px 0 12px}
+.bk-keys div{display:flex; justify-content:space-between; gap:8px; padding:4px 8px; border-radius:8px; background:rgba(128,128,160,.12)}
+.bk-keys span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.lv-card{display:flex; align-items:center; gap:14px; padding:12px; border-radius:16px; background:linear-gradient(135deg,rgba(124,92,255,.25),rgba(56,189,248,.2)); margin-bottom:8px}
+.lv-num{width:64px; height:64px; border-radius:50%; display:grid; place-items:center; font:900 1.8rem/1 system-ui; background:linear-gradient(180deg,#ffd23c,#f39a12); color:#3b2200; box-shadow:0 4px 14px rgba(243,154,18,.5)}
+.tl{max-height:calc(100dvh - 260px); overflow-y:auto; -webkit-overflow-scrolling:touch}
+.tl-dec h4{margin:12px 0 4px; font-size:1rem} .tl-dec h4 small{opacity:.65; font-weight:600}
+.tl-row{display:flex; gap:10px; align-items:flex-start; padding:4px 0; border-top:1px solid rgba(128,128,160,.18)}
+.tl-row>b{flex:none; width:44px; opacity:.75}
+.tl-row>div{display:flex; flex-wrap:wrap; gap:5px}
+.tl-chip{display:inline-flex; align-items:center; gap:5px; padding:4px 9px 4px 4px; border-radius:999px; border:1px solid var(--glass-line,rgba(128,128,160,.35)); background:var(--glass,rgba(255,255,255,.08)); color:inherit; font-size:.8rem; cursor:pointer}
+.tl-t{min-width:22px; padding:1px 6px; border-radius:999px; color:#fff; font-weight:800; font-size:.7rem; text-align:center}
+.x-cardimg{width:100%; max-height:calc(100dvh - 240px); object-fit:contain; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.bk-card{margin:14px 0; padding:14px; border-radius:18px; background:var(--glass,rgba(255,255,255,.08)); border:1px solid var(--glass-line,rgba(128,128,160,.3))}
+.bk-card h3{margin:0 0 8px; font-size:1.05rem}
+.bk-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px}
+.bk-grid>div{text-align:center; padding:8px 4px; border-radius:12px; background:rgba(128,128,160,.12)}
+.bk-grid b{display:block; font-size:1.25rem} .bk-grid small{display:block; font-size:.66rem; opacity:.75; line-height:1.2}
+.bk-hpw{display:block; font-size:.85rem; margin:6px 0} .bk-hpw input{width:100%}
+.ds-chip{display:flex; align-items:center; gap:8px; margin:8px 0; padding:8px 10px; border-radius:12px; background:rgba(128,128,160,.12); font-size:.85rem}
+.ds-chip small{opacity:.7}
+.ds-ring{flex:none; width:26px; height:26px; border-radius:50%; background:conic-gradient(var(--c) calc(var(--p) * 1%), rgba(128,128,160,.3) 0); -webkit-mask:radial-gradient(circle 8px at center,transparent 97%,#000 100%); mask:radial-gradient(circle 8px at center,transparent 97%,#000 100%)}
+.gp-focus{outline:3px solid #fbbf24 !important; outline-offset:2px; border-radius:10px; box-shadow:0 0 0 7px rgba(251,191,36,.28) !important; position:relative; z-index:2}
+/* v128: icona grande nel riquadro «Trova nuovi giochi» (al posto dell'emoji) e icone nel menu ✨ */
+.novita-intro-icon svg.gi, .novita-intro-icon svg.gi.gi-s{width:42px !important; height:42px !important; margin:0 !important; vertical-align:middle}
+.x-menu .btn svg.gi, .x-menu .ask-toggle svg.gi, .lp-tools .btn svg.gi{flex:none}
+/* v128: icone tematiche al posto delle emoji nei pulsanti di filtro, Chiedi e impostazioni */
+.qf-chip svg.gi{width:16px !important; height:16px !important; margin-right:3px; vertical-align:-3px}
+.filters-more summary svg.gi, .ask-engine summary svg.gi, .ask-engine label svg.gi{width:19px !important; height:19px !important; vertical-align:-4px; margin-right:5px}
+.modal-title svg.gi{width:24px !important; height:24px !important; vertical-align:-5px; margin-right:6px}
+.ask-photo-btn svg.gi{width:24px !important; height:24px !important; margin:0 !important; display:block !important}
+#askSendBtn{display:flex; align-items:center; justify-content:center} #askSendBtn svg.gi{width:22px !important; height:22px !important; margin:0 !important}
+#askMicBtn{display:flex; align-items:center; justify-content:center} #askMicBtn svg.gi{width:24px !important; height:24px !important; margin:0 !important}

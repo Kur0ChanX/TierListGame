@@ -36,7 +36,7 @@ function showDuplicateBanner(g){
 }
 function askToolAddCustomGame(input, sourceLabel){
   input = input || {};
-  sourceLabel = sourceLabel || 'Chiedi a Claude';
+  sourceLabel = sourceLabel || 'Chiedi';
   const name = String(input.name || '').trim();
   if(!name) throw new Error('serve il nome del gioco da aggiungere');
   const existing = findDuplicateGame(name);
@@ -68,7 +68,7 @@ function askToolAddCustomGame(input, sourceLabel){
     score: score != null ? score : 70,
     tags,
     story: input.story ? String(input.story) : '',
-    note: `Aggiunto da Mario tramite "${sourceLabel}" il ` + new Date().toLocaleDateString('it-IT') + ' — voto e dettagli sono una stima di Claude, non della classifica ufficiale curata a mano.',
+    note: `Aggiunto da Mario tramite "${sourceLabel}" il ` + new Date().toLocaleDateString('it-IT') + ' — voto e dettagli sono una stima automatica, non della classifica ufficiale curata a mano.',
     label,
     pros: (cleanProsCons(input.pros, input.cons) || {pros:[]}).pros,
     cons: (cleanProsCons(input.pros, input.cons) || {cons:[]}).cons,
@@ -305,7 +305,7 @@ function renderAskThread(){
   } else if(askBusy){
     html += `<div class="ask-thinking">Sto pensando…</div>`;
   }
-  thread.innerHTML = html || (!llmAvailable() ? `<div class="ask-thinking">👆 Per usare Chiedi: incolla qui sopra la tua chiave Gemini e premi "Salva e verifica". Poi potrai scrivere, scattare una foto 📸 o caricarne una 📷.</div>` : `<div class="ask-thinking">Chiedimi consigli sui giochi (es. "3 JRPG tattici come Final Fantasy Tactics"), oppure allega la foto di una copertina vista in negozio.</div>`);
+  thread.innerHTML = html || (!llmAvailable() ? `<div class="ask-thinking">Per usare Chiedi: incolla qui sopra la tua chiave Gemini e premi "Salva e verifica". Poi potrai scrivere, dettare a voce, scattare una foto o caricarne una dalla galleria.</div>` : `<div class="ask-thinking">Chiedimi consigli sui giochi (es. "3 JRPG tattici come Final Fantasy Tactics"), oppure allega la foto di una copertina vista in negozio.</div>`);
   thread.scrollTop = thread.scrollHeight;
   thread.querySelectorAll('.ask-gamelink').forEach(chip=>{
     chip.addEventListener('click', ()=>{
@@ -332,7 +332,7 @@ function autoResizeAskInput(){
 }
 async function sendAskMessage(){
   if(askBusy) return;
-  if(!llmAvailable()){ showToast('Chiedi a Claude non è disponibile qui: aggiungi una chiave Gemini in ⚙️ Motore AI'); return; }
+  if(!llmAvailable()){ showToast('Chiedi non è disponibile qui: aggiungi una chiave Gemini in ⚙️ Impostazioni'); return; }
   const input = document.getElementById('askInput');
   const text = input.value.trim();
   const img = askPendingImage;
@@ -677,7 +677,7 @@ async function fetchNovitaBatch(){
   const excludeNames = novitaKnownNames();
   try{
     // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: ['wikicat', 'wikidata', 'steamspy', 'steamsearch', 'gog', 'rawg', 'rawgnew', 'reddit']});
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: ['scoperte', 'wikicat', 'wikidata', 'steamspy', 'steamsearch', 'gog', 'rawg', 'rawgnew', 'reddit']});
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -761,8 +761,8 @@ function novitaCardHtml(c, ids){
 }
 function novitaIntroHtml(){
   return `<div class="novita-intro">
-    <div class="novita-intro-icon">🆕</div>
-    <div><b>Trova nuovi giochi da aggiungere</b><br>Claude ti propone RPG/JRPG che non hai ancora nel database, in base ai tuoi gusti. Per ognuno trovi copertina, foto gameplay, un video gameplay in italiano e le recensioni ITA da controllare prima di decidere: sei sempre tu a scegliere se aggiungerlo.</div>
+    <div class="novita-intro-icon">${giIcon('lens')}</div>
+    <div><b>Trova nuovi giochi da aggiungere</b><br>Frugu Frugu rovista tra Steam, GOG, Wikipedia, RAWG e l'elenco settimanale dei giochi da scoprire, e ti propone RPG/JRPG che non hai ancora nel database, in base ai tuoi gusti. Per ognuno trovi copertina, foto gameplay, un video gameplay in italiano e le recensioni ITA da controllare prima di decidere: sei sempre tu a scegliere se aggiungerlo.</div>
     <button class="btn primary" id="novitaFindBtn">${giIcon('lens')} Fruga altri titoli</button>
     <button class="btn" id="novitaGenreGoBtn">${giIcon('genres')} Fruga per genere</button>
   </div>`;
@@ -839,7 +839,7 @@ function renderNovitaCard(){
   const panel = document.getElementById('novitaPanel');
   if(!panel) return;
   if(!llmAvailable()){
-    panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">🆕</div><div>${needKeyHtml()}</div></div>`;
+    panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">${giIcon('lens')}</div><div>${needKeyHtml()}</div></div>`;
     return;
   }
   if(novitaSkippedListOpen){ renderNovitaSkippedListInto(panel, renderNovitaCard); return; }
@@ -985,8 +985,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-09-30';
-const DATA_BUILD_VERSION = 'v127';
+const DATA_BUILD_DATE = '2026-10-02';
+const DATA_BUILD_VERSION = 'v128';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

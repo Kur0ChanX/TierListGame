@@ -23,6 +23,8 @@
     return el.querySelector('.x-body');
   }
 
+  window.XUI = {sheet, toast, esc, LS, byId, hoursOf, TIER_COL};
+
   // =====================================================================
   // 1) TRE MODI DI VEDERE LA CLASSIFICA: Tabella · Copertine · Schede
   // =====================================================================
@@ -95,26 +97,27 @@
   // =====================================================================
   function openMenu(){
     const tint = LS.get('jrpg_cover_tint', false);
-    const body = sheet('xMenu', '✨ Extra', `
+    const body = sheet('xMenu', giIcon('wand') + ' Extra', `
       <div class="lp-sub">Vista della classifica</div>
-      <div class="lp-tools"><button class="btn${MODE==='table'?' primary':''}" data-m="table">☰ Tabella</button><button class="btn${MODE==='grid'?' primary':''}" data-m="grid">▦ Copertine</button><button class="btn${MODE==='cards'?' primary':''}" data-m="cards">▤ Schede</button></div>
+      <div class="lp-tools"><button class="btn${MODE==='table'?' primary':''}" data-m="table">${giIcon('table')} Tabella</button><button class="btn${MODE==='grid'?' primary':''}" data-m="grid">${giIcon('grid')} Copertine</button><button class="btn${MODE==='cards'?' primary':''}" data-m="cards">${giIcon('cards')} Schede</button></div>
       <div class="x-menu">
-        <button class="btn" data-a="palette">🎨 Palette colori <small>(34 temi)</small></button>
-        <button class="btn" data-a="complete">🧩 Completa le schede dei giochi aggiunti <small>(💕🤝✨💉)</small></button>
-        <button class="btn" data-a="covers">🖼️ Copertine automatiche <small>(Wikipedia)</small></button>
-        <button class="btn" data-a="audit">🔎 Controllo dati <small>(${window.auditStats ? auditStats().props : 0} da approvare · ${window.auditStats ? auditStats().done : 0}/765 controllati)</small></button>
-        <button class="btn" data-a="wish">🎁 Wishlist e date di uscita</button>
-        <button class="btn" data-a="share">📤 Condividi la tua tier list (immagine)</button>
-        <button class="btn" data-a="badges">🏆 Traguardi</button>
-        <a class="btn" href="backup-aurora/" title="La versione di prima delle palette, sempre disponibile">🛟 Versione di sicurezza (Aurora)</a>
-        <label class="ask-toggle"><input type="checkbox" id="xAutoCov" ${LS.get('jrpg_autocover', true)?'checked':''}> 🖼️ Cerca la copertina da sola quando apro un gioco che non ce l'ha</label>
-        <label class="ask-toggle"><input type="checkbox" id="xFx" ${document.documentElement.classList.contains('fx-on')?'checked':''}> 🪟 Vetro sfocato e sfondo animato <small>(più bello, ma può rallentare lo scorrimento)</small></label>
-        <label class="ask-toggle"><input type="checkbox" id="xTint" ${tint?'checked':''}> 🎨 Colori della scheda presi dalla copertina</label>
+        <button class="btn" data-a="palette">${giIcon('orb')} Palette colori <small>(34 temi)</small></button>
+        <button class="btn" data-a="complete">${giIcon('wand')} Completa le schede dei giochi aggiunti <small>(💕🤝✨💉)</small></button>
+        <button class="btn" data-a="covers">${giIcon('screen')} Copertine automatiche <small>(Wikipedia)</small></button>
+        <button class="btn" data-a="audit">${giIcon('lens')} Controllo dati <small>(${window.auditStats ? auditStats().props : 0} da approvare · ${window.auditStats ? auditStats().done : 0}/765 controllati)</small></button>
+        <button class="btn" data-a="wish">${giIcon('gift')} Wishlist e date di uscita</button>
+        <button class="btn" data-a="share">${giIcon('up')} Condividi la tua tier list (immagine)</button>
+        <button class="btn" data-a="badges">${giIcon('trophy')} Traguardi</button>
+        <a class="btn" href="backup-aurora/" title="La versione di prima delle palette, sempre disponibile">${giIcon('layers')} Versione di sicurezza (Aurora)</a>
+        <label class="ask-toggle"><input type="checkbox" id="xAutoCov" ${LS.get('jrpg_autocover', true)?'checked':''}> ${giIcon('screen')} Cerca la copertina da sola quando apro un gioco che non ce l'ha</label>
+        <label class="ask-toggle"><input type="checkbox" id="xFx" ${document.documentElement.classList.contains('fx-on')?'checked':''}> ${giIcon('layers')} Vetro sfocato e sfondo animato <small>(più bello, ma può rallentare lo scorrimento)</small></label>
+        <label class="ask-toggle"><input type="checkbox" id="xTint" ${tint?'checked':''}> ${giIcon('orb')} Colori della scheda presi dalla copertina</label>
       </div>`);
     body.querySelectorAll('[data-m]').forEach(b=> b.addEventListener('click', ()=>{ setMode(b.dataset.m); document.getElementById('xMenu').classList.remove('show'); }));
     body.querySelector('#xAutoCov').addEventListener('change', ev=>{ LS.set('jrpg_autocover', ev.target.checked); });
     body.querySelector('#xFx').addEventListener('change', ev=>{ LS.set('jrpg_fx', ev.target.checked ? 'on' : 'off'); document.documentElement.classList.toggle('fx-on', ev.target.checked); toast(ev.target.checked ? 'Effetti extra attivi' : 'Effetti extra spenti: scorrimento più fluido'); });
     body.querySelector('#xTint').addEventListener('change', e=>{ LS.set('jrpg_cover_tint', e.target.checked); toast(e.target.checked ? 'Apri un gioco con copertina per vedere i colori' : 'Colori standard'); });
+    { const xm = body.querySelector('.x-menu'); (window.XMENU || []).forEach(it=>{ const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = it.html; b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); it.run(); }); const first = xm.querySelector('a.btn, label.ask-toggle'); xm.insertBefore(b, first || null); }); }
     body.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); ({audit: ()=> window.openAuditPanel && window.openAuditPanel(), complete: ()=> window.completeCustomGames && window.completeCustomGames(), palette: ()=> window.openPalettePicker && window.openPalettePicker(), covers: openCovers, wish: openWishlist, share: shareTierImage, badges: openBadges})[b.dataset.a](); }));
   }
 
@@ -239,7 +242,7 @@
   let coversRunning = false;
   function openCovers(){
     const missing = GAMES.filter(g=> !coverOf(g));
-    const body = sheet('xCovers', '🖼️ Copertine automatiche', `<div class="lp-sub">Cerco la copertina ufficiale dei <b>${missing.length}</b> giochi che non ce l'hanno, da fonti aperte: Wikipedia, Steam (copertine verticali), Libretro/RetroArch (box art originali delle console) e Wikidata. Le copertine che hai già messo tu non vengono toccate. Si salvano e si sincronizzano come le altre.</div>
+    const body = sheet('xCovers', giIcon('screen') + ' Copertine automatiche', `<div class="lp-sub">Cerco la copertina ufficiale dei <b>${missing.length}</b> giochi che non ce l'hanno, da fonti aperte: Wikipedia, Steam (copertine verticali), Libretro/RetroArch (box art originali delle console) e Wikidata. Le copertine che hai già messo tu non vengono toccate. Si salvano e si sincronizzano come le altre.</div>
       <div class="lp-tools"><button class="btn primary" id="xCovGo" ${coversRunning || !missing.length ? 'disabled' : ''}>${missing.length ? 'Avvia' : 'Tutte le copertine ci sono già'}</button></div><div class="lp-sub" id="xCovSt"></div><div class="x-bar"><i id="xCovBar"></i></div>`);
     const st = body.querySelector('#xCovSt'), bar = body.querySelector('#xCovBar');
     body.querySelector('#xCovGo').addEventListener('click', async e=>{
@@ -383,10 +386,10 @@
       if(it.released) when = '✅ già uscito';
       else if(it.date && it.date.length === 10){ const d = daysTo(it.date); when = d > 0 ? `📅 ${fmtD(it.date)} · tra ${d} giorn${d === 1 ? 'o' : 'i'}` : '🎉 uscito'; }
       else if(it.date) when = `📅 previsto: ${esc(it.date)}`;
-      return `<div class="x-wrow"><div><b>${esc(it.name)}</b><br><small>${when}${it.note ? ' · ' + esc(it.note) : ''}${it.checked ? ' · controllato il ' + fmtD(it.checked) : ''}</small></div><div class="x-wbtn"><button class="btn" data-w-open="${id}">Apri</button><button class="btn" data-w-check="${id}">↻</button><button class="btn" data-w-del="${id}">✕</button></div></div>`;
+      return `<div class="x-wrow"><div><b>${esc(it.name)}</b><br><small>${when}${it.note ? ' · ' + esc(it.note) : ''}${it.price ? ' · 💶 ' + (it.price.cur === 'USD' ? '$' + it.price.f.toFixed(2) : it.price.f.toLocaleString('it-IT', {style:'currency', currency:'EUR'})) + (it.price.d > 0 ? ' (−' + it.price.d + '%)' : '') : ''}${it.checked ? ' · controllato il ' + fmtD(it.checked) : ''}</small></div><div class="x-wbtn"><button class="btn" data-w-open="${id}">Apri</button><button class="btn" data-w-check="${id}">↻</button><button class="btn" data-w-del="${id}">✕</button></div></div>`;
     }).join('');
     const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
-    const body = sheet('xWish', '🎁 Wishlist e uscite', `<div class="lp-sub">Aggiungi un gioco dalla sua scheda con "🎁 Wishlist". Controllo la data di uscita (con Gemini e ricerca web) e ti avviso quando esce, <b>quando apri l'app</b> (un sito web non può avvisarti a app chiusa).</div>
+    const body = sheet('xWish', giIcon('gift') + ' Wishlist e uscite', `<div class="lp-sub">Aggiungi un gioco dalla sua scheda con il pulsante «Wishlist». Controllo la data di uscita (con Gemini e ricerca web) e ti avviso quando esce, <b>quando apri l'app</b> (un sito web non può avvisarti a app chiusa).</div>
       ${perm === 'default' ? '<div class="lp-tools"><button class="btn" id="xNotif">🔔 Attiva notifiche del telefono</button></div>' : ''}
       ${rows || '<div class="lp-sub">La wishlist è vuota.</div>'}`);
     const n = body.querySelector('#xNotif'); if(n) n.addEventListener('click', ()=> Notification.requestPermission().then(p=> toast(p === 'granted' ? '🔔 Notifiche attive' : 'Notifiche non attivate')));
@@ -404,9 +407,9 @@
       if(head && g && g.id != null){
         const on = !!wl()[g.id];
         const bar = document.createElement('div'); bar.className = 'x-modal-actions';
-        bar.innerHTML = `<button class="btn${on ? ' primary' : ''}" type="button" id="xWishBtn">${on ? '🎁 In wishlist' : '🎁 Wishlist'}</button>`;
+        bar.innerHTML = `<button class="btn${on ? ' primary' : ''}" type="button" id="xWishBtn">${giIcon('gift')} ${on ? 'In wishlist' : 'Wishlist'}</button>`;
         head.insertAdjacentElement('afterend', bar);
-        bar.querySelector('#xWishBtn').addEventListener('click', ev=>{ toggleWish(g); const now = !!wl()[g.id]; ev.target.className = 'btn' + (now ? ' primary' : ''); ev.target.textContent = now ? '🎁 In wishlist' : '🎁 Wishlist'; });
+        bar.querySelector('#xWishBtn').addEventListener('click', ev=>{ toggleWish(g); const now = !!wl()[g.id]; const bt = ev.currentTarget; bt.className = 'btn' + (now ? ' primary' : ''); bt.innerHTML = giIcon('gift') + ' ' + (now ? 'In wishlist' : 'Wishlist'); });
       }
       tintModal(g);
       coverAssist(g);
@@ -524,7 +527,7 @@
   }
   function openBadges(){
     const s = badgeStats();
-    const body = sheet('xBadges', '🏆 Traguardi', '<div class="x-badges">' + BADGES.map(b=>{ const ok = b[4](s); return `<div class="x-badge${ok ? ' ok' : ''}"><span>${b[1]}</span><b>${esc(b[2])}</b><small>${esc(b[3])}</small></div>`; }).join('') + '</div>');
+    const body = sheet('xBadges', giIcon('trophy') + ' Traguardi', '<div class="x-badges">' + BADGES.map(b=>{ const ok = b[4](s); return `<div class="x-badge${ok ? ' ok' : ''}"><span>${b[1]}</span><b>${esc(b[2])}</b><small>${esc(b[3])}</small></div>`; }).join('') + '</div>');
     return body;
   }
   let bT = 0; const tbody = document.getElementById('tbody');
@@ -590,7 +593,7 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
   async function findVibes(){
     if(busy) return; const favs = favGames();
     if(favs.length < 1){ showToast('Aggiungi prima almeno un gioco preferito', 2500); return; }
-    if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ in Chiedi a Claude) per cercare sul web', 3500); return; }
+    if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ Impostazioni in Chiedi) per cercare sul web', 3500); return; }
     busy = true; refresh();
     try{
       const arr = await novitaSearchParallel(n=> buildPrompt(favs, n), 12, VIBES_STRATEGIES, null, {directKeys: ['reddit', 'rawgsimilar'], seeds: favs.slice(0, 8).map(f=> f.name)});

@@ -4,12 +4,12 @@
 // Non modifica nulla. Esce con codice 0: sono avvisi da leggere, non errori.
 const fs = require('fs');
 const path = require('path');
-const raw = fs.readFileSync(path.join(__dirname, '..', 'giochi.js'), 'utf8');
-const D = JSON.parse(raw.replace(/^const GIOCHI_DATA = /, '').replace(/;\s*$/, ''));
+const D = require('./data-io').load();          // giochi.js + giochi-dettagli.js insieme
 const NOW = new Date();
 const YEAR = NOW.getFullYear();
 const TIME_RE = /essendo [^;.]{0,40}recente|titolo (relativamente |indipendente )?recente|capitolo (più )?recente|reinvenzione recente|invecchia (bene|benissimo) essendo|panorama indie recente|in corso di rilascio|terzo capitolo in sviluppo|uscito da poco|appena uscit|uscita recente|troppo (presto|recente|fresc)|di recente|poco valutabil|ancora presto|da poco (uscit|sul mercato)|pochi mesi|primi mesi|ancora (poche|pochi) (recension|dati|mesi)|non ancora (valutabil|consolidat|giudicabil)|recentissim|troppo nuov|troppo giovane/i;
-const KNOWN_TAGS = new Set(['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','PLAT','BEAT','FIGHT','STEALTH','ADV','WALK','FPS','TPS','SHMUP','BR','SPORT','RACE','RTS','TBS4X','MOBA','CITY','TOWERDEF','ECOSIM','PUZ','PARTY','RHY','BOARDG','SAND','SIMLIFE','ARCADE','IDLE','RUN','COOP']);
+// i tag validi sono quelli definiti in app.js (TAG_INFO + EXTRA_GENRE_INFO): li leggo da lì, così l'elenco non invecchia
+const KNOWN_TAGS = new Set([...fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8').matchAll(/^  ([A-Z][A-Z0-9]+):\{icon:/gm)].map(m => m[1]));
 const norm = n => n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
 let warnings = 0;
 const warn = m => { warnings++; console.log('⚠️  ' + m); };
@@ -44,9 +44,27 @@ for (const g of D.games) {
 {
   const fs3 = require('fs'), path3 = require('path'), root3 = path3.join(__dirname, '..');
   for (const f of fs3.readdirSync(root3)) {
-    if (!/\.(html|js|css|md|json|webmanifest|yml)$/.test(f) || f === 'giochi.js') continue;
+    if (!/\.(html|js|css|md|json|webmanifest|yml)$/.test(f) || f === 'giochi.js' || f === 'giochi-dettagli.js') continue;   // i due file dati: un marcatore li farebbe fallire in JSON.parse già sopra
     const txt = fs3.readFileSync(path3.join(root3, f), 'utf8');
     if (/^(<{7} |>{7} )/m.test(txt)) { warnings++; console.log('Marcatore di conflitto git rimasto in: ' + f); }
+  }
+}
+// ogni script locale caricato dall'HTML deve esistere, essere copiato dal workflow Pages e stare nella cache offline (sw.js)
+{
+  const root4 = path.join(__dirname, '..');
+  const html4 = fs.readFileSync(path.join(root4, 'Tier List RPG & JRPG di Mario.html'), 'utf8');
+  const pages = fs.readFileSync(path.join(root4, '.github', 'workflows', 'pages.yml'), 'utf8');
+  const sw = fs.readFileSync(path.join(root4, 'sw.js'), 'utf8');
+  const scripts = [...html4.matchAll(/<script[^>]*\ssrc="([^"]+)"/g)].map(m => m[1]).filter(u => !/^(https?:)?\/\//.test(u));
+  for (const u of scripts) {
+    if (!fs.existsSync(path.join(root4, u))) { warnings++; console.log('Script nell\'HTML che non esiste: ' + u); continue; }
+    if (!new RegExp('(^|\\s)' + u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s|$)', 'm').test(pages)) { warnings++; console.log('Script non copiato dal workflow Pages (.github/workflows/pages.yml): ' + u); }
+    if (u !== 'intro.js' && u !== 'palettes.js' && sw.indexOf("'" + u + "'") < 0) { warnings++; console.log('Script mancante nella cache offline (sw.js, elenco SHELL): ' + u); }
+  }
+  for (const f of ['facts.js', 'discoveries.js']) {
+    const fp = path.join(root4, f);
+    if (!fs.existsSync(fp)) { warnings++; console.log('File dati mancante: ' + f + ' (il workflow Pages lo copia: senza, la pubblicazione fallisce). Lancia: node tools/' + (f === 'facts.js' ? 'build-facts' : 'build-discoveries') + '.js'); continue; }
+    try { JSON.parse(fs.readFileSync(fp, 'utf8').replace(/^const [A-Z_]+ = /, '').replace(/;\s*$/, '')); } catch (e) { warnings++; console.log('File dati non valido (JSON rotto): ' + f); }
   }
 }
 console.log(warnings ? `\n${warnings} avvisi.` : 'Nessun avviso: dati coerenti.');

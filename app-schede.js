@@ -5,8 +5,8 @@ var USER_COVER_IDS = {};   // id gioco -> id asset (per sostituire senza lasciar
 var COVER_ASSETS = null, COVER_DB = null, currentModalGame = null, coverBusy = false;
 var COVER_STATE = 'pending'; // 'pending' | 'ready' | 'unavailable'
 function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-const ICON_GLOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>';
-const ICON_PHOTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><path d="M16 5h6"/><path d="M19 2v6"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+const ICON_GLOBE = giIcon('globe');
+const ICON_PHOTO = giIcon('photo');
 function coverSearchUrl(g){ return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(g.name + ' cover art boxart'); }
 function effectiveCover(g){ return USER_COVERS[String(g.id)] || (g.enrich && g.enrich.coverUrl) || null; }
 function coverPlaceholderHtml(g){
@@ -82,7 +82,7 @@ function coverHtml(g){
   const currentUrlValue = (url && /^https?:\/\//i.test(url)) ? url : '';
   const uploadRow = canUpload ? `<div class="cover-tools">
       <label class="cover-pill${coverBusy?' busy':''}" data-cover-upload-label title="Scegli una foto dalla galleria del telefono">${ICON_PHOTO}<span>Carica dal telefono</span><input type="file" accept="image/*" data-cover-file-input ${coverBusy?'disabled':''}></label>
-      <label class="cover-pill${coverBusy?' busy':''}" data-cover-camera-label title="Scatta una foto adesso con la fotocamera">📸<span>Scatta foto</span><input type="file" accept="image/*" capture="environment" data-cover-camera-input ${coverBusy?'disabled':''}></label>
+      <label class="cover-pill${coverBusy?' busy':''}" data-cover-camera-label title="Scatta una foto adesso con la fotocamera">${giIcon('cam')}<span>Scatta foto</span><input type="file" accept="image/*" capture="environment" data-cover-camera-input ${coverBusy?'disabled':''}></label>
     </div>` : '';
   const hint = !canUrl
     ? `<div class="cover-hint">Il salvataggio della copertina non è disponibile qui: apri questa pagina restando connesso al tuo account Claude (non da un link "pubblico" o da un altro browser senza accesso).</div>`
@@ -91,9 +91,9 @@ function coverHtml(g){
   return `<div class="cover-block" id="coverBlock">${media}
     <div class="cover-tools">${uploadRow ? uploadRow.replace(/^<div class="cover-tools">|<\/div>$/g, '') : ''}
       <a class="cover-pill" href="${coverSearchUrl(g)}" target="_blank" rel="noopener" title="Cerca la copertina su internet">${ICON_GLOBE}<span>Cerca copertina</span></a>
-      <button class="cover-pill" type="button" data-cover-diag aria-expanded="${coverDiagOpen?'true':'false'}" title="Mostra la diagnostica">🩺</button>
+      <button class="cover-pill" type="button" data-cover-diag aria-expanded="${coverDiagOpen?'true':'false'}" title="Mostra la diagnostica">${giIcon('pulse')}</button>
     </div>
-    <details class="cover-more"${coverBusy || !canUrl ? ' open' : ''}><summary>🔗 Usa un link o leggi i consigli</summary>
+    <details class="cover-more"${coverBusy || !canUrl ? ' open' : ''}><summary>${giIcon('link')} Usa un link o leggi i consigli</summary>
     ${canUrl ? `<div class="cover-urlrow">
       <input type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui il link dell'immagine (https://...)" value="${escHtml(currentUrlValue)}" data-cover-url-input ${coverBusy?'disabled':''}>
       <button class="btn primary" type="button" data-cover-url-save ${coverBusy?'disabled':''}>${coverBusy?'…':'Salva'}</button>
@@ -263,7 +263,7 @@ function syncCustomGames(snap){
       tier: TIERS_LIST.includes(v.tier) ? v.tier : 'B',
       score: clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70,
       m: 'S',
-      note: v.note ? String(v.note) : 'Aggiunto da te tramite "Chiedi a Claude" — non è nella classifica ufficiale, il voto è una stima.',
+      note: v.note ? String(v.note) : 'Aggiunto da te tramite "Chiedi" — non è nella classifica ufficiale, il voto è una stima.',
       story: v.story ? String(v.story) : '',
       tags: Array.isArray(v.tags) ? v.tags.filter(t=> TAG_INFO[t]) : [],
       custom: true,
@@ -397,16 +397,18 @@ function makeLocalAssets(){
 function makeLocalDb(){
   const key = c=> 'jrpg_db_' + c;
   const load = c=>{ try{ return JSON.parse(localStorage.getItem(key(c)) || '{}') || {}; }catch(e){ return {}; } };
-  const save = (c, m)=>{ try{ localStorage.setItem(key(c), JSON.stringify(m)); }catch(e){} };
+  const save = (c, m)=>{ try{ localStorage.setItem(key(c), JSON.stringify(m)); }catch(e){ try{ showToast('⚠️ Spazio del browser esaurito: la modifica non è stata salvata. Fai un backup da ✨ → Backup e libera spazio.', 6000); }catch(x){} } };
   const listeners = {};
-  const snapOf = c=>{ const m = load(c); return {docs: Object.keys(m).map(id=>({id, data:()=>m[id]}))}; };
+  // ogni documento porta la data di modifica (_u); le cancellazioni lasciano una «lapide» (_d) così la sincronizzazione tra dispositivi le propaga
+  const live = m=> Object.keys(m).filter(id=> !(m[id] && typeof m[id] === 'object' && m[id]._d));
+  const snapOf = c=>{ const m = load(c); return {docs: live(m).map(id=>({id, data:()=>m[id]}))}; };
   const notify = c=>{ (listeners[c] || []).forEach(fn=>{ try{ fn(snapOf(c)); }catch(e){} }); };
   return {
     doc(path){
       const [c, id] = path.split('/');
       return {
-        set(d){ const m = load(c); m[id] = d; save(c, m); notify(c); return Promise.resolve(); },
-        delete(){ const m = load(c); delete m[id]; save(c, m); notify(c); return Promise.resolve(); }
+        set(d){ const m = load(c); m[id] = (d && typeof d === 'object') ? Object.assign({}, d, {_u: Date.now()}) : d; save(c, m); notify(c); return Promise.resolve(); },
+        delete(){ const m = load(c); m[id] = {_d: 1, _u: Date.now()}; save(c, m); notify(c); return Promise.resolve(); }
       };
     },
     collection(c){
@@ -533,11 +535,20 @@ function labelBar(n, max){
   for(let i=1;i<=max;i++) out += `<i class="${i<=n?'on':''}"></i>`;
   return out + '</span>';
 }
+// prezzo e sconto su Steam, dai dati settimanali scaricati dai server (facts.js)
+function factsHtml(g){
+  const f = window.SearchHub ? SearchHub.factsFor(g) : null;
+  if(!f || !f.s || !f.s.p) return '';
+  const p = f.s.p, eur = n=> n.toLocaleString('it-IT', {style: 'currency', currency: 'EUR'});
+  const d = p.d > 0 ? ` <b class="fx-disc">−${p.d}%</b> <s>${eur(p.i)}</s>` : '';
+  const it = f.s.it === 'D' ? ' · 🎙️ testi e doppiaggio in italiano' : f.s.it === 'S' ? ' · testi in italiano' : f.s.it === 'N' ? ' · nessun italiano su Steam' : '';
+  return `<div class="fx-steam">${giIcon('gem')} <span>Su Steam ${p.f === 0 ? '<b>gratis</b>' : '<b>' + eur(p.f) + '</b>'}${d}${it}</span> <small>aggiornato il ${escHtml(f.t || '')}</small></div>`;
+}
 function labelHtml(g){
   const l = g.label;
   if(!l) return '';
   const costLabel = l.cost==='S' ? '€ (< 20)' : l.cost==='M' ? '€€ (20-40)' : l.cost==='H' ? '€€€ (> 40)' : '—';
-  return `<div class="modal-section-title">🏷️ Etichetta del gioco</div>
+  return `<div class="modal-section-title">${giIcon('tag')} Etichetta del gioco</div>
   <div class="glabel">
     <div class="glabel-title">A colpo d'occhio</div>
     <div class="glabel-grid">
@@ -550,7 +561,7 @@ function labelHtml(g){
     </div>
     ${(l.ok && fixSecondPerson(l.ok)) ? `<div class="glabel-ok">🟢 <b>Fa per te se</b>${escHtml(fixSecondPerson(l.ok))}</div>` : ''}
     ${(l.ko && fixSecondPerson(l.ko)) ? `<div class="glabel-ko">🔴 <b>Lascia stare se</b>${escHtml(fixSecondPerson(l.ko))}</div>` : ''}
-    ${l.play ? `<div class="glabel-play">🎯 <b>Come giocarlo oggi:</b> ${escHtml(l.play)}</div>` : ''}
+    ${l.play ? `<div class="glabel-play">${giIcon('target')} <b>Come giocarlo oggi:</b> ${escHtml(l.play)}</div>` : ''}
     ${(l.fam && l.fam.length) || l.cost || l.demo!=null ? `<div class="glabel-stores">
       ${(l.fam||[]).map(f=>`<span class="glabel-store">${LABEL_STORE[f]||f}</span>`).join('')}
       ${l.cost ? `<span class="glabel-store">${costLabel}</span>` : ''}
@@ -600,12 +611,12 @@ function marketHtml(g){
     verdict = `<div class="cover-hint" style="text-align:left; margin-top:0;">Non risulta oggi in nessun abbonamento che ho controllato: verifica il prezzo con il link qui sotto.</div>`;
   }
   const notes = entries.filter(e=>e.note).map(e=>`<div class="modal-note">ℹ️ ${escHtml(e.svc)}: ${escHtml(e.note)}</div>`).join('');
-  return `<div class="modal-section-title">🛒 Prima di comprarlo</div>
+  return `<div class="modal-section-title">${giIcon('cart')} Prima di comprarlo</div>
   <div class="glabel">
     ${verdict}
     ${notes}
     <div class="glabel-play" style="margin-top:8px;">
-      <a href="${priceUrl}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:700; text-decoration:none;">💶 Controlla il prezzo di oggi</a>
+      <a href="${priceUrl}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:700; text-decoration:none;">${giIcon('tag')} Controlla il prezzo di oggi</a>
       &nbsp;·&nbsp;
       <a href="${hltbUrl}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:700; text-decoration:none;">⏱️ HowLongToBeat</a>
     </div>
@@ -702,14 +713,16 @@ function openModal(g){
     <div class="modal-tags">${g.tags.map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${dnaHtml(g)}
     ${labelHtml(g)}
+    ${typeof dataScoreHtml === 'function' ? dataScoreHtml(g) : ''}
     ${marketHtml(g)}
+    ${factsHtml(g)}
     ${highlightsHtml(g)}
     ${sagaHtml(g)}
     <div class="modal-section-title">Il tuo stato</div>
     <div class="status-row" id="statusRow">
-      ${Object.keys(STATUS_INFO).map(k=> `<button class="btn ${STATUSES[g.id]===k?'on':''}" data-status="${k}">${STATUS_INFO[k].icon} ${STATUS_INFO[k].label}</button>`).join('')}
+      ${Object.keys(STATUS_INFO).map(k=> `<button class="btn ${STATUSES[g.id]===k?'on':''}" data-status="${k}">${giIcon({played:'check',playing:'play',backlog:'pin',dropped:'stop'}[k])} ${STATUS_INFO[k].label}</button>`).join('')}
     </div>
-    <div class="modal-section-title">📖 La storia (senza spoiler)</div>
+    <div class="modal-section-title">${giIcon('book')} La storia (senza spoiler)</div>
     ${storyHtml}
     ${g.note ? `<div class="modal-section-title">Nota</div><div class="modal-note">${g.note}</div>` : ''}
     ${castHtml(g)}
@@ -933,7 +946,7 @@ function sagaKeyOf(g){ buildDynamicSagas(); return SAGA_MAP[g.id] || DYN_SAGA[g.
 async function sagaFindMissing(key, host){
   const info = SAGA_INFO[key]; if(!info) return;
   const hasRawg = !!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has());
-  if(!hasRawg && (typeof llmAvailable !== 'function' || !llmAvailable())){ showToast('Serve una chiave Gemini o RAWG (⚙️ in Chiedi a Claude)', 3000); return; }
+  if(!hasRawg && (typeof llmAvailable !== 'function' || !llmAvailable())){ showToast('Serve una chiave Gemini o RAWG (⚙️ Impostazioni in Chiedi)', 3000); return; }
   host.innerHTML = '<div class="lp-sub">🦝 Frugu Frugu cerca gli altri capitoli…</div>';
   const known = GAMES.filter(g=> sagaKeyOf(g) === key).map(g=> g.name);
   let fromRawg = [];

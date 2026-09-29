@@ -183,8 +183,10 @@
     MMO: 'MMORPG', MOBA: 'MOBA', BR: 'battle royale', MECH: 'mecha', HNS: 'hack and slash', ARCADE: 'arcade', IDLE: 'idle', COOP: 'co-op', FARM: 'farming', ACTADV: 'action adventure', LIFE: 'life sim'
   };
   const GENERIC_WORDS = ['role-playing', 'action', 'adventure', 'strategy', 'puzzle', 'platform', 'simulation', 'horror', 'indie', 'racing', 'sports', 'shooter', 'roguelike', 'turn-based', 'metroidvania', 'visual novel'];
-  const STEAM_TAG = {JRPG: 4434, WRPG: 122, ACT: 122, TUR: 1677, TAC: 21978, DUN: 1720, CARD: 1666, ROG: 1716, METR: 1628, SOUL: 29482, HOR: 1667, SURV: 1662, PLAT: 1625, PUZ: 1664, FIGHT: 1743, FPS: 1663, SHMUP: 4064,
-    RACE: 699, SPORT: 701, RTS: 1676, TBS4X: 1677, ADV: 21, VN: 3799, STEALTH: 1687, OPENW: 1695, RHY: 1752, TOWERDEF: 1645, CITY: 4328, SIMLIFE: 10808, FARM: 87918, MMO: 128, ACTADV: 21, HNS: 1646, TPS: 3814};
+  // id REALI dei tag di Steam (da store.steampowered.com/tagdata/populartags/english), uno diverso per ogni codice
+  const STEAM_TAG = {JRPG: 4434, WRPG: 122, ACT: 4231, TUR: 1677, TAC: 21725, DUN: 1720, CARD: 1666, ROG: 1716, METR: 1628, SOUL: 29482, HOR: 1667, SURV: 3978, PLAT: 1625, PUZ: 1664, FIGHT: 1743, FPS: 1663, SHMUP: 4255,
+    RACE: 699, SPORT: 701, RTS: 1676, TBS4X: 1741, ADV: 1698, VN: 3799, STEALTH: 1687, OPENW: 1695, RHY: 1752, TOWERDEF: 1645, CITY: 4328, SIMLIFE: 10235, FARM: 87918, MMO: 1754, ACTADV: 4106, HNS: 1646, TPS: 3814,
+    MECH: 4821, MON: 916648, PLAT3D: 5395, PUZPLAT: 5537, IMSIM: 9204, DATING: 9551, WALK: 5900, BR: 176981, AUTOB: 1084988, GRAND: 4364, BEAT: 4158, HEROSH: 620519, BOOMER: 1023537, EXTRACT: 1199779, PARTY: 7178, SAND: 1662, TWINSTICK: 4758};
   const STEAMSPY_TAG = {JRPG: 'JRPG', WRPG: 'RPG', ACT: 'Action RPG', TUR: 'Turn-Based', TAC: 'Tactical RPG', DUN: 'Dungeon Crawler', CARD: 'Card Game', ROG: 'Roguelike', METR: 'Metroidvania', SOUL: 'Souls-like',
     HOR: 'Horror', SURV: 'Survival', PLAT: 'Platformer', PUZ: 'Puzzle', FIGHT: 'Fighting', FPS: 'FPS', SHMUP: 'Shoot \'Em Up', RACE: 'Racing', SPORT: 'Sports', RTS: 'RTS', TBS4X: 'Turn-Based Strategy', ADV: 'Adventure',
     VN: 'Visual Novel', STEALTH: 'Stealth', OPENW: 'Open World', RHY: 'Rhythm', TOWERDEF: 'Tower Defense', CITY: 'City Builder', SIMLIFE: 'Life Sim', MMO: 'MMORPG', HNS: 'Hack and Slash', TPS: 'Third Person'};
@@ -430,13 +432,57 @@
     return out;
   };
 
+  // «Scoperte del procione»: elenco costruito ogni settimana dai server (Steam, GOG, CheapShark, Wikipedia) e salvato in discoveries.js: istantaneo, senza rete
+  M.scoperte = async ctx=>{
+    const D = (typeof DISCOVERIES !== 'undefined') ? DISCOVERIES : null;
+    if(!D || !D.items || !D.items.length) throw skipErr('discoveries.js non ancora caricato');
+    const want = new Set(foc(ctx));
+    const list = D.items.filter(r=> !want.size || String(r[4]).split(',').some(t=> want.has(t)));
+    const top = list.slice(0, Math.max(60, Math.min(list.length, 900)));        // già ordinati per qualità
+    return shuffle(top).slice(0, 40).map(r=>{ const sc = r[3] || null; return {name: r[0], plat: r[2] || '', year: r[1] ? String(r[1]) : '', score: sc, tier: sc != null ? tierOf(sc) : 'B', tags: String(r[4]).split(',').filter(Boolean).slice(0, 3), story: '', fitIf: ''}; });
+  };
   const DIRECT_INFO = {
+    scoperte: {name: 'Scoperte del procione', key: 'scoperte'},
     cheapshark: {name: 'CheapShark', key: 'cheapshark'}, wikicat: {name: 'Wikipedia (categorie)', key: 'wikipedia'}, wikisearch: {name: 'Wikipedia (ricerca)', key: 'wikipedia'},
     wikidata: {name: 'Wikidata', key: 'wikidata'}, rawgnew: {name: 'RAWG (uscite)', key: 'rawg'}, rawgsimilar: {name: 'RAWG (affini)', key: 'rawg'}, steamspy: {name: 'SteamSpy', key: 'steamspy'}, steamsearch: {name: 'Steam', key: 'steam'}, gog: {name: 'GOG', key: 'gog'},
     rawg: {name: 'RAWG', key: 'rawg'}, reddit: {name: 'Reddit', key: 'reddit'}
   };
   H.directKeys = Object.keys(DIRECT_INFO);
+  // ---------- ORDINE DI PRIORITÀ delle fonti (1 = si interroga per prima; le mediocri per ultime) ----------
+  // Criterio: affidabilità dei dati (voti e giochi reali) · velocità (locale = istantaneo) · nessun rischio di blocco. Un numero alto pesa di più: la fonte gira meno spesso.
+  // Se una fonte dà molti giochi nuovi sale, se dà zero scende (vedi H.scout).
+  H.PRIORITY = {
+    discover: ['scoperte', 'rawgnew', 'rawg', 'steamsearch', 'gog', 'cheapshark', 'wikicat', 'wikidata', 'wikisearch', 'steamspy', 'reddit', 'rawgsimilar'],
+    // dove prendere i DATI di un gioco (il primo che li ha vince; gli altri servono da conferma): dal più sicuro al meno
+    info: {
+      lingua: ['facts.js (Steam ufficiale)', 'Steam', 'PCGamingWiki', 'it.wikipedia'],
+      voto: ['Metacritic via Wikipedia', 'facts.js (Metascore Steam/CheapShark)', 'RAWG (Metacritic)', '% recensioni Steam'],
+      anno: ['Wikidata', 'facts.js (Steam)', 'RAWG', 'Wikipedia'],
+      generi: ['Wikidata', 'RAWG', 'Wikipedia'],
+      prezzo: ['facts.js (Steam in euro)', 'CheapShark dal vivo'],
+      copertina: ['Steam', 'Libretro', 'Wikidata/Wikipedia'],
+      testi: ['Wikipedia + RAWG riscritti dall\'AI', 'AI con ricerca web (ultima spiaggia)']
+    }
+  };
+  const RANK = {}; H.PRIORITY.discover.forEach((k, i)=> RANK[k] = i);
   H.methods = M;
+
+  // facts.js e discoveries.js (aggiornati ogni settimana da GitHub) si caricano dopo l'avvio, così non rallentano la prima schermata
+  H.loadLocalData = function(){
+    const b = (document.querySelector('meta[name="build"]') || {}).content || '0';
+    ['facts.js', 'discoveries.js'].forEach(f=>{ const sc = document.createElement('script'); sc.src = f + '?b=' + b; sc.async = true; sc.onerror = ()=> LOG({kind: 'note', src: f, ok: false, note: 'file non trovato (il workflow «Dati settimanali» non è ancora girato?)'}); sc.onload = ()=>{ LOG({kind: 'note', src: f, ok: true, note: 'caricato'}); try{ window.dispatchEvent(new Event('localdata')); }catch(e){} }; document.head.appendChild(sc); });
+  };
+  setTimeout(()=> H.loadLocalData(), 2500);
+  // CheapShark dal browser (accesso diretto): Metascore, % recensioni Steam e prezzo in dollari di un gioco PC. Serve ai giochi che non sono nel database di base (quindi non in facts.js).
+  H.cheapFacts = async function(name){
+    const base = String(name || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*[-–:]\s*(definitive|remaster|remastered|remake|complete|hd|edition|reborn|reloaded).*$/i, '').trim();
+    if(!base) return null;
+    const j = await H.json('https://www.cheapshark.com/api/1.0/deals?storeID=1&pageSize=10&title=' + encodeURIComponent(base), {timeout: 10000});
+    const t = norm(base), hit = (Array.isArray(j) ? j : []).find(x=> norm(String(x.title).replace(/\s*\([^)]*\)/g, '')) === t);
+    if(!hit) return null;
+    return {mc: +hit.metacriticScore || 0, sp: +hit.steamRatingPercent || 0, sc: +hit.steamRatingCount || 0, y: hit.releaseDate ? new Date(hit.releaseDate * 1000).getFullYear() : 0, p: {f: +hit.salePrice, i: +hit.normalPrice, d: Math.round(+hit.savings || 0)}, id: hit.steamAppID};
+  };
+  H.factsFor = g=>{ try{ return (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.games && GAME_FACTS.games[g.id]) || null; }catch(e){ return null; } };
 
   // ---------- il cuore: giri di ricerca senza sosta ----------
   // Corsie parallele: una per le ricerche AI e due per le fonti dirette, ognuna con il proprio ritmo. Una fonte lenta o bloccata non rallenta le altre.
@@ -447,7 +493,7 @@
     const dk = (opts.directKeys || H.directKeys).filter(k=> M[k]);
     const aiOn = !!(opts.ai && opts.ai.available && opts.ai.available());
     const A = aiOn ? (opts.ai.strategies || []).map(s=> ({kind: 'ai', id: 'ai:' + s.src, s, name: s.src, key: s.key || 'ai'})) : [];
-    const D = dk.map(k=> ({kind: 'direct', id: k, name: DIRECT_INFO[k].name, key: DIRECT_INFO[k].key, run: M[k]})).sort((a, b)=> (H.rawg.has() ? (/^rawg/.test(b.id) ? 1 : 0) - (/^rawg/.test(a.id) ? 1 : 0) : 0));
+    const D = dk.map(k=> ({kind: 'direct', id: k, name: DIRECT_INFO[k].name, key: DIRECT_INFO[k].key, run: M[k]})).sort((a, b)=> (RANK[a.id] == null ? 99 : RANK[a.id]) - (RANK[b.id] == null ? 99 : RANK[b.id]));
     const rawgSkip = !H.rawg.has();
     const st = {}; A.concat(D).forEach(m=> st[m.id] = {streak: 0, cool: 0, yield: 0, runs: 0});
     let rounds = 0, aiCool = 0, fi = ri(0, 50);
@@ -464,8 +510,14 @@
       const worker = async wi=>{
         while(alive()){
           // prossimo metodo non in pausa
-          let m = null;
-          for(let k = 0; k < list.length; k++){ const c = list[(cur + k) % list.length]; if(st[c.id].cool > rounds && list.length > 1) continue; if(c.kind === 'ai' && Date.now() < aiCool) continue; m = c; cur = (cur + k + 1) % list.length; break; }
+          // sceglie la fonte con il «costo» più basso: chi ha più priorità (rango basso) e ha già reso di più viene interrogata più spesso; le mediocri per ultime
+          let m = null, best = Infinity;
+          for(const c of list){
+            if(st[c.id].cool > rounds && list.length > 1) continue; if(c.kind === 'ai' && Date.now() < aiCool) continue;
+            const q = st[c.id], rk = c.kind === 'ai' ? 0 : (RANK[c.id] == null ? 8 : RANK[c.id]);
+            const cost = (q.runs + 1) * (1 + rk * 0.45) - Math.min(q.yield, 20) * 0.35;
+            if(cost < best){ best = cost; m = c; }
+          }
           if(!m){ await nap(1200); if(list.every(c=> st[c.id].cool > rounds)) rounds++; continue; }
           const s0 = st[m.id]; s0.runs++; rounds++; ran++;
           const focus = (staleCount >= 2 || !(opts.focusSets && opts.focusSets.length)) ? [] : opts.focusSets[(fi++) % opts.focusSets.length];
