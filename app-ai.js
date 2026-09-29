@@ -273,7 +273,7 @@ async function sendAskMessage(){
       onText: (u)=>{ askStreamingText = u.text; renderAskThread(); }
     };
     if(img) opts.images = img;
-    const result = await askLLM(askHistory, opts, {system: askInstructions()});
+    const result = await askLLM(askHistory, opts, {system: askInstructions(), label:'Sto pensando alla risposta…'});
     askHistory.push({role:'assistant', content: (result.engine === 'gemini' ? '✨ Risposta di Gemini\n\n' : '') + result.text});
     askStreamingText = null; askBusy = false;
     renderAskThread();
@@ -522,7 +522,7 @@ async function fetchNovitaBatch(){
   try{
     // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
     const prompt = buildNovitaGenrePrompt(NOVITA_BATCH_COUNT, excludeNames, TAG_ORDER.slice(), false);
-    const result = await askLLM(prompt, {}, {search:true});
+    const result = await askLLM(prompt, {}, {search:true, label:'Cerco nuovi giochi…'});
     const arr = parseNovitaJson(result && result.text);
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
@@ -548,7 +548,7 @@ async function fetchNovitaGenreBatch(){
   const selectedTags = Array.from(NOVITA_GENRE_SELECTED);
   try{
     const prompt = buildNovitaGenrePrompt(NOVITA_BATCH_COUNT, excludeNames, selectedTags, novitaGenreIncludeOther);
-    const result = await askLLM(prompt, {}, {search:true});
+    const result = await askLLM(prompt, {}, {search:true, label:'Cerco nuovi giochi…'});
     const arr = parseNovitaJson(result && result.text);
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
@@ -828,7 +828,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v107';
+const DATA_BUILD_VERSION = 'v108';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
