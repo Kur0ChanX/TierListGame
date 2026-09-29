@@ -839,6 +839,28 @@ function renderStatsPanel(){
     chartHtml('Generi pi\u00F9 comuni', tagRows);
 }
 
+// ---- Ricerca intelligente: ignora accenti, spazi e simboli ("persona5" = "Persona 5") e tollera piccoli errori di battitura ----
+let lastSearchFuzzy = false;
+const searchNorm = s=> String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+const searchCompact = s=> searchNorm(s).replace(/[^a-z0-9]+/g,'');
+function searchCompactMatch(g, q){ const c = searchCompact(q); return c.length >= 3 && searchCompact(g.name).includes(c); }
+function editDistanceWithin(a, b, max){
+  if(Math.abs(a.length - b.length) > max) return false;
+  let prev = Array.from({length: b.length + 1}, (_, i)=> i);
+  for(let i = 1; i <= a.length; i++){
+    const cur = [i]; let rowMin = i;
+    for(let j = 1; j <= b.length; j++){ cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1)); rowMin = Math.min(rowMin, cur[j]); }
+    if(rowMin > max) return false;
+    prev = cur;
+  }
+  return prev[b.length] <= max;
+}
+function searchFuzzyMatch(g, q){
+  const qt = searchNorm(q).split(/[^a-z0-9]+/).filter(Boolean);
+  if(!qt.length) return false;
+  const words = searchNorm(g.name).split(/[^a-z0-9]+/).filter(Boolean);
+  return qt.every(t=> words.some(w=> w.startsWith(t) || (t.length >= 4 && (editDistanceWithin(t, w, t.length >= 7 ? 2 : 1) || (w.length > t.length && editDistanceWithin(t, w.slice(0, t.length), 1))))));
+}
 function applyFilters(){
   let list = GAMES.filter(inActiveList);
   if(state.tiers.size>0) list = list.filter(g=> state.tiers.has(state.view==='mytier' ? effectiveTier(g) : g.tier));
@@ -864,8 +886,11 @@ function applyFilters(){
   }
   if(state.search.trim()!==''){
     const q = state.search.trim().toLowerCase();
-    list = list.filter(g=> g.name.toLowerCase().includes(q) || g.plat.toLowerCase().includes(q) || g.year.includes(q));
-  }
+    const exact = list.filter(g=> g.name.toLowerCase().includes(q) || g.plat.toLowerCase().includes(q) || g.year.includes(q) || searchCompactMatch(g, q));
+    // nessun risultato esatto: ricerca tollerante agli errori di battitura ("xenoblad", "persna", "final fantsy")
+    list = exact.length ? exact : list.filter(g=> searchFuzzyMatch(g, q));
+    lastSearchFuzzy = !exact.length && list.length > 0;
+  } else lastSearchFuzzy = false;
   const dnaProfileForSort = state.sortKey==='dna' ? buildTasteProfile() : null;
   list = list.slice().sort((a,b)=>{
     let va=a[state.sortKey], vb=b[state.sortKey];
@@ -896,7 +921,7 @@ function render(){
   const list = applyFilters();
   const tbody = document.getElementById('tbody');
   const emptyMsg = document.getElementById('emptyMsg');
-  document.getElementById('countLine').textContent = `${list.length} risultati su ${GAMES.filter(inActiveList).length}`;
+  document.getElementById('countLine').textContent = `${list.length} risultati su ${GAMES.filter(inActiveList).length}` + (lastSearchFuzzy ? ' · 🔎 nessun nome esatto: mostro i più simili' : '');
   document.getElementById('favCountLine').textContent = FAVS.size ? `★ ${FAVS.size} preferiti` : '';
 
   const myRender = ++renderToken;

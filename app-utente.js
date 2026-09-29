@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v98', date:'2026-09-29', items:[
+    'Intestazione più chiara: i pulsanti in alto hanno il nome (Profilo, Novità, Tema, Filtri) e Filtri mostra quanti filtri sono attivi.',
+    'Filtri più semplici: in cima i filtri rapidi (Preferiti, Giocati, In corso, Da giocare, 90+, Con storia, Azzera); generi, umore, strumenti, numeri e link sono in riquadri che si aprono a richiesta.',
+    'Ricerca intelligente: ignora spazi e simboli ("persona5" trova Persona 5) e tollera gli errori di battitura ("persna", "final fantsy x"); quando non c\'è un nome esatto mostra i più simili e lo dice.'
+  ]},
   {version:'v97', date:'2026-09-29', items:[
     'Nuovo look da app: sul telefono le schede (Classifica, Scopri, Novità, Per genere, Mia tier, Saghe, Statistiche) sono in una barra fissa in basso, sempre a portata di pollice.',
     'Corretto: in Statistiche e Saghe il contenuto copriva le schede in alto; ora ogni vista scorre al suo interno come la classifica.',
