@@ -11,11 +11,14 @@
     const c = loadCk(); c[id] = new Date().toISOString();
     try{ localStorage.setItem(CK, JSON.stringify(c)); }catch(e){}
     const b = document.getElementById('updateInfoBtn');
-    if(b){ b.className = 'btn upd-done'; b.textContent = '✅ Info aggiornate il ' + fmtDate(c[id]); }
+    if(b){ b.className = 'btn upd-done'; b.textContent = '✅ Aggiornato il ' + fmtDate(c[id]); }
   }
   window.infoBtnHtml = g=>{
     const d = loadCk()[g.id];
-    return d ? `<button class="btn upd-done" id="updateInfoBtn" title="Già controllato: tocca per rifarlo">✅ Info aggiornate il ${fmtDate(d)}</button>`
+    let au = null; try{ au = (JSON.parse(localStorage.getItem('jrpg_audit') || '{}') || {})[g.id]; }catch(e){}
+    if(au && au.ch && au.ch.length) return `<button class="btn" id="auditPendingBtn" title="Il controllo automatico ha trovato delle differenze: tocca per confrontarle e decidere">📝 ${au.ch.length} ${au.ch.length === 1 ? 'modifica' : 'modifiche'} da approvare</button>`;
+    if(au && au.deep) return `<button class="btn upd-done" id="updateInfoBtn" title="Controllato con fonti e ricerca: non viene ricontrollato. Tocca per rifarlo a mano">✅ Aggiornato il ${fmtDate(au.t)}</button>`;
+    return d ? `<button class="btn upd-done" id="updateInfoBtn" title="Già controllato: tocca per rifarlo">✅ Aggiornato il ${fmtDate(d)}</button>`
              : '<button class="btn" id="updateInfoBtn" title="Controlla voto, generi, anno e testi su Wikipedia e Wikidata">🔄 Aggiorna info</button>';
   };
   const loadOv = ()=>{ try{ return JSON.parse(localStorage.getItem(OV) || '{}') || {}; }catch(e){ return {}; } };
@@ -264,6 +267,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
       try{ openModal(GAMES.find(x=> x.id === g.id) || g); }catch(e){}
     });
   };
+  document.addEventListener('click', e=>{ if(e.target && e.target.id === 'auditPendingBtn' && typeof currentModalGame !== 'undefined' && currentModalGame){ try{ document.getElementById('modalBackdrop').classList.remove('show'); }catch(x){} openAuditReview(currentModalGame.id); } });
   document.addEventListener('click', e=>{ if(e.target && e.target.id === 'updateInfoBtn' && typeof currentModalGame !== 'undefined' && currentModalGame) openUpdateInfo(currentModalGame); });
 
   // ----- giochi nuovi: controllo automatico di voto, generi e anno (senza AI) -----
@@ -354,7 +358,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
       <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>
       <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
     let body;
-    if(tab === 'todo') body = todo.length ? `<div class="gc-rows">${todo.map(g=> `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>controllato il ${fmtD(a[g.id].t)}</small>${a[g.id].ch.map((c, i)=> `<br><label><input type="checkbox" data-g="${g.id}" data-i="${i}" ${(c.off || c.warn) ? '' : 'checked'}> <b>${escHtml(c.label)}</b><br><small>Prima: ${escHtml(c.from || '—')}</small><br>Dopo: ${escHtml(c.to)}</label>`).join('')}${(a[g.id].src || []).length ? '<br><small>Fonti: ' + a[g.id].src.map(x=> `<a href="${escHtml(x.uri || '#')}" target="_blank" rel="noopener">${escHtml(x.title)}</a>`).join(' · ') + '</small>' : ''}<br><button class="btn primary" data-ap="${g.id}">Applica i selezionati</button> <button class="btn" data-ig="${g.id}">Ignora tutto</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Niente da approvare per ora ✅</div>';
+    if(tab === 'todo') body = todo.length ? `<div class="lp-tools"><button class="btn primary" id="auStart">▶ Rivedi una per una</button></div><div class="gc-rows">${todo.map(g=> `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>${a[g.id].ch.length} ${a[g.id].ch.length === 1 ? 'modifica' : 'modifiche'}: ${a[g.id].ch.map(c=> escHtml(c.label.replace(/ ⚠️.*$/, ''))).join(', ')}</small> <button class="btn" data-rv="${g.id}">Rivedi</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Niente da approvare per ora ✅</div>';
     else if(tab === 'done') body = Object.keys(undo).length ? `<div class="gc-rows">${Object.keys(undo).map(id=>{ const g = GAMES.find(x=> x.id == id); return g ? `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>applicato il ${fmtD(undo[id].t)}</small> <button class="btn" data-un="${id}">↩️ Annulla</button></span></div>` : ''; }).join('')}</div>` : '<div class="lp-sub">Nessuna modifica applicata da qui.</div>';
     else body = clean.length ? `<div class="gc-rows">${clean.slice(0, 150).map(g=> `<div class="gc-row"><span>✅ <b>${escHtml(g.name)}</b> <small>${fmtD(a[g.id].t)}${a[g.id].deep ? ' · fonti + AI' : ' · solo fonti aperte'}</small></span></div>`).join('')}</div>${clean.length > 150 ? '<div class="lp-sub">…e altri ' + (clean.length - 150) + '</div>' : ''}` : '<div class="lp-sub">Nessun gioco controllato senza modifiche, per ora.</div>';
     el.innerHTML = shell(head + body);
@@ -362,21 +366,41 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
     el.querySelector('#auOn').addEventListener('change', e=> auditSetOn(e.target.checked));
     el.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click', ()=> openAuditPanel(b.dataset.tab)));
     el.querySelector('#auReset').addEventListener('click', ()=>{ if(confirm('Cancellare lo storico dei controlli e ricominciare da capo? (le correzioni già applicate restano)')){ auSave({}); openAuditPanel(tab); } });
-    el.querySelectorAll('[data-ap]').forEach(b=> b.addEventListener('click', async ()=>{
-      const g = GAMES.find(x=> x.id == b.dataset.ap), r = auLoad(), rec = r[g.id]; if(!rec) return;
-      const chosen = [...el.querySelectorAll(`input[data-g="${g.id}"]:checked`)].map(cb=> rec.ch[+cb.dataset.i]);
-      if(!chosen.length){ showToast('Seleziona almeno una modifica', 2000); return; }
-      try{ const u = JSON.parse(localStorage.getItem(AU_UNDO) || '{}'); if(!g.custom){ u[g.id] = {t: new Date().toISOString(), prev: loadOv()[g.id] || null}; localStorage.setItem(AU_UNDO, JSON.stringify(u)); } }catch(e){}
-      await applyPatch(g, mergePatch(chosen)); rec.ch = rec.ch.filter(c=> !chosen.includes(c)); auSave(r);
-      el.classList.remove('show'); showToast('✅ Applicato a ' + g.name + ' — controlla la scheda' + (g.custom ? '' : ' (↩️ annullabile da Controllo dati)'), 4000);
-      try{ openModal(GAMES.find(x=> x.id === g.id) || g); }catch(e){}
-    }));
+    const st0 = el.querySelector('#auStart'); if(st0) st0.addEventListener('click', ()=> openAuditReview());
+    el.querySelectorAll('[data-rv]').forEach(b=> b.addEventListener('click', ()=> openAuditReview(b.dataset.rv)));
     el.querySelectorAll('[data-un]').forEach(b=> b.addEventListener('click', ()=>{ if(confirm('Annullare la modifica e tornare ai dati di prima?')) auditUndo(b.dataset.un); }));
-    el.querySelectorAll('[data-ig]').forEach(b=> b.addEventListener('click', ()=>{
-      const id = b.dataset.ig, r = auLoad(), rec = r[id]; if(!rec) return;
-      const sk = skLoad(); rec.ch.forEach(c=>{ sk[auKey(id, c)] = 1; }); try{ localStorage.setItem(AU_SKIP, JSON.stringify(sk)); }catch(e){}
-      rec.ch = []; auSave(r); openAuditPanel(tab);
-    }));
+  };
+  // revisione: una modifica alla volta, «prima» e «dopo», due pulsanti
+  window.openAuditReview = function(startId){
+    const el = panel(); let skipped = new Set();
+    const pick = ()=>{
+      const a = auLoad(); const games = GAMES.filter(g=> a[g.id] && a[g.id].ch && a[g.id].ch.length);
+      let order = games; if(startId != null){ order = games.filter(g=> g.id == startId).concat(games.filter(g=> g.id != startId)); }
+      for(const g of order){ const i = a[g.id].ch.findIndex((c, k)=> !skipped.has(g.id + ':' + k + ':' + c.id)); if(i >= 0) return {g, a, i, left: games.length}; }
+      return null;
+    };
+    const show = ()=>{
+      const p = pick();
+      if(!p){ el.classList.remove('show'); showToast('✅ Revisione finita', 2500); return; }
+      const {g, a, i} = p, rec = a[g.id], c = rec.ch[i];
+      const key = g.id + ':' + i + ':' + c.id, warn = /⚠️/.test(c.label + c.to);
+      el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>📝 ${escHtml(g.name)}</b><button class="btn" data-ui-close>Chiudi</button></div>
+        <div class="lp-sub">Modifica ${i + 1} di ${rec.ch.length} per questo gioco · ${p.left} ${p.left === 1 ? 'gioco' : 'giochi'} da rivedere<br><b>${escHtml(c.label)}</b>${(c.off || warn) ? '<br>⚠️ Fai attenzione: fonte datata o in contrasto col dato attuale.' : ''}</div>
+        <div class="gc-rows"><div class="gc-row"><span><small>PRIMA (quello che c'è ora)</small><br>${escHtml(c.from || '—')}</span></div><div class="gc-row"><span><small>DOPO (proposta)</small><br><b>${escHtml(c.to)}</b></span></div></div>
+        ${(rec.src || []).length ? '<div class="lp-sub"><small>Fonti: ' + rec.src.map(x=> `<a href="${escHtml(x.uri || '#')}" target="_blank" rel="noopener">${escHtml(x.title)}</a>`).join(' · ') + '</small></div>' : ''}
+        <div class="lp-tools"><button class="btn primary" id="rvOk">✅ Approva</button><button class="btn" id="rvNo">↩️ Tieni precedente</button><button class="btn" id="rvLater">⏭️ Decido dopo</button></div></div>`;
+      el.classList.add('show');
+      el.querySelector('#rvOk').addEventListener('click', async ()=>{
+        try{ const u = JSON.parse(localStorage.getItem(AU_UNDO) || '{}'); if(!g.custom && !u[g.id]){ u[g.id] = {t: new Date().toISOString(), prev: loadOv()[g.id] || null}; localStorage.setItem(AU_UNDO, JSON.stringify(u)); } }catch(e){}
+        await applyPatch(g, mergePatch([c])); const r = auLoad(); r[g.id].ch.splice(i, 1); auSave(r); showToast('✅ Approvato', 1200); show();
+      });
+      el.querySelector('#rvNo').addEventListener('click', ()=>{
+        const sk = skLoad(); sk[auKey(g.id, c)] = 1; try{ localStorage.setItem(AU_SKIP, JSON.stringify(sk)); }catch(e){}
+        const r = auLoad(); r[g.id].ch.splice(i, 1); auSave(r); show();
+      });
+      el.querySelector('#rvLater').addEventListener('click', ()=>{ skipped.add(key); show(); });
+    };
+    show();
   };
   window.auditUndo = function(id){
     try{ const u = JSON.parse(localStorage.getItem(AU_UNDO) || '{}'); const e = u[id]; if(!e) return false;
