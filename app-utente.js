@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v122', date:'2026-09-30', items:[
+    '⚡ Controllo dati Turbo (✨ → Controllo dati): un gioco ogni ~12 secondi, fino a 800 al giorno, per finire il giro di tutto il database più in fretta. Il controllo ora prosegue con Gemini anche se Wikipedia/Wikidata non rispondono.'
+  ]},
   {version:'v121', date:'2026-09-30', items:[
     'A colpo d\'occhio più coerente: peso storia, ore e grinding sono calibrati (roguelite e tattici: ore di una run, sblocchi contati nel grinding) e «Fa per te se / Lascia stare se» sono sempre in seconda persona.',
     'Consigli «Se ti è piaciuto prova anche» con affinità reale (genere principale, saga, epoca, struttura di gioco) e senza generi incompatibili come horror per un action indie.',

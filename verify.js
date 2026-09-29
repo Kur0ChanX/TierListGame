@@ -312,7 +312,9 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   const auSave = o=>{ try{ localStorage.setItem(AU, JSON.stringify(o)); }catch(e){} };
   const skLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(AU_SKIP) || '{}') || {}; }catch(e){ return {}; } };
   const auKey = (id, c)=> id + '|' + c.id + '|' + String(c.to).slice(0, 60);
-  const auCap = ()=> parseInt(localStorage.getItem(AU_CAP), 10) || 200;
+  const auTurbo = ()=> localStorage.getItem('jrpg_audit_turbo') === '1';
+  const auCap = ()=> auTurbo() ? 800 : (parseInt(localStorage.getItem(AU_CAP), 10) || 200);
+  const auBase = ()=> auTurbo() ? 12000 : 40000;
   const today = ()=> new Date().toISOString().slice(0, 10);
   const dayLoad = ()=>{ try{ const d = JSON.parse(localStorage.getItem(AU_DAY) || '{}'); return d.d === today() ? d : {d: today(), n: 0}; }catch(e){ return {d: today(), n: 0}; } };
   const useAI = ()=>{ try{ return !!geminiKey(); }catch(e){ return false; } };
@@ -323,7 +325,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const props = ids.filter(id=> a[id] && a[id].ch && a[id].ch.length).length;
     return {done, total: ids.length, props, today: dayLoad().n, cap: auCap()};
   };
-  let auDelay = 40000, auTimer = 0, auBusy = false, auPause = '';
+  let auDelay = auBase(), auTimer = 0, auBusy = false, auPause = '';
   function auNext(){
     const a = auLoad(), now = Date.now(), lim = AU_DAYS * 864e5, ai = useAI();
     let best = null, bt = Infinity;
@@ -346,7 +348,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       const [wiki, wd, itw] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name)]);
       const ok = x=> x.status === 'fulfilled' ? x.value : null;
       const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw)};
-      if(wiki.status === 'rejected' && wd.status === 'rejected') throw new Error('fonti');
+      if(wiki.status === 'rejected' && wd.status === 'rejected' && !useAI()) throw new Error('fonti');   // con Gemini si va avanti lo stesso: le fonti aperte sono solo un di più
       let ch = factChanges(g, src), srcs = [], deep = false;
       if(ai){
         // se l'AI fallisce (limite di richieste, rete) NON segno il gioco come controllato: riproverò più tardi
@@ -357,7 +359,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
         if(t.note && /leggibile/.test(t.note) && d.note && /leggibile/.test(d.note)) throw new Error('risposta');
         day.n++; try{ localStorage.setItem(AU_DAY, JSON.stringify(day)); }catch(e){}
       }
-      auDelay = ai ? 40000 : 20000;
+      auDelay = ai ? auBase() : 8000;
       const sk = skLoad();
       const keep = ch.filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch, off: !!c.off, warn: !!c.warn}));
       const a = auLoad(); a[g.id] = {t: new Date().toISOString(), ch: keep, deep, src: srcs.slice(0, 5)}; auSave(a);
@@ -378,7 +380,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔎 Controllo dati</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
     const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · oggi ${st.today}/${st.cap}${useAI() ? '' : ' · <b>senza chiave Gemini controllo solo voto, anno, generi e lingua</b>'}. ${auPause ? '<br>⏸️ ' + escHtml(auPause) : ''}<br><b>Non cambia nulla senza il tuo ok.</b> Le proposte vengono da fonti aperte e da Gemini con ricerca web; controllale prima di applicarle.</div>
       <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>
-      <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
+      <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn${auTurbo()?' primary':''}" id="auTurbo" title="Un gioco ogni ~12 secondi, fino a 800 al giorno (usa più quota Gemini)">⚡ Turbo ${auTurbo()?'acceso':'spento'}</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
     let body;
     if(tab === 'todo') body = todo.length ? `<div class="lp-tools"><button class="btn primary" id="auStart">▶ Rivedi una per una</button></div><div class="gc-rows">${todo.map(g=> `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>${a[g.id].ch.length} ${a[g.id].ch.length === 1 ? 'modifica' : 'modifiche'}: ${a[g.id].ch.map(c=> escHtml(c.label.replace(/ ⚠️.*$/, ''))).join(', ')}</small> <button class="btn" data-rv="${g.id}">Rivedi</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Niente da approvare per ora ✅</div>';
     else if(tab === 'done') body = Object.keys(undo).length ? `<div class="gc-rows">${Object.keys(undo).map(id=>{ const g = GAMES.find(x=> x.id == id); return g ? `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>applicato il ${fmtD(undo[id].t)}</small> <button class="btn" data-un="${id}">↩️ Annulla</button></span></div>` : ''; }).join('')}</div>` : '<div class="lp-sub">Nessuna modifica applicata da qui.</div>';
@@ -387,6 +389,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     el.classList.add('show');
     el.querySelector('#auOn').addEventListener('change', e=> auditSetOn(e.target.checked));
     el.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click', ()=> openAuditPanel(b.dataset.tab)));
+    el.querySelector('#auTurbo').addEventListener('click', ()=>{ try{ localStorage.setItem('jrpg_audit_turbo', auTurbo() ? '0' : '1'); }catch(e){} auDelay = auBase(); if(auditOn()) auSchedule(2000); openAuditPanel(tab); });
     el.querySelector('#auReset').addEventListener('click', ()=>{ if(confirm('Cancellare lo storico dei controlli e ricominciare da capo? (le correzioni già applicate restano)')){ auSave({}); openAuditPanel(tab); } });
     const st0 = el.querySelector('#auStart'); if(st0) st0.addEventListener('click', ()=> openAuditReview());
     el.querySelectorAll('[data-rv]').forEach(b=> b.addEventListener('click', ()=> openAuditReview(b.dataset.rv)));
