@@ -572,12 +572,12 @@
     return GAMES.filter(g=> !FAVS.has(g.id) && !STATUSES[g.id]).map(g=>({g, ...similarity(g, favs)})).sort((a, b)=> b.sc - a.sc).slice(0, 8);
   }
   const VIBES_STRATEGIES = [
-    {src:'Reddit', hint:"Cerca nelle discussioni di Reddit (r/patientgamers, r/JRPG, r/rpg_gamers, r/gamingsuggestions, r/truegaming): thread «se ti è piaciuto X prova Y», «giochi simili a X»."},
-    {src:'ResetEra e forum', hint:"Cerca su ResetEra, Steam Discussions, GameFAQs, forum di Multiplayer.it e altri forum: utenti che dicono «se ti è piaciuto X amerai Y perché dà le stesse sensazioni»."},
-    {src:'liste «giochi simili a…»', hint:"Cerca liste e articoli «games like X» di riviste (IGN, Eurogamer, PC Gamer, RPGFan, Game Rant) e siti di raccomandazioni (Similar Games, GamePressure, Lutris)."},
-    {src:'IGDB, RAWG e MobyGames', hint:"Cerca i «simili» di IGDB, RAWG e MobyGames per ciascun preferito."},
-    {src:'YouTube e recensioni', hint:"Cerca video e recensioni «se ti è piaciuto X, gioca a…», e giochi che i recensori paragonano ai preferiti per atmosfera e meccaniche."},
-    {src:'nicchia e retro', hint:"Cerca perle di nicchia o retro che trasmettono le stesse sensazioni, anche di genere in parte diverso."}
+    {key:'reddit', src:'Reddit', hint:"Cerca nelle discussioni di Reddit (r/patientgamers, r/JRPG, r/rpg_gamers, r/gamingsuggestions, r/truegaming): thread «se ti è piaciuto X prova Y», «giochi simili a X»."},
+    {key:'reddit', src:'ResetEra e forum', hint:"Cerca su ResetEra, Steam Discussions, GameFAQs, forum di Multiplayer.it e altri forum: utenti che dicono «se ti è piaciuto X amerai Y perché dà le stesse sensazioni»."},
+    {key:'riviste', src:'liste «giochi simili a…»', hint:"Cerca liste e articoli «games like X» di riviste (IGN, Eurogamer, PC Gamer, RPGFan, Game Rant) e siti di raccomandazioni (Similar Games, GamePressure, Lutris)."},
+    {key:'igdb', src:'IGDB, RAWG e MobyGames', hint:"Cerca i «simili» di IGDB, RAWG e MobyGames per ciascun preferito."},
+    {key:'riviste', src:'YouTube e recensioni', hint:"Cerca video e recensioni «se ti è piaciuto X, gioca a…», e giochi che i recensori paragonano ai preferiti per atmosfera e meccaniche."},
+    {key:'retro', src:'nicchia e retro', hint:"Cerca perle di nicchia o retro che trasmettono le stesse sensazioni, anche di genere in parte diverso."}
   ];
   function buildPrompt(favs, count){
     const list = favs.slice(0, 14).map(f=> `- "${f.name}" (${f.year || 'n.d.'}, ${f.plat}; ${(f.tags || []).map(tn).join(', ') || 'n.d.'})${(f.enrich && f.enrich.whyLikeIt) ? ' — ' + f.enrich.whyLikeIt : ''}`).join('\n');

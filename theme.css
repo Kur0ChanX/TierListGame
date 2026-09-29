@@ -622,3 +622,15 @@ body.mt-noscroll{overscroll-behavior:contain}
 .gg-wrap{max-height:calc(100dvh - 240px); overflow-y:auto; -webkit-overflow-scrolling:touch}
 .nf-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:10px}
 .nf-lbl{font-size:.78rem; opacity:.75}
+
+/* v123: Chiedi nella barra in basso (niente pulsante flottante), badge a sinistra speculare a «Torna su», impostazioni senza testo coperto */
+.ask-fab{display:none !important}
+.au-badge{right:auto !important; left:calc(12px + env(safe-area-inset-left,0px)) !important; bottom:calc(var(--navh,0px) + 12px + env(safe-area-inset-bottom,0px)) !important; width:38px; height:38px}
+.ask-engine-body{padding-bottom:calc(var(--navh,0px) + 40px)}
+.ask-card{padding-bottom:calc(var(--navh,0px) + 12px); box-sizing:border-box}
+.ask-engine-status{margin-bottom:8px; overflow-wrap:anywhere}
+
+.dbg-rows{max-height:calc(100dvh - 240px); overflow-y:auto; font-size:.78rem}
+.dbg-row{padding:5px 8px; border-bottom:1px solid rgba(128,128,160,.2); overflow-wrap:anywhere}
+.dbg-row.bad{background:rgba(220,80,80,.12)}
+.dbg-st{font-weight:800}

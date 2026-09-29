@@ -180,6 +180,8 @@ async function askLLM(input, opts, extra){
       say('❌ ' + askErrorCopy(e && e.code), false);
     }
   });
+  const rawgEl = document.getElementById('rawgKeyInput');
+  if(rawgEl){ try{ rawgEl.value = localStorage.getItem('jrpg_rawg_key') || ''; }catch(e){} rawgEl.addEventListener('change', ()=>{ const v = rawgEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_rawg_key', v); else localStorage.removeItem('jrpg_rawg_key'); }catch(e){} say(v ? 'Chiave RAWG salvata: la userò come fonte di riserva.' : 'Chiave RAWG rimossa.'); }); }
   const modEl = document.getElementById('geminiModelInput');
   if(modEl){ modEl.value = geminiCustomModel(); modEl.addEventListener('change', ()=>{ const v = modEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_gemini_model', v); else localStorage.removeItem('jrpg_gemini_model'); }catch(e){} geminiBadModels = new Set(); say(v ? 'Modello impostato: ' + v + ' (se non esiste uso automaticamente ' + GEMINI_MODEL + ').' : 'Modello automatico: ' + GEMINI_MODEL + ' (sempre l\'ultimo Flash).'); }); }
   document.getElementById('geminiClearBtn').addEventListener('click', ()=>{ setGeminiKey(''); keyEl.value = ''; say('Chiave rimossa.'); });

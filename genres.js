@@ -65,6 +65,7 @@
     return {qid: cand.id, labels, codes: codesFrom(labels), years};
   }
   window.wikidataGenreCodes = genreCodes;
+  window.wikidataCodesFrom = codesFrom;
 
   // ----- giochi nuovi: unisce in automatico i generi confermati da Wikidata -----
   window.verifyNewGameGenres = async function(id, doc){
