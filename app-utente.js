@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v101', date:'2026-09-29', items:[
+    'Palette più professionali: colori pieni con una sfumatura appena percettibile (niente più arcobaleni a 3 colori), intestazione della tabella neutra, ombre morbide, sfondo più discreto. Nel selettore ogni palette ha un\'anteprima dell\'app invece delle sfere lucide. La palette Aurora originale resta com\'era.'
+  ]},
   {version:'v100', date:'2026-09-29', items:[
     '🎨 Palette colori (menu ✨): 34 temi preimpostati in 5 gruppi (Originali, Eleganti, Vivaci, Natura, Gaming), ognuno con sfumature, trasparenze, bagliori e sfondo aurora coordinati, per tema chiaro e scuro.',
     'Corretto: con i Filtri aperti la lista restava bloccata e non si scorreva fino in fondo; ora si scorre tutta.',

@@ -57,10 +57,11 @@
     const text = dark ? '#f2f1f7' : '#1c1b22', sub = dark ? mix('#a9a8b5', a1, .18) : mix('#6b6a76', a1, .12);
     return `--bg:${bg}; --card:${card}; --text:${text}; --sub:${sub}; --border:${border}; --row-alt:${row};
       --accent:${accent}; --accent2:${a2}; --a1rgb:${rgb(a1)}; --a2rgb:${rgb(a2)}; --a3rgb:${rgb(a3)};
-      --grad:linear-gradient(135deg,${a1} 0%,${a2} 55%,${a3} 100%);
+      --grad:linear-gradient(160deg,${mix(a1, '#ffffff', .1)} 0%,${a1} 45%,${mix(a1, a2, .3)} 100%);
       --grad-soft:linear-gradient(135deg,rgba(${rgb(a1)},.16),rgba(${rgb(a3)},.12));
       --glass:${dark ? `rgba(${rgb(card)},.62)` : 'rgba(255,255,255,.72)'}; --glass-line:rgba(${rgb(a1)},${dark ? .22 : .18});
-      --aur1:rgba(${rgb(a1)},${dark ? .34 : .28}); --aur2:rgba(${rgb(a3)},${dark ? .18 : .2}); --aur3:rgba(${rgb(a2)},${dark ? .16 : .16});
+      --aur1:rgba(${rgb(a1)},${dark ? .16 : .10}); --aur2:rgba(${rgb(a2)},${dark ? .08 : .06}); --aur3:rgba(${rgb(a3)},${dark ? .06 : .05});
+      --surface-tint:${dark ? mix(card, a1, .10) : mix('#ffffff', a1, .07)}; --on-accent:${lum(a1) > .45 ? '#141414' : '#ffffff'};
       --dopa-bg:${dark ? mix(card, a1, .12) : mix('#ffffff', a1, .08)}; --dopa-border:${mix(dark ? card : '#ffffff', a1, .35)}; --dopa-ink:${dark ? mix(a1, '#ffffff', .55) : mix(a1, '#000000', .3)};`;
   }
   function css(p){
@@ -77,6 +78,7 @@
     const p = P.find(x=> x.id === id) || P[0];
     cur = p.id;
     style.textContent = p.id === 'aurora' ? '' : css(p);
+    document.documentElement.classList.toggle('pal-refined', p.id !== 'aurora');
     try{ localStorage.setItem(KEY, JSON.stringify(p.id)); }catch(e){}
     const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content', p.id === 'aurora' ? '#161221' : vars(p, true).match(/--bg:([^;]+)/)[1]);
   }
@@ -84,6 +86,12 @@
   window.RT_PALETTES = P;
   window.applyPalette = apply;
   // selettore: griglia di anteprime per gruppo, si applica subito toccandola
+  function preview(p){
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    if(p.id === 'aurora') return `<span class="pal-pv" style="--pb:${dark ? '#161221' : '#f6f4fb'};--pc:${dark ? '#201a33' : '#fff'};--pl:${dark ? '#372c54' : '#e3ddf2'};--pa:linear-gradient(135deg,#7c5cff,#b04cf5 55%,#ff6ec7)"><i></i><b></b><u></u><s></s></span>`;
+    const v = vars(p, dark), g = k=> (v.match(new RegExp('--' + k + ':([^;]+);')) || [])[1];
+    return `<span class="pal-pv" style="--pb:${g('bg')};--pc:${g('card')};--pl:${g('border')};--pa:${g('grad')}"><i></i><b></b><u></u><s></s></span>`;
+  }
   window.openPalettePicker = function(){
     let el = document.getElementById('xPalette');
     if(!el){ el = document.createElement('div'); el.id = 'xPalette'; el.className = 'dup-backdrop x-sheet'; document.body.appendChild(el);
@@ -93,8 +101,7 @@
     el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🎨 Palette colori</b><button class="btn" data-x-close>Fatto</button></div>
       <div class="lp-sub">Tocca una palette: la vedi subito su tutta l'app, con sfumature, trasparenze e bagliori. Funziona sia col tema chiaro che scuro (pulsante Tema).</div>
       ${groups.map(g=> `<div class="pal-group">${g}</div><div class="pal-grid">${P.filter(p=> p.g === g).map(p=> `<button type="button" class="pal${p.id === cur ? ' on' : ''}" data-pal="${p.id}">
-        <span class="pal-sw" style="background:linear-gradient(135deg,${p.c[0]},${p.c[1]} 55%,${p.c[2]})"></span>
-        <span class="pal-dots">${p.c.map(c=> `<i style="background:${c}"></i>`).join('')}</span><span class="pal-n">${p.n}</span></button>`).join('')}</div>`).join('')}</div>`;
+        ${preview(p)}<span class="pal-n">${p.n}</span></button>`).join('')}</div>`).join('')}</div>`;
     el.classList.add('show');
   };
 })();

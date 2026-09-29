@@ -353,12 +353,29 @@ html.intro-on{overflow:hidden}
 .pal{display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 6px; border-radius:16px; border:1px solid var(--border); background:var(--glass,var(--card)); color:var(--text); cursor:pointer; transition:transform .2s}
 .pal:active{transform:scale(.95)}
 .pal.on{border-color:transparent; box-shadow:0 0 0 2px var(--accent), 0 8px 20px rgba(var(--a1rgb),.35)}
-.pal-sw{width:54px; height:54px; border-radius:50%; box-shadow:inset 0 -6px 14px rgba(0,0,0,.25), inset 0 6px 12px rgba(255,255,255,.35), 0 4px 12px rgba(0,0,0,.2)}
-.pal-dots{display:flex; gap:3px}
-.pal-dots i{width:10px; height:10px; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.pal-pv{position:relative; display:block; width:100%; aspect-ratio:4/3; border-radius:10px; background:var(--pb); border:1px solid var(--pl); overflow:hidden}
+.pal-pv i{position:absolute; left:8%; right:8%; top:10%; height:16%; border-radius:5px; background:var(--pa)}
+.pal-pv b{position:absolute; left:8%; right:8%; top:34%; bottom:10%; border-radius:6px; background:var(--pc); border:1px solid var(--pl)}
+.pal-pv u{position:absolute; left:16%; width:46%; top:46%; height:7%; border-radius:4px; background:var(--pl)}
+.pal-pv s{position:absolute; left:16%; width:28%; top:64%; height:12%; border-radius:999px; background:var(--pa)}
 .pal-n{font-size:.72rem; font-weight:600; text-align:center; line-height:1.15}
 /* con i filtri aperti la barra in alto smette di restare fissa e la lista resta lunga: scorri giù e la vedi tutta */
 .topbar:has(#filtersPanel.open){position:relative}
 .wrap:has(#filtersPanel.open) .table-wrap, .wrap:has(#filtersPanel.open) .alt-view{min-height:62vh}
 @media (max-width:760px){ #filtersPanel.open{max-height:40vh} .wrap:has(#filtersPanel.open){padding-bottom:calc(var(--navh) + 10px) !important} .wrap:has(#filtersPanel.open) .table-wrap, .wrap:has(#filtersPanel.open) .alt-view{margin-bottom:calc(var(--navh) + 12px)} }
 html:has(#filtersPanel.open), body:has(#filtersPanel.open){height:auto; min-height:100%}
+
+/* ===== Stile "raffinato" per le palette (tutte tranne Aurora originale): superfici pulite, ombre morbide, niente effetti lucidi ===== */
+html.pal-refined thead th{background:var(--surface-tint); color:var(--text); text-shadow:none; font-weight:650; border-bottom:1px solid var(--border)}
+html.pal-refined .table-wrap{border-radius:16px; box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.08)}
+html.pal-refined .view-tab.active, html.pal-refined .list-chip.active, html.pal-refined .tagchip.active, html.pal-refined .genre-chip.active, html.pal-refined .qf-chip.active, html.pal-refined .iconbtn.active{box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(var(--a1rgb),.18); transform:none; color:var(--on-accent)}
+html.pal-refined .btn.primary{box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(var(--a1rgb),.18); color:var(--on-accent)}
+html.pal-refined .ask-fab{box-shadow:0 2px 6px rgba(0,0,0,.18),0 10px 24px rgba(var(--a1rgb),.22); color:var(--on-accent)}
+html.pal-refined .ask-fab::after{border-color:rgba(var(--a1rgb),.28)}
+html.pal-refined .scrolltop-fab{box-shadow:0 2px 6px rgba(0,0,0,.18),0 8px 18px rgba(var(--a1rgb),.18); color:var(--on-accent)}
+html.pal-refined .toast{box-shadow:0 2px 8px rgba(0,0,0,.2),0 12px 28px rgba(var(--a1rgb),.2); color:var(--on-accent)}
+html.pal-refined .x-mic, html.pal-refined .x-toolbar button.active, html.pal-refined .ask-msg.user{box-shadow:none; color:var(--on-accent)}
+html.pal-refined .view-tab.active{animation:none}
+html.pal-refined body::before{animation-duration:60s}
+html.pal-refined td.score::after{opacity:.7}
+@media (max-width:760px){ html.pal-refined .view-tab.active .vt-ic{filter:none} html.pal-refined .view-tab.active{color:var(--accent)} }
