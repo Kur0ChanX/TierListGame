@@ -2,7 +2,7 @@
 (function(){
   // 1) barra del voto (variabile CSS --sc) su ogni riga della classifica
   const tb = document.getElementById('tbody');
-  function paint(){ if(!tb) return; tb.querySelectorAll('td.score').forEach(td=>{ const n = parseInt(td.textContent, 10); if(!isNaN(n)) td.style.setProperty('--sc', Math.max(0, Math.min(100, n))); }); }
+  function paint(){ if(!tb) return; tb.querySelectorAll('td.score:not([style])').forEach(td=>{ const n = parseInt(td.textContent, 10); if(!isNaN(n)) td.style.setProperty('--sc', Math.max(0, Math.min(100, n))); }); }
   if(tb){ new MutationObserver(paint).observe(tb, {childList:true}); paint(); }
 
   // 2) vibrazione leggera (Android) su preferito / cuore / scarta / tab
