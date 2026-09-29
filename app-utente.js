@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v106', date:'2026-09-29', items:[
+    'Icone in alto un po\' più in basso (lontane dal foro della fotocamera) e staccate dal logo del procione.'
+  ]},
   {version:'v105', date:'2026-09-29', items:[
     'Pulsanti più piccoli e tondi, in vetro trasparente con riflesso 3D: Profilo (distintivo), Novità (gemma), Tema (sfera giorno/notte), Filtri (cursori), Schermo. Icone nuove, moderne e a tema videogioco, con sfumature e riflessi (niente più icone retro o piatte). Stesso stile per le 7 schede in basso, il pulsante Chiedi, la freccia su e il microfono.',
     'Backup: nel menu ✨ c\'è "Versione di sicurezza (Aurora)", la copia congelata del sito com\'era prima delle palette; funziona sempre, anche se qualcosa del nuovo tema non va.'
