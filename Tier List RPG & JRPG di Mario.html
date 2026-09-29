@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raccoon Tier — Tier List RPG & JRPG di Mario</title>
 <link rel="manifest" href="manifest.webmanifest">
+<meta name="build" content="v104">
 <meta name="theme-color" content="#161221">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -52,11 +53,11 @@
   <div class="topbar">
     <div class="topbar-row1">
       <h1><img class="brand-logo" src="icons/logo.png" alt="Raccoon Tier" width="53" height="56"><span class="sr-only">Raccoon Tier — Tier List RPG &amp; JRPG di Mario</span></h1>
-      <button class="iconbtn lbl" id="fsBtn" aria-label="Schermo intero" title="Schermo intero (nasconde barra del browser e orario)"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fs"/></svg></span><span class="ib-lb">Schermo</span></button>
-      <button class="iconbtn lbl" id="profileBtn" aria-label="Profilo"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-person"/></svg></span><span class="ib-lb">Profilo</span></button>
-      <button class="iconbtn lbl" id="changelogBtn" aria-label="Novità del programma"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bell"/></svg></span><span class="ib-lb">Novità</span></button>
-      <button class="iconbtn lbl" id="themeBtn" aria-label="Cambia tema"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-theme"/></svg></span><span class="ib-lb">Tema</span></button>
-      <button class="iconbtn lbl" id="filtersBtn" aria-label="Mostra/nascondi filtri"><span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-filter"/></svg></span><span class="ib-lb">Filtri</span><b class="ib-badge" id="filtersBadge" hidden></b></button>
+      <button class="iconbtn lbl" id="fsBtn" aria-label="Schermo intero" title="Schermo intero (nasconde barra del browser e orario)"><span class="ib-ic"><img class="i3d" src="icons/3d/tv.png" alt="" width="40" height="40" decoding="async"></span><span class="ib-lb">Schermo</span></button>
+      <button class="iconbtn lbl" id="profileBtn" aria-label="Profilo"><span class="ib-ic"><img class="i3d" src="icons/3d/floppy.png" alt="" width="40" height="40" decoding="async"></span><span class="ib-lb">Profilo</span></button>
+      <button class="iconbtn lbl" id="changelogBtn" aria-label="Novità del programma"><span class="ib-ic"><img class="i3d" src="icons/3d/gem.png" alt="" width="40" height="40" decoding="async"></span><span class="ib-lb">Novità</span></button>
+      <button class="iconbtn lbl" id="themeBtn" aria-label="Cambia tema"><span class="ib-ic"><img class="i3d" src="icons/3d/joystick.png" alt="" width="40" height="40" decoding="async"></span><span class="ib-lb">Tema</span></button>
+      <button class="iconbtn lbl" id="filtersBtn" aria-label="Mostra/nascondi filtri"><span class="ib-ic"><img class="i3d" src="icons/3d/slider.png" alt="" width="40" height="40" decoding="async"></span><span class="ib-lb">Filtri</span><b class="ib-badge" id="filtersBadge" hidden></b></button>
     </div>
     <div class="topbar-row2">
       <input id="search" type="text" placeholder="Cerca per nome, piattaforma o anno...">
@@ -142,13 +143,13 @@
 
   <div class="list-bar" id="listBar"></div>
   <div class="view-tabs" id="viewTabs">
-    <button class="view-tab active" data-view="list" title="Classifica"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-list"/></svg></span><span class="vt-tx vt-full">Classifica</span><span class="vt-tx vt-short">Classifica</span></button>
-    <button class="view-tab" data-view="discover" title="Scopri"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shuffle"/></svg></span><span class="vt-tx vt-full">Scopri</span><span class="vt-tx vt-short">Scopri</span></button>
-    <button class="view-tab" data-view="novita" title="Novità"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkle"/></svg></span><span class="vt-tx vt-full">Novità</span><span class="vt-tx vt-short">Novità</span></button>
-    <button class="view-tab" data-view="novitagenere" title="Novità per genere"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg></span><span class="vt-tx vt-full">Novità per genere</span><span class="vt-tx vt-short">Per genere</span></button>
-    <button class="view-tab" data-view="mytier" title="La mia Tier List"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg></span><span class="vt-tx vt-full">La mia Tier List</span><span class="vt-tx vt-short">Mia tier</span></button>
-    <button class="view-tab" data-view="saga" title="Per saga"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-stack"/></svg></span><span class="vt-tx vt-full">Per saga</span><span class="vt-tx vt-short">Saghe</span></button>
-    <button class="view-tab" data-view="stats" title="Statistiche"><span class="vt-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chart"/></svg></span><span class="vt-tx vt-full">Statistiche</span><span class="vt-tx vt-short">Statistiche</span></button>
+    <button class="view-tab active" data-view="list" title="Classifica"><span class="vt-ic"><img class="i3d" src="icons/3d/trophy.png" alt="" width="30" height="30" decoding="async"></span><span class="vt-tx vt-full">Classifica</span><span class="vt-tx vt-short">Classifica</span></button>
+    <button class="view-tab" data-view="discover" title="Scopri"><span class="vt-ic"><img class="i3d" src="icons/3d/dice.png" alt="" width="30" height="30" decoding="async"></span><span class="vt-tx vt-full">Scopri</span><span class="vt-tx vt-short">Scopri</span></button>
+    <button class="view-tab" data-view="novita" title="Novità"><span class="vt-ic"><img class="i3d" src="icons/3d/sparkles.png" alt="" width="30" height="30" decoding="async"></span><span class="vt-tx vt-full">Novità</span><span class="vt-tx vt-short">Novità</span></button>
+    <button class="view-tab" data-view="novitagenere" title="Novità per genere"><span class="vt-ic"><img class="i3d" src="icons/3d/masks.png" alt="" width="30" height="30" decoding="async"></span><span class="vt-tx vt-full">Novità per genere</span><span class="vt-tx vt-short">Per genere</span></button>
+    <button class="view-tab" data-view="mytier" title="La mia Tier List"><span class="vt-ic"><img class="i3d" src="icons/3d/target.png" alt="" width="30" height="30" decoding="async"></span><span class="vt-tx vt-full">La mia Tier List</span><span class="vt-tx vt-short">Mia tier</span></button>
+    <button class="view-tab" data-view="saga" title="Per saga"><span class="vt-ic"><img class="i3d" src="icons/3d/books.png" alt="" width="30" height="30" decoding="async"></span><span class="vt-tx vt-full">Per saga</span><span class="vt-tx vt-short">Saghe</span></button>
+    <button class="view-tab" data-view="stats" title="Statistiche"><span class="vt-ic"><img class="i3d" src="icons/3d/chart.png" alt="" width="30" height="30" decoding="async"></span><span class="vt-tx vt-full">Statistiche</span><span class="vt-tx vt-short">Statistiche</span></button>
   </div>
 
   <div class="table-wrap" id="tableWrap">

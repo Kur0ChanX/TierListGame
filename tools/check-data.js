@@ -27,4 +27,16 @@ for (const g of D.games) {
     walk(e, '', (p, s) => { if (TIME_RE.test(s)) warn(`Frase legata al tempo su un gioco del ${y}: ${g.name} → ${p}: "${s.slice(0, 90)}"`); });
   }
 }
+
+// coerenza di versione: la pagina (meta build) e gli script (DATA_BUILD_VERSION) devono avere lo stesso numero,
+// altrimenti un HTML vecchio in cache si mescola a script nuovi (icone che spariscono, ecc.)
+{
+  const fs2 = require('fs'), path2 = require('path');
+  const root = path2.join(__dirname, '..');
+  const html = fs2.readFileSync(path2.join(root, 'Tier List RPG & JRPG di Mario.html'), 'utf8');
+  const ai = fs2.readFileSync(path2.join(root, 'app-ai.js'), 'utf8');
+  const mb = (html.match(/<meta name="build" content="([^"]+)"/) || [])[1], jv = (ai.match(/DATA_BUILD_VERSION = '([^']+)'/) || [])[1];
+  if (mb !== jv) { warnings++; console.log(`Versione non coerente: <meta name="build"> = ${mb}, DATA_BUILD_VERSION = ${jv}. Aggiorna il meta nell'HTML.`); }
+  if (!/^<!DOCTYPE html>/i.test(html)) { warnings++; console.log('L\'HTML deve iniziare con <!DOCTYPE html>.'); }
+}
 console.log(warnings ? `\n${warnings} avvisi.` : 'Nessun avviso: dati coerenti.');

@@ -456,3 +456,42 @@ html.pal-refined #search{background:var(--lens) 14px 50%/18px no-repeat, linear-
     box-shadow:inset 0 .5px 0 rgba(255,255,255,.55), inset 0 -10px 14px -10px rgba(0,0,0,.20), 0 1px 2px rgba(0,0,0,.20), 0 8px 18px -6px var(--glow) !important}
   .view-tab.active .vt-ic{color:inherit}
 }
+
+/* ===== v104: vetro cristallino + icone 3D a tema gaming ===== */
+.i3d{display:block; width:100%; height:100%; object-fit:contain; pointer-events:none; -webkit-user-drag:none; user-select:none}
+/* contenuto sempre sopra le tessere, qualunque cosa contenga */
+.vt-ic,.ib-ic{isolation:isolate}
+.vt-ic::before,.ib-ic::before,.vt-ic::after,.ib-ic::after{z-index:-1}
+/* pulsanti in alto: contenitore di vetro vero, icona 3D al centro, etichetta sotto */
+.iconbtn.lbl{position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; width:68px; height:74px; min-width:0; padding:8px 4px 6px; border-radius:20px; border:none !important;
+  background:rgba(255,255,255,.05) !important; -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.40), inset 0 -1px 1px rgba(255,255,255,.06), 0 10px 24px -8px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.18) !important; color:var(--text); transition:transform .25s var(--ease), background .25s}
+:root:not([data-theme="dark"]) .iconbtn.lbl{background:rgba(255,255,255,.34) !important}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .iconbtn.lbl{background:rgba(255,255,255,.05) !important} }
+/* bordo speculare: gradiente di luce che taglia l'angolo alto-sinistro e si spegne */
+.iconbtn.lbl::before{content:""; position:absolute; inset:0; border-radius:inherit; padding:1px; pointer-events:none;
+  background:linear-gradient(145deg, rgba(255,255,255,.70) 0%, rgba(255,255,255,.14) 30%, rgba(255,255,255,.04) 62%, rgba(255,255,255,.38) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude}
+.iconbtn.lbl .ib-ic{width:40px; height:40px; filter:drop-shadow(0 6px 8px rgba(0,0,0,.35)); background:none}
+.iconbtn.lbl .ib-ic::before,.iconbtn.lbl .ib-ic::after{display:none}
+.iconbtn.lbl .ib-lb{font-size:.66rem; font-weight:700; letter-spacing:.01em; opacity:1; color:var(--text); text-shadow:0 1px 2px rgba(0,0,0,.35)}
+:root:not([data-theme="dark"]) .iconbtn.lbl .ib-lb{text-shadow:none}
+.iconbtn.lbl:active{transform:scale(.94)}
+.iconbtn.lbl.active{background:rgba(var(--a1rgb),.22) !important; box-shadow:inset 0 1px 1px rgba(255,255,255,.5), 0 10px 26px -8px var(--glow) !important}
+.ib-badge{top:4px; right:6px}
+#fsBtn.iconbtn.lbl .ib-ic{color:inherit; filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+@media (max-width:430px){ .iconbtn.lbl{width:60px; height:68px} .iconbtn.lbl .ib-ic{width:36px; height:36px} .topbar-row1{gap:4px} }
+/* barra in basso: icone 3D, scheda attiva in una tessera di vetro */
+@media (max-width:760px){
+  .view-tab .vt-ic{width:30px; height:30px; filter:drop-shadow(0 3px 4px rgba(0,0,0,.3)); transition:transform .25s var(--ease)}
+  .view-tab .vt-ic::before,.view-tab .vt-ic::after{display:none !important}
+  .view-tab.active .vt-ic{transform:translateY(-2px) scale(1.12); filter:drop-shadow(0 6px 8px rgba(0,0,0,.4)) drop-shadow(0 0 10px var(--glow))}
+  .view-tab.active{color:var(--text); font-weight:700}
+  .view-tab.active::after{display:block; content:""; width:16px; height:3px; border-radius:3px; background:var(--accent); margin:1px auto 0; box-shadow:0 0 8px var(--glow)}
+}
+@media (min-width:761px){ .view-tab .vt-ic{width:20px; height:20px} }
+/* microfono: vetro con microfono 3D */
+.x-mic{background:rgba(255,255,255,.10) !important; -webkit-backdrop-filter:blur(14px) saturate(180%); backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.45), 0 6px 16px -4px rgba(0,0,0,.4) !important; border:1px solid rgba(255,255,255,.22) !important; width:38px; height:38px; padding:5px}
+html.pal-refined .x-mic{background:rgba(255,255,255,.10) !important; box-shadow:inset 0 1px 1px rgba(255,255,255,.45), 0 6px 16px -4px rgba(0,0,0,.4) !important}
+.x-mic .i3d{width:100%; height:100%}

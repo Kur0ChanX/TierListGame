@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v104', date:'2026-09-29', items:[
+    'Pulsanti in alto (Profilo, Novità, Tema, Filtri, Schermo) rifatti come contenitori di vetro cristallino con bordo speculare di luce e icone 3D a tema gaming: Memory Card, Gemma, Joystick, Slider, TV retrò. Anche le 7 schede in basso e il microfono hanno icone 3D (Fluent Emoji, licenza MIT).',
+    'Corretto: dopo un aggiornamento il telefono poteva mescolare una pagina vecchia con script nuovi (tessere viola senza icone, doppia lente nella ricerca). Ora, se le versioni non coincidono, la pagina si ricarica da sola una volta.'
+  ]},
   {version:'v103', date:'2026-09-29', items:[
     'Interfaccia in stile Apple: nuove icone vettoriali (Profilo, Novità, Tema, Filtri, Schermo, viste, ricerca, microfono e le 7 schede) su tessere "squircle" con curvatura continua, come le app iOS; la scheda attiva nella barra in basso è una tessera colorata.',
     'Riflessi rifatti: un solo filo di luce sul bordo, schiarita morbida dall\'alto e ombre ampie e sfumate, al posto delle fasce lucide. Sfondo con sfumature senza bande e grana finissima. Palette predefinita: Apple.',
