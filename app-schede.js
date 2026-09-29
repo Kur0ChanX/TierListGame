@@ -1,0 +1,1145 @@
+// Schede e viste: copertine, giochi aggiunti, archivio locale, etichetta, DNA, confronto, saga, Scopri, wizard. Caricato dopo gli altri file app*.js nell'ordine: app, app-schede, app-utente, app-ai.
+// ---- Copertine: archivio interno della pagina (assets) + indice nel database (db, collezione "covers") ----
+var USER_COVERS = {};      // id gioco -> url dell'immagine caricata
+var USER_COVER_IDS = {};   // id gioco -> id asset (per sostituire senza lasciare file orfani)
+var COVER_ASSETS = null, COVER_DB = null, currentModalGame = null, coverBusy = false;
+var COVER_STATE = 'pending'; // 'pending' | 'ready' | 'unavailable'
+function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const ICON_GLOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>';
+const ICON_PHOTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><path d="M16 5h6"/><path d="M19 2v6"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+function coverSearchUrl(g){ return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(g.name + ' cover art boxart'); }
+function effectiveCover(g){ return USER_COVERS[String(g.id)] || (g.enrich && g.enrich.coverUrl) || null; }
+function coverPlaceholderHtml(g){
+  const platShort = (g.plat||'').split('/')[0].trim();
+  return `<div class="modal-cover placeholder-cover"><div class="pc-row"><span class="pc-plat">${escHtml(platShort)}</span><span class="pc-tier ${TIER_LABEL[g.tier]}">${g.tier}</span></div></div>`;
+}
+const COVER_BAD_URL_HINTS = [
+  { re: /^https?:\/\/share\.google\//i, msg: 'Questo è un link di condivisione di Google, non porta direttamente a un\'immagine.' },
+  { re: /^https?:\/\/photos\.app\.goo\.gl\//i, msg: 'Questo è un link di condivisione di Google Foto, non porta direttamente a un\'immagine.' },
+  { re: /^https?:\/\/(www\.)?photos\.google\.com\//i, msg: 'Questo è un link di Google Foto, non porta direttamente a un\'immagine.' },
+  { re: /^https?:\/\/(www\.)?drive\.google\.com\//i, msg: 'Questo è un link di Google Drive, non porta direttamente a un\'immagine.' },
+  { re: /^https?:\/\/(www\.)?dropbox\.com\/s\//i, msg: 'Questo è un link di condivisione Dropbox: prova ad aggiungere "?dl=1" alla fine, oppure usane un altro.' },
+  { re: /^https?:\/\/(www\.)?(instagram\.com|facebook\.com|pinterest\.[a-z.]+|x\.com|twitter\.com)\//i, msg: 'Questo è un link a una pagina, non al file dell\'immagine.' }
+];
+function coverUrlKnownBadHint(url){
+  for(const b of COVER_BAD_URL_HINTS){ if(b.re.test(url)) return b.msg; }
+  return null;
+}
+function probeImageUrl(url, timeoutMs){
+  // Restituisce {ok, reason}: reason è 'ok', 'error' (il browser ha rifiutato/bloccato subito
+  // il caricamento — link sbagliato, hotlink-protection, o una policy di sicurezza della pagina)
+  // oppure 'timeout' (nessuna risposta entro il tempo massimo — rete lenta o bloccata in silenzio).
+  timeoutMs = timeoutMs || 9000;
+  return new Promise(resolve=>{
+    let done = false;
+    const img = new Image();
+    const finish = (reason)=>{ if(done) return; done = true; img.onload = img.onerror = null; resolve({ok: reason==='ok', reason}); };
+    img.onload = ()=> finish('ok');
+    img.onerror = ()=> finish('error');
+    try{ img.referrerPolicy = 'no-referrer'; }catch(_){}
+    img.src = url;
+    setTimeout(()=> finish('timeout'), timeoutMs);
+  });
+}
+const COVER_TEST_IMG_URL = 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png';
+async function runCoverImageSelfTest(){
+  coverLog('test di connessione: provo a caricare una foto di prova esterna nota e funzionante…');
+  const { reason } = await probeImageUrl(COVER_TEST_IMG_URL, 9000);
+  if(reason==='ok'){
+    coverLog('test di connessione: OK — questa pagina RIESCE a caricare immagini esterne. Il problema è nei link specifici che hai provato (non diretti, o protetti).');
+    showToast('✅ Test riuscito: le immagini esterne funzionano qui. Il link che avevi provato non era quello giusto.');
+  } else {
+    coverLog('test di connessione: FALLITO (' + reason + ') — anche una foto esterna nota e sempre funzionante non si carica: molto probabilmente questa pagina/dispositivo blocca il caricamento di QUALSIASI immagine esterna, non solo il tuo link.');
+    showToast('❌ Test fallito: nemmeno una foto di prova sempre funzionante si carica qui. Il problema non è il tuo link: sembra che questa pagina non riesca a caricare immagini esterne su questo dispositivo.');
+  }
+}
+var COVER_LOG = [];
+function coverLog(msg){
+  try{
+    COVER_LOG.push(new Date().toTimeString().slice(0,8) + ' — ' + msg);
+    if(COVER_LOG.length > 14) COVER_LOG.shift();
+    console.info('[coperture] ' + msg);
+    const el = document.getElementById('coverDiagLog');
+    if(el) el.innerHTML = COVER_LOG.map(escHtml).join('<br>');
+  }catch(_){}
+}
+var coverDiagOpen = false;
+function coverDiagHtml(){
+  if(!coverDiagOpen) return '';
+  const rows = [
+    ['Pagina dentro Claude', (window.claude && typeof window.claude.use==='function') ? 'sì' : 'NO (file locale?)'],
+    ['Stato archivio', COVER_STATE + ' (db: ' + (COVER_DB?'ok':'—') + ', foto: ' + (COVER_ASSETS?'ok':'—') + ')'],
+    ['Copertine caricate da te', String(Object.keys(USER_COVERS).length)],
+    ['Browser', (navigator.userAgent||'').slice(0,90)]
+  ];
+  return `<div class="cover-diag">${rows.map(r=>`<b>${r[0]}:</b> ${escHtml(r[1])}`).join('<br>')}<br><button class="btn" type="button" data-cover-selftest style="margin:8px 0;">🧪 Testa se le foto esterne funzionano qui</button><br><b>Eventi:</b><br><span id="coverDiagLog">${COVER_LOG.length?COVER_LOG.map(escHtml).join('<br>'):'(ancora nessuno)'}</span></div>`;
+}
+function coverHtml(g){
+  const url = effectiveCover(g);
+  const canUrl = !!COVER_DB;
+  const canUpload = !!(COVER_DB && COVER_ASSETS);
+  const media = url ? `<img class="modal-cover" src="${escHtml(url)}" alt="Copertina di ${escHtml(g.name)}" loading="lazy" decoding="async">` : coverPlaceholderHtml(g);
+  const currentUrlValue = (url && /^https?:\/\//i.test(url)) ? url : '';
+  const uploadRow = canUpload ? `<div class="cover-tools">
+      <label class="cover-pill${coverBusy?' busy':''}" data-cover-upload-label title="Scegli una foto dalla galleria del telefono">${ICON_PHOTO}<span>Carica dal telefono</span><input type="file" accept="image/*" data-cover-file-input ${coverBusy?'disabled':''}></label>
+      <label class="cover-pill${coverBusy?' busy':''}" data-cover-camera-label title="Scatta una foto adesso con la fotocamera">📸<span>Scatta foto</span><input type="file" accept="image/*" capture="environment" data-cover-camera-input ${coverBusy?'disabled':''}></label>
+    </div>` : '';
+  const hint = !canUrl
+    ? `<div class="cover-hint">Il salvataggio della copertina non è disponibile qui: apri questa pagina restando connesso al tuo account Claude (non da un link "pubblico" o da un altro browser senza accesso).</div>`
+    : `<div class="cover-hint">${canUpload ? '<b>Consigliato:</b> usa "Carica dal telefono" o "Scatta foto" qui sopra — funziona sempre, anche se il tuo telefono non riesce a caricare immagini da internet.<br>' : ''}In alternativa, incolla un link diretto a un\'immagine qui sotto (su molti telefoni i link a foto esterne non si aprono: se il link non funziona, usa il caricamento qui sopra invece).</div>`;
+  return `<div class="cover-block" id="coverBlock">${media}
+    ${uploadRow}
+    <div class="cover-tools">
+      <a class="cover-pill" href="${coverSearchUrl(g)}" target="_blank" rel="noopener" title="Cerca la copertina su internet">${ICON_GLOBE}<span>Cerca copertina</span></a>
+      <button class="cover-pill" type="button" data-cover-diag aria-expanded="${coverDiagOpen?'true':'false'}" title="Mostra la diagnostica">🩺</button>
+    </div>
+    ${canUrl ? `<div class="cover-urlrow">
+      <input type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui il link dell'immagine (https://...)" value="${escHtml(currentUrlValue)}" data-cover-url-input ${coverBusy?'disabled':''}>
+      <button class="btn primary" type="button" data-cover-url-save ${coverBusy?'disabled':''}>${coverBusy?'…':'Salva'}</button>
+    </div>` : ''}
+    ${hint}${coverDiagHtml()}</div>`;
+}
+function wireCover(g){
+  const block = document.getElementById('coverBlock'); if(!block) return;
+  const img = block.querySelector('img.modal-cover');
+  if(img){
+    img.addEventListener('error', ()=>{ img.outerHTML = coverPlaceholderHtml(g); }, {once:true});
+    img.addEventListener('click', ()=>{ openLightbox(img.src, img.alt); });
+  }
+  const urlInput = block.querySelector('[data-cover-url-input]');
+  const urlSaveBtn = block.querySelector('[data-cover-url-save]');
+  if(urlSaveBtn) urlSaveBtn.addEventListener('click', ()=> saveCoverUrl(g, urlInput ? urlInput.value : ''));
+  if(urlInput) urlInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); saveCoverUrl(g, urlInput.value); } });
+  const fileInput = block.querySelector('[data-cover-file-input]');
+  if(fileInput) fileInput.addEventListener('change', (e)=>{
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(file) handleCoverUpload(g, file);
+  });
+  const cameraInput = block.querySelector('[data-cover-camera-input]');
+  if(cameraInput) cameraInput.addEventListener('change', (e)=>{
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(file) handleCoverUpload(g, file);
+  });
+  const diagBtn = block.querySelector('[data-cover-diag]');
+  if(diagBtn) diagBtn.addEventListener('click', ()=>{ coverDiagOpen = !coverDiagOpen; refreshCover(g); });
+  const selfTestBtn = block.querySelector('[data-cover-selftest]');
+  if(selfTestBtn) selfTestBtn.addEventListener('click', runCoverImageSelfTest);
+}
+async function saveCoverUrl(g, raw){
+  const trimmed = String(raw || '').trim();
+  if(!trimmed){ showToast('Incolla prima un link nella casella'); return; }
+  if(!/^https?:\/\/\S+$/i.test(trimmed)){ showToast('Non sembra un link valido (deve iniziare con http:// o https://)'); coverLog('link scartato: formato non valido (' + trimmed.slice(0,40) + ')'); return; }
+  const badHint = coverUrlKnownBadHint(trimmed);
+  if(badHint){
+    coverLog('link scartato: pattern noto non-immagine (' + trimmed.slice(0,60) + ')');
+    showToast(badHint + ' Apri la foto a schermo intero, tieni premuto sull\'immagine vera e propria (non su "Condividi") e scegli "Copia indirizzo immagine".');
+    return;
+  }
+  if(!COVER_DB){ showToast('Archivio non disponibile in questa pagina al momento'); coverLog('salvataggio link annullato: db non pronto'); return; }
+  coverBusy = true; refreshCover(g);
+  coverLog('verifico che il link si apra come immagine…');
+  const { ok, reason } = await probeImageUrl(trimmed);
+  if(!ok){
+    coverBusy = false; refreshCover(g);
+    coverLog('link scartato (' + reason + '), NON salvato (' + trimmed.slice(0,60) + ')');
+    const extra = reason==='timeout' ? ' (il link non ha risposto in tempo: rete lenta o bloccata)' : '';
+    showToast('Questo link non si apre come immagine' + extra + ': non l\'ho salvato. Se ti succede con OGNI link che provi, tocca 🩺 qui sotto → "Testa se le foto esterne funzionano qui" per capire se il problema è generale.');
+    return;
+  }
+  coverLog('immagine verificata (ok), salvo il link…');
+  try{
+    await COVER_DB.doc('covers/' + String(g.id)).set({url: trimmed, name: g.name, updatedAt: new Date().toISOString()});
+    USER_COVERS[String(g.id)] = trimmed;
+    coverLog('fatto: copertina salvata come link, sincronizzata su ogni dispositivo');
+    showToast('Copertina salvata');
+  }catch(e){
+    coverLog('ERRORE salvataggio link: ' + (e && e.code || 'sconosciuto'));
+    showToast(coverErrorMessage(e));
+  }finally{
+    coverBusy = false; refreshCover(g);
+  }
+}
+async function pasteCoverUrl(g){
+  const raw = window.prompt('Incolla qui il link diretto a un\'immagine (su Google Immagini: tieni premuto sulla foto → "Copia indirizzo immagine"):');
+  if(raw === null) return;
+  const trimmed = raw.trim();
+  if(!trimmed) return;
+  if(!/^https?:\/\/\S+$/i.test(trimmed)){ showToast('Non sembra un link valido (deve iniziare con http:// o https://)'); coverLog('link scartato: formato non valido'); return; }
+  if(!COVER_DB){ showToast('Archivio non disponibile in questa pagina al momento'); coverLog('salvataggio link annullato: db non pronto'); return; }
+  coverBusy = true; refreshCover(g);
+  coverLog('salvo la copertina come link esterno…');
+  try{
+    await COVER_DB.doc('covers/' + String(g.id)).set({url: trimmed, name: g.name, updatedAt: new Date().toISOString()});
+    USER_COVERS[String(g.id)] = trimmed;
+    coverLog('fatto: copertina salvata come link, sincronizzata su ogni dispositivo');
+    showToast('Copertina salvata (link)');
+  }catch(e){
+    coverLog('ERRORE salvataggio link: ' + (e && e.code || 'sconosciuto'));
+    showToast(coverErrorMessage(e));
+  }finally{
+    coverBusy = false; refreshCover(g);
+  }
+}
+// ---- Giochi aggiunti da Mario (via "Chiedi a Claude"), sincronizzati su ogni dispositivo ----
+let CUSTOM_GAME_IDS = new Set();
+function nextCustomGameId(){
+  let id;
+  do{ id = 900000 + Math.floor(Math.random()*99999); }while(GAMES.some(x=>x.id===id));
+  return id;
+}
+function clampIntOrNull(v, min, max){
+  const n = parseInt(v, 10);
+  if(isNaN(n)) return null;
+  return Math.max(min, Math.min(max, n));
+}
+function cleanProsCons(pros, cons){
+  const f = arr=> Array.isArray(arr) ? arr.map(x=>String(x).trim()).filter(Boolean).slice(0,5) : [];
+  const p = f(pros), c = f(cons);
+  return (p.length || c.length) ? {pros:p, cons:c} : null;
+}
+function syncCustomGames(snap){
+  const seen = new Set();
+  (snap.docs || []).forEach(d=>{
+    const v = d.data();
+    const id = parseInt(d.id, 10);
+    if(!id || !v || !v.name) return;
+    seen.add(id);
+    const entry = {
+      id,
+      name: String(v.name),
+      plat: v.plat ? String(v.plat) : '—',
+      year: v.year ? String(v.year) : '',
+      ysort: parseInt(v.year, 10) || 0,
+      tier: TIERS_LIST.includes(v.tier) ? v.tier : 'B',
+      score: clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70,
+      m: 'S',
+      note: v.note ? String(v.note) : 'Aggiunto da te tramite "Chiedi a Claude" — non è nella classifica ufficiale, il voto è una stima.',
+      story: v.story ? String(v.story) : '',
+      tags: Array.isArray(v.tags) ? v.tags.filter(t=> TAG_INFO[t]) : [],
+      custom: true,
+      proscons: cleanProsCons(v.pros, v.cons),
+      label: (v.label && typeof v.label === 'object') ? v.label : null
+    };
+    const idx = GAMES.findIndex(x=>x.id===id);
+    if(idx>=0) GAMES[idx] = entry; else GAMES.push(entry);
+    CUSTOM_GAME_IDS.add(id);
+  });
+  Array.from(CUSTOM_GAME_IDS).forEach(id=>{
+    if(!seen.has(id)){
+      const idx = GAMES.findIndex(x=>x.id===id);
+      if(idx>=0) GAMES.splice(idx, 1);
+      CUSTOM_GAME_IDS.delete(id);
+    }
+  });
+  try{ renderMetrics(); renderStats(); render(); renderListBar(); }catch(e){}
+}
+async function pasteCover(g){
+  coverLog('provo a leggere gli appunti');
+  try{
+    const items = await navigator.clipboard.read();
+    for(const it of items){
+      const type = (it.types || []).find(t=>t && t.indexOf('image/')===0);
+      if(type){
+        const blob = await it.getType(type);
+        coverLog('immagine trovata negli appunti (' + type + ', ' + Math.round(blob.size/1024) + ' KB)');
+        handleCoverUpload(g, blob);
+        return;
+      }
+    }
+    showToast('Negli appunti non c\'è un\'immagine: copia prima una foto');
+    coverLog('appunti letti ma senza immagini');
+  }catch(e){
+    showToast('Non riesco a leggere gli appunti: consenti l\'accesso quando il browser lo chiede');
+    coverLog('lettura appunti rifiutata o fallita');
+  }
+}
+function refreshCover(g){
+  const block = document.getElementById('coverBlock');
+  if(!block || !currentModalGame || currentModalGame.id !== g.id) return;
+  block.outerHTML = coverHtml(g);
+  wireCover(g);
+}
+function shrinkImage(file){
+  return new Promise(resolve=>{
+    let objUrl;
+    try { objUrl = URL.createObjectURL(file); } catch(e){ resolve(file); return; }
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const w = img.naturalWidth, h = img.naturalHeight, max = 1000;
+        const s = Math.min(1, max / Math.max(w, h));
+        const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w*s)); c.height = Math.max(1, Math.round(h*s));
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,c.width,c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b=>{ URL.revokeObjectURL(objUrl); resolve(b && b.size > 0 ? b : file); }, 'image/jpeg', 0.88);
+      }catch(e){ URL.revokeObjectURL(objUrl); resolve(file); }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(objUrl); resolve(file); };
+    img.src = objUrl;
+  });
+}
+function coverErrorMessage(e){
+  const code = e && e.code;
+  if(code === 'unsupported_type') return 'Formato non supportato: scegli una foto JPG o PNG';
+  if(code === 'too_large') return 'Immagine troppo grande (massimo 20 MB)';
+  if(code === 'quota_or_state' || code === 'quota_exceeded') return 'Spazio della pagina esaurito: non posso salvare altre copertine';
+  if(code === 'rate_limited' || code === 'resource_exhausted') return 'Troppi caricamenti ravvicinati: riprova tra un attimo';
+  if(code === 'upstream_auth') return 'Sessione scaduta: ricarica la pagina e riprova';
+  if(code === 'not_granted') return 'Non hai i permessi per salvare qui: apri il link dal tuo account Claude';
+  if(code === 'capability_disabled' || code === 'capability_removed') return 'Funzione non disponibile in questa versione della pagina: ricaricala e riprova';
+  if(code === 'store_unavailable') return 'Servizio momentaneamente non disponibile: riprova tra poco';
+  return 'Caricamento non riuscito: riprova';
+}
+async function handleCoverUpload(g, file){
+  if(coverBusy) return;
+  if(!COVER_ASSETS || !COVER_DB){ coverLog('caricamento annullato: archivio non pronto (stato ' + COVER_STATE + ')'); return; }
+  coverBusy = true; refreshCover(g);
+  coverLog('avvio caricamento e ridimensionamento…');
+  const key = String(g.id);
+  let uploaded = null;
+  try{
+    const blob = await shrinkImage(file);
+    coverLog('immagine pronta (' + Math.round(blob.size/1024) + ' KB): la invio all\'archivio della pagina');
+    const type = /^image\/(jpeg|png|webp|gif)$/.test(blob.type) ? blob.type : undefined;
+    uploaded = await COVER_ASSETS.upload(blob, type ? {type} : undefined);
+    coverLog('foto salvata nell\'archivio, aggiorno il database…');
+    await COVER_DB.doc('covers/' + key).set({asset: uploaded.id, name: g.name, updatedAt: new Date().toISOString()});
+    const previous = USER_COVER_IDS[key];
+    USER_COVERS[key] = uploaded.url; USER_COVER_IDS[key] = uploaded.id;
+    if(previous && previous !== uploaded.id){ try{ await COVER_ASSETS.delete(previous); }catch(e){} }
+    coverLog('fatto: copertina salvata e sincronizzata');
+    showToast('Copertina salvata: la ritrovi su ogni dispositivo');
+  }catch(e){
+    coverLog('ERRORE: ' + (e && e.code || 'sconosciuto') + ' — ' + (e && e.message || ''));
+    if(uploaded && USER_COVER_IDS[key] !== uploaded.id){ try{ await COVER_ASSETS.delete(uploaded.id); }catch(_){} }
+    showToast(coverErrorMessage(e));
+  }finally{
+    coverBusy = false; refreshCover(g);
+  }
+}
+// Foto copertina fuori da Claude: ridotte (max 480px) e salvate in localStorage, poi sincronizzate con il resto
+function localBlobs(){ try{ return JSON.parse(localStorage.getItem('jrpg_db_blobs') || '{}') || {}; }catch(e){ return {}; } }
+function makeLocalAssets(){
+  const small = blob=> new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(blob), im = new Image();
+    im.onload = ()=>{
+      const s = Math.min(1, 480 / Math.max(im.naturalWidth, im.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * s)); c.height = Math.max(1, Math.round(im.naturalHeight * s));
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.72));
+    };
+    im.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('immagine non leggibile')); };
+    im.src = url;
+  });
+  return {
+    async upload(blob){
+      const dataUrl = await small(blob);
+      const id = Array.from({length:32}, ()=> Math.floor(Math.random()*16).toString(16)).join('');
+      const all = localBlobs(); all[id] = dataUrl;
+      try{ localStorage.setItem('jrpg_db_blobs', JSON.stringify(all)); }catch(e){ const err = new Error('spazio del browser esaurito'); err.code = 'quota'; throw err; }
+      return {id, url: dataUrl, sizeBytes: dataUrl.length, contentType: 'image/jpeg'};
+    },
+    async delete(id){ const all = localBlobs(); delete all[id]; try{ localStorage.setItem('jrpg_db_blobs', JSON.stringify(all)); }catch(e){} }
+  };
+}
+// ---- Fuori da Claude non c'è il database: un piccolo archivio in localStorage con la stessa interfaccia ----
+function makeLocalDb(){
+  const key = c=> 'jrpg_db_' + c;
+  const load = c=>{ try{ return JSON.parse(localStorage.getItem(key(c)) || '{}') || {}; }catch(e){ return {}; } };
+  const save = (c, m)=>{ try{ localStorage.setItem(key(c), JSON.stringify(m)); }catch(e){} };
+  const listeners = {};
+  const snapOf = c=>{ const m = load(c); return {docs: Object.keys(m).map(id=>({id, data:()=>m[id]}))}; };
+  const notify = c=>{ (listeners[c] || []).forEach(fn=>{ try{ fn(snapOf(c)); }catch(e){} }); };
+  return {
+    doc(path){
+      const [c, id] = path.split('/');
+      return {
+        set(d){ const m = load(c); m[id] = d; save(c, m); notify(c); return Promise.resolve(); },
+        delete(){ const m = load(c); delete m[id]; save(c, m); notify(c); return Promise.resolve(); }
+      };
+    },
+    collection(c){
+      return {
+        onSnapshot(fn){ (listeners[c] = listeners[c] || []).push(fn); setTimeout(()=>fn(snapOf(c)), 0); return ()=>{}; },
+        add(d){ const m = load(c); m['a' + Date.now() + Math.random().toString(36).slice(2,6)] = d; save(c, m); return Promise.resolve(); }
+      };
+    }
+  };
+}
+function attachDbListeners(){
+    try{
+      COVER_DB.collection('covers').onSnapshot(snap=>{
+        const next = {}, nextIds = {};
+        snap.docs.forEach(d=>{
+          const v = d.data();
+          if(!v) return;
+          if(typeof v.asset === 'string' && /^[0-9a-f]{32}$/.test(v.asset)){ next[d.id] = localBlobs()[v.asset] || ('/_blob/' + v.asset); nextIds[d.id] = v.asset; }
+          else if(typeof v.url === 'string' && /^https?:\/\//i.test(v.url)){ next[d.id] = v.url; }
+        });
+        USER_COVERS = next; USER_COVER_IDS = nextIds;
+        if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
+      }, ()=>{});
+    }catch(e){}
+    try{
+      COVER_DB.collection('customGames').onSnapshot(snap=>{ syncCustomGames(snap); }, ()=>{});
+    }catch(e){}
+}
+(function initCoverStore(){
+  if(!(window.claude && typeof window.claude.use === 'function')){
+    COVER_DB = makeLocalDb();
+    COVER_ASSETS = makeLocalAssets();
+    COVER_STATE = 'ready';
+    attachDbListeners();
+    coverLog('window.claude non disponibile: pagina aperta fuori dalla piattaforma Claude (es. file salvato in locale)');
+    return;
+  }
+  const markUnavailableIfPending = setTimeout(()=>{
+    if(COVER_STATE === 'pending'){
+      COVER_STATE = 'unavailable';
+      coverLog('use("db")/use("assets") non hanno risposto entro 12s');
+      if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
+    }
+  }, 12000);
+  Promise.all([
+    window.claude.use('db').catch(e=>{ coverLog('use("db") fallita: ' + (e&&e.code||e)); return null; }),
+    window.claude.use('assets').catch(e=>{ coverLog('use("assets") fallita: ' + (e&&e.code||e)); return null; })
+  ]).then(([db, assets])=>{
+    clearTimeout(markUnavailableIfPending);
+    COVER_DB = db || null;
+    COVER_ASSETS = (db && assets) ? assets : null;
+    COVER_STATE = COVER_ASSETS ? 'ready' : 'unavailable';
+    coverLog('capacità risolte — db: ' + !!db + ', foto: ' + !!assets);
+    if(COVER_DB) attachDbListeners();
+    if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
+  });
+})();
+function highlightsHtml(g){
+  const e = g.enrich; if(!e || (!e.storyTag && !e.dopamine)) return '';
+  let out = '<div class="enrich-highlights">';
+  if(e.storyTag && STORY_TAG_INFO[e.storyTag]) out += `<span class="enrich-chip ${e.storyTag}">${STORY_TAG_INFO[e.storyTag].icon} ${STORY_TAG_INFO[e.storyTag].label}${e.storyTagNote ? ' — ' + e.storyTagNote : ''}</span>`;
+  if(e.dopamine) out += `<button type="button" class="enrich-chip dopamine dopa-toggle" aria-expanded="false" aria-controls="dopaPanel">💉 Loop molto coinvolgente <span class="dopa-chev" aria-hidden="true">▾</span></button>`;
+  out += '</div>';
+  if(e.dopamine) out += dopaPanelHtml(g);
+  return out;
+}
+function dopaPanelHtml(g){
+  const d = g.enrich && g.enrich.dopa;
+  const def = `<p class="dopa-def"><b>Cosa vuol dire «dopamina»:</b> il gioco ti premia spesso e ti spinge a dire «ancora un turno». Non misura la qualità, misura quanto è difficile staccarsi.</p>`;
+  if(!d) return `<div class="dopa-panel" id="dopaPanel" hidden>${def}</div>`;
+  const steps = (d.loop||[]).map(s=>`<span class="dopa-step">${escHtml(s)}</span>`).join('<span class="dopa-arrow" aria-hidden="true">→</span>');
+  return `<div class="dopa-panel" id="dopaPanel" hidden>
+    ${def}
+    <span class="dopa-k">Il ciclo che ti tiene incollato</span>
+    <div class="dopa-loop">${steps}</div>
+    <p><span class="dopa-k">🎣 Perché non smetti</span>${escHtml(d.hook)}</p>
+    ${d.watch ? `<p><span class="dopa-k">⚠️ Quando può stancare</span>${escHtml(d.watch)}</p>` : ''}
+  </div>`;
+}
+function customProsConsHtml(g){
+  const pc = g.proscons;
+  if(!pc || !((pc.pros||[]).length || (pc.cons||[]).length)) return '';
+  return `<div class="modal-section-title">➕➖ Pro & Contro</div>
+    <div class="proscons">
+      <ul class="pros">${(pc.pros||[]).map(p=>`<li>${escHtml(p)}</li>`).join('')}</ul>
+      <ul class="cons">${(pc.cons||[]).map(c=>`<li>${escHtml(c)}</li>`).join('')}</ul>
+    </div>`;
+}
+function enrichHtml(g){
+  const e = g.enrich;
+  if(!e && g.custom && customProsConsHtml(g)) return customProsConsHtml(g);
+  if(!e){
+    return `<div class="modal-section-title">🔍 Approfondimento</div><div class="modal-story placeholder">Analisi approfondita (voto nel tempo, gameplay, longevità, lingua...) in arrivo per questo titolo.</div>`;
+  }
+  return `
+    <div class="modal-section-title">⚖️ Voto nel tempo</div>
+    <div class="dualscore-row">
+      <div class="dualscore-box"><span class="dualscore-label">Ai tempi</span><span class="dualscore-val">${e.eraScore}</span></div>
+      <div class="dualscore-box"><span class="dualscore-label">Oggi</span><span class="dualscore-val">${e.todayScore}</span></div>
+    </div>
+    <div class="modal-note">${e.agingNote}</div>
+    <div class="modal-section-title">🎮 Gameplay <span class="badge outline">${e.gameplayScore}/10</span></div>
+    <div class="modal-note">${e.gameplayNote}</div>
+    <div class="modal-section-title">💡 Perché potrebbe piacerti</div>
+    <div class="modal-note">${e.whyLikeIt}</div>
+    <div class="modal-section-title">➕➖ Pro & Contro</div>
+    <div class="proscons">
+      <ul class="pros">${e.pros.map(p=>`<li>${p}</li>`).join('')}</ul>
+      <ul class="cons">${e.cons.map(c=>`<li>${c}</li>`).join('')}</ul>
+    </div>
+    <div class="modal-section-title">⏱️ Longevità</div>
+    <div class="modal-note"><strong>${e.hoursMain}h</strong> storia principale · <strong>${e.hoursCompletionist}h</strong> completista.<br>${e.lengthVerdict}</div>
+    <div class="modal-section-title">ℹ️ Dettagli</div>
+    <div class="modal-note"><strong>Riedizioni:</strong> ${e.remaster}<br><strong>Lingua:</strong> ${e.language}</div>
+  `;
+}
+
+// ---- Etichetta del gioco (stile valori nutrizionali) ----
+const LABEL_PACE = {L:'Lento', M:'Medio', V:'Veloce'};
+const LABEL_IT = {D:'🎙️ Testi e doppiaggio in italiano', S:'✅ Testi/sottotitoli in italiano', F:'🌐 Solo fan-translation', N:'🇬🇧 Solo inglese/altro'};
+const LABEL_STORE = {PS:'PlayStation', XB:'Xbox', NS:'Switch', PC:'PC', MOB:'Mobile'};
+function labelBar(n, max){
+  let out = '<span class="glabel-bar">';
+  for(let i=1;i<=max;i++) out += `<i class="${i<=n?'on':''}"></i>`;
+  return out + '</span>';
+}
+function labelHtml(g){
+  const l = g.label;
+  if(!l) return '';
+  const costLabel = l.cost==='S' ? '€ (< 20)' : l.cost==='M' ? '€€ (20-40)' : l.cost==='H' ? '€€€ (> 40)' : '—';
+  return `<div class="modal-section-title">🏷️ Etichetta del gioco</div>
+  <div class="glabel">
+    <div class="glabel-title">A colpo d'occhio</div>
+    <div class="glabel-grid">
+      <div class="glabel-row"><span>Difficoltà</span><span class="v">${labelBar(l.d,5)}</span></div>
+      <div class="glabel-row"><span>Grinding</span><span class="v">${labelBar(l.g,5)}</span></div>
+      <div class="glabel-row"><span>Peso storia</span><span class="v">${labelBar(l.s,5)}</span></div>
+      <div class="glabel-row"><span>Ritmo</span><span class="v">${LABEL_PACE[l.p]||'—'}</span></div>
+      <div class="glabel-row"><span>Ore (storia)</span><span class="v">${l.h!=null ? l.h+'h' : '—'}</span></div>
+      <div class="glabel-row"><span>Italiano</span><span class="v">${l.it ? LABEL_IT[l.it] : '—'}</span></div>
+    </div>
+    ${l.ok ? `<div class="glabel-ok">🟢 <b>Fa per te se</b>${escHtml(l.ok)}</div>` : ''}
+    ${l.ko ? `<div class="glabel-ko">🔴 <b>Lascia stare se</b>${escHtml(l.ko)}</div>` : ''}
+    ${l.play ? `<div class="glabel-play">🎯 <b>Come giocarlo oggi:</b> ${escHtml(l.play)}</div>` : ''}
+    ${(l.fam && l.fam.length) || l.cost || l.demo!=null ? `<div class="glabel-stores">
+      ${(l.fam||[]).map(f=>`<span class="glabel-store">${LABEL_STORE[f]||f}</span>`).join('')}
+      ${l.cost ? `<span class="glabel-store">${costLabel}</span>` : ''}
+      ${l.demo===true ? `<span class="glabel-store">🆓 Demo disponibile</span>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+
+// ---- Prima di comprarlo: abbonamenti e verdetto, con data di verifica ----
+const SUB_OPTIONS = [
+  {key:'psplus_extra', label:'PS Plus Extra/Premium'},
+  {key:'gamepass', label:'Xbox Game Pass'},
+  {key:'nso', label:'Nintendo Switch Online'},
+  {key:'eaplay', label:'EA Play'},
+  {key:'applearcade', label:'Apple Arcade'}
+];
+let MY_SUBS = {};
+function loadMySubs(){
+  MY_SUBS = {};
+  try{ const s = localStorage.getItem(profileKey('jrpg_my_subs')); if(s) MY_SUBS = JSON.parse(s); }catch(e){ MY_SUBS = {}; }
+}
+loadMySubs();
+function saveMySubs(){ try{ localStorage.setItem(profileKey('jrpg_my_subs'), JSON.stringify(MY_SUBS)); }catch(e){} }
+function subMatchesMine(svcName){
+  const s = (svcName||'').toLowerCase();
+  if(MY_SUBS.psplus_extra && s.indexOf('ps plus')>=0) return true;
+  if(MY_SUBS.gamepass && (s.indexOf('game pass')>=0)) return true;
+  if(MY_SUBS.nso && s.indexOf('nintendo switch online')>=0) return true;
+  if(MY_SUBS.eaplay && s.indexOf('ea play')>=0) return true;
+  if(MY_SUBS.applearcade && s.indexOf('apple arcade')>=0) return true;
+  return false;
+}
+function marketHtml(g){
+  const entries = g.market || [];
+  const asof = (typeof MARKET !== 'undefined' && MARKET.asof) ? MARKET.asof : null;
+  const asofStr = asof ? new Date(asof+'T00:00:00Z').toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}) : null;
+  const mine = entries.filter(e=> subMatchesMine(e.svc));
+  const others = entries.filter(e=> !subMatchesMine(e.svc));
+  const priceUrl = 'https://www.google.com/search?q=' + encodeURIComponent(g.name + ' prezzo offerta oggi');
+  const hltbUrl = 'https://howlongtobeat.com/?q=' + encodeURIComponent(g.name);
+  let verdict;
+  if(mine.length){
+    verdict = `<div class="glabel-ok">🎉 <b>Ce l'hai già!</b> Incluso in ${mine.map(e=>escHtml(e.svc)).join(', ')} — non serve comprarlo.</div>`;
+  } else if(others.length){
+    verdict = `<div class="cover-hint" style="text-align:left; margin-top:0;">Incluso in ${others.map(e=>escHtml(e.svc)).join(', ')}, ma non tra i tuoi abbonamenti segnati qui sotto.</div>`;
+  } else {
+    verdict = `<div class="cover-hint" style="text-align:left; margin-top:0;">Non risulta oggi in nessun abbonamento che ho controllato: verifica il prezzo con il link qui sotto.</div>`;
+  }
+  const notes = entries.filter(e=>e.note).map(e=>`<div class="modal-note">ℹ️ ${escHtml(e.svc)}: ${escHtml(e.note)}</div>`).join('');
+  return `<div class="modal-section-title">🛒 Prima di comprarlo</div>
+  <div class="glabel">
+    ${verdict}
+    ${notes}
+    <div class="glabel-play" style="margin-top:8px;">
+      <a href="${priceUrl}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:700; text-decoration:none;">💶 Controlla il prezzo di oggi</a>
+      &nbsp;·&nbsp;
+      <a href="${hltbUrl}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:700; text-decoration:none;">⏱️ HowLongToBeat</a>
+    </div>
+    <div class="glabel-title" style="margin-top:10px; border-top:2px solid var(--text); padding-top:6px; border-bottom:none;">I tuoi abbonamenti</div>
+    <div class="cover-tools" style="justify-content:flex-start;" id="mySubsRow">
+      ${SUB_OPTIONS.map(o=>`<button type="button" class="tagchip ${MY_SUBS[o.key]?'active':''}" data-sub="${o.key}">${o.label}</button>`).join('')}
+    </div>
+    ${asofStr ? `<div class="cover-hint" style="margin-top:8px;">Abbonamenti verificati il ${asofStr}. Aggiorno automaticamente ogni settimana.</div>` : ''}
+  </div>`;
+}
+
+// ---- DNA di compatibilità: quanto un gioco assomiglia ai tuoi gusti ----
+function buildTasteProfile(){
+  const liked = GAMES.filter(g=> FAVS.has(g.id) || STATUSES[g.id]==='played' || STATUSES[g.id]==='playing');
+  const dropped = GAMES.filter(g=> STATUSES[g.id]==='dropped');
+  const profile = {tagScore:{}, tierBias:0, avgScore:0, n:liked.length, dropTags:{}};
+  if(liked.length===0) return profile;
+  let scoreSum = 0;
+  liked.forEach(g=>{
+    const weight = FAVS.has(g.id) ? 2 : 1;
+    g.tags.forEach(t=> profile.tagScore[t] = (profile.tagScore[t]||0) + weight);
+    scoreSum += g.score;
+  });
+  dropped.forEach(g=> g.tags.forEach(t=> profile.dropTags[t] = (profile.dropTags[t]||0) + 1));
+  profile.avgScore = scoreSum / liked.length;
+  return profile;
+}
+function dnaForGame(g, profile){
+  if(!profile || profile.n < 2) return null;
+  const maxTag = Math.max(1, ...Object.values(profile.tagScore));
+  let tagMatch = 0, matchedTags = [];
+  g.tags.forEach(t=>{
+    if(profile.tagScore[t]){ tagMatch += profile.tagScore[t]/maxTag; matchedTags.push(t); }
+  });
+  tagMatch = g.tags.length ? Math.min(1, tagMatch / g.tags.length) : 0;
+  const scoreDelta = Math.max(0, 1 - Math.abs(g.score - profile.avgScore)/30);
+  let penalty = 0, avoidTags = [];
+  g.tags.forEach(t=>{ if(profile.dropTags[t]){ penalty += 0.12; avoidTags.push(t); } });
+  let pct = Math.round((tagMatch*0.65 + scoreDelta*0.35) * 100 - penalty*100);
+  pct = Math.max(3, Math.min(99, pct));
+  return {pct, matchedTags, avoidTags};
+}
+function dnaColor(pct){
+  if(pct>=75) return '#2f9e6b';
+  if(pct>=50) return '#c9a12a';
+  return '#c93a3a';
+}
+function dnaHtml(g){
+  const profile = buildTasteProfile();
+  if(profile.n < 2) return '';
+  const dna = dnaForGame(g, profile);
+  if(!dna) return '';
+  const color = dnaColor(dna.pct);
+  let why = matchWhy(dna, g);
+  return `<div class="dna-box">
+    <div class="dna-ring" style="background:conic-gradient(${color} ${dna.pct*3.6}deg, var(--row-alt) 0deg); color:var(--text);"><span style="background:var(--card); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">${dna.pct}%</span></div>
+    <div class="dna-why"><b>DNA di compatibilità</b> — basato sui giochi che hai segnato come preferiti o giocati.<br>${why}</div>
+  </div>`;
+}
+function matchWhy(dna, g){
+  if(dna.avoidTags.length) return `Attenzione: condivide elementi (${dna.avoidTags.map(t=>TAG_INFO[t]?TAG_INFO[t].label:t).join(', ')}) con giochi che hai droppato.`;
+  if(dna.matchedTags.length) return `Condivide ${dna.matchedTags.map(t=>TAG_INFO[t]?TAG_INFO[t].label:t).join(', ')} con i tuoi giochi preferiti, e un voto vicino alla tua media gradita.`;
+  return `Genere diverso da quelli che ti sono piaciuti finora — potrebbe essere una scoperta o un azzardo.`;
+}
+
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalCard = document.getElementById('modalCard');
+const wizardBackdrop = document.getElementById('wizardBackdrop');
+const wizardCard = document.getElementById('wizardCard');
+
+function openModal(g){
+  currentModalGame = g;
+  modalCard.classList.remove('wide');
+  const isFav = FAVS.has(g.id);
+  const storyHtml = g.story
+    ? `<div class="modal-story">${g.story}</div>`
+    : `<div class="modal-story placeholder">Scheda narrativa in arrivo per questo titolo — verrà aggiunta durante la prossima fase di aggiornamento del compendio.</div>`;
+  const reviewUrl = itReviewsUrl(g.name);
+  const imagesUrl = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(g.name + ' gameplay screenshot');
+  const youtubeUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(g.name + ' Gameplay ITA');
+  const soundtrackUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(g.name + ' soundtrack OST colonna sonora');
+  modalCard.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-title">${g.name}</div>
+      <button class="modal-close" id="modalCloseBtn" aria-label="Chiudi">✕</button>
+    </div>
+    ${coverHtml(g)}
+    <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
+    <div class="modal-badges">
+      <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
+      <span class="badge big outline">${g.score}/100</span>
+      <span class="badge big outline">${methodIcon(g.m)} ${g.m==='V' ? 'Verificato' : 'Stima'}</span>
+    </div>
+    <div class="modal-tags">${g.tags.map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
+    ${dnaHtml(g)}
+    ${labelHtml(g)}
+    ${marketHtml(g)}
+    ${highlightsHtml(g)}
+    ${sagaHtml(g)}
+    <div class="modal-section-title">Il tuo stato</div>
+    <div class="status-row" id="statusRow">
+      ${Object.keys(STATUS_INFO).map(k=> `<button class="btn ${STATUSES[g.id]===k?'on':''}" data-status="${k}">${STATUS_INFO[k].icon} ${STATUS_INFO[k].label}</button>`).join('')}
+    </div>
+    <div class="modal-section-title">📖 La storia (senza spoiler)</div>
+    ${storyHtml}
+    ${g.note ? `<div class="modal-section-title">Nota</div><div class="modal-note">${g.note}</div>` : ''}
+    ${castHtml(g)}
+    ${enrichHtml(g)}
+    ${soundtrackHtml(g)}
+    ${similarGamesHtml(g)}
+    <div class="modal-links">
+      <a class="btn" href="${youtubeUrl}" target="_blank" rel="noopener">▶️ Gameplay ITA (YouTube)</a>
+      <a class="btn" href="${reviewUrl}" target="_blank" rel="noopener">📰 Recensioni ITA</a>
+      <a class="btn" href="${imagesUrl}" target="_blank" rel="noopener">🖼️ Immagini gameplay</a>
+      <a class="btn" href="${soundtrackUrl}" target="_blank" rel="noopener">🎵 Colonna sonora (YouTube)</a>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="modalFavBtn">${isFav ? '★ Nei preferiti' : '☆ Aggiungi ai preferiti'}</button>
+      <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
+      ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : '<button class="btn" id="updateInfoBtn">🔄 Aggiorna info</button>'}
+      <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
+    </div>
+  `;
+  modalBackdrop.classList.add('show');
+  document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+  document.getElementById('modalCloseBtn2').addEventListener('click', closeModal);
+  document.getElementById('modalCompareBtn').addEventListener('click', ()=>{
+    toggleCompare(g.id);
+    openModal(g);
+  });
+  document.getElementById('modalFavBtn').addEventListener('click', ()=>{
+    if(FAVS.has(g.id)){ FAVS.delete(g.id); showToast('Rimosso dai preferiti'); }
+    else { FAVS.add(g.id); showToast('Aggiunto ai preferiti'); }
+    saveFavs(); renderMetrics(); render();
+    openModal(g);
+  });
+  document.getElementById('statusRow').querySelectorAll('[data-status]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      setStatus(g.id, btn.dataset.status);
+      renderMetrics(); render();
+      openModal(g);
+    });
+  });
+  wireCover(g);
+  const mySubsRow = document.getElementById('mySubsRow');
+  if(mySubsRow){
+    mySubsRow.querySelectorAll('[data-sub]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const key = btn.dataset.sub;
+        MY_SUBS[key] = !MY_SUBS[key];
+        saveMySubs();
+        openModal(g);
+      });
+    });
+  }
+  const dopaBtn = modalCard.querySelector('.dopa-toggle');
+  if(dopaBtn){
+    dopaBtn.addEventListener('click', ()=>{
+      const panel = document.getElementById('dopaPanel'); if(!panel) return;
+      const willOpen = panel.hidden;
+      panel.hidden = !willOpen;
+      dopaBtn.setAttribute('aria-expanded', String(willOpen));
+    });
+  }
+  modalCard.querySelectorAll('.similar-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const gg = GAMES.find(x=>x.id===parseInt(btn.dataset.id,10));
+      if(gg) openModal(gg);
+    });
+  });
+}
+function closeModal(){ modalBackdrop.classList.remove('show'); }
+modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop) closeModal(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ closeLightbox(); closeModal(); } });
+
+// ---- Lightbox (foto a schermo intero) ----
+const lightboxBackdrop = document.getElementById('lightboxBackdrop');
+const lightboxImg = document.getElementById('lightboxImg');
+function openLightbox(src, alt){
+  lightboxImg.src = src;
+  lightboxImg.alt = alt || '';
+  lightboxBackdrop.classList.add('show');
+}
+function closeLightbox(){ lightboxBackdrop.classList.remove('show'); }
+lightboxBackdrop.addEventListener('click', (e)=>{ if(e.target!==lightboxImg) closeLightbox(); });
+document.getElementById('lightboxCloseBtn').addEventListener('click', closeLightbox);
+
+// ---- Confronto testa a testa ----
+let compareList = [];
+function renderCompareTray(){
+  const tray = document.getElementById('compareTray');
+  const items = document.getElementById('compareTrayItems');
+  const goBtn = document.getElementById('compareGoBtn');
+  if(compareList.length===0){ tray.style.display='none'; return; }
+  tray.style.display='flex';
+  items.innerHTML = compareList.map(id=>{
+    const g = GAMES.find(x=>x.id===id);
+    return g ? `<span class="compare-tray-chip">${g.name}<button data-id="${id}">✕</button></span>` : '';
+  }).join('');
+  items.querySelectorAll('button[data-id]').forEach(b=>{
+    b.addEventListener('click', ()=>{ toggleCompare(parseInt(b.dataset.id,10)); });
+  });
+  goBtn.disabled = compareList.length !== 2;
+  goBtn.textContent = compareList.length===2 ? '⚖️ Confronta ora' : `⚖️ Aggiungine un altro (${compareList.length}/2)`;
+}
+function toggleCompare(id){
+  const idx = compareList.indexOf(id);
+  if(idx>=0){ compareList.splice(idx,1); }
+  else {
+    if(compareList.length>=2) compareList.shift();
+    compareList.push(id);
+  }
+  renderCompareTray();
+}
+document.getElementById('compareGoBtn').addEventListener('click', ()=>{
+  if(compareList.length===2) openCompareModal(compareList[0], compareList[1]);
+});
+function openCompareModal(id1, id2){
+  const g1 = GAMES.find(x=>x.id===id1), g2 = GAMES.find(x=>x.id===id2);
+  if(!g1||!g2) return;
+  modalCard.classList.add('wide');
+  const col = (g)=>{
+    const storyHtml = g.story || 'Scheda narrativa non ancora disponibile per questo titolo.';
+    const tagsHtml = g.tags.map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('');
+    return `<div class="compare-col">
+        <div class="compare-name">${g.name}</div>
+        <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
+        <div class="modal-badges">
+          <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
+          <span class="badge big outline">${g.score}/100</span>
+        </div>
+        <div class="modal-tags">${tagsHtml}</div>
+        <div class="compare-story">${storyHtml}</div>
+      </div>`;
+  };
+  modalCard.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-title">⚖️ Confronto</div>
+      <button class="modal-close" id="modalCloseBtn">✕</button>
+    </div>
+    <div class="compare-grid">${col(g1)}${col(g2)}</div>
+    <div class="modal-actions"><button class="btn primary" id="modalCloseBtn2">Chiudi</button></div>
+  `;
+  modalBackdrop.classList.add('show');
+  document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+  document.getElementById('modalCloseBtn2').addEventListener('click', closeModal);
+}
+
+// CSV export
+async function getDownloadsCap(){
+  try{
+    if(typeof claude === 'undefined' || !claude.use) return null;
+    return await claude.use('downloads');
+  }catch(e){ return null; }
+}
+function toCsvValue(v){
+  const s = String(v==null ? '' : v);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+function buildCsv(list){
+  const header = ['Numero','Nome','Piattaforma','Anno','Tier','Voto','Fonte','Preferito','Storia'];
+  const lines = [header.join(',')];
+  list.forEach(g=>{
+    lines.push([g.id, g.name, g.plat, g.year, g.tier, g.score,
+      methodLabel(g.m), FAVS.has(g.id)?'Si':'No', g.story].map(toCsvValue).join(','));
+  });
+  return lines.join('\n');
+}
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  const list = applyFilters();
+  const csv = buildCsv(list);
+  const filename = 'tier-list-jrpg-filtrata.csv';
+  const cap = await getDownloadsCap();
+  if(cap){
+    try{ await cap.save({filename, data: new Blob([csv], {type:'text/csv'})}); showToast('CSV salvato'); return; }
+    catch(e){}
+  }
+  try{
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    showToast('CSV scaricato');
+  }catch(e){ showToast('Esportazione non disponibile qui'); }
+});
+
+// ---- Nuove funzioni: saga, cast, colonna sonora, consigli incrociati ----
+function sagaHtml(g){
+  const key = SAGA_MAP[g.id];
+  if(!key) return '';
+  const info = SAGA_INFO[key];
+  if(!info) return '';
+  return `<div class="saga-note"><span class="saga-note-title">🗂️ Saga: ${info.name}</span><span class="saga-note-order">${info.order}</span><div class="saga-note-text">${info.note}</div></div>`;
+}
+function castHtml(g){
+  const cast = g.enrich && g.enrich.cast;
+  if(!cast || !cast.length) return '';
+  return `<div class="modal-section-title">🎭 Cast principale</div><div class="cast-list">${cast.map(c=>`<div class="cast-item"><b>${c.name}</b> — ${c.role}</div>`).join('')}</div>`;
+}
+function soundtrackHtml(g){
+  const st = g.enrich && g.enrich.soundtrack;
+  if(!st) return '';
+  const tracks = (st.tracks||[]).map(t=>`<li>${t}</li>`).join('');
+  return `<div class="modal-section-title">🎼 Colonna sonora</div><div class="modal-note"><strong>Compositore:</strong> ${st.composer}</div><ul class="soundtrack-tracks">${tracks}</ul>`;
+}
+function findSimilarGames(g, n){
+  const scored = GAMES.filter(x=>x.id!==g.id).map(x=>{
+    let score = 0;
+    const sharedTags = x.tags.filter(t=> g.tags.includes(t)).length;
+    score += sharedTags;
+    if(g.enrich && x.enrich && g.enrich.storyTag && x.enrich.storyTag===g.enrich.storyTag) score += 2;
+    if(x.tier===g.tier) score += 0.5;
+    return {x, score};
+  }).filter(o=>o.score>0);
+  scored.sort((a,b)=> b.score-a.score || b.x.score-a.x.score);
+  return scored.slice(0,n).map(o=>o.x);
+}
+function similarGamesHtml(g){
+  const sims = findSimilarGames(g, 4);
+  if(!sims.length) return '';
+  return `<div class="modal-section-title">🔁 Se ti è piaciuto questo, prova anche</div><div class="similar-games">${sims.map(s=>`<button class="similar-chip" data-id="${s.id}"><span class="badge ${TIER_LABEL[s.tier]}">${s.tier}</span>${s.name}</button>`).join('')}</div>`;
+}
+
+// ---- Vista "per saga" ----
+function renderSagaView(){
+  const panel = document.getElementById('sagaPanel');
+  if(!panel) return;
+  const list = applyFilters();
+  const bySaga = {};
+  list.forEach(g=>{
+    const key = SAGA_MAP[g.id];
+    if(!key) return;
+    if(!bySaga[key]) bySaga[key]=[];
+    bySaga[key].push(g);
+  });
+  const keys = Object.keys(bySaga).sort((a,b)=> bySaga[b].length - bySaga[a].length);
+  if(keys.length===0){
+    panel.innerHTML = '<div class="empty">Nessuna saga corrisponde ai filtri attuali (prova a rimuovere qualche filtro).</div>';
+    return;
+  }
+  panel.innerHTML = `<div class="count-line" style="margin-bottom:10px;"><span>${keys.length} saghe multi-capitolo trovate (su ${list.length} giochi visibili)</span></div>` + keys.map(key=>{
+    const info = SAGA_INFO[key];
+    const games = bySaga[key].slice().sort((a,b)=> (a.ysort||0)-(b.ysort||0));
+    return `<div class="saga-section">
+      <div class="saga-section-head">
+        <span class="saga-section-name">${info.name}</span>
+        <span class="badge outline">${games.length} giochi</span>
+        <span class="badge outline">${info.order}</span>
+      </div>
+      <div class="saga-section-note">${info.note}</div>
+      <div class="saga-games-grid">${games.map(g=>`<button class="saga-game-chip" data-id="${g.id}"><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>${g.name}${g.year?` (${g.year})`:''}</button>`).join('')}</div>
+    </div>`;
+  }).join('');
+  panel.querySelectorAll('.saga-game-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const gg = GAMES.find(x=>x.id===parseInt(btn.dataset.id,10));
+      if(gg) openModal(gg);
+    });
+  });
+}
+
+// ---- Vista "Scopri" (scoperta in stile swipe, tipo Tinder) ----
+let DISCOVER_SKIPPED = new Set();
+function loadDiscoverSkipped(){
+  DISCOVER_SKIPPED = new Set();
+  try{ const ds = localStorage.getItem(profileKey('jrpg_discover_skipped')); if(ds) DISCOVER_SKIPPED = new Set(JSON.parse(ds)); }catch(e){ DISCOVER_SKIPPED = new Set(); }
+}
+loadDiscoverSkipped();
+function saveDiscoverSkipped(){ try{ localStorage.setItem(profileKey('jrpg_discover_skipped'), JSON.stringify(Array.from(DISCOVER_SKIPPED))); }catch(e){} }
+let discoverQueue = [];
+let discoverIdx = 0;
+let discoverHistory = [];
+function buildDiscoverQueue(){
+  const profile = buildTasteProfile();
+  const pool = GAMES.filter(g=> !FAVS.has(g.id) && !STATUSES[g.id] && !DISCOVER_SKIPPED.has(g.id));
+  const scored = pool.map(g=>({g, dna: dnaForGame(g, profile)}));
+  scored.sort((a,b)=>{
+    if(a.dna && b.dna) return b.dna.pct - a.dna.pct;
+    if(a.dna && !b.dna) return -1;
+    if(!a.dna && b.dna) return 1;
+    return b.g.score - a.g.score;
+  });
+  return scored.map(o=>o.g);
+}
+function currentDiscoverGame(){ return discoverQueue[discoverIdx] || null; }
+function discoverCoverMedia(g){
+  const url = effectiveCover(g);
+  if(url) return `<img src="${escHtml(url)}" alt="Copertina di ${escHtml(g.name)}" loading="lazy" decoding="async" draggable="false">`;
+  const platShort = (g.plat||'').split('/')[0].trim();
+  return `<div class="discover-cover-placeholder"><span class="pc-plat">${escHtml(platShort)}</span><span class="pc-tier ${TIER_LABEL[g.tier]}">${g.tier}</span></div>`;
+}
+function discoverCardHtml(g){
+  if(!g){
+    const anyLeftToRevisit = DISCOVER_SKIPPED.size > 0;
+    return `<div class="discover-empty">
+      <div class="discover-empty-icon">🎉</div>
+      <div>${GAMES.length ? 'Hai visto tutti i giochi che potevano interessarti (in base a preferiti, stati e scarti già segnati).' : 'Nessun gioco da scoprire al momento.'}</div>
+      ${anyLeftToRevisit ? `<button class="btn" id="discoverResetBtn">🔄 Rivedi quelli scartati (${DISCOVER_SKIPPED.size})</button>` : ''}
+    </div>`;
+  }
+  const profile = buildTasteProfile();
+  const dna = dnaForGame(g, profile);
+  return `<div class="discover-card" id="discoverCard" data-id="${g.id}">
+    <div class="discover-swipe-tag discover-like">MI INTERESSA</div>
+    <div class="discover-swipe-tag discover-nope">PASSO</div>
+    <div class="discover-cover">${discoverCoverMedia(g)}</div>
+    <div class="discover-body">
+      <div class="discover-title">${escHtml(g.name)}</div>
+      <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
+      <div class="modal-badges">
+        <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
+        <span class="badge big outline">${g.score}/100</span>
+        ${dna ? `<span class="badge big outline" style="color:${dnaColor(dna.pct)};">🧬 ${dna.pct}%</span>` : ''}
+      </div>
+      <div class="modal-tags">${g.tags.slice(0,4).map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
+      ${g.label && g.label.ok ? `<div class="glabel-ok" style="margin-top:8px;">🟢 ${escHtml(g.label.ok)}</div>` : (g.enrich && g.enrich.whyLikeIt ? `<div class="modal-note">${g.enrich.whyLikeIt}</div>` : '')}
+    </div>
+  </div>`;
+}
+function renderDiscoverView(){
+  discoverQueue = buildDiscoverQueue();
+  discoverIdx = 0;
+  discoverHistory = [];
+  renderDiscoverCard();
+}
+function renderDiscoverCard(){
+  const panel = document.getElementById('discoverPanel');
+  if(!panel) return;
+  const g = currentDiscoverGame();
+  panel.innerHTML = `<div class="discover-wrap">
+    <div class="discover-stage">${discoverCardHtml(g)}</div>
+    ${g ? `<div class="discover-actions">
+      <button class="discover-btn nope" id="discoverNopeBtn" title="Non fa per me">✕</button>
+      <button class="discover-btn undo" id="discoverUndoBtn" title="Annulla ultima scelta" ${discoverHistory.length ? '' : 'disabled'}>↩️</button>
+      <button class="discover-btn info" id="discoverInfoBtn" title="Vedi tutti i dettagli">ℹ️</button>
+      <button class="discover-btn like" id="discoverLikeBtn" title="Mi interessa, da giocare">♥</button>
+    </div>
+    <div class="discover-hint">Trascina la copertina a destra/sinistra, oppure usa i pulsanti · ${discoverQueue.length - discoverIdx} da vedere</div>` : ''}
+  </div>`;
+  wireDiscoverCard();
+}
+function discoverAdvance(action){
+  const g = currentDiscoverGame();
+  if(!g) return;
+  discoverHistory.push({id:g.id, action, prevStatus: STATUSES[g.id] || null});
+  if(action==='like'){
+    STATUSES[g.id] = 'backlog';
+    saveStatuses(); renderMetrics();
+    showToast(`📌 ${g.name} aggiunto a "da giocare"`);
+  } else {
+    DISCOVER_SKIPPED.add(g.id);
+    saveDiscoverSkipped();
+  }
+  discoverIdx++;
+  renderDiscoverCard();
+}
+function discoverUndo(){
+  const last = discoverHistory.pop();
+  if(!last) return;
+  if(last.action==='like'){
+    if(last.prevStatus) STATUSES[last.id] = last.prevStatus; else delete STATUSES[last.id];
+    saveStatuses(); renderMetrics();
+  } else {
+    DISCOVER_SKIPPED.delete(last.id);
+    saveDiscoverSkipped();
+  }
+  discoverIdx = Math.max(0, discoverIdx - 1);
+  if(!discoverQueue[discoverIdx] || discoverQueue[discoverIdx].id !== last.id){
+    const pos = discoverQueue.findIndex(x=>x.id===last.id);
+    if(pos>=0){ const item = discoverQueue.splice(pos,1)[0]; discoverQueue.splice(discoverIdx,0,item); }
+    else { const gg = GAMES.find(x=>x.id===last.id); if(gg) discoverQueue.splice(discoverIdx,0,gg); }
+  }
+  renderDiscoverCard();
+  showToast('Scelta annullata');
+}
+function wireDiscoverCard(){
+  const nopeBtn = document.getElementById('discoverNopeBtn');
+  const likeBtn = document.getElementById('discoverLikeBtn');
+  const undoBtn = document.getElementById('discoverUndoBtn');
+  const infoBtn = document.getElementById('discoverInfoBtn');
+  const resetBtn = document.getElementById('discoverResetBtn');
+  if(nopeBtn) nopeBtn.addEventListener('click', ()=> discoverAdvance('skip'));
+  if(likeBtn) likeBtn.addEventListener('click', ()=> discoverAdvance('like'));
+  if(undoBtn) undoBtn.addEventListener('click', discoverUndo);
+  if(infoBtn) infoBtn.addEventListener('click', ()=>{ const g = currentDiscoverGame(); if(g) openModal(g); });
+  if(resetBtn) resetBtn.addEventListener('click', ()=>{
+    DISCOVER_SKIPPED.clear(); saveDiscoverSkipped();
+    showToast('Elenco degli scartati azzerato');
+    renderDiscoverView();
+  });
+  const card = document.getElementById('discoverCard');
+  if(card) wireDiscoverSwipe(card);
+}
+function wireDiscoverSwipe(card){
+  let startX = 0, dx = 0, dragging = false;
+  const likeTag = card.querySelector('.discover-like');
+  const nopeTag = card.querySelector('.discover-nope');
+  card.addEventListener('pointerdown', (e)=>{
+    dragging = true; startX = e.clientX; dx = 0;
+    card.classList.add('dragging');
+    try{ card.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  card.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    dx = e.clientX - startX;
+    const rot = dx / 14;
+    card.style.transform = `translateX(${dx}px) rotate(${rot}deg)`;
+    const op = Math.min(1, Math.abs(dx) / 90);
+    if(dx > 0){ likeTag.style.opacity = op; nopeTag.style.opacity = 0; }
+    else { nopeTag.style.opacity = op; likeTag.style.opacity = 0; }
+  });
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    card.classList.remove('dragging');
+    if(Math.abs(dx) > 110){
+      const dir = dx > 0 ? 1 : -1;
+      card.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+      card.style.transform = `translateX(${dir*700}px) rotate(${dir*24}deg)`;
+      card.style.opacity = '0';
+      setTimeout(()=> discoverAdvance(dir>0 ? 'like' : 'skip'), 200);
+    } else {
+      card.style.transition = 'transform 0.2s';
+      card.style.transform = 'translateX(0) rotate(0)';
+      likeTag.style.opacity = 0; nopeTag.style.opacity = 0;
+    }
+    dx = 0;
+  }
+  card.addEventListener('pointerup', endDrag);
+  card.addEventListener('pointercancel', endDrag);
+  card.addEventListener('pointerleave', (e)=>{ if(dragging && e.buttons===0) endDrag(); });
+}
+
+// ---- Wizard "Cosa gioco stasera?" ----
+let wizardAnswers = {time:'', mood:'', tier:''};
+let wizardStep = 0;
+function openWizard(){
+  wizardAnswers = {time:'', mood:'', tier:''};
+  wizardStep = 0;
+  renderWizardStep();
+  wizardBackdrop.classList.add('show');
+}
+function closeWizard(){ wizardBackdrop.classList.remove('show'); }
+function renderWizardStep(){
+  const q = WIZARD_QUESTIONS[wizardStep];
+  wizardCard.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-title">🧭 Cosa gioco stasera?</div>
+      <button class="modal-close" id="wizardCloseBtn" aria-label="Chiudi">✕</button>
+    </div>
+    <div class="modal-note">Domanda ${wizardStep+1} di ${WIZARD_QUESTIONS.length}</div>
+    <div class="modal-section-title">${q.question}</div>
+    <div class="wizard-options">${q.options.map(o=>`<button class="btn wizard-opt" data-value="${o.value}">${o.label}</button>`).join('')}</div>
+  `;
+  document.getElementById('wizardCloseBtn').addEventListener('click', closeWizard);
+  wizardCard.querySelectorAll('.wizard-opt').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      wizardAnswers[q.key] = btn.dataset.value;
+      wizardStep++;
+      if(wizardStep >= WIZARD_QUESTIONS.length) finishWizard();
+      else renderWizardStep();
+    });
+  });
+}
+function finishWizard(){
+  let pool = GAMES.slice();
+  if(wizardAnswers.time==='short') pool = pool.filter(g=> g.enrich && g.enrich.hoursMain && g.enrich.hoursMain<=20);
+  else if(wizardAnswers.time==='medium') pool = pool.filter(g=> g.enrich && g.enrich.hoursMain && g.enrich.hoursMain>20 && g.enrich.hoursMain<=50);
+  else if(wizardAnswers.time==='long') pool = pool.filter(g=> g.enrich && g.enrich.hoursMain && g.enrich.hoursMain>50);
+  if(wizardAnswers.mood==='relax') pool = pool.filter(g=> g.enrich && (g.enrich.dopamine || (g.enrich.gameplayScore||0)>=7) && !g.tags.includes('HOR') && !g.tags.includes('SOUL'));
+  else if(wizardAnswers.mood==='story') pool = pool.filter(g=> g.enrich && g.enrich.storyTag);
+  else if(wizardAnswers.mood==='challenge') pool = pool.filter(g=> g.tags.includes('TAC')||g.tags.includes('SOUL')||g.tags.includes('WAR'));
+  else if(wizardAnswers.mood==='action') pool = pool.filter(g=> g.tags.includes('ACT')||g.tags.includes('MECH'));
+  if(wizardAnswers.tier==='top') pool = pool.filter(g=> g.tier==='S+'||g.tier==='S');
+  else if(wizardAnswers.tier==='good') pool = pool.filter(g=> ['S+','S','A','B'].includes(g.tier));
+  if(pool.length===0) pool = GAMES.slice();
+  const pick = pool[Math.floor(Math.random()*pool.length)];
+  closeWizard();
+  openModal(pick);
+  showToast(`La sorte ha scelto: ${pick.name}`);
+}
+document.getElementById('wizardBtn').addEventListener('click', openWizard);
+wizardBackdrop.addEventListener('click', (e)=>{ if(e.target===wizardBackdrop) closeWizard(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdrop.classList.contains('show')) closeWizard(); });
