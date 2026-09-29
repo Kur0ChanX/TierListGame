@@ -2276,6 +2276,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v91', date:'2026-09-29', items:[
+    '"Aggiorna info" consulta altre fonti per la lingua italiana: Steam (interfaccia, audio, sottotitoli) e PCGamingWiki, oltre a it.wikipedia. Propone il cambio solo con prova positiva e mostra il link alla fonte; se una fonte non risponde lo dice. Nessuna ricerca in massa: solo sul gioco che apri.'
+  ]},
   {version:'v90', date:'2026-09-29', items:[
     'Aggiornamenti subito visibili sul sito: il browser non tiene più in cache la vecchia versione (prima poteva restare fino a 10 minuti). Dopo questa versione basta riaprire il sito.'
   ]},
@@ -3634,7 +3637,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v90';
+const DATA_BUILD_VERSION = 'v91';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

@@ -78,14 +78,55 @@
     const txt = (w.parse && w.parse.wikitext && w.parse.wikitext['*']) || '';
     return {title: hit.title, url: 'https://it.wikipedia.org/wiki/' + encodeURIComponent(hit.title.replace(/ /g, '_')), dub: /doppiatore italiano|doppiaggio italiano|doppiato in italiano/i.test(txt)};
   }
+  // ---- Steam: lingue ufficiali (interfaccia/audio/sottotitoli). Steam non permette l'accesso diretto dal browser: si passa da un ponte pubblico (CORS proxy). Se il ponte non risponde, la fonte viene saltata senza errori.
+  const PROXIES = [u=> 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u), u=> 'https://corsproxy.io/?' + encodeURIComponent(u)];
+  async function viaProxy(url){
+    for(const p of PROXIES){
+      try{ const r = await fetch(p(url), {signal: AbortSignal.timeout(9000)}); if(r.ok){ const t = await r.text(); try{ return JSON.parse(t); }catch(e){} } }catch(e){}
+    }
+    throw new Error('ponte non raggiungibile');
+  }
+  async function steamInfo(name){
+    const base = baseName(name), target = normGameName(base);
+    const s = await viaProxy('https://store.steampowered.com/api/storesearch/?term=' + encodeURIComponent(base) + '&cc=IT&l=english');
+    const hit = ((s && s.items) || []).find(x=> x.type === 'app' && normGameName(String(x.name).replace(/\s*\([^)]*\)/g, '')) === target);
+    if(!hit) return null;
+    const d = await viaProxy('https://store.steampowered.com/api/appdetails?appids=' + hit.id + '&l=english&filters=basic,supported_languages');
+    const html = d && d[hit.id] && d[hit.id].data && d[hit.id].data.supported_languages || '';
+    if(!html) return null;
+    const it = /Italian(<strong>\*<\/strong>)?/i.exec(html);
+    return {id: hit.id, url: 'https://store.steampowered.com/app/' + hit.id + '/', itText: !!it, itAudio: !!(it && it[1]), langs: html.replace(/<[^>]+>/g, '').replace(/languages with full audio support/i, '').trim().slice(0, 300)};
+  }
+  // ---- PCGamingWiki: tabella lingue (interfaccia/audio/sottotitoli). Accesso diretto dal browser; se non risponde viene saltata.
+  async function pcgwInfo(name){
+    const base = baseName(name);
+    const q = new URLSearchParams({action:'cargoquery', tables:'L10n', fields:'_pageName=page,Language,Interface,Audio,Subtitles', where:`_pageName="${base.replace(/"/g, '')}" AND Language="Italian"`, format:'json', origin:'*'});
+    const r = await fetch('https://www.pcgamingwiki.com/w/api.php?' + q, {signal: AbortSignal.timeout(9000)});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json(); const row = j.cargoquery && j.cargoquery[0] && j.cargoquery[0].title;
+    if(!row) return null;
+    const yes = x=> String(x).toLowerCase() === 'true';
+    return {url: 'https://www.pcgamingwiki.com/wiki/' + encodeURIComponent(row.page.replace(/ /g, '_')), itText: yes(row.Interface) || yes(row.Subtitles), itAudio: yes(row.Audio)};
+  }
   async function gather(g){
-    const [wiki, wd, itw] = await Promise.allSettled([wikiPage(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name)]);
-    return {wiki: wiki.status === 'fulfilled' ? wiki.value : null, wd: wd.status === 'fulfilled' ? wd.value : null, itw: itw.status === 'fulfilled' ? itw.value : null,
+    const [wiki, wd, itw, steam, pcgw] = await Promise.allSettled([wikiPage(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), steamInfo(g.name), pcgwInfo(g.name)]);
+    const ok = x=> x.status === 'fulfilled' ? x.value : null;
+    return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
   function factChanges(g, src){
     const ch = [];
+    // lingua italiana da fonti ufficiali (solo prove positive: se un sito non elenca l'italiano non significa che il gioco non lo abbia; l'edizione PC può differire da quella console)
+    { const cur = (g.label || {}).it, rank = {N:0, F:0, S:1, D:2};
+      const found = [];
+      if(src.steam && src.steam.itText) found.push({code: src.steam.itAudio ? 'D' : 'S', name:'Steam', url: src.steam.url, audio: src.steam.itAudio});
+      if(src.pcgw && src.pcgw.itText) found.push({code: src.pcgw.itAudio ? 'D' : 'S', name:'PCGamingWiki', url: src.pcgw.url, audio: src.pcgw.itAudio});
+      const best = found.sort((a, b)=> rank[b.code] - rank[a.code])[0];
+      if(best && (rank[cur] || 0) < rank[best.code]){
+        ch.push({id:'itsrc', label:'🇮🇹 Lingua italiana (' + found.map(f=> f.name).join(' + ') + ')', from: `italiano: ${cur || '—'}`, to: (best.code === 'D' ? 'testi e doppiaggio in italiano' : 'testi/sottotitoli in italiano') + ' — ' + found.map(f=> f.url).join(' · '), patch:{label:{it: best.code}}});
+      }
+    }
     if(src.itw && src.itw.dub && (g.label || {}).it !== 'D'){
       ch.push({id:'itdub', label:'🎙️ Doppiaggio italiano', from: `italiano: ${(g.label || {}).it || '—'}`, to: `testi e doppiaggio in italiano (prova: la voce di it.wikipedia "${src.itw.title}" elenca i doppiatori italiani) ${src.itw.url}`, patch:{label:{it:'D'}}});
     }
@@ -139,7 +180,7 @@ ${digest(src.wiki.text)}`;
   async function deepChanges(g){
     if(!geminiKey()) return {changes:[], sources:[], note:'Ricerca approfondita (ore, difficoltà, lingua, gameplay) non fatta: serve la chiave Gemini.'};
     const Y = new Date().getFullYear();
-    const prompt = todayLine() + `Fai le ricerche includendo gli anni ${Y} e ${Y - 1} nelle query. Per le informazioni che cambiano nel tempo (piattaforme, edizioni, lingue, prezzi, abbonamenti, patch, ore dopo gli aggiornamenti) usa SOLO pagine datate ${Y - 2} o dopo e ignora quelle senza data o più vecchie; per le informazioni storiche (trama, voto alla prima uscita) va bene qualsiasi anno. Se per un dato non trovi fonti aggiornate scrivi null. Cerca online informazioni ATTENDIBILI sul videogioco "${g.name}" (${g.year}, ${g.plat}) consultando fonti come Metacritic, OpenCritic, HowLongToBeat, Wikipedia, RPGamer, RPGFan, gli store ufficiali (Steam, PlayStation Store, Nintendo eShop) e i siti dei publisher. Compila SOLO ciò che trovi in fonti affidabili; se non lo trovi scrivi null, NON stimare e NON inventare.
+    const prompt = todayLine() + `Fai le ricerche includendo gli anni ${Y} e ${Y - 1} nelle query. Per le informazioni che cambiano nel tempo (piattaforme, edizioni, lingue, prezzi, abbonamenti, patch, ore dopo gli aggiornamenti) usa SOLO pagine datate ${Y - 2} o dopo e ignora quelle senza data o più vecchie; per le informazioni storiche (trama, voto alla prima uscita) va bene qualsiasi anno. Se per un dato non trovi fonti aggiornate scrivi null. Cerca online informazioni ATTENDIBILI sul videogioco "${g.name}" (${g.year}, ${g.plat}) consultando fonti come Metacritic, OpenCritic, HowLongToBeat, Wikipedia, PCGamingWiki, Steam (lingue: interfaccia, audio, sottotitoli), PSXDataCenter (edizioni PAL dei giochi PS1/PS2), RPGamer, RPGFan, gli store ufficiali (Steam, PlayStation Store, Nintendo eShop) e i siti dei publisher. Compila SOLO ciò che trovi in fonti affidabili; se non lo trovi scrivi null, NON stimare e NON inventare.
 Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia principale, numero), hoursCompletionist (ore completista, numero), difficulty (1-5), grind (1-5, quanto grinding serve), storyWeight (1-5, peso della storia), pace ("L" lento, "M" medio, "V" veloce), italian ("D" testi E doppiaggio italiani ufficiali, "S" solo testi/sottotitoli italiani ufficiali, "F" solo fan-translation, "N" nessun italiano ufficiale, oppure null se NON trovi una fonte esplicita: NON rispondere "N" per mancanza di informazioni; per i giochi usciti prima del 2010 controlla l'edizione europea/italiana (PAL) originale del disco o della cartuccia e non solo gli store attuali, perché molti giochi PS1/PS2/Wii/DS uscirono localizzati in italiano anche se la versione americana era solo in inglese), language (una frase in italiano su lingue di testi E doppiaggio nell'edizione italiana/europea e nelle riedizioni, citando ciò che dice la fonte; null se non lo trovi), remaster (una frase in italiano su edizioni, remaster o remake esistenti), gameplayScore (0-10, in base alla critica), gameplayNote (una frase in italiano sul gameplay), fitIf (una frase: a chi piace), avoidIf (una frase: chi dovrebbe evitarlo; NON citare la lingua italiana se non hai una fonte esplicita), criticScore (Metascore o OpenCritic, numero 0-100, oppure null), graphicsToday (1-2 frasi in italiano su come regge oggi la grafica e la parte tecnica rispetto agli standard del ${Y}, senza dire "recente"), asOf (l'anno della fonte PIÙ VECCHIA che hai usato per lingua, edizioni, piattaforme e ore).`;
     const r = await askLLM(prompt, {}, {search:true, forceGemini:true});
     const j = parseJson(r && r.text);
@@ -205,12 +246,13 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
     try{ src = await gather(g); }catch(e){ src = {wiki:null, wd:null, errors:2}; }
     if(!src.wiki && !src.wd){ el.innerHTML = shell('<div class="lp-sub">❌ Non riesco a consultare le fonti (rete assente o pagina non trovata). Riprova più tardi.</div>'); return; }
     let changes = factChanges(g, src), note = '';
+    if(src.steamFailed || src.pcgwFailed) note = 'Non raggiungibili ora: ' + [src.steamFailed && 'Steam', src.pcgwFailed && 'PCGamingWiki'].filter(Boolean).join(', ') + ' (le altre fonti sì).';
     status('Fonti trovate. Riscrivo trama e pro/contro dalle fonti…');
-    try{ const t = await textChanges(g, src); changes = changes.concat(t.changes); note = t.note; }catch(e){ note = 'Testi non riscritti: ' + llmErrorText(e); }
+    try{ const t = await textChanges(g, src); changes = changes.concat(t.changes); note = (note ? note + ' ' : '') + (t.note || ''); }catch(e){ note = 'Testi non riscritti: ' + llmErrorText(e); }
     status('Ricerca approfondita di ore, gameplay, lingua ed edizioni…');
     let deepSrc = [];
     try{ const d = await deepChanges(g); if(d.changes.some(c=> c.id === 'aging')) changes = changes.filter(c=> c.id !== 'aging'); changes = changes.concat(d.changes); deepSrc = d.sources; if(d.note) note += (note ? ' ' : '') + d.note; }catch(e){ note += (note ? ' ' : '') + 'Ricerca approfondita non riuscita: ' + llmErrorText(e); }
-    const sources = [src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
+    const sources = [src.itw && `<a href="${src.itw.url}" target="_blank" rel="noopener">it.wikipedia</a>`, src.steam && `<a href="${src.steam.url}" target="_blank" rel="noopener">Steam</a>`, src.pcgw && `<a href="${src.pcgw.url}" target="_blank" rel="noopener">PCGamingWiki</a>`, src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
     if(!changes.length){ markChecked(g.id); el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
     el.innerHTML = shell(`<div class="lp-sub">Fonti: ${sources}. Togli la spunta a ciò che non ti convince.${note ? '<br>' + escHtml(note) : ''}</div>
       <div class="gc-rows">${changes.map((c,i)=> `<label class="gc-row"><input type="checkbox" data-i="${i}" ${c.off ? '' : 'checked'}> <span><b>${escHtml(c.label)}</b><br><small>Prima: ${escHtml(c.from || '—')}</small><br>Dopo: ${escHtml(c.to)}</span></label>`).join('')}</div>
