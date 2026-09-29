@@ -1604,7 +1604,7 @@ function enrichHtml(g){
 
 // ---- Etichetta del gioco (stile valori nutrizionali) ----
 const LABEL_PACE = {L:'Lento', M:'Medio', V:'Veloce'};
-const LABEL_IT = {S:'✅ Sottotitoli ufficiali', F:'🌐 Solo fan-translation', N:'🇬🇧 Solo inglese/altro'};
+const LABEL_IT = {D:'🎙️ Testi e doppiaggio in italiano', S:'✅ Testi/sottotitoli in italiano', F:'🌐 Solo fan-translation', N:'🇬🇧 Solo inglese/altro'};
 const LABEL_STORE = {PS:'PlayStation', XB:'Xbox', NS:'Switch', PC:'PC', MOB:'Mobile'};
 function labelBar(n, max){
   let out = '<span class="glabel-bar">';
@@ -2276,6 +2276,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v84', date:'2026-09-29', items:[
+    'Lingua italiana: "Aggiorna info" ora distingue testi e doppiaggio (nuova voce 🎙️), controlla l\'edizione europea/italiana dei giochi vecchi e non scrive più "solo inglese" quando non trova fonti. Se la ricerca contraddice il dato attuale, la correzione resta spenta con un avviso. Corretto The Legend of Dragoon (testi e doppiaggio in italiano).'
+  ]},
   {version:'v83', date:'2026-09-29', items:[
     'Apertura più fluida: il poster resta fermo (niente effetto fantasma sul procione), si animano solo la scritta Frugu Frugu (alone e riflesso) e le stelline luminose.'
   ]},
@@ -2866,7 +2869,7 @@ function askToolAddCustomGame(input, sourceLabel){
     s: clampIntOrNull(input.storyWeight, 1, 5),
     p: ['L','M','V'].includes(input.pace) ? input.pace : null,
     h: input.hours != null ? Number(input.hours) : null,
-    it: ['S','F','N'].includes(input.italian) ? input.italian : null,
+    it: ['D','S','F','N'].includes(input.italian) ? input.italian : null,
     ok: input.fitIf ? String(input.fitIf) : null,
     ko: input.avoidIf ? String(input.avoidIf) : null,
     cost: ['S','M','H'].includes(input.cost) ? input.cost : null
@@ -2957,7 +2960,7 @@ const ASK_TOOLS = [
         grind: {type:'number', description:'quanto grinding richiede, 1-5'},
         storyWeight: {type:'number', description:'quanto peso ha la storia rispetto al gameplay, 1-5'},
         pace: {type:'string', enum:['L','M','V'], description:'ritmo: L=lento, M=medio, V=veloce'},
-        italian: {type:'string', enum:['S','F','N'], description:'lingua italiana: S=sottotitoli ufficiali, F=solo fan-translation, N=solo inglese/altro'},
+        italian: {type:'string', enum:['D','S','F','N'], description:'lingua italiana: D=testi e doppiaggio ufficiali, S=solo testi/sottotitoli ufficiali, F=solo fan-translation, N=solo inglese/altro'},
         cost: {type:'string', enum:['S','M','H'], description:'fascia di prezzo indicativa: S=economico, M=medio, H=costoso'},
         pros: {type:'array', items:{type:'string'}, description:'3-4 punti di forza concreti del gioco, frasi brevi'},
         cons: {type:'array', items:{type:'string'}, description:'2-3 difetti o punti deboli concreti, frasi brevi'},
@@ -3290,7 +3293,7 @@ function cleanNovitaCandidate(raw, tagEnum){
     hours: raw.hours!=null ? Number(raw.hours) : null,
     difficulty: clampIntOrNull(raw.difficulty, 1, 5),
     pace: ['L','M','V'].includes(raw.pace) ? raw.pace : null,
-    italian: ['S','F','N'].includes(raw.italian) ? raw.italian : null,
+    italian: ['D','S','F','N'].includes(raw.italian) ? raw.italian : null,
     cost: ['S','M','H'].includes(raw.cost) ? raw.cost : null,
     fitIf: raw.fitIf ? String(raw.fitIf) : '',
     avoidIf: raw.avoidIf ? String(raw.avoidIf) : '',
@@ -3613,7 +3616,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v83';
+const DATA_BUILD_VERSION = 'v84';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
