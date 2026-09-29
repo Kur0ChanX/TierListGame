@@ -4,7 +4,7 @@
 (function(){
   const P = [
     // Eleganti
-    {id:'aurora', g:'Originali', n:'Aurora (originale)', c:['#7c5cff','#b04cf5','#ff6ec7']},
+    {id:'aurora', g:'Originali', n:'Aurora (viola)', c:['#7c5cff','#b04cf5','#ff6ec7']},
     {id:'apple', g:'Eleganti', n:'Apple', c:['#0a84ff','#5e5ce6','#64d2ff'], t:0, dk:{bg:'#000000', card:'#1c1c1e', border:'#38383a', row:'#2c2c2e'}, lt:{bg:'#f2f2f7', border:'#d1d1d6'}},
     {id:'graphite', g:'Eleganti', n:'Grafite', c:['#8e8e93','#aeaeb2','#d1d1d6'], t:0, dk:{bg:'#0b0b0c', card:'#1a1a1c'}},
     {id:'champagne', g:'Eleganti', n:'Champagne', c:['#c8a96a','#e6cf9b','#a67c52'], t:.05},
@@ -64,7 +64,7 @@
       --glass:${dark ? `rgba(${cr},.58)` : `rgba(255,255,255,.62)`}; --glass-strong:${dark ? `rgba(${cr},.82)` : 'rgba(255,255,255,.86)'};
       --glass-line:${dark ? 'rgba(255,255,255,.09)' : `rgba(${A1},.16)`}; --hl:${dark ? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.9)'};
       --glow:rgba(${A1},${dark ? .38 : .28});
-      --aur1:rgba(${A1},${dark ? .42 : .30}); --aur2:rgba(${A2},${dark ? .30 : .24}); --aur3:rgba(${A3},${dark ? .26 : .22});
+      --m1:${dark ? .46 : .32}; --m2:${dark ? .32 : .24}; --m3:${dark ? .28 : .22};
       --surface-tint:${dark ? mix(card, a1, .16) : mix('#ffffff', a1, .10)}; --on-accent:${lum(a1) > .45 ? '#141414' : '#ffffff'};
       --dopa-bg:${dark ? mix(card, a1, .14) : mix('#ffffff', a1, .08)}; --dopa-border:${mix(dark ? card : '#ffffff', a1, .35)}; --dopa-ink:${dark ? mix(a1, '#ffffff', .55) : mix(a1, '#000000', .3)};`;
   }
@@ -73,7 +73,7 @@
     return `:root{${L}}\n@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){${D}}}\n:root[data-theme="dark"]{${D}}`;
   }
   const KEY = 'jrpg_palette';
-  let cur = 'aurora'; try{ cur = JSON.parse(localStorage.getItem(KEY) || '"aurora"') || 'aurora'; }catch(e){}
+  let cur = 'apple'; try{ cur = JSON.parse(localStorage.getItem(KEY) || '"apple"') || 'apple'; }catch(e){}
   const style = document.createElement('style'); style.id = 'paletteStyle';
   // subito dopo l'ultimo foglio di stile già presente (vince su theme.css anche se la pagina viene "impacchettata", es. dentro Claude)
   const links = document.querySelectorAll('link[rel="stylesheet"], style'); const last = links[links.length - 1];
@@ -81,10 +81,10 @@
   function apply(id){
     const p = P.find(x=> x.id === id) || P[0];
     cur = p.id;
-    style.textContent = p.id === 'aurora' ? '' : css(p);
-    document.documentElement.classList.toggle('pal-refined', p.id !== 'aurora');
+    style.textContent = css(p);
+    document.documentElement.classList.add('pal-refined');
     try{ localStorage.setItem(KEY, JSON.stringify(p.id)); }catch(e){}
-    const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content', p.id === 'aurora' ? '#161221' : vars(p, true).match(/--bg:([^;]+)/)[1]);
+    const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content', vars(p, true).match(/--bg:([^;]+)/)[1]);
   }
   apply(cur);
   window.RT_PALETTES = P;
@@ -92,7 +92,6 @@
   // selettore: griglia di anteprime per gruppo, si applica subito toccandola
   function preview(p){
     const dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
-    if(p.id === 'aurora') return `<span class="pal-pv" style="--pb:${dark ? '#161221' : '#f6f4fb'};--pc:${dark ? '#201a33' : '#fff'};--pl:${dark ? '#372c54' : '#e3ddf2'};--pa:linear-gradient(135deg,#7c5cff,#b04cf5 55%,#ff6ec7)"><i></i><b></b><u></u><s></s></span>`;
     const v = vars(p, dark), g = k=> (v.match(new RegExp('--' + k + ':([^;]+);')) || [])[1];
     return `<span class="pal-pv" style="--pb:${g('bg')};--pc:${g('card')};--pl:${g('border')};--pa:${g('grad')}"><i></i><b></b><u></u><s></s></span>`;
   }

@@ -85,7 +85,7 @@
   const cl = document.querySelector('.count-line');
   if(cl){
     const tb = document.createElement('span'); tb.className = 'x-toolbar';
-    tb.innerHTML = `<button type="button" data-x-mode="table" title="Tabella">☰</button><button type="button" data-x-mode="grid" title="Copertine">▦</button><button type="button" data-x-mode="cards" title="Schede">▤</button><button type="button" id="xMenuBtn" title="Strumenti extra">✨</button>`;
+    tb.innerHTML = `<button type="button" data-x-mode="table" title="Tabella" aria-label="Tabella"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lines"/></svg></button><button type="button" data-x-mode="grid" title="Copertine" aria-label="Copertine"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg></button><button type="button" data-x-mode="cards" title="Schede" aria-label="Schede"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cards"/></svg></button><button type="button" id="xMenuBtn" title="Strumenti extra" aria-label="Extra"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkle"/></svg></button>`;
     cl.appendChild(tb);
     tb.addEventListener('click', e=>{ const b = e.target.closest('button'); if(!b) return; if(b.dataset.xMode) setMode(b.dataset.xMode); else openMenu(); });
   }
@@ -221,7 +221,7 @@
   }
   if(row2 && search){
     const mic = document.createElement('button');
-    mic.type = 'button'; mic.className = 'x-mic'; mic.title = 'Cerca a voce'; mic.textContent = '🎤';
+    mic.type = 'button'; mic.className = 'x-mic'; mic.title = 'Cerca a voce'; mic.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mic"/></svg>'; mic.setAttribute('aria-label', 'Cerca a voce');
     row2.appendChild(mic);
     mic.addEventListener('click', ()=>{
       if(!SR){ toast('Questo browser non supporta la ricerca a voce (prova Chrome o Safari aggiornati)', 4000); return; }

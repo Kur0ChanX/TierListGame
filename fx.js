@@ -29,8 +29,8 @@
         else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{ if(typeof showToast === 'function') showToast('Il browser non permette lo schermo intero qui'); }); }
       }catch(e){}
     });
-    const IC_ON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
-    const IC_OFF = fs.innerHTML;
+    const wrapIc = (id, lb)=> `<span class="ib-ic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#${id}"/></svg></span><span class="ib-lb">${lb}</span>`;
+    const IC_ON = wrapIc('i-fsx', 'Esci'), IC_OFF = wrapIc('i-fs', 'Schermo');
     document.addEventListener('fullscreenchange', ()=>{ fs.innerHTML = document.fullscreenElement ? IC_ON : IC_OFF; });
   }
 
