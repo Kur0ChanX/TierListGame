@@ -1025,7 +1025,7 @@ function applyFilters(){
   return list;
 }
 
-function methodIcon(m){ return m==='V' ? '✅' : '🗳️'; }
+function methodIcon(m, g){ if(m==='V'){ const f = g && typeof freshInfo === 'function' ? freshInfo(g) : null; return f && !f.m ? giIcon('vgold') : '✅'; } return '🗳️'; }   // V dorata = voto verificato + Update+
 function methodLabel(m){ return m==='V' ? 'Metacritic / aggregato verificato' : 'Stima community / recensori specializzate'; }
 
 function showToast(msg, ms){
@@ -1061,7 +1061,7 @@ function render(){
       <td class="year">${g.year || g.ysort || ''}</td>
       <td><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span></td>
       <td class="score">${g.score}</td>
-      <td class="method" title="${methodLabel(g.m)}">${methodIcon(g.m)}</td>
+      <td class="method" title="${methodLabel(g.m)}${g.m==='V' && freshInfo(g) && !freshInfo(g).m ? ' · aggiornato con Update+' : ''}">${methodIcon(g.m, g)}</td>
       <td class="storyicon">${itBadge(g)}</td>
     `;
     tr.querySelector('[data-role="fav"]').addEventListener('click', (ev)=>{
