@@ -54,7 +54,7 @@
     ls.set(HK, health);
   }
   // siti che permettono l'accesso diretto dal browser: non vanno mai spostati sui ponti (i ponti sono lenti e spesso morti)
-  const CORS_OK = new Set(['en.wikipedia.org', 'it.wikipedia.org', 'www.wikidata.org', 'query.wikidata.org', 'www.pcgamingwiki.com', 'api.rawg.io', 'www.cheapshark.com', 'steamspy.com']);
+  const CORS_OK = new Set(['en.wikipedia.org', 'it.wikipedia.org', 'www.wikidata.org', 'query.wikidata.org', 'www.pcgamingwiki.com', 'api.rawg.io', 'www.cheapshark.com']);
   function flagNeedsRelay(host){
     if(CORS_OK.has(host)) return; if(typeof navigator !== 'undefined' && navigator.onLine === false) return; needsRelay[host] = Date.now() + 30 * 60e3; ls.set(NRK, needsRelay); }
   H.relayStatus = ()=> RELAYS.map(r=> ({name: r.name, score: Math.round(relayScore(r.name) * 100), cooling: relayCooling(r.name), ...(health[r.name] || {})}));
@@ -70,6 +70,15 @@
     return ()=>{ if(done) return; done = true; actC[host]--; const w = (waitQ[host] || []).shift(); if(w) w(); };
   }
   const hostFails = {}, hostDown = {}, hostTrips = {};
+  // ponte personale facoltativo (Cloudflare Worker dell'utente, vedi tools/cloudflare-worker.js): sempre il primo tentativo quando c'è
+  function customRelay(){
+    let u = ''; try{ u = (localStorage.getItem('jrpg_relay_url') || '').trim(); }catch(e){}
+    if(!/^https:\/\//i.test(u)) return null;
+    const base = /[?&]url=$/.test(u) ? u : u + (u.indexOf('?') > -1 ? '&' : '?') + 'url=';
+    return {name: 'ponte personale', url: x=> base + encodeURIComponent(x)};
+  }
+  H.hasCustomRelay = ()=> !!customRelay();
+  H.testCustomRelay = async ()=>{ const c = customRelay(); if(!c) throw new Error('indirizzo non impostato'); const r = await fetch(c.url('https://www.cheapshark.com/api/1.0/stores')); if(!r.ok) throw new Error('risposta ' + r.status); const j = await r.json(); return Array.isArray(j) ? j.length : 0; };
   const cache = new Map();
   async function once(url, o){
     const ctrl = new AbortController(), tm = setTimeout(()=> ctrl.abort(), o.timeout || 12000);
@@ -111,6 +120,7 @@
     if(o.relays){
       // al massimo 3 ponti per richiesta (i migliori per esito recente, con un po' di casualità sui pari merito): una fonte muta non deve bloccare la ricerca
       const list = RELAYS.filter(r=> !relayCooling(r.name) && !(o.as === 'json' && r.textOnly)).map(r=> ({r, k: relayScore(r.name) + Math.random() * 0.05})).sort((a, b)=> b.k - a.k).slice(0, o.maxRelays || 3).map(x=> x.r);
+      { const cr = customRelay(); if(cr && !relayCooling(cr.name)){ list.unshift(cr); if(list.length > (o.maxRelays || 3)) list.pop(); } }
       for(const R of list){
         const full = R.url(url);
         await gap(hostOf(full));
@@ -178,9 +188,9 @@
   const STEAMSPY_TAG = {JRPG: 'JRPG', WRPG: 'RPG', ACT: 'Action RPG', TUR: 'Turn-Based', TAC: 'Tactical RPG', DUN: 'Dungeon Crawler', CARD: 'Card Game', ROG: 'Roguelike', METR: 'Metroidvania', SOUL: 'Souls-like',
     HOR: 'Horror', SURV: 'Survival', PLAT: 'Platformer', PUZ: 'Puzzle', FIGHT: 'Fighting', FPS: 'FPS', SHMUP: 'Shoot \'Em Up', RACE: 'Racing', SPORT: 'Sports', RTS: 'RTS', TBS4X: 'Turn-Based Strategy', ADV: 'Adventure',
     VN: 'Visual Novel', STEALTH: 'Stealth', OPENW: 'Open World', RHY: 'Rhythm', TOWERDEF: 'Tower Defense', CITY: 'City Builder', SIMLIFE: 'Life Sim', MMO: 'MMORPG', HNS: 'Hack and Slash', TPS: 'Third Person'};
-  const GOG_GENRE = {JRPG: 'role-playing', WRPG: 'role-playing', ACT: 'role-playing', TUR: 'role-playing', TAC: 'strategy', DUN: 'role-playing', ROG: 'role-playing', ADV: 'adventure', VN: 'adventure', ACTADV: 'action', HNS: 'action', PLAT: 'action',
-    FPS: 'shooter', TPS: 'shooter', SHMUP: 'shooter', RTS: 'strategy', TBS4X: 'strategy', CITY: 'simulation', SIMLIFE: 'simulation', SPORT: 'sports', RACE: 'racing', PUZ: 'puzzle', HOR: 'action', STEALTH: 'action', OPENW: 'action'};
-  const GOG_ALL = ['role-playing', 'action', 'adventure', 'strategy', 'simulation', 'sports', 'racing', 'puzzle', 'shooter'];
+  const GOG_GENRE = {JRPG: 'rpg', WRPG: 'rpg', ACT: 'rpg', TUR: 'rpg', TAC: 'strategy', DUN: 'rpg', ROG: 'rpg', ADV: 'adventure', VN: 'adventure', ACTADV: 'action', HNS: 'action', PLAT: 'action',
+    FPS: 'shooter', TPS: 'shooter', SHMUP: 'shooter', RTS: 'strategy', TBS4X: 'strategy', CITY: 'simulation', SIMLIFE: 'simulation', SPORT: 'sports', RACE: 'racing', HOR: 'action', STEALTH: 'action', OPENW: 'action'};
+  const GOG_ALL = ['rpg', 'action', 'adventure', 'strategy', 'simulation', 'sports', 'racing', 'shooter'];
   const codeFor = (map, key)=> Object.keys(map).find(c=> map[c] === key);
 
   // ---------- fonti dirette ----------

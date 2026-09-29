@@ -763,8 +763,8 @@ function novitaIntroHtml(){
   return `<div class="novita-intro">
     <div class="novita-intro-icon">🆕</div>
     <div><b>Trova nuovi giochi da aggiungere</b><br>Claude ti propone RPG/JRPG che non hai ancora nel database, in base ai tuoi gusti. Per ognuno trovi copertina, foto gameplay, un video gameplay in italiano e le recensioni ITA da controllare prima di decidere: sei sempre tu a scegliere se aggiungerlo.</div>
-    <button class="btn primary" id="novitaFindBtn">🔎 Fruga altri titoli</button>
-    <button class="btn" id="novitaGenreGoBtn">🗂️ Fruga per genere</button>
+    <button class="btn primary" id="novitaFindBtn">${giIcon('lens')} Fruga altri titoli</button>
+    <button class="btn" id="novitaGenreGoBtn">${giIcon('genres')} Fruga per genere</button>
   </div>`;
 }
 function novitaLoadingHtml(){
@@ -777,8 +777,8 @@ function novitaDoneHtml(){
   return `<div class="discover-empty">
     <div class="discover-empty-icon">🎉</div>
     <div>Hai deciso su tutte le proposte di questo giro.</div>
-    <button class="btn primary" id="novitaFindBtn">🔎 Fruga altri titoli</button>
-    <button class="btn" id="novitaGenreGoBtn">🗂️ Fruga per genere</button>
+    <button class="btn primary" id="novitaFindBtn">${giIcon('lens')} Fruga altri titoli</button>
+    <button class="btn" id="novitaGenreGoBtn">${giIcon('genres')} Fruga per genere</button>
   </div>`;
 }
 function novitaSkippedTopbarHtml(count, btnId){
@@ -907,7 +907,7 @@ function novitaGenrePickerHtml(){
     </div>
     ${sectionsHtml}
     <label class="genre-other-toggle"><input type="checkbox" id="novitaGenreOtherToggle" ${novitaGenreIncludeOther?'checked':''}> Includi anche generi/stili simili non elencati qui sopra</label>
-    <button class="btn primary" id="novitaGenreFindBtn"${activeCount ? '' : ' disabled title="Seleziona almeno un genere"'}>🔎 Cerca in questi generi</button>
+    <button class="btn primary" id="novitaGenreFindBtn"${activeCount ? '' : ' disabled title="Seleziona almeno un genere"'}>${giIcon('lens')} Cerca in questi generi</button>
   </div>`;
 }
 function renderNovitaGenreView(){ renderNovitaGenreCard(); }
@@ -986,7 +986,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-30';
-const DATA_BUILD_VERSION = 'v126';
+const DATA_BUILD_VERSION = 'v127';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

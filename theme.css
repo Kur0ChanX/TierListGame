@@ -650,3 +650,22 @@ html.pal-refined #search{background:var(--lens) 13px 50%/20px no-repeat, linear-
 .list-chip svg.gi{display:inline-block; width:17px; height:17px; vertical-align:-3px; margin-right:2px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
 td.fav svg.gi{width:20px; height:20px; display:inline-block; vertical-align:middle; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
 td.fav .fav-off{color:var(--sub)}
+
+/* v127: colonna lingua al posto dei libri, icone nei pulsanti, lista più lunga, badge e freccia più piccoli */
+.btn svg.gi, svg.gi.gi-s{display:inline-block !important; width:18px; height:18px; vertical-align:-4px; margin-right:5px}
+.itb{display:inline-block; min-width:28px; padding:2px 5px; border-radius:8px; font:800 .64rem/1.25 system-ui,sans-serif; text-align:center; letter-spacing:.02em}
+.itb-d{background:linear-gradient(180deg,#34d399,#059669); color:#fff; box-shadow:0 1px 4px rgba(5,150,105,.45)}
+.itb-s{background:rgba(56,189,248,.18); border:1px solid rgba(56,189,248,.65)}
+.itb-f{background:rgba(250,204,21,.18); border:1px solid rgba(250,204,21,.65)}
+.itb-n{background:rgba(148,163,184,.16); color:var(--sub)}
+.itb-x{opacity:.3}
+th[title^="Lingua"]{width:44px; text-align:center}
+td.storyicon{width:44px !important; text-align:center; white-space:nowrap; padding-left:2px !important; padding-right:6px !important}
+@media (max-width:760px){
+  .wrap{padding-bottom:calc(var(--navh) + 4px) !important}
+}
+.scrolltop-fab{width:30px !important; height:30px !important; bottom:calc(var(--navh,0px) + 8px + env(safe-area-inset-bottom,0px)) !important}
+.scrolltop-fab svg.gi{width:19px !important; height:19px !important}
+.au-badge{width:30px !important; height:30px !important; bottom:calc(var(--navh,0px) + 8px + env(safe-area-inset-bottom,0px)) !important}
+.au-badge::before{font-size:14px !important}
+.au-badge b{font-size:9px !important; min-width:15px !important; height:15px !important; top:-5px !important; right:-5px !important; border-width:1.5px !important; padding:0 3px !important}

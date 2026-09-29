@@ -19,7 +19,7 @@
     if(au && au.ch && au.ch.length) return `<button class="btn" id="auditPendingBtn" title="Il controllo automatico ha trovato delle differenze: tocca per confrontarle e decidere">📝 ${au.ch.length} ${au.ch.length === 1 ? 'modifica' : 'modifiche'} da approvare</button>`;
     if(au && au.deep) return `<button class="btn upd-done" id="updateInfoBtn" title="Controllato con fonti e ricerca: non viene ricontrollato. Tocca per rifarlo a mano">✅ Aggiornato il ${fmtDate(au.t)}</button>`;
     return d ? `<button class="btn upd-done" id="updateInfoBtn" title="Già controllato: tocca per rifarlo">✅ Aggiornato il ${fmtDate(d)}</button>`
-             : '<button class="btn" id="updateInfoBtn" title="Controlla voto, generi, anno e testi su Wikipedia e Wikidata">🔄 Aggiorna info</button>';
+             : '<button class="btn" id="updateInfoBtn" title="Controlla voto, generi, anno e testi su Wikipedia e Wikidata">' + giIcon('refresh') + ' Aggiorna info</button>';
   };
   const loadOv = ()=>{ try{ return JSON.parse(localStorage.getItem(OV) || '{}') || {}; }catch(e){ return {}; } };
   const saveOv = o=>{ try{ localStorage.setItem(OV, JSON.stringify(o)); }catch(e){} };

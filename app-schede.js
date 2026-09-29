@@ -723,7 +723,7 @@ function openModal(g){
       <a class="btn" href="${soundtrackUrl}" target="_blank" rel="noopener">🎵 Colonna sonora (YouTube)</a>
     </div>
     <div class="modal-actions">
-      <button class="btn" id="modalFavBtn">${isFav ? '★ Nei preferiti' : '☆ Aggiungi ai preferiti'}</button>
+      <button class="btn" id="modalFavBtn">${giIcon(isFav ? 'favon' : 'favoff')} ${isFav ? 'Nei preferiti' : 'Aggiungi ai preferiti'}</button>
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
       ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : '<button class="btn" id="updateInfoBtn">🔄 Aggiorna info</button>'}
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
@@ -1043,7 +1043,7 @@ function renderSagaView(){
         <span class="saga-section-name">${info.name}</span>
         <span class="badge outline">${games.length} giochi</span>
         <span class="badge outline">${info.order}</span>
-        <button class="btn saga-miss-btn" data-saga="${key}" title="Cerca online i capitoli che non hai">🔎 Capitoli mancanti</button>
+        <button class="btn saga-miss-btn" data-saga="${key}" title="Cerca online i capitoli che non hai">${giIcon('lens')} Capitoli mancanti</button>
       </div>
       <div class="saga-section-note">${info.note}</div>
       <div class="saga-games-grid">${games.map(g=>`<button class="saga-game-chip" data-id="${g.id}"><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>${g.name}${g.year?` (${g.year})`:''}</button>`).join('')}</div>

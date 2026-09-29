@@ -1031,7 +1031,7 @@ function render(){
       <td><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span></td>
       <td class="score">${g.score}</td>
       <td class="method" title="${methodLabel(g.m)}">${methodIcon(g.m)}</td>
-      <td class="storyicon">${g.story ? '📖' : ''}</td>
+      <td class="storyicon">${itBadge(g)}</td>
     `;
     tr.querySelector('[data-role="fav"]').addEventListener('click', (ev)=>{
       ev.stopPropagation();
@@ -1201,6 +1201,13 @@ function openTierPicker(btn, gid){
   tierPickerEl = pop;
 }
 
+// icona a tema videogioco da usare dentro testi e pulsanti
+function giIcon(n){ return `<svg class="gi gi-s" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-${n}"/></svg>`; }
+function itBadge(g){
+  const it = g.label && g.label.it;
+  const M = {D: ['d', 'ITA', 'Testi e doppiaggio in italiano'], S: ['s', 'sub', 'Testi/sottotitoli in italiano'], F: ['f', 'fan', 'Solo traduzione dei fan'], N: ['n', 'no', 'Nessun italiano ufficiale']};
+  return M[it] ? `<span class="itb itb-${M[it][0]}" title="${M[it][2]}">${M[it][1]}</span>` : '<span class="itb itb-x" title="Lingua non ancora verificata">?</span>';
+}
 let mtQuery = '';
 const mtNorm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 // trascinamento con il dito: tieni premuto ~0,35 s su un gioco, poi trascinalo su un altro tier
