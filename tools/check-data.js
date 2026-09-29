@@ -39,4 +39,14 @@ for (const g of D.games) {
   if (mb !== jv) { warnings++; console.log(`Versione non coerente: <meta name="build"> = ${mb}, DATA_BUILD_VERSION = ${jv}. Aggiorna il meta nell'HTML.`); }
   if (!/^<!DOCTYPE html>/i.test(html)) { warnings++; console.log('L\'HTML deve iniziare con <!DOCTYPE html>.'); }
 }
+
+// nessun marcatore di conflitto git rimasto nei file (successo una volta con un nome file con spazi)
+{
+  const fs3 = require('fs'), path3 = require('path'), root3 = path3.join(__dirname, '..');
+  for (const f of fs3.readdirSync(root3)) {
+    if (!/\.(html|js|css|md|json|webmanifest|yml)$/.test(f) || f === 'giochi.js') continue;
+    const txt = fs3.readFileSync(path3.join(root3, f), 'utf8');
+    if (/^(<{7} |>{7} )/m.test(txt)) { warnings++; console.log('Marcatore di conflitto git rimasto in: ' + f); }
+  }
+}
 console.log(warnings ? `\n${warnings} avvisi.` : 'Nessun avviso: dati coerenti.');

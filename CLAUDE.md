@@ -35,3 +35,5 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - Nei testi dei giochi (agingNote, pro/contro, ecc.) NON usare frasi legate al tempo ("uscito da poco", "recentissimo"): scrivi l'anno. Prima di pubblicare dati esegui `node tools/check-data.js`.
 - Tag di un gioco: il primo è il genere principale; un tag "extra" (Puzzle, Platform, Picchiaduro, RTS…) toglie il gioco dalla lista JRPG / RPG e lo mette nella lista di quel genere.
 - I voti "verificati" (metodo V) vengono da Metacritic (`tools/audit-metacritic.js`); quelli "stima" (S, spesso 72) NON sono verificati. Correggere un voto solo con ≥15 recensioni e differenza >6.
+
+- Dopo ogni `git merge origin/main` con conflitti: risolvi i file UNO alla volta con `git checkout --ours -- "nome file"` (i nomi con spazi vanno tra virgolette, es. l'HTML) e prima del commit esegui `node tools/check-data.js` (segnala anche i marcatori di conflitto rimasti).
