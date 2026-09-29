@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v99', date:'2026-09-29', items:[
+    'Tre viste della classifica, a scelta (pulsanti ☰ ▦ ▤ accanto al conteggio): Tabella, Copertine (griglia stile libreria) e Schede.',
+    'Copertine automatiche (menu ✨): cerca su Wikipedia la copertina di tutti i giochi che non ce l\'hanno, a gruppi di 50 per non appesantire.',
+    'Ricerca a voce 🎤: dici "JRPG a turni sotto le 40 ore in italiano" e l\'AI imposta i filtri giusti.',
+    'Wishlist 🎁 nella scheda di ogni gioco: controlla la data di uscita e ti avvisa quando esce (all\'apertura dell\'app, con notifica se la attivi).',
+    'Condividi la tua tier list come immagine, traguardi 🏆 e colori della scheda presi dalla copertina (attivabile dal menu ✨).'
+  ]},
   {version:'v98', date:'2026-09-29', items:[
     'Intestazione più chiara: i pulsanti in alto hanno il nome (Profilo, Novità, Tema, Filtri) e Filtri mostra quanti filtri sono attivi.',
     'Filtri più semplici: in cima i filtri rapidi (Preferiti, Giocati, In corso, Da giocare, 90+, Con storia, Azzera); generi, umore, strumenti, numeri e link sono in riquadri che si aprono a richiesta.',
