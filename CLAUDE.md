@@ -9,6 +9,7 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - `gemini.js`: motore Gemini (riserva/alternativa a Claude) e impostazioni ⚙️ in "Chiedi a Claude". `askLLM()` è il punto unico per chiamare l'AI.
 - `sync.js`: sincronizzazione automatica dei dati `jrpg_*` (localStorage) su un Gist privato via token GitHub (permesso `gist`). Caricato PRIMA di app.js.
 - `theme.css`: tema grafico "Aurora glass" (solo override di style.css, caricato dopo). `fx.js`: piccoli effetti (barra voto, vibrazione, transizione tra schede). `intro.js` + `icons/intro.jpg`: apertura animata (si salta con `jrpg_intro=off`, `?intro=force` la forza).
+- `extras.js` (caricato per ultimo): viste Tabella/Copertine/Schede (`jrpg_view_mode`), menu ✨, copertine automatiche da Wikipedia (a gruppi di 50), ricerca a voce, wishlist con date di uscita (`jrpg_wishlist`), tier list come immagine, traguardi (`jrpg_badges`), colori dalla copertina (`jrpg_cover_tint`). Si aggancia avvolgendo render/setView/openModal/applyFilters.
 - `genres.js`: verifica dei generi su Wikidata (nuovi giochi in automatico; controllo completo con conferma). `icons/logo.png`: logo Raccoon Tier.
 - `verify.js`: pulsante "Aggiorna info" nella scheda gioco (Wikipedia/Wikidata + AI vincolata alle fonti) e verifica automatica dei giochi nuovi; le correzioni ai giochi di base stanno in `jrpg_game_overrides` (localStorage, sincronizzato).
 - `giochi.js`: dati, `const GIOCHI_DATA = {games, sagaMap, enrich, dopa, labels, market};` (~1,9 MB).

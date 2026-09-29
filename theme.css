@@ -277,7 +277,7 @@ html.intro-on{overflow:hidden}
 .iconbtn.lbl .ib-ic{font-size:1.05rem; line-height:1.1}
 .iconbtn.lbl .ib-lb{font-size:.62rem; font-weight:600; opacity:.85; letter-spacing:.01em}
 .ib-badge{position:absolute; top:-5px; right:-5px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#ff4d8d; color:#fff; font-size:.66rem; font-weight:800; line-height:18px; box-shadow:0 2px 8px rgba(255,77,141,.5)}
-#fsBtn{align-self:stretch; display:inline-flex; align-items:center}
+#fsBtn{align-self:center; display:inline-flex; align-items:center; min-height:42px}
 @media (max-width:430px){ .iconbtn.lbl{min-width:0; padding:5px 8px} .topbar-row1{gap:5px} }
 .quick-filters{display:flex; gap:6px; overflow-x:auto; padding:2px 0 8px; scrollbar-width:none; -webkit-overflow-scrolling:touch}
 .quick-filters::-webkit-scrollbar{display:none}
@@ -290,3 +290,55 @@ html.intro-on{overflow:hidden}
 .filters-more>summary::-webkit-details-marker{display:none}
 .filters-more>summary::after{content:" ▾"; opacity:.6}
 .filters-more[open]>summary::after{content:" ▴"}
+/* ===== v99: extra ===== */
+.count-line{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.x-toolbar{margin-left:auto; display:inline-flex; gap:3px; background:var(--glass,var(--card)); border:1px solid var(--glass-line,var(--border)); border-radius:12px; padding:2px}
+.x-toolbar button{border:none; background:transparent; color:var(--text); font-size:.95rem; line-height:1; padding:5px 8px; border-radius:9px; cursor:pointer}
+.x-toolbar button.active{background:var(--grad,var(--accent)); color:#fff}
+.alt-view{flex:1 1 auto; min-height:200px; overflow:auto; -webkit-overflow-scrolling:touch; margin-top:8px; padding:2px 2px 12px}
+.alt-view.mode-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:12px; align-content:start}
+@media (min-width:761px){ .alt-view.mode-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:16px} }
+.x-card{cursor:pointer; transition:transform .25s var(--ease,ease)}
+.x-card:active{transform:scale(.96)}
+.x-cover{position:relative; aspect-ratio:3/4; border-radius:14px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.28); background:#1d1633}
+.x-cover img,.x-thumb img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+.x-ph{position:absolute; inset:0; display:flex; align-items:flex-end; padding:10px; background:linear-gradient(160deg, color-mix(in srgb,var(--tc) 70%,#1a1033), #1a1033 85%)}
+.x-ph span{color:#fff; font-weight:800; font-size:.8rem; line-height:1.15; text-shadow:0 2px 6px rgba(0,0,0,.6); display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden}
+.x-corner{position:absolute; top:6px; right:6px; display:flex; flex-direction:column; align-items:center; gap:3px}
+.x-corner b{background:rgba(0,0,0,.65); color:#fff; font-size:.72rem; padding:2px 6px; border-radius:8px}
+.x-fav{position:absolute; top:6px; left:8px; color:#ffd24a; text-shadow:0 1px 4px #000; font-size:1rem}
+.x-card .x-name{font-size:.78rem; font-weight:600; margin-top:6px; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.alt-view.mode-cards{display:flex; flex-direction:column; gap:8px}
+.x-row{display:flex; gap:12px; align-items:center; padding:8px; border-radius:16px; background:var(--glass,var(--card)); border:1px solid var(--glass-line,var(--border)); cursor:pointer}
+.x-thumb{position:relative; width:58px; height:76px; flex:0 0 auto; border-radius:10px; overflow:hidden; background:#1d1633}
+.x-thumb .x-ph span{font-size:.55rem}
+.x-info{flex:1; min-width:0}
+.x-row .x-name{font-weight:700; font-size:.92rem; line-height:1.2}
+.x-row .x-fav{position:static; margin-right:4px; font-size:.9rem}
+.x-meta{font-size:.74rem; color:var(--sub); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.x-tags{display:flex; gap:4px; flex-wrap:wrap; margin-top:4px}
+.x-tag,.x-st{font-size:.66rem; padding:2px 7px; border-radius:999px; background:rgba(124,92,255,.15)}
+.x-st{background:rgba(16,185,129,.18)}
+.x-score{display:flex; flex-direction:column; align-items:center; gap:4px}
+.x-score b{font-size:1rem}
+.x-menu{display:flex; flex-direction:column; gap:8px; margin-top:6px}
+.x-menu .btn{text-align:left}
+.x-bar{height:8px; border-radius:6px; background:rgba(127,127,127,.25); overflow:hidden}
+.x-bar i{display:block; height:100%; width:0; background:var(--grad,var(--accent)); transition:width .3s}
+.topbar-row2.x-has-mic{position:relative}
+.x-mic{position:absolute; right:6px; top:50%; transform:translateY(-50%); width:36px; height:36px; border-radius:50%; border:none; background:var(--grad,var(--accent)); color:#fff; font-size:1rem; cursor:pointer; box-shadow:0 4px 12px rgba(124,92,255,.45)}
+.x-mic.listening{animation:micPulse 1s ease-in-out infinite}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,77,141,.6)}50%{box-shadow:0 0 0 10px rgba(255,77,141,0)}}
+.x-has-mic #search{padding-right:48px}
+.x-voicechip{display:flex; align-items:center; gap:8px; margin:6px 0 0; padding:6px 10px; border-radius:12px; font-size:.78rem; background:rgba(124,92,255,.16); border:1px solid rgba(124,92,255,.35)}
+.x-voicechip button{margin-left:auto; border:none; background:transparent; color:inherit; font-size:1rem; cursor:pointer}
+.x-modal-actions{display:flex; gap:8px; justify-content:flex-end; margin:-4px 0 8px}
+.x-wrow{display:flex; gap:10px; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border)}
+.x-wbtn{display:flex; gap:4px; flex:0 0 auto}
+.x-wbtn .btn{padding:5px 9px}
+.x-badges{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px}
+.x-badge{display:flex; flex-direction:column; align-items:center; text-align:center; gap:2px; padding:12px 8px; border-radius:16px; border:1px solid var(--border); opacity:.45; filter:grayscale(1)}
+.x-badge.ok{opacity:1; filter:none; background:linear-gradient(160deg,rgba(124,92,255,.22),rgba(255,110,199,.14)); box-shadow:0 6px 18px rgba(124,92,255,.25)}
+.x-badge span{font-size:1.9rem}
+.x-badge small{font-size:.7rem; color:var(--sub)}
+#modalCard.x-tinted{background:linear-gradient(180deg, rgba(var(--x-tint),.55) 0%, rgba(var(--x-tint),.18) 38%, var(--card) 75%); transition:background .5s}
