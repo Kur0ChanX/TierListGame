@@ -59,4 +59,26 @@
       document.addEventListener('click', once, true);
     }
   }catch(e){}
+  // 8) Frugu Frugu in basso al centro, grande quanto lo spazio libero sotto la lista (mai oltre 170 px, mai sopra i contenuti)
+  const ff = document.querySelector('.frugu-foot');
+  if(ff){
+    const img = ff.querySelector('img');
+    let raf = 0;
+    const place = ()=>{
+      raf = 0;
+      const w = document.querySelector('.wrap');
+      const vis = Array.from(w.children).filter(x=> x.offsetHeight > 0 && getComputedStyle(x).position !== 'fixed');
+      const last = vis[vis.length - 1];
+      const bottom = last ? last.getBoundingClientRect().bottom : 0;
+      const room = innerHeight - bottom - 14;
+      const h = Math.min(170, room);
+      if(h >= 60){ ff.style.setProperty('--fh', Math.round(h) + 'px'); ff.classList.add('show'); }
+      else ff.classList.remove('show');
+    };
+    const sched = ()=>{ if(!raf) raf = requestAnimationFrame(place); };
+    window.addEventListener('resize', sched); window.addEventListener('scroll', sched, {passive:true});
+    try{ new ResizeObserver(sched).observe(document.querySelector('.wrap')); }catch(e){}
+    if(img && !img.complete) img.addEventListener('load', sched);
+    sched(); setTimeout(sched, 600);
+  }
 })();

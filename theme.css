@@ -233,6 +233,7 @@ html.intro-on{overflow:hidden}
 @media (prefers-reduced-motion:reduce){ .intro-frame,.intro-start{animation:none !important} .intro-frugu b{animation-duration:2s} .intro-sparks u{display:none} #intro{transition:opacity .3s} }
 .ask-toggle{display:flex; gap:8px; align-items:center; font-size:.85rem}
 
-/* Frugu Frugu in fondo alla pagina, al centro, nello spazio libero: nel flusso normale, così non copre mai nulla */
-.frugu-foot{display:flex; justify-content:center; padding:28px 16px calc(96px + env(safe-area-inset-bottom,0px))}
-.frugu-foot img{width:min(72vw, 320px); height:auto; display:block; filter:drop-shadow(0 6px 16px rgba(124,92,255,.35))}
+/* Frugu Frugu: fisso in basso al centro, solo nello spazio libero sotto la lista (misurato da fx.js); non cambia la lunghezza della pagina e non copre nulla */
+.frugu-foot{position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; align-items:flex-end; pointer-events:none; z-index:5; visibility:hidden}
+.frugu-foot.show{visibility:visible}
+.frugu-foot img{display:block; height:var(--fh,0px); width:auto; max-width:calc(100vw - 180px); object-fit:contain; margin:0 auto 8px; filter:drop-shadow(0 4px 10px rgba(124,92,255,.35))}
