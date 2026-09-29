@@ -112,7 +112,7 @@ async function runEnrich(ids, opts){
       const part = todo.slice(i, i + 6);
       let arr = null;
       try{
-        const r = await askLLM(buildEnrichPrompt(part), {}, {search:true, fast:true, label:'Completo le schede: simboli e dettagli…', silent: useProgress});
+        const r = await askLLM(buildEnrichPrompt(part), {}, {search:true, fast:true, label:'Completo le schede: simboli e dettagli…', silent:true});
         arr = parseNovitaJson(r && r.text);
       }catch(e){}
       const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
@@ -128,16 +128,17 @@ async function runEnrich(ids, opts){
       if(useProgress) Progress.set(Math.min(100, (i + part.length) / todo.length * 100), `Schede completate: ${Math.min(i + part.length, todo.length)}/${todo.length}`);
     }
   }finally{ enrichRunning = false; if(useProgress) Progress.end(); }
-  if(done) showToast(`✨ ${done} ${done === 1 ? 'scheda completata' : 'schede completate'} con simboli e dettagli`, 3500);
+  if(done && opts.progress) showToast(`✨ ${done} ${done === 1 ? 'scheda completata' : 'schede completate'} con simboli e dettagli`, 3500);
   return done;
 }
 // giochi aggiunti senza simboli/dettagli (o con un tentativo vecchio di oltre 7 giorni)
 function customNeedingEnrich(){
   const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
-  return GAMES.filter(g=> g.custom && !(g.enrich && g.enrich.eraScore != null) && !(g.enrich && g.enrich.checked && tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 7 * 864e5) && !(tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 7 * 864e5));
+  return GAMES.filter(g=> g.custom && !(g.enrich && (g.enrich.eraScore != null || g.enrich.checked)) && !(tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 2 * 864e5));
 }
 window.completeCustomGames = ()=>{ const n = customNeedingEnrich(); if(!n.length){ showToast('Tutti i giochi aggiunti hanno già simboli e dettagli'); return; } return runEnrich(n.map(g=> g.id), {progress:true}); };
-setTimeout(()=>{ try{ const n = customNeedingEnrich(); if(n.length && llmAvailable()) runEnrich(n.slice(0, 12).map(g=> g.id)); }catch(e){} }, 9000);   // a ogni avvio ne completa fino a 12, in automatico
+// lavoro "una tantum", in silenzio: completa tutti i giochi aggiunti che ne sono privi (fino a 40 per volta); una volta completati non si rifà più
+setTimeout(()=>{ try{ const n = customNeedingEnrich(); if(n.length && llmAvailable()) runEnrich(n.slice(0, 40).map(g=> g.id)); }catch(e){} }, 12000);
 const ASK_TOOLS = [
   {
     name: 'search_games',
@@ -897,7 +898,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v110';
+const DATA_BUILD_VERSION = 'v111';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

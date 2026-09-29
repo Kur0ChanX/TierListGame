@@ -514,3 +514,19 @@ html:fullscreen .topbar{padding-top:calc(16px + env(safe-area-inset-top,0px) * .
 .rt-loader.waiting .rt-bar i{animation:rtWait 1.1s ease-in-out infinite}
 @keyframes rtWait{0%,100%{filter:brightness(.9)}50%{filter:brightness(1.5)}}
 .frugu-foot{display:none !important}
+
+/* ===== v111: PRESTAZIONI (scorrimento fluido a 120 Hz) =====
+   Il vetro sfocato (backdrop-filter) sopra a uno sfondo animato costringe il telefono a ricalcolare la sfocatura ad ogni fotogramma:
+   era la causa dello scorrimento a scatti. Di base è SPENTO (i colori restano identici, cambia solo la sfocatura); si riaccende dal menu ✨. */
+html:not(.fx-on) *, html:not(.fx-on) *::before, html:not(.fx-on) *::after{-webkit-backdrop-filter:none !important; backdrop-filter:none !important}
+html:not(.fx-on) body::before{animation:none !important}
+html:not(.fx-on) body::after{display:none}
+html:not(.fx-on) .modal-backdrop, html:not(.fx-on) .dup-backdrop{background:rgba(6,6,16,.72) !important}
+html:not(.fx-on) .modal-card, html:not(.fx-on) .lp-card{background:var(--card) !important; box-shadow:0 20px 50px -16px rgba(0,0,0,.55) !important}
+html:not(.fx-on) .topbar, html:not(.fx-on) .view-tabs{background:color-mix(in srgb,var(--bg) 94%,transparent) !important}
+html:not(.fx-on) .table-wrap, html:not(.fx-on) .glabel, html:not(.fx-on) .filters-more, html:not(.fx-on) .cover-block{background:color-mix(in srgb,var(--card) 88%,transparent) !important}
+/* la scheda del gioco è un livello a sé: lo scorrimento non ridisegna il resto della pagina */
+.modal-card{contain:layout paint style; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; will-change:scroll-position}
+.table-wrap{contain:layout paint; overscroll-behavior:contain}
+.modal-card svg.gi, .modal-card .badge{filter:none}
+.mini-icon{cursor:pointer; padding:3px 2px; margin-right:1px}

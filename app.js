@@ -951,7 +951,8 @@ function render(){
       else { FAVS.add(g.id); showToast('Aggiunto ai preferiti'); }
       saveFavs(); renderMetrics(); render();
     });
-    tr.addEventListener('click', ()=> openModal(g));
+    // toccando un simbolo (💕🤝✨💉) si legge PERCHÉ il gioco ce l'ha; il resto della riga apre la scheda
+    tr.addEventListener('click', ev=>{ const mi = ev.target.closest && ev.target.closest('.mini-icon'); if(mi && mi.dataset.why){ ev.stopPropagation(); showToast(mi.dataset.why, 5200); return; } openModal(g); });
     return tr;
   }
   // Righe a blocchi: ne disegniamo ROW_PAGE subito e le altre solo quando ci si avvicina in fondo alla lista (molto più leggero sul telefono)
@@ -1195,7 +1196,8 @@ const STORY_TAG_INFO = {
 function miniIcons(g){
   const e = g.enrich; if(!e) return '';
   let out = '';
-  if(e.storyTag && STORY_TAG_INFO[e.storyTag]) out += `<span class="mini-icon" title="${STORY_TAG_INFO[e.storyTag].label}">${STORY_TAG_INFO[e.storyTag].icon}</span>`;
-  if(e.dopamine) out += `<span class="mini-icon" title="Loop di gioco molto coinvolgente">💉</span>`;
+  const attr = s=> String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  if(e.storyTag && STORY_TAG_INFO[e.storyTag]){ const w = STORY_TAG_INFO[e.storyTag].label + (e.storyTagNote ? ': ' + e.storyTagNote : ''); out += `<span class="mini-icon" title="${attr(w)}" data-why="${attr(STORY_TAG_INFO[e.storyTag].icon + ' ' + w)}">${STORY_TAG_INFO[e.storyTag].icon}</span>`; }
+  if(e.dopamine){ const w = 'Loop molto coinvolgente' + (e.dopa && e.dopa.hook ? ': ' + e.dopa.hook : ''); out += `<span class="mini-icon" title="${attr(w)}" data-why="${attr('💉 ' + w)}">💉</span>`; }
   return out;
 }
