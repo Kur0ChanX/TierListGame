@@ -2276,6 +2276,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v83', date:'2026-09-29', items:[
+    'Apertura più fluida: il poster resta fermo (niente effetto fantasma sul procione), si animano solo la scritta Frugu Frugu (alone e riflesso) e le stelline luminose.'
+  ]},
   {version:'v82', date:'2026-09-29', items:[
     'Apertura animata all\'avvio con il poster Tier List Game / Frugu Frugu (zoom, coriandoli al neon, barra di caricamento). Tocca per entrare; si può spegnere dalle impostazioni ⚙️.'
   ]},
@@ -3610,7 +3613,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v82';
+const DATA_BUILD_VERSION = 'v83';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

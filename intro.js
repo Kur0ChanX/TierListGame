@@ -12,63 +12,39 @@
   document.documentElement.classList.add('intro-on');
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const DURATION = reduce ? 1400 : 4600;
-  const bar = el.querySelector('.intro-bar i'), msg = el.querySelector('.intro-msg');
-  const t0 = performance.now();
-  let closed = false;
+  const msg = el.querySelector('.intro-msg');
+  let closed = false, timeUp = false;
 
   function close(){
     if(closed) return; closed = true;
     el.classList.add('closing');
     document.documentElement.classList.remove('intro-on');
-    setTimeout(()=>{ el.remove(); }, 700);
+    setTimeout(()=>{ el.remove(); }, 600);
     window.removeEventListener('keydown', close);
   }
   el.addEventListener('pointerdown', close);
   window.addEventListener('keydown', close);
   setTimeout(close, 15000);                            // rete di sicurezza
 
-  function tick(){
+  // si chiude quando la barra (CSS) è piena E i dati sono pronti; niente animazioni JS che possano scattare durante il caricamento
+  function check(){
     if(closed) return;
-    const p = Math.min(1, (performance.now() - t0) / DURATION);
     const ready = typeof GAMES !== 'undefined' && GAMES.length;
-    if(bar) bar.style.width = (ready ? p * 100 : Math.min(p, .85) * 100) + '%';
-    if(msg && ready) msg.textContent = `${GAMES.length} giochi pronti`;
-    if(p >= 1 && ready){ close(); return; }
-    requestAnimationFrame(tick);
+    if(ready && msg) msg.textContent = `${GAMES.length} giochi pronti`;
+    if(timeUp && ready){ close(); return; }
+    setTimeout(check, 200);
   }
-  requestAnimationFrame(tick);
+  setTimeout(()=>{ timeUp = true; }, reduce ? 1400 : 4600);
+  check();
 
-  // coriandoli e stelline al neon
-  const cv = el.querySelector('canvas');
-  if(cv && !reduce){
-    const ctx = cv.getContext('2d');
+  // stelline e lucine che brillano (solo CSS)
+  const sp = el.querySelector('.intro-sparks');
+  if(sp && !reduce){
     const colors = ['#ff6ec7','#7c5cff','#38bdf8','#ffe066','#7CFFB2','#ff9f43'];
-    let W = 0, H = 0;
-    const size = ()=>{ W = cv.width = el.clientWidth; H = cv.height = el.clientHeight; };
-    size(); window.addEventListener('resize', size);
-    const N = Math.min(70, Math.round(el.clientWidth / 8));
-    const ps = Array.from({length: N}, ()=> ({x: Math.random(), y: Math.random() + .2, v: .0006 + Math.random() * .0016, s: 3 + Math.random() * 6, c: colors[(Math.random() * colors.length) | 0], r: Math.random() * 6, w: (Math.random() - .5) * .0004, star: Math.random() < .5}));
-    (function draw(){
-      if(closed){ return; }
-      ctx.clearRect(0, 0, W, H);
-      ps.forEach(q=>{
-        q.y -= q.v; q.x += q.w; q.r += .03;
-        if(q.y < -.05){ q.y = 1.05; q.x = Math.random(); }
-        const X = q.x * W, Y = q.y * H;
-        ctx.save(); ctx.translate(X, Y); ctx.rotate(q.r); ctx.fillStyle = q.c; ctx.globalAlpha = .85;
-        if(q.star){ ctx.beginPath(); for(let i = 0; i < 8; i++){ const rad = i % 2 ? q.s * .35 : q.s; const a = i * Math.PI / 4; ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); } ctx.closePath(); ctx.fill(); }
-        else ctx.fillRect(-q.s / 2, -q.s / 3, q.s, q.s * .66);
-        ctx.restore();
-      });
-      requestAnimationFrame(draw);
-    })();
-  }
-  // leggero effetto "profondità" con il dito/mouse
-  if(!reduce){
-    const frame = el.querySelector('.intro-frame');
-    el.addEventListener('pointermove', e=>{
-      const x = (e.clientX / innerWidth - .5) * 2, y = (e.clientY / innerHeight - .5) * 2;
-      if(frame) frame.style.setProperty('--px', (x * 8).toFixed(1) + 'px'), frame.style.setProperty('--py', (y * 8).toFixed(1) + 'px');
-    });
+    let h = '';
+    for(let i = 0; i < 26; i++){
+      h += `<s style="left:${(Math.random()*94).toFixed(1)}%;top:${(Math.random()*92).toFixed(1)}%;--s:${(8+Math.random()*16).toFixed(0)}px;--c:${colors[i%colors.length]};--d:${(1.4+Math.random()*1.6).toFixed(2)}s;--w:${(Math.random()*3).toFixed(2)}s"></s>`;
+    }
+    sp.innerHTML = h;
   }
 })();
