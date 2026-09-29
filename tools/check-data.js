@@ -8,7 +8,7 @@ const raw = fs.readFileSync(path.join(__dirname, '..', 'giochi.js'), 'utf8');
 const D = JSON.parse(raw.replace(/^const GIOCHI_DATA = /, '').replace(/;\s*$/, ''));
 const NOW = new Date();
 const YEAR = NOW.getFullYear();
-const TIME_RE = /uscito da poco|appena uscit|uscita recente|troppo (presto|recente|fresc)|di recente|poco valutabil|ancora presto|da poco (uscit|sul mercato)|pochi mesi|primi mesi|ancora (poche|pochi) (recension|dati|mesi)|non ancora (valutabil|consolidat|giudicabil)|recentissim|troppo nuov|troppo giovane/i;
+const TIME_RE = /essendo [^;.]{0,40}recente|titolo (relativamente |indipendente )?recente|capitolo (più )?recente|reinvenzione recente|invecchia (bene|benissimo) essendo|panorama indie recente|in corso di rilascio|terzo capitolo in sviluppo|uscito da poco|appena uscit|uscita recente|troppo (presto|recente|fresc)|di recente|poco valutabil|ancora presto|da poco (uscit|sul mercato)|pochi mesi|primi mesi|ancora (poche|pochi) (recension|dati|mesi)|non ancora (valutabil|consolidat|giudicabil)|recentissim|troppo nuov|troppo giovane/i;
 const KNOWN_TAGS = new Set(['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','PLAT','BEAT','FIGHT','STEALTH','ADV','WALK','FPS','TPS','SHMUP','BR','SPORT','RACE','RTS','TBS4X','MOBA','CITY','TOWERDEF','ECOSIM','PUZ','PARTY','RHY','BOARDG','SAND','SIMLIFE','ARCADE','IDLE','RUN','COOP']);
 const norm = n => n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
 let warnings = 0;

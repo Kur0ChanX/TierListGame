@@ -2275,6 +2275,12 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v76', date:'2026-09-29', items:[
+    'Controllo dei dati con Metacritic: 105 voti che non corrispondevano alla critica sono stati corretti (con almeno 15 recensioni alla base), con i relativi tier. Prima molti giochi avevano un voto provvisorio di 72: ora quelli verificabili hanno il voto reale e la fonte "verificato".',
+    'Tre giochi non ancora usciti (Fate/Extra Record, Decapolice, SacriFire) avevano recensioni e pro/contro inventati: ora sono segnati come "non ancora usciti" con la data prevista.',
+    'Riscritte circa 115 frasi che dicevano "recente" o "essendo recente invecchia bene" (non più vere), altri generi corretti (Rune Factory, Devil Survivor, Summon Night, ecc.).',
+    'I voti ancora provvisori (circa 230 giochi a 72) restano segnati come "stima", perché non ho trovato una fonte di critica per verificarli.'
+  ]},
   {version:'v75', date:'2026-09-29', items:[
     'Sincronizzazione: i giochi aggiunti (e le copertine) su dispositivi diversi ora si UNISCONO invece di sostituirsi. Prima, se aggiungevi giochi sia dal telefono sia dal computer, uno dei due elenchi poteva sovrascrivere l\'altro.'
   ]},
@@ -3578,7 +3584,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v75';
+const DATA_BUILD_VERSION = 'v76';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
