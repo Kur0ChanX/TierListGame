@@ -2275,6 +2275,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v75', date:'2026-09-29', items:[
+    'Sincronizzazione: i giochi aggiunti (e le copertine) su dispositivi diversi ora si UNISCONO invece di sostituirsi. Prima, se aggiungevi giochi sia dal telefono sia dal computer, uno dei due elenchi poteva sovrascrivere l\'altro.'
+  ]},
   {version:'v74', date:'2026-09-29', items:[
     'Su un dispositivo nuovo (es. il computer) Novità e Novità per genere ora spiegano che manca la chiave Gemini e hanno il pulsante "🔑 Inserisci la chiave". Per sicurezza la chiave non si sincronizza tra i dispositivi.'
   ]},
@@ -3575,7 +3578,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v74';
+const DATA_BUILD_VERSION = 'v75';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
