@@ -776,6 +776,7 @@ function ensureGenreLists(tags){
 }
 // Conferma grande e ben visibile (al centro dello schermo) quando un gioco viene aggiunto
 function showAddedBanner(name, tags, newLists){
+  if(window.__bulkAdd) return;                         // «Accetta tutto»: niente banner per ogni gioco, c'è l'elenco finale
   let el = document.getElementById('addedBanner');
   if(!el){ el = document.createElement('div'); el.id = 'addedBanner'; el.className = 'added-banner'; document.body.appendChild(el); }
   const inJrpg = !(tags || []).some(t=> EXTRA_GENRE_INFO[t]);

@@ -712,3 +712,12 @@ td.storyicon{width:44px !important; text-align:center; white-space:nowrap; paddi
 .ask-photo-btn svg.gi{width:24px !important; height:24px !important; margin:0 !important; display:block !important}
 #askSendBtn{display:flex; align-items:center; justify-content:center} #askSendBtn svg.gi{width:22px !important; height:22px !important; margin:0 !important}
 #askMicBtn{display:flex; align-items:center; justify-content:center} #askMicBtn svg.gi{width:24px !important; height:24px !important; margin:0 !important}
+/* v129: «Accetta tutto» ed elenco dei giochi accettati */
+.novita-acceptall{margin-top:10px; text-align:center}
+.novita-report{width:100%; max-width:720px; display:flex; flex-direction:column; gap:10px; align-items:stretch}
+.novita-report-scroll{max-height:calc(100dvh - 330px); overflow:auto; border-radius:14px; border:1px solid var(--glass-line,rgba(128,128,160,.3)); -webkit-overflow-scrolling:touch}
+.novita-report table{width:100%; border-collapse:collapse; font-size:.8rem}
+.novita-report th{position:sticky; top:0; text-align:left; padding:6px 8px; background:var(--card,#fff); font-size:.7rem; text-transform:uppercase; opacity:.85}
+.novita-report td{padding:6px 8px; border-top:1px solid rgba(128,128,160,.18); vertical-align:top}
+.novita-report td:first-child{font-weight:700}
+.novita-report table{table-layout:auto !important; min-width:470px} .novita-report td, .novita-report th{padding:5px 6px !important; font-size:.74rem} .novita-report td, .novita-report th{white-space:nowrap} .novita-report td:first-child{white-space:normal; min-width:150px}

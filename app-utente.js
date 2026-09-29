@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v129', date:'2026-10-03', items:[
+    'Ogni ricerca («Fruga altri titoli» e «Fruga per genere») ora raccoglie fino a 60 giochi (prima 30): sono ancora leggeri per la libreria.',
+    'Nuovo pulsante «Accetta tutto»: aggiunge in un colpo solo tutte le proposte e poi mostra l\'elenco essenziale dei giochi accettati (nome, voto, tier, piattaforma, anno, genere).'
+  ]},
   {version:'v128', date:'2026-10-02', items:[
     'Ricerca e informazioni dei giochi (la priorità): ogni settimana un processo automatico raccoglie da Steam, GOG, CheapShark e Wikipedia i dati «di fatto» (lingua italiana ufficiale, prezzi, voti, anni) e un grande elenco di giochi da scoprire; «Fruga altri titoli» lo usa subito, senza attese. Corretti gli id dei tag Steam.',
     'Le fonti hanno un ordine di priorità: «Fruga» interroga prima le più affidabili e veloci (elenco settimanale, RAWG, Steam, GOG) e per ultime le mediocri (Reddit, SteamSpy); chi rende di più viene usata più spesso.',
