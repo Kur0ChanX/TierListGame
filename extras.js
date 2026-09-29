@@ -419,9 +419,24 @@
   // scheda del gioco senza copertina: pulsante "Trova copertina" e (se attivo) ricerca automatica all'apertura
   let assistToken = 0;
   function coverAssist(g){
-    if(!g || coverOf(g)) return;
+    if(!g) return;
     const block = document.getElementById('coverBlock'); if(!block) return;
     const my = ++assistToken;
+    if(coverOf(g)){                                   // ha già una locandina: pulsante per riscaricarla dalle fonti online (mai in automatico)
+      const r2 = document.createElement('div'); r2.className = 'x-autocover';
+      r2.innerHTML = '<button class="btn" type="button">' + giIcon('refresh') + ' Aggiorna locandina</button><span class="x-ac-st"></span>';
+      const tl = block.querySelector('.cover-tools'); (tl || block).insertAdjacentElement('afterend', r2);
+      const b2 = r2.querySelector('button'), s2 = r2.querySelector('.x-ac-st');
+      b2.addEventListener('click', async ()=>{
+        b2.disabled = true; s2.textContent = 'Cerco…';
+        const r = await findCover(g, {onStep: x=>{ if(my === assistToken) s2.textContent = 'Cerco su ' + x; }});
+        if(my !== assistToken) return;
+        if(r && r.url !== coverOf(g)){ await saveAutoCover(g, r.url); s2.textContent = '✅ Aggiornata da ' + r.source;
+          try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ render(); }catch(e){} toast('Locandina aggiornata (' + r.source + ')'); }
+        else { s2.textContent = r ? 'È già la migliore che trovo.' : 'Nessuna locandina trovata nelle fonti aperte.'; b2.disabled = false; }
+      });
+      return;
+    }
     const row = document.createElement('div'); row.className = 'x-autocover';
     row.innerHTML = '<button class="btn primary" type="button">✨ Trova copertina</button><span class="x-ac-st"></span>';
     const tools = block.querySelector('.cover-tools'); (tools || block).insertAdjacentElement('afterend', row);
