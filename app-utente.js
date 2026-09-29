@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v100', date:'2026-09-29', items:[
+    '🎨 Palette colori (menu ✨): 34 temi preimpostati in 5 gruppi (Originali, Eleganti, Vivaci, Natura, Gaming), ognuno con sfumature, trasparenze, bagliori e sfondo aurora coordinati, per tema chiaro e scuro.',
+    'Corretto: con i Filtri aperti la lista restava bloccata e non si scorreva fino in fondo; ora si scorre tutta.',
+    'Corretta una riga in cima alla pagina (arrivata col file originale) che spostava l\'intestazione nel corpo della pagina.'
+  ]},
   {version:'v99', date:'2026-09-29', items:[
     'Tre viste della classifica, a scelta (pulsanti ☰ ▦ ▤ accanto al conteggio): Tabella, Copertine (griglia stile libreria) e Schede.',
     'Copertine automatiche (menu ✨): cerca su Wikipedia la copertina di tutti i giochi che non ce l\'hanno, a gruppi di 50 per non appesantire.',
