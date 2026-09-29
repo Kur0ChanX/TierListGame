@@ -1,10 +1,28 @@
-// Service worker: rende l'app installabile e SALTA la cache del browser.
-// GitHub Pages fa tenere i file in cache per 10 minuti: senza questo, dopo un aggiornamento si vedeva ancora la versione vecchia.
-// 'no-cache' = chiede sempre al server "è cambiato?" (se no, risposta velocissima 304): niente download inutili, mai versioni vecchie.
-self.addEventListener('install', ()=> self.skipWaiting());
-self.addEventListener('activate', e=> e.waitUntil(self.clients.claim()));
+// Service worker: rende l'app installabile, funziona OFFLINE e non mostra mai versioni vecchie.
+// Strategia «prima la rete, poi la copia»: con internet chiede sempre al server «è cambiato?» (cache: 'no-cache', risposta veloce 304 se no),
+// aggiorna la copia nella cache del dispositivo; senza internet (metropolitana, aereo…) usa l'ultima copia salvata.
+// GitHub Pages tiene i file in cache 10 minuti: qui la si salta, così gli aggiornamenti si vedono subito.
+const CACHE = 'raccoon-tier-v1';
+const SHELL = ['./', 'style.css', 'theme.css', 'palettes.js', 'sync.js', 'app.js', 'app-schede.js', 'app-utente.js', 'app-ai.js', 'gemini.js', 'loader.js', 'sources.js', 'genres.js', 'verify.js', 'fx.js', 'extras.js', 'extras2.js', 'intro.js', 'giochi.js', 'giochi-dettagli.js', 'facts.js', 'discoveries.js', 'manifest.webmanifest', 'icons/logo.png', 'icons/icon-192.png', 'icons/frugu-hd.gif'];
+self.addEventListener('install', e=>{
+  e.waitUntil(caches.open(CACHE).then(c=> Promise.all(SHELL.map(u=> c.add(new Request(u, {cache: 'no-cache'})).catch(()=>{})))).then(()=> self.skipWaiting()));
+});
+self.addEventListener('activate', e=>{
+  e.waitUntil(caches.keys().then(ks=> Promise.all(ks.filter(k=> k !== CACHE).map(k=> caches.delete(k)))).then(()=> self.clients.claim()));
+});
 self.addEventListener('fetch', e=>{
   const r = e.request;
   if(r.method !== 'GET' || new URL(r.url).origin !== self.location.origin) return;
-  e.respondWith(fetch(r, {cache: 'no-cache'}).catch(()=> fetch(r)));
+  e.respondWith((async()=>{
+    try{
+      const res = await fetch(r, {cache: 'no-cache'});
+      if(res && res.ok){ const c = await caches.open(CACHE); c.put(r, res.clone()).catch(()=>{}); }
+      return res;
+    }catch(err){
+      const hit = await caches.match(r, {ignoreSearch: true});
+      if(hit) return hit;
+      if(r.mode === 'navigate'){ const home = await caches.match('./'); if(home) return home; }
+      throw err;
+    }
+  })());
 });

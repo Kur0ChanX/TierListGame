@@ -131,9 +131,11 @@
   async function gather(g, lite){
     // lite: solo le fonti leggere (Wikipedia, Wikidata, RAWG); Steam e PCGamingWiki (lingue) restano per «Aggiorna info»
     const none = Promise.resolve(null);
-    const [wiki, wd, itw, steam, pcgw, rawg] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g)]);
+    const needCheap = !(window.SearchHub && SearchHub.factsFor(g)) && window.SearchHub;
+    const [wiki, wd, itw, steam, pcgw, rawg, cheap] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none]);
+    const cheapLive = cheap.status === 'fulfilled' ? cheap.value : null;
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
-    return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
+    return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
@@ -142,7 +144,10 @@
     // lingua italiana da fonti ufficiali (solo prove positive: se un sito non elenca l'italiano non significa che il gioco non lo abbia; l'edizione PC può differire da quella console)
     { const cur = (g.label || {}).it, rank = {N:0, F:0, S:1, D:2};
       const found = [];
-      if(src.steam && src.steam.itText) found.push({code: src.steam.itAudio ? 'D' : 'S', name:'Steam', url: src.steam.url, audio: src.steam.itAudio});
+      // Steam dal browser (se raggiungibile) oppure dai dati settimanali scaricati dai server (facts.js)
+      const fs0 = src.facts && src.facts.s && (src.facts.s.it === 'D' || src.facts.s.it === 'S') ? src.facts.s : null;
+      const steamSrc = src.steam || (fs0 ? {url: 'https://store.steampowered.com/app/' + fs0.id + '/', itText: true, itAudio: fs0.it === 'D'} : null);
+      if(steamSrc && steamSrc.itText) found.push({code: steamSrc.itAudio ? 'D' : 'S', name:'Steam' + (src.steam ? '' : ' (dati settimanali)'), url: steamSrc.url, audio: steamSrc.itAudio});
       if(src.pcgw && src.pcgw.itText) found.push({code: src.pcgw.itAudio ? 'D' : 'S', name:'PCGamingWiki', url: src.pcgw.url, audio: src.pcgw.itAudio});
       const best = found.sort((a, b)=> rank[b.code] - rank[a.code])[0];
       if(best && (rank[cur] || 0) < rank[best.code]){
@@ -170,6 +175,14 @@
         ch.push({id:'year', label:'Anno', from: g.year, to: String(y) + ' (Wikidata)', patch:{year: String(y), ysort: y}});
       }
       if(Math.min(...wy) > nowY) ch.push({id:'unreleased', label:'⚠️ Non ancora uscito', from:'', to:'Wikidata indica un\'uscita nel ' + Math.min(...wy) + ': voto e recensioni non possono essere reali', patch:{note:'Non ancora uscito (uscita prevista ' + Math.min(...wy) + '): voto provvisorio.', m:'S'}});
+    }
+    // dati settimanali dai server: Metascore riportato da Steam/CheapShark (proposta mai attiva di default: le recensioni non sono contabili)
+    if(src.facts){
+      const mcs = [src.facts.s && src.facts.s.mc, src.facts.c && src.facts.c.mc].filter(Boolean);
+      const mc = mcs.length ? mcs[0] : null;
+      if(mc && Math.abs(mc - g.score) > 6 && !ch.some(c=> /^score/.test(c.id))){
+        ch.push({id:'score4', label:'Voto (Metascore da Steam/CheapShark)', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${mc} (Metascore riportato dai dati settimanali; recensioni non verificabili)`, patch:{score: mc, tier: tierOf(mc), m:'V'}, off:true});
+      }
     }
     // RAWG: conferma l'anno (se Wikidata non ha già proposto), voto Metacritic (mai attivo di default: le recensioni non sono contabili) e giochi affini
     if(src.rawg){
@@ -216,7 +229,8 @@ ${src.wiki && src.wiki.text ? `FONTE — Wikipedia (${src.wiki.title}):\n${diges
   async function deepChanges(g, silent){
     if(!geminiKey()) return {changes:[], sources:[], note:'Ricerca approfondita (ore, difficoltà, lingua, gameplay) non fatta: serve la chiave Gemini.'};
     const Y = new Date().getFullYear();
-    const prompt = todayLine() + `Fai le ricerche includendo gli anni ${Y} e ${Y - 1} nelle query. Per le informazioni che cambiano nel tempo (piattaforme, edizioni, lingue, prezzi, abbonamenti, patch, ore dopo gli aggiornamenti) usa SOLO pagine datate ${Y - 2} o dopo e ignora quelle senza data o più vecchie; per le informazioni storiche (trama, voto alla prima uscita) va bene qualsiasi anno. Se per un dato non trovi fonti aggiornate scrivi null. Cerca online informazioni ATTENDIBILI sul videogioco "${g.name}" (${g.year}, ${g.plat}) consultando fonti come Metacritic, OpenCritic, HowLongToBeat, Wikipedia, PCGamingWiki, Steam (lingue: interfaccia, audio, sottotitoli), PSXDataCenter (edizioni PAL dei giochi PS1/PS2), RPGamer, RPGFan, gli store ufficiali (Steam, PlayStation Store, Nintendo eShop) e i siti dei publisher. Compila SOLO ciò che trovi in fonti affidabili; se non lo trovi scrivi null, NON stimare e NON inventare.
+    const symTxt = (g.enrich && (g.enrich.storyTag || g.enrich.dopamine)) ? `\nSIMBOLI: questo gioco ha già ${g.enrich.storyTag ? 'il simbolo storia «' + g.enrich.storyTag + '»' + (g.enrich.storyTagNote ? ' (' + g.enrich.storyTagNote + ')' : '') : ''}${g.enrich.storyTag && g.enrich.dopamine ? ' e ' : ''}${g.enrich.dopamine ? 'il simbolo dopamina (loop di ricompense)' : ''}. Giudica con onestà, cercando sulle fonti, se è DAVVERO distintivo: storia affascinante o memorabile, oppure meccanica unica e travolgente che quasi nessun altro gioco ha (il voto NON conta). Aggiungi al JSON i campi storyTagUnique (true/false/null se non c'è il simbolo), dopamineUnique (true/false/null) e symbolWhy (una frase che spiega perché sì o perché no).` : '';
+    const prompt = todayLine() + symTxt + `Fai le ricerche includendo gli anni ${Y} e ${Y - 1} nelle query. Per le informazioni che cambiano nel tempo (piattaforme, edizioni, lingue, prezzi, abbonamenti, patch, ore dopo gli aggiornamenti) usa SOLO pagine datate ${Y - 2} o dopo e ignora quelle senza data o più vecchie; per le informazioni storiche (trama, voto alla prima uscita) va bene qualsiasi anno. Se per un dato non trovi fonti aggiornate scrivi null. Cerca online informazioni ATTENDIBILI sul videogioco "${g.name}" (${g.year}, ${g.plat}) consultando fonti come Metacritic, OpenCritic, HowLongToBeat, Wikipedia, PCGamingWiki, Steam (lingue: interfaccia, audio, sottotitoli), PSXDataCenter (edizioni PAL dei giochi PS1/PS2), RPGamer, RPGFan, gli store ufficiali (Steam, PlayStation Store, Nintendo eShop) e i siti dei publisher. Compila SOLO ciò che trovi in fonti affidabili; se non lo trovi scrivi null, NON stimare e NON inventare.
 Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indicative per finire la storia principale o la run/campagna principale; nei giochi senza trama vera (roguelite, tattici, puzzle, arcade) indica la durata di UNA run o campagna (1-3h), MAI le ore per sbloccare tutto (quelle vanno in hoursCompletionist), numero), hoursCompletionist (ore completista, numero), difficulty (1-5), grind (1-5: quanta ripetizione/farming serve; conta anche sblocchi di contenuti, squadre, armi e meta-progressione dei roguelite: mai lasciarlo vuoto se ci sono sblocchi; 1 = nessuno, 3 = qualche sblocco, 5 = molto grinding), storyWeight (1-5: 1 = trama assente o minima, 5 = la storia è il cuore del gioco; deve essere COERENTE con le ore storia), pace ("L" lento, "M" medio, "V" veloce), italian ("D" testi E doppiaggio italiani ufficiali, "S" solo testi/sottotitoli italiani ufficiali, "F" solo fan-translation, "N" nessun italiano ufficiale, oppure null se NON trovi una fonte esplicita: NON rispondere "N" per mancanza di informazioni; per i giochi usciti prima del 2010 controlla l'edizione europea/italiana (PAL) originale del disco o della cartuccia e non solo gli store attuali, perché molti giochi PS1/PS2/Wii/DS uscirono localizzati in italiano anche se la versione americana era solo in inglese), language (una frase in italiano su lingue di testi E doppiaggio nell'edizione italiana/europea e nelle riedizioni, citando ciò che dice la fonte; null se non lo trovi), remaster (una frase in italiano su edizioni, remaster o remake esistenti), gameplayScore (0-10, in base alla critica), gameplayNote (una frase in italiano sul gameplay), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "cerchi una trama profonda": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), criticScore (Metascore o OpenCritic, numero 0-100, oppure null), graphicsToday (1-2 frasi in italiano su come regge oggi la grafica e la parte tecnica rispetto agli standard del ${Y}, senza dire "recente"), asOf (l'anno della fonte PIÙ VECCHIA che hai usato per lingua, edizioni, piattaforme e ore).`;
     let r = await askLLM(prompt, {}, {search:true, forceGemini:true, silent: !!silent, label:'Ricerca approfondita sul web…'});
     let j = parseJson(r && r.text);
@@ -250,6 +264,13 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     if(gt){ ch.push({id:'aging', label:'Grafica e tecnica oggi', from: ((e.agingNote) || '—'), to: gt, patch:{enrich:{agingNote: gt}}}); }
     const cs = num(j.criticScore, 0, 100);
     if(cs && cs !== g.score){ ch.push({id:'score2', label:'Voto (ricerca AI, da confermare)', from: String(g.score), to: `${cs} (Metascore/OpenCritic secondo la ricerca)`, patch:{score: cs, tier: tierOf(cs), m:'V'}, off:true}); }
+    // simboli 💕🤝✨💉 non distintivi: si propone di toglierli (mai attivo in automatico: decidi tu)
+    if(g.enrich && g.enrich.storyTag && j.storyTagUnique === false){
+      ch.push({id:'symStory', label:'Simbolo storia non distintivo', from: (STORY_TAG_INFO[g.enrich.storyTag] ? STORY_TAG_INFO[g.enrich.storyTag].icon + ' ' + STORY_TAG_INFO[g.enrich.storyTag].label : g.enrich.storyTag) + (g.enrich.storyTagNote ? ' — ' + g.enrich.storyTagNote : ''), to: 'Togliere il simbolo. ' + (str(j.symbolWhy) || 'La storia non ha nulla di davvero unico rispetto agli altri giochi.'), patch:{enrich:{storyTag:null, storyTagNote:null}}, off:true});
+    }
+    if(g.enrich && g.enrich.dopamine && j.dopamineUnique === false){
+      ch.push({id:'symDopa', label:'Simbolo dopamina non distintivo', from: '💉 Loop di ricompense molto coinvolgente', to: 'Togliere il simbolo. ' + (str(j.symbolWhy) || 'Il loop di ricompense è nella media del genere.'), patch:{enrich:{dopamine:false}}, off:true});
+    }
     return {changes: ch, sources: srcs, note:''};
   }
   function mergePatch(list){
@@ -365,6 +386,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   function auSchedule(ms){ clearTimeout(auTimer); auTimer = setTimeout(auStep, ms == null ? auDelay : ms); }
   async function auStep(){
     if(!auditOn() || auBusy) return;
+    if(typeof detailsReady === 'function' && !detailsReady()) return auSchedule(1500);   // aspetta che i dettagli dei giochi siano caricati (altrimenti confronterebbe con dati vuoti)
     const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.modal-backdrop.show, .dup-backdrop.show, .rt-loader.show');
     if(!calm){ return auSchedule(30000); }
     const ai = useAI(), day = dayLoad();
@@ -373,9 +395,9 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const g = auNext(); if(!g) return auSchedule(6 * 3600e3);
     auBusy = true;
     try{
-      const [wiki, wd, itw, rawg] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), rawgInfoFor(g)]);
+      const [wiki, wd, itw, rawg, cheap] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), rawgInfoFor(g), SearchHub.factsFor(g) ? Promise.resolve(null) : SearchHub.cheapFacts(g.name)]);
       const ok = x=> x.status === 'fulfilled' ? x.value : null;
-      const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), rawg: ok(rawg)};
+      const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), rawg: ok(rawg), facts: SearchHub.factsFor(g) || (ok(cheap) ? {c: ok(cheap)} : null)};
       if(wiki.status === 'rejected' && wd.status === 'rejected' && !useAI()) throw new Error('fonti');   // con Gemini si va avanti lo stesso: le fonti aperte sono solo un di più
       let ch = factChanges(g, src), srcs = [], deep = false;
       if(ai){

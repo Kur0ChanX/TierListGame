@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v128', date:'2026-10-02', items:[
+    'Ricerca e informazioni dei giochi (la priorità): ogni settimana un processo automatico raccoglie da Steam, GOG, CheapShark e Wikipedia i dati «di fatto» (lingua italiana ufficiale, prezzi, voti, anni) e un grande elenco di giochi da scoprire; «Fruga altri titoli» lo usa subito, senza attese. Corretti gli id dei tag Steam.',
+    'Avvio più veloce: le analisi dei giochi stanno in un file a parte che si carica dopo la lista. L\'app funziona anche offline e i dati salvati si uniscono per singolo gioco tra dispositivi.',
+    'Nel menu ✨: backup con promemoria mensile e controllo dello spazio, livello del procione, cronologia da giocatore, carta profilo da condividere, prezzi in wishlist, backlog e affidabilità dei dati in Statistiche, joypad. Il controllo dati segnala anche i simboli non distintivi.',
+    'Icone a tema videogioco al posto delle emoji in filtri, Chiedi, impostazioni e scheda gioco; testi resi neutri (niente più «Claude ti propone»).'
+  ]},
   {version:'v127', date:'2026-10-01', items:[
     'La colonna dei libri (📖) ora mostra la lingua italiana di ogni gioco: ITA = testi e doppiaggio, sub = sottotitoli, fan = traduzione dei fan, no = nessuna, ? = non ancora verificata. Non viene più tagliata a destra.',
     'Lista più lunga (arriva fino alla barra in basso); badge «da approvare» e freccia «Torna su» più piccoli; icone a tema videogioco anche nei pulsanti «Fruga altri titoli», «Fruga per genere», «Aggiorna info», preferiti e capitoli mancanti.',
@@ -489,6 +495,28 @@ document.getElementById('importDataFile').addEventListener('change', (e)=>{
 // ---- Verifica qualità dati: controllo locale (NESSUNA chiamata a Claude, non consuma limiti) ----
 // Cerca doppioni, schede con campi mancanti/non validi, e voci "Scartati" ormai obsolete
 // (un titolo scartato in passato ma poi entrato comunque nel database in un altro modo).
+// ---- Affidabilità dei dati di una scheda (0-100): quanto è completa e verificata ----
+function dataScore(g, ctx){
+  ctx = ctx || {};
+  const au = ctx.au || (function(){ try{ return JSON.parse(localStorage.getItem('jrpg_audit') || '{}') || {}; }catch(e){ return {}; } })();
+  const ck = ctx.ck || (function(){ try{ return JSON.parse(localStorage.getItem('jrpg_info_checked') || '{}') || {}; }catch(e){ return {}; } })();
+  const l = g.label || {}, e = g.enrich || {}, miss = [];
+  let pts = 0;
+  if(g.m === 'V') pts += 20; else miss.push('voto verificato (ora è una stima)');
+  if(['D', 'S', 'F', 'N'].includes(l.it)) pts += 15; else miss.push('lingua italiana');
+  if(l.h || e.hoursMain) pts += 10; else miss.push('durata');
+  const sl = String(g.story || '').length;
+  if(sl >= 250) pts += 15; else if(sl >= 120){ pts += 8; miss.push('trama più ricca'); } else miss.push('trama');
+  if((g.proscons && g.proscons.pros && g.proscons.pros.length) || (e.pros && e.pros.length)) pts += 10; else miss.push('pro e contro');
+  if(e.eraScore != null || e.agingNote || e.gameplayNote) pts += 10; else miss.push('analisi (come regge oggi, gameplay)');
+  const facts = window.SearchHub && SearchHub.factsFor ? SearchHub.factsFor(g) : null;
+  if((au[g.id] && au[g.id].deep) || ck[g.id] || facts) pts += 20; else miss.push('controllo su fonti esterne');
+  return {pct: pts, miss};
+}
+function dataScoreHtml(g){
+  const d = dataScore(g), col = d.pct >= 80 ? '#16a34a' : d.pct >= 55 ? '#ca8a04' : '#dc2626';
+  return `<div class="ds-chip" title="${d.miss.length ? 'Manca: ' + d.miss.join(', ') : 'Scheda completa e verificata'}"><span class="ds-ring" style="--p:${d.pct}; --c:${col}"></span><span>Affidabilità dei dati <b>${d.pct}%</b>${d.miss.length ? '<small> · manca: ' + d.miss.slice(0, 3).join(', ') + '</small>' : ''}</span></div>`;
+}
 function runDataQualityCheck(){
   const report = { duplicateNames: [], duplicateIds: [], missingFields: [], staleSkips: [] };
   const byId = new Map();

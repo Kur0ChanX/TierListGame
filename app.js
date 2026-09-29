@@ -578,10 +578,40 @@ const WIZARD_QUESTIONS = [
 ];
 
 const GAMES = GIOCHI_DATA.games;
-const ENRICH = GIOCHI_DATA.enrich;
-GAMES.forEach(g=>{ g.enrich = ENRICH[g.id] || null; });
-const DOPA = GIOCHI_DATA.dopa;
-GAMES.forEach(g=>{ if(g.enrich && DOPA[g.id]) g.enrich.dopa = DOPA[g.id]; });
+// Analisi, trame, pro/contro e «dopamina» stanno in giochi-dettagli.js (~1,2 MB), caricato a parte e in differita: la lista compare subito.
+// Appena il file arriva, applyDetails() li aggancia ai giochi, riapplica le correzioni approvate e ridisegna. Fino ad allora g.enrich è null.
+GAMES.forEach(g=>{ g.enrich = null; });
+let DETAILS_READY = false;
+function detailsReady(){ return DETAILS_READY; }
+function applyDetails(){
+  if(DETAILS_READY || typeof GIOCHI_DETAILS === 'undefined' || !GIOCHI_DETAILS) return false;
+  const EN = GIOCHI_DETAILS.enrich || {}, DP = GIOCHI_DETAILS.dopa || {};
+  GAMES.forEach(g=>{
+    if(g.custom) return;                                       // i giochi aggiunti da te hanno già la loro analisi
+    g.enrich = EN[g.id] || null;
+    if(g.enrich && DP[g.id]) g.enrich.dopa = DP[g.id];
+  });
+  DETAILS_READY = true;
+  try{ if(typeof applyGameOverrides === 'function') applyGameOverrides(); }catch(e){}
+  try{ renderMetrics(); renderStats(); render(); renderListBar(); }catch(e){}
+  try{ if(typeof currentModalGame !== 'undefined' && currentModalGame && modalBackdrop.classList.contains('show')) openModal(currentModalGame); }catch(e){}
+  try{ window.dispatchEvent(new Event('details-ready')); }catch(e){}
+  return true;
+}
+// se il file dei dettagli non arriva (rete che cade) riprova da solo, fino a 3 volte
+let detailsTries = 0;
+function retryDetails(){
+  if(DETAILS_READY) return;
+  if(detailsTries >= 3){ try{ showToast('I dettagli dei giochi non si sono caricati: controlla la connessione e ricarica la pagina', 6000); }catch(e){} return; }
+  detailsTries++;
+  setTimeout(()=>{
+    const s = document.createElement('script');
+    s.src = 'giochi-dettagli.js?r=' + Date.now();
+    s.onload = ()=> applyDetails();
+    s.onerror = retryDetails;
+    document.head.appendChild(s);
+  }, 1500 * detailsTries);
+}
 const LABELS = GIOCHI_DATA.labels;
 GAMES.forEach(g=>{ g.label = LABELS[g.id] || null; });
 const MARKET = GIOCHI_DATA.market;

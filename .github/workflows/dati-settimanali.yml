@@ -1,0 +1,49 @@
+name: Dati settimanali (Steam, GOG, CheapShark, Wikipedia)
+# Ogni lunedì scarica dai SERVER (dove il browser non ha blocchi) i dati che l'app usa per cercare e controllare i giochi:
+#  - facts.js: lingue italiane ufficiali su Steam, prezzo in euro con sconto, Metascore e % di recensioni per ogni gioco del database
+#  - discoveries.js: migliaia di giochi da scoprire (Steam, GOG, CheapShark, Wikipedia, RAWG se c'è il segreto RAWG_API_KEY)
+# Nessun dato dei giochi viene cambiato da solo: l'app li usa per PROPORRE correzioni (le approvi tu) e come fonte della ricerca.
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: dati-settimanali
+  cancel-in-progress: false
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Giochi da scoprire
+        run: node tools/build-discoveries.js
+        env:
+          RAWG_KEY: ${{ secrets.RAWG_API_KEY }}
+      - name: Dati sui giochi (lingue, prezzi, voti)
+        run: node tools/build-facts.js
+      - name: Controllo dati
+        run: node tools/check-data.js
+        continue-on-error: true
+      - name: Salva e ripubblica il sito
+        run: |
+          git config user.name "raccoon-bot"
+          git config user.email "raccoon-bot@users.noreply.github.com"
+          git add facts.js discoveries.js
+          if git diff --cached --quiet; then
+            echo "Nessuna novità questa settimana."
+          else
+            git commit -m "Dati settimanali: facts.js e discoveries.js"
+            git push
+            gh workflow run pages.yml --ref main
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

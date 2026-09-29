@@ -19,7 +19,31 @@
     if(statusEl){ statusEl.textContent = msg; statusEl.style.color = ok === true ? '#2e7d32' : ok === false ? '#c62828' : ''; }
   }
   function stamp(k){ const m = loadMeta(); m[k] = Date.now(); saveMeta(m); schedulePush(); }
-  Storage.prototype.setItem = function(k, v){ _set.call(this, k, v); if(this === localStorage && !applying && syncable(k) && token()) stamp(k); };
+  // Spazio del browser (circa 5 MB): se una scrittura non ci sta, prima libero ciò che si può rigenerare (registro diagnostico, cache dei ponti, dettagli dell'audit) e riprovo;
+  // se ancora non basta, avviso l'utente invece di perdere i dati in silenzio.
+  const isQuota = e=> !!e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014);
+  function emergencyClean(except){
+    let freed = false;
+    ['rt_debuglog', 'rt_relay_health', 'rt_needs_relay', 'rt_price_cache'].forEach(v=>{ if(v !== except && _get.call(localStorage, v) != null){ try{ _rem.call(localStorage, v); freed = true; }catch(e){} } });
+    try{
+      const a = JSON.parse(_get.call(localStorage, 'jrpg_audit') || '{}'); let ch = false;
+      Object.keys(a).forEach(id=>{ const r = a[id]; if(r && !(r.ch && r.ch.length) && r.src){ delete r.src; ch = true; } });
+      if(ch && except !== 'jrpg_audit'){ _set.call(localStorage, 'jrpg_audit', JSON.stringify(a)); freed = true; }
+    }catch(e){}
+    return freed;
+  }
+  window.__emergencyClean = ()=> emergencyClean('');
+  Storage.prototype.setItem = function(k, v){
+    try{ _set.call(this, k, v); }
+    catch(e){
+      if(this === localStorage && isQuota(e)){
+        let ok = false;
+        if(emergencyClean(k)){ try{ _set.call(this, k, v); ok = true; }catch(e2){} }
+        if(!ok){ try{ window.dispatchEvent(new CustomEvent('storage-full', {detail: k})); }catch(x){} throw e; }
+      } else throw e;
+    }
+    if(this === localStorage && !applying && syncable(k) && token()) stamp(k);
+  };
   Storage.prototype.removeItem = function(k){ _rem.call(this, k); if(this === localStorage && !applying && syncable(k) && token()) stamp(k); };
 
   function localKeys(){
@@ -66,11 +90,20 @@
         if(!syncable(k)) return;
         const r = remoteKeys[k]; if(!r || typeof r.t !== 'number') return;
         if(UNION.includes(k)){
-          // archivi di "elenchi" (giochi aggiunti, copertine): si uniscono invece di sostituirsi, così i giochi aggiunti su due dispositivi non si perdono
+          // archivi di "elenchi" (giochi aggiunti, copertine, foto): si uniscono documento per documento.
+          // Ogni documento ha una data di modifica (_u): vince il più recente, quindi due dispositivi che modificano giochi DIVERSI non si sovrascrivono
+          // e nemmeno lo stesso gioco (vince l'ultima modifica). Le cancellazioni viaggiano come «lapidi» (_d) e si ripuliscono dopo 60 giorni.
           let lo = {}, ro = {};
           try{ lo = JSON.parse(ls.get(k) || '{}') || {}; }catch(e){}
           try{ ro = JSON.parse(r.v || '{}') || {}; }catch(e){}
-          const merged = (r.t > (meta[k] || 0)) ? Object.assign({}, lo, ro) : Object.assign({}, ro, lo);
+          const remoteNewer = r.t > (meta[k] || 0), u = d=> (d && typeof d === 'object' && d._u) || 0, merged = Object.assign({}, lo), old = Date.now() - 60 * 864e5;
+          Object.keys(ro).forEach(id=>{
+            const a = lo[id], b = ro[id];
+            if(a === undefined){ merged[id] = b; return; }
+            const ua = u(a), ub = u(b);
+            merged[id] = ub > ua ? b : ub < ua ? a : (remoteNewer ? b : a);
+          });
+          Object.keys(merged).forEach(id=>{ const d = merged[id]; if(d && typeof d === 'object' && d._d && u(d) < old) delete merged[id]; });
           const ms = JSON.stringify(merged);
           if(ms !== (ls.get(k) || '{}')){ ls.set(k, ms); changed = true; }
           meta[k] = (JSON.stringify(ro) !== ms) ? Date.now() : Math.max(meta[k] || 0, r.t);

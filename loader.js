@@ -88,6 +88,7 @@
     cheapshark: ['Seguo le tracce di sconti e voti su CheapShark: qui i capolavori si fanno pagare poco…', 'CheapShark: Frugu Frugu annusa le offerte e i punteggi Metacritic…'],
     steamspy: ['SteamSpy: conto i pollici su e giù dei giocatori di Steam…', 'Scoperchio le classifiche di SteamSpy alla ricerca di gemme…'],
     gog: ['Fatturando nei cassonetti di GOG: i classici fanno capolino…', 'GOG: rovisto tra i titoli senza DRM e senza pietà…'],
+    scoperte: ['Pesco dal bottino della settimana: Frugu Frugu ha già scoperchiato Steam, GOG e CheapShark…', 'Scoperte del procione: perle già lavate e pronte all\'uso…'],
     proxy: ['Passo dal passaggio segreto per aggirare i blocchi…', 'Un cunicolo laterale per raggiungere la fonte…'],
     ai: ['Frugu Frugu consulta il web con l\'aiuto di Gemini…', 'Scoperchio i bidoni del web e leggo le fonti…', 'Lavando il cibo e verificando i voti degli utenti…', 'Fatturando nei cassonetti più profondi della rete…', 'Annuso qualcosa di buono…', 'Le zampette sono stanche ma il bottino cresce…']
   };
