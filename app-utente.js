@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v133', date:'2026-10-06', items:[
+    'La locandina nella scheda non viene più tagliata: si vede intera su uno sfondo sfocato dei suoi stessi colori.',
+    'Due mini-pulsanti sulla locandina: «adatta» cambia il formato della cornice (automatico, verticale 3:4, quadrata, orizzontale 4:3, panorama 16:9) e lo ricorda per ogni gioco; la lente cerca un\'altra immagine (box art, Wikipedia, RAWG, banner) e le fa scorrere una per volta, salvando quella scelta.'
+  ]},
   {version:'v132', date:'2026-10-05', items:[
     'Il simbolo Update+ ora è un piccolo logo dorato con un «+»: compare nella lista, nella scheda e anche nella griglia delle copertine. Sui giochi con voto verificato e Update+ completato la V verde diventa una V dorata.',
     'Le locandine trovate (in automatico o con «Aggiorna locandina») restano salvate nell\'app e, con la sincronizzazione attiva, si ritrovano su ogni tuo dispositivo.'

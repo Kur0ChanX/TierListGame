@@ -238,6 +238,70 @@
   }
   window.findGameCover = findCover;
   window.XCOVER = {find: findCover, save: saveAutoCover, has: coverOf};
+
+  // ---- «Cerca un'altra immagine»: raccoglie TUTTE le immagini trovate (box art in verticale prima, poi Wikipedia, RAWG, banner e schermate) e le fa scorrere una per volta ----
+  async function okAll(urls, par){
+    const good = [];
+    for(let i = 0; i < urls.length; i += (par || 10)){
+      const part = urls.slice(i, i + (par || 10)), r = await Promise.all(part.map(u=> probeImg(u)));
+      part.forEach((u, k)=>{ if(r[k]) good.push(u); });
+    }
+    return good;
+  }
+  async function coverCandidates(g){
+    const out = [], add = (u, src)=>{ if(u && !out.some(x=> x.url === u)) out.push({url: u, source: src}); };
+    let wd = null; try{ wd = await wikidataInfo(g.name); }catch(e){}
+    const tasks = [];
+    if(wd && wd.steam && wd.steam.length){
+      const ids = wd.steam.slice(0, 2), base = id=> `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/`;
+      tasks.push(okAll(ids.map(id=> base(id) + 'library_600x900.jpg')).then(l=> l.forEach(u=> add(u, 'Steam (verticale)'))));
+      tasks.push(okAll(ids.map(id=> base(id) + 'header.jpg')).then(l=> l.forEach(u=> add(u, 'Steam (banner)'))));
+    }
+    const sys = lrSystems(g.plat);
+    if(sys.length){
+      const titles = lrTitles([wd && wd.label, g.name]);
+      const mk = kind=>{ const urls = []; titles.forEach(t=> sys.forEach(s=> LR_REG.forEach(r=> urls.push(LR + encodeURIComponent(s) + '/' + kind + '/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png'))))); return urls; };
+      tasks.push(okAll(mk('Named_Boxarts')).then(l=> l.forEach(u=> add(u, 'Libretro (box art)'))));
+      tasks.push(okAll(mk('Named_Titles'), 8).then(l=> l.slice(0, 2).forEach(u=> add(u, 'Libretro (schermata titolo)'))));
+    }
+    tasks.push((async()=>{ try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); if(u) add(u, 'Wikipedia'); }catch(e){} })());
+    tasks.push((async()=>{ try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ const i = await SearchHub.rawg.info(g.name); if(i && i.cover) add(i.cover, 'RAWG'); } }catch(e){} })());
+    await Promise.all(tasks);
+    const rank = s=> /box art|verticale/.test(s) ? 0 : /Wikipedia/.test(s) ? 1 : /RAWG/.test(s) ? 2 : /banner/.test(s) ? 3 : 4;
+    return out.sort((a, b)=> rank(a.source) - rank(b.source));
+  }
+  const ALT = {};        // id gioco -> {list, idx}
+  document.addEventListener('click', async ev=>{
+    const fitBtn = ev.target.closest && ev.target.closest('[data-cover-fit]'), altBtn = ev.target.closest && ev.target.closest('[data-cover-alt]');
+    if(!fitBtn && !altBtn) return;
+    ev.stopPropagation();
+    const g = (typeof currentModalGame !== 'undefined') ? currentModalGame : null; if(!g) return;
+    if(fitBtn){
+      const fr = fitBtn.closest('.cover-frame'); if(!fr) return;
+      const cur = coverFitGet(g.id), i = COVER_FITS.findIndex(f=> f[0] === cur), nx = COVER_FITS[(i + 1) % COVER_FITS.length];
+      coverFitSet(g.id, nx[0]); coverFitApply(fr, nx[0]); fitBtn.title = 'Adatta la locandina al formato: ' + nx[1] + ' (tocca per cambiare)';
+      toast('Formato: ' + nx[1]);
+      return;
+    }
+    if(altBtn.disabled) return;
+    const cur0 = coverOf(g);
+    if(!ALT[g.id]){
+      if(typeof USER_COVER_IDS !== 'undefined' && USER_COVER_IDS[String(g.id)] && !confirm('Hai caricato una tua foto per questo gioco. La sostituisco con un\'altra immagine trovata online?')) return;
+      altBtn.disabled = true; toast('Cerco altre immagini…', 6000);
+      let list = []; try{ list = await coverCandidates(g); }catch(e){}
+      altBtn.disabled = false;
+      const curIdx = list.findIndex(x=> x.url === cur0);
+      ALT[g.id] = {list, idx: curIdx};
+      if(!list.length){ delete ALT[g.id]; toast('Non ho trovato altre immagini nelle fonti aperte'); return; }
+    }
+    const st = ALT[g.id];
+    if(st.list.length < 2 && st.list[0] && st.list[0].url === cur0){ toast('È l\'unica immagine che trovo'); return; }
+    st.idx = (st.idx + 1) % st.list.length;
+    const pick = st.list[st.idx];
+    await saveAutoCover(g, pick.url);
+    try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ render(); }catch(e){}
+    toast('Immagine ' + (st.idx + 1) + ' di ' + st.list.length + ' · ' + pick.source, 3500);
+  }, true);
   // le box art Libretro sono PNG grandi: in lista/griglia le mostro ridotte da un servizio di ridimensionamento (se non risponde, si usa l'originale)
   window.coverThumb = (u, w)=> /^https:\/\/thumbnails\.libretro\.com\//.test(u || '') ? 'https://wsrv.nl/?url=' + encodeURIComponent(u) + '&w=' + (w || 360) + '&output=webp' : u;
   let coversRunning = false;
