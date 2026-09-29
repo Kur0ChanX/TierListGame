@@ -195,3 +195,5 @@ html:fullscreen .wrap{padding-top:2px}
 .gc-rows{display:flex; flex-direction:column; gap:6px; margin:8px 0; max-height:46vh; overflow:auto}
 .gc-row{display:flex; gap:10px; align-items:flex-start; padding:8px 10px; border:1px solid var(--glass-line); border-radius:12px; font-size:.82rem}
 .gc-row input{margin-top:3px}
+
+.btn.upd-done{background:linear-gradient(135deg,#2e9e5b,#3cc47a) !important; color:#fff !important; border-color:transparent !important; box-shadow:0 6px 16px rgba(46,158,91,.4)}

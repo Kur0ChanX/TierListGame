@@ -4,6 +4,20 @@
 (function(){
   const OV = 'jrpg_game_overrides';
   const tierOf = s=> s >= 95 ? 'S+' : s >= 90 ? 'S' : s >= 85 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : s >= 40 ? 'E' : 'F';
+  const CK = 'jrpg_info_checked';
+  const loadCk = ()=>{ try{ return JSON.parse(localStorage.getItem(CK) || '{}') || {}; }catch(e){ return {}; } };
+  const fmtDate = iso=>{ try{ return new Date(iso).toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'numeric'}); }catch(e){ return iso; } };
+  function markChecked(id){
+    const c = loadCk(); c[id] = new Date().toISOString();
+    try{ localStorage.setItem(CK, JSON.stringify(c)); }catch(e){}
+    const b = document.getElementById('updateInfoBtn');
+    if(b){ b.className = 'btn upd-done'; b.textContent = '✅ Info aggiornate il ' + fmtDate(c[id]); }
+  }
+  window.infoBtnHtml = g=>{
+    const d = loadCk()[g.id];
+    return d ? `<button class="btn upd-done" id="updateInfoBtn" title="Già controllato: tocca per rifarlo">✅ Info aggiornate il ${fmtDate(d)}</button>`
+             : '<button class="btn" id="updateInfoBtn" title="Controlla voto, generi, anno e testi su Wikipedia e Wikidata">🔄 Aggiorna info</button>';
+  };
   const loadOv = ()=>{ try{ return JSON.parse(localStorage.getItem(OV) || '{}') || {}; }catch(e){ return {}; } };
   const saveOv = o=>{ try{ localStorage.setItem(OV, JSON.stringify(o)); }catch(e){} };
   const baseName = n=> String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*[-–:]\s*(definitive|remaster|remake|complete|hd|edition|reborn|reloaded).*$/i, '').trim();
@@ -164,7 +178,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
     if(!g) return;
     const el = panel();
     const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔄 Aggiorna info — ${escHtml(g.name)}</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
-    el.innerHTML = shell('<div class="lp-sub" id="uiStatus">Cerco su Wikipedia e Wikidata…</div>');
+    const prev = loadCk()[g.id];
+    el.innerHTML = shell('<div class="lp-sub" id="uiStatus">Cerco su Wikipedia e Wikidata…' + (prev ? ' (ultimo controllo: ' + fmtDate(prev) + ')' : '') + '</div>');
     el.classList.add('show');
     const status = t=>{ const s = el.querySelector('#uiStatus'); if(s) s.textContent = t; };
     let src;
@@ -177,13 +192,13 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
     let deepSrc = [];
     try{ const d = await deepChanges(g); if(d.changes.some(c=> c.id === 'aging')) changes = changes.filter(c=> c.id !== 'aging'); changes = changes.concat(d.changes); deepSrc = d.sources; if(d.note) note += (note ? ' ' : '') + d.note; }catch(e){ note += (note ? ' ' : '') + 'Ricerca approfondita non riuscita: ' + llmErrorText(e); }
     const sources = [src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
-    if(!changes.length){ el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
+    if(!changes.length){ markChecked(g.id); el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
     el.innerHTML = shell(`<div class="lp-sub">Fonti: ${sources}. Togli la spunta a ciò che non ti convince.${note ? '<br>' + escHtml(note) : ''}</div>
       <div class="gc-rows">${changes.map((c,i)=> `<label class="gc-row"><input type="checkbox" data-i="${i}" ${c.off ? '' : 'checked'}> <span><b>${escHtml(c.label)}</b><br><small>Prima: ${escHtml(c.from || '—')}</small><br>Dopo: ${escHtml(c.to)}</span></label>`).join('')}</div>
       <div class="lp-tools"><button class="btn primary" id="uiApply">Applica i selezionati</button></div>`);
     el.querySelector('#uiApply').addEventListener('click', async ()=>{
       const chosen = [...el.querySelectorAll('input[data-i]:checked')].map(cb=> changes[+cb.dataset.i]);
-      await applyPatch(g, mergePatch(chosen));
+      await applyPatch(g, mergePatch(chosen)); markChecked(g.id);
       el.classList.remove('show'); showToast('✅ Scheda aggiornata', 3000);
       try{ openModal(GAMES.find(x=> x.id === g.id) || g); }catch(e){}
     });
