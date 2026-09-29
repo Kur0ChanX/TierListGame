@@ -8,6 +8,7 @@
   const loadCk = ()=>{ try{ return JSON.parse(localStorage.getItem(CK) || '{}') || {}; }catch(e){ return {}; } };
   const fmtDate = iso=>{ try{ return new Date(iso).toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'numeric'}); }catch(e){ return iso; } };
   function markChecked(id){
+    try{ frManual(id); }catch(e){}
     const c = loadCk(); c[id] = new Date().toISOString();
     try{ localStorage.setItem(CK, JSON.stringify(c)); }catch(e){}
     const b = document.getElementById('updateInfoBtn');
@@ -429,6 +430,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     let undo = {}; try{ undo = JSON.parse(localStorage.getItem(AU_UNDO) || '{}') || {}; }catch(e){}
     const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔎 Controllo dati</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
     const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · oggi ${st.today}/${st.cap}${useAI() ? '' : ' · <b>senza chiave Gemini controllo solo voto, anno, generi e lingua</b>'}. ${auPause ? '<br>⏸️ ' + escHtml(auPause) : ''}<br><b>Non cambia nulla senza il tuo ok.</b> Le proposte vengono da fonti aperte e da Gemini con ricerca web; controllale prima di applicarle.</div>
+      <label class="ask-toggle"><input type="checkbox" id="fpOn" ${updatePlusOn() ? 'checked' : ''}> ${giIcon('upplus')} Update+ all\'avvio: aggiorna tutte le info e la locandina di ogni gioco, una volta sola <small>(${updatePlusStats().done}/${updatePlusStats().total} fatti)</small></label>
       <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>
       <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn${auTurbo()?' primary':''}" id="auTurbo" title="Un gioco ogni ~12 secondi, fino a 800 al giorno (usa più quota Gemini)">⚡ Turbo ${auTurbo()?'acceso':'spento'}</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
     let body;
@@ -438,6 +440,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     el.innerHTML = shell(head + body);
     el.classList.add('show');
     el.querySelector('#auOn').addEventListener('change', e=> auditSetOn(e.target.checked));
+    el.querySelector('#fpOn').addEventListener('change', e=> updatePlusSetOn(e.target.checked));
     el.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click', ()=> openAuditPanel(b.dataset.tab)));
     el.querySelector('#auTurbo').addEventListener('click', ()=>{ try{ localStorage.setItem('jrpg_audit_turbo', auTurbo() ? '0' : '1'); }catch(e){} auDelay = auBase(); if(auditOn()) auSchedule(2000); openAuditPanel(tab); });
     el.querySelector('#auReset').addEventListener('click', ()=>{ if(confirm('Cancellare lo storico dei controlli e ricominciare da capo? (le correzioni già applicate restano)')){ auSave({}); openAuditPanel(tab); } });
@@ -504,4 +507,77 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   // parte subito dopo l'avvio (poche secondi, quando l'app è già disegnata)
   setTimeout(()=> auSchedule(4000), 3000);
   try{ applyGameOverrides(); renderListBar(); if(state.view === 'list') render(); }catch(e){}
+
+  // ----- «Update+»: aggiornamento COMPLETO di un gioco da tutte le fonti, una volta sola (poi restano solo i prezzi) -----
+  // All'avvio dell'app, con calma e in silenzio: prima i giochi con i dati meno attendibili (aggiunti da te, voti «stima»), poi gli altri; e subito dopo aver accettato un gioco col cuore.
+  // Fonti nell'ordine di SearchHub.PRIORITY. Copertina mancante: la trova. Giochi aggiunti da te: applica le correzioni sicure; giochi di base: le proposte vanno in «Controllo dati» (le approvi tu).
+  // Il simbolo dorato si prende solo se almeno 2 fonti hanno risposto: se i siti non rispondono riprova dopo 3 giorni, senza fingere.
+  const FR = 'jrpg_fresh', FR_ON = 'jrpg_update_plus', FP_BUDGET = 40;
+  const frLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(FR) || '{}') || {}; }catch(e){ return {}; } };
+  const frSave = o=>{ try{ localStorage.setItem(FR, JSON.stringify(o)); }catch(e){} };
+  window.updatePlusOn = ()=> localStorage.getItem(FR_ON) !== 'off';
+  window.updatePlusSetOn = on=>{ try{ localStorage.setItem(FR_ON, on ? 'on' : 'off'); }catch(e){} if(on) fpKick(3000); };
+  window.updatePlusStats = ()=>{ const f = frLoad(); const n = GAMES.filter(g=> f[g.id] && f[g.id].gold).length; return {done: n, total: GAMES.length}; };
+  const FP_SRC = {wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', rawg: 'RAWG', facts: 'Dati settimanali'};
+  const fpQueue = [], fpMiss = {};
+  window.updatePlusQueue = id=>{ if(!fpQueue.includes(id)) fpQueue.push(id); fpKick(6000); };
+  function frManual(id){                                        // «Aggiorna info» a mano: simbolo viola
+    const f = frLoad(); f[id] = {gold: 1, m: 1, t: new Date().toISOString(), src: (f[id] && f[id].src) || []}; frSave(f);
+    try{ render(); }catch(e){}
+  }
+  function fpNext(){
+    while(fpQueue.length){
+      const id = fpQueue[0], g = GAMES.find(x=> x.id === id);
+      if(g) { fpQueue.shift(); return g; }
+      fpMiss[id] = (fpMiss[id] || 0) + 1; if(fpMiss[id] > 8){ fpQueue.shift(); continue; } break;      // il gioco può non essere ancora comparso in libreria
+    }
+    const fr = frLoad(), now = Date.now();
+    const weak = g=> g.custom ? 0 : (g.m !== 'V' ? 1 : (window.SearchHub && SearchHub.factsFor(g) ? 3 : 2));
+    let best = null, bw = 9, bt = Infinity;
+    GAMES.forEach(g=>{
+      const f = fr[g.id]; if(f && f.gold) return;
+      const t = f ? new Date(f.t).getTime() : 0; if(f && now - t < 3 * 864e5) return;
+      const w = weak(g);
+      if(w < bw || (w === bw && t < bt)){ best = g; bw = w; bt = t; }
+    });
+    return best;
+  }
+  async function updatePlus(g){
+    const src = await gather(g, false);
+    const names = Object.keys(FP_SRC).filter(k=> src[k]).map(k=> FP_SRC[k]);
+    const ch = factChanges(g, src);
+    let applied = 0, pending = 0, cover = false;
+    if(g.custom){
+      const safe = ch.filter(c=> !c.off && c.id !== 'score3' && c.patch);
+      if(safe.length){ await applyPatch(g, mergePatch(safe)); applied = safe.length; }
+    } else {
+      const sk = skLoad(), a = auLoad(), old = a[g.id];
+      const keep = ch.filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch, off: !!c.off, warn: !!c.warn}));
+      const seen = new Set(((old && old.ch) || []).map(c=> auKey(g.id, c)));
+      const merged = ((old && old.ch) || []).concat(keep.filter(c=> !seen.has(auKey(g.id, c))));
+      if(merged.length){ a[g.id] = {t: new Date().toISOString(), ch: merged, deep: !!(old && old.deep), src: (old && old.src) || []}; auSave(a); pending = merged.length; try{ window.dispatchEvent(new Event('audit-update')); }catch(e){} }
+    }
+    try{ if(window.XCOVER && !XCOVER.has(g)){ const r = await XCOVER.find(g, {quick: true}); if(r){ await XCOVER.save(g, r.url); cover = true; } } }catch(e){}
+    const fr = frLoad(), iso = new Date().toISOString();
+    if(names.length >= 2) fr[g.id] = {gold: 1, t: iso, src: names, ap: applied, pe: pending, cv: cover ? 1 : 0};
+    else fr[g.id] = {t: iso, tries: ((fr[g.id] || {}).tries || 0) + 1, src: names};
+    frSave(fr);
+    try{ render(); }catch(e){}
+  }
+  let fpTimer = 0, fpBusy = false, fpDone = 0;
+  function fpKick(ms){ clearTimeout(fpTimer); fpTimer = setTimeout(fpStep, ms == null ? 4000 : ms); }
+  async function fpStep(){
+    if(!updatePlusOn() || fpBusy) return;
+    if(typeof detailsReady === 'function' && !detailsReady()) return fpKick(2000);
+    const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.modal-backdrop.show, .dup-backdrop.show, .rt-loader.show');
+    if(!calm || auBusy) return fpKick(20000);
+    const queued = fpQueue.length > 0;
+    if(!queued && fpDone >= FP_BUDGET) return;                  // per questo avvio basta: gli altri al prossimo, così non appesantisco
+    const g = fpNext(); if(!g) return;
+    fpBusy = true;
+    try{ await updatePlus(g); if(!queued) fpDone++; }
+    catch(e){ const fr = frLoad(); fr[g.id] = {t: new Date().toISOString(), tries: ((fr[g.id] || {}).tries || 0) + 1, src: []}; frSave(fr); }
+    fpBusy = false; fpKick(queued ? 4000 : 5000);
+  }
+  setTimeout(()=> fpKick(0), 25000);
 })();

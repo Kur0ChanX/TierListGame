@@ -721,3 +721,7 @@ td.storyicon{width:44px !important; text-align:center; white-space:nowrap; paddi
 .novita-report td{padding:6px 8px; border-top:1px solid rgba(128,128,160,.18); vertical-align:top}
 .novita-report td:first-child{font-weight:700}
 .novita-report table{table-layout:auto !important; min-width:470px} .novita-report td, .novita-report th{padding:5px 6px !important; font-size:.74rem} .novita-report td, .novita-report th{white-space:nowrap} .novita-report td:first-child{white-space:normal; min-width:150px}
+/* v131: simbolo Update+ (dorato) e «controllato a mano» (viola) */
+.fresh-ic svg.gi{width:19px !important; height:19px !important; display:inline-block !important; vertical-align:-4px; margin-right:3px}
+.fresh-badge svg.gi{width:18px !important; height:18px !important; vertical-align:-4px; margin-right:4px}
+.fresh-ic{cursor:pointer}

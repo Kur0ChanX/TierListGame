@@ -709,6 +709,7 @@ function openModal(g){
       <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
       <span class="badge big outline">${g.score}/100</span>
       <span class="badge big outline">${methodIcon(g.m)} ${g.m==='V' ? 'Verificato' : 'Stima'}</span>
+      ${(()=>{ const f = freshInfo(g); return f ? `<span class="badge big outline fresh-badge" title="${escHtml(freshWhy(f))}">${giIcon(f.m ? 'upmanual' : 'upplus')} ${f.m ? 'Controllato a mano' : 'Update+'}</span>` : ''; })()}
     </div>
     <div class="modal-tags">${g.tags.map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${dnaHtml(g)}

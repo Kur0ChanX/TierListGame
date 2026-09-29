@@ -237,6 +237,7 @@
     return null;
   }
   window.findGameCover = findCover;
+  window.XCOVER = {find: findCover, save: saveAutoCover, has: coverOf};
   // le box art Libretro sono PNG grandi: in lista/griglia le mostro ridotte da un servizio di ridimensionamento (se non risponde, si usa l'originale)
   window.coverThumb = (u, w)=> /^https:\/\/thumbnails\.libretro\.com\//.test(u || '') ? 'https://wsrv.nl/?url=' + encodeURIComponent(u) + '&w=' + (w || 360) + '&output=webp' : u;
   let coversRunning = false;

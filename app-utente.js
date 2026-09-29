@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v131', date:'2026-10-04', items:[
+    'Update+: all\'avvio, con calma e in silenzio, l\'app aggiorna da tutte le fonti (nell\'ordine di priorità) le info e la locandina dei giochi, cominciando da quelli con i dati meno attendibili. Ne fa una quarantina per avvio e poi si ferma; ogni gioco viene aggiornato una volta sola. Puoi spegnerlo da ✨ → Controllo dati.',
+    'Simbolo dorato (scudo con fulmine) sui giochi con Update+ completato (serve che almeno 2 fonti abbiano risposto); simbolo viola (scudo con lente) sui giochi che hai controllato tu con «Aggiorna info». Toccandolo vedi data e fonti.',
+    'Dopo il cuore, il gioco accettato viene aggiornato subito con tutte le fonti. I giochi aggiunti da te ricevono le correzioni sicure; quelli di base mandano le proposte in «Controllo dati», dove decidi tu.',
+    'Prezzi aggiornati ogni notte da GitHub (anche a telefono spento); il lunedì il giro completo.'
+  ]},
   {version:'v130', date:'2026-10-03', items:[
     'Torna il pulsante «Aggiorna locandina» nella scheda dei giochi che hanno già una copertina: la riscarica dalle fonti online (Steam, Libretro, Wikipedia, RAWG). Senza copertina resta «Trova copertina», che parte anche da solo.'
   ]},
