@@ -242,7 +242,8 @@ function syncCustomGames(snap){
       proscons: cleanProsCons(v.pros, v.cons),
       label: (v.label && typeof v.label === 'object') ? v.label : null
     };
-    { const ce = cleanCustomEnrich(v.enrich); if(ce){ if(ce.eraScore != null){ ce.pros = (entry.proscons && entry.proscons.pros) || []; ce.cons = (entry.proscons && entry.proscons.cons) || []; } entry.enrich = ce; } }
+    { const ce = cleanCustomEnrich(v.enrich); if(ce && entry.score < 85){ delete ce.storyTag; delete ce.storyTagNote; delete ce.dopamine; delete ce.dopa; }   // i simboli sono per i giochi che hanno davvero qualcosa in più
+      if(ce){ if(ce.eraScore != null){ ce.pros = (entry.proscons && entry.proscons.pros) || []; ce.cons = (entry.proscons && entry.proscons.cons) || []; } entry.enrich = ce; } }
     const idx = GAMES.findIndex(x=>x.id===id);
     if(idx>=0) GAMES[idx] = entry; else GAMES.push(entry);
     CUSTOM_GAME_IDS.add(id);
