@@ -1056,7 +1056,7 @@ function render(){
     tr.innerHTML = `
       <td class="fav" data-role="fav"><svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>
       <td class="rank mobhide">${g.id}</td>
-      <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${miniIcons(g)}${g.name}${dnaBadge}</td>
+      <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${freshIcon(g)}${miniIcons(g)}${g.name}${dnaBadge}</td>
       <td class="plat mobhide">${g.plat}</td>
       <td class="year">${g.year || g.ysort || ''}</td>
       <td><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span></td>
@@ -1368,6 +1368,17 @@ const STORY_TAG_INFO = {
   affinity:{icon:'🤝', label:'Legame speciale'},
   wow:{icon:'✨', label:'Storia sorprendente'}
 };
+// ---- Update+ : simbolo «super aggiornato» (dorato = tutte le fonti in automatico, viola = controllato a mano da te) ----
+function freshInfo(g){ try{ const f = (JSON.parse(localStorage.getItem('jrpg_fresh') || '{}') || {})[g.id]; return f && f.gold ? f : null; }catch(e){ return null; } }
+function freshWhy(f){
+  let d = ''; try{ d = new Date(f.t).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}); }catch(e){}
+  return (f.m ? 'Controllato a mano da te il ' : 'Update+ il ') + d + ' · fonti: ' + ((f.src && f.src.length) ? f.src.join(', ') : 'ricerca manuale') + (f.pe ? ' · ' + f.pe + ' modifiche da approvare' : '') + '. Non lo aggiorno più (tranne i prezzi).';
+}
+function freshIcon(g){
+  const f = freshInfo(g); if(!f) return '';
+  const w = freshWhy(f).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return `<span class="mini-icon fresh-ic" title="${w}" data-why="${w}">${giIcon(f.m ? 'upmanual' : 'upplus')}</span>`;
+}
 function miniIcons(g){
   const e = g.enrich; if(!e) return '';
   let out = '';

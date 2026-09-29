@@ -8,6 +8,7 @@ const ROOT = path.join(__dirname, '..');
 const UA = {'User-Agent': 'TierListGame/1.0 (uso personale; +https://github.com/Kur0ChanX/TierListGame)', 'Accept': 'application/json'};
 const arg = n=>{ const i = process.argv.indexOf('--' + n); return i > -1 ? +process.argv[i + 1] : null; };
 const LIMIT = arg('limit') || 99999, OFFSET = arg('offset') || 0;
+const LIGHT = process.argv.includes('--light');       // solo prezzi (per l'aggiornamento notturno): 1 richiesta ogni 50 giochi
 const sleep = ms=> new Promise(r=> setTimeout(r, ms));
 const norm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[™®©]/g, '').replace(/[^a-z0-9]/g, '');
 const baseName = n=> String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*[-–:]\s*(definitive|remaster|remastered|remake|complete|hd|edition|reborn|reloaded|the final cut|director'?s cut|enhanced).*$/i, '').trim();
@@ -64,7 +65,26 @@ async function cheapFacts(g){
   if(hit.releaseDate) o.y = new Date(hit.releaseDate * 1000).getFullYear();
   return Object.keys(o).length ? o : null;
 }
+// aggiornamento notturno leggero: riscarica SOLO i prezzi dei giochi che hanno già un id Steam in facts.js
+async function lightRun(){
+  const games = Object.assign({}, prev.games || {}), today = new Date().toISOString().slice(0, 10);
+  const ids = Object.keys(games).filter(k=> games[k].s && games[k].s.id), byApp = {};
+  ids.forEach(k=> { byApp[games[k].s.id] = (byApp[games[k].s.id] || []).concat(k); });
+  const apps = Object.keys(byApp); let upd = 0;
+  for(let i = 0; i < apps.length; i += 50){
+    const batch = apps.slice(i, i + 50);
+    const j = await getJson('https://store.steampowered.com/api/appdetails?appids=' + batch.join(',') + '&cc=it&filters=price_overview');
+    if(j) batch.forEach(a=>{
+      const d = j[a], po = d && d.success && d.data && d.data.price_overview; if(!po) return;
+      byApp[a].forEach(k=>{ games[k].s.p = {f: po.final / 100, i: po.initial / 100, d: po.discount_percent}; games[k].t = today; upd++; });
+    });
+    await sleep(1500);
+  }
+  fs.writeFileSync(path.join(ROOT, 'facts.js'), 'const GAME_FACTS = ' + JSON.stringify({built: today, games}) + ';\n');
+  console.log('prezzi aggiornati:', upd, 'su', ids.length, 'giochi con Steam');
+}
 (async()=>{
+  if(LIGHT){ await lightRun(); return; }
   const out = {built: new Date().toISOString().slice(0, 10), games: Object.assign({}, prev.games || {})};
   const list = GAMES.slice(OFFSET, OFFSET + LIMIT);
   let n = 0, withSteam = 0, withIt = 0;

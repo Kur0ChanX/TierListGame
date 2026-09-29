@@ -80,6 +80,7 @@ function askToolAddCustomGame(input, sourceLabel){
   const newLists = ensureGenreLists(tags);
   try{ if(typeof verifyNewGameGenres === 'function') verifyNewGameGenres(id, doc); }catch(e){}
   showAddedBanner(name, tags, newLists);
+  try{ if(window.updatePlusQueue) updatePlusQueue(id); }catch(e){}         // Update+ subito, con tutte le fonti
   return {id, name, added: true, resultNote: 'Salvato nel database di Mario: comparirà nella classifica su ogni suo dispositivo.'};
 }
 
@@ -1025,8 +1026,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-10-03';
-const DATA_BUILD_VERSION = 'v130';
+const DATA_BUILD_DATE = '2026-10-04';
+const DATA_BUILD_VERSION = 'v131';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
