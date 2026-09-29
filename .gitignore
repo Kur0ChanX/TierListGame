@@ -1,0 +1,3 @@
+# cache delle richieste ad AniList usata da tools/build-anime-data.js (si rigenera da sola)
+tools/.anime-cache/
+node_modules/
