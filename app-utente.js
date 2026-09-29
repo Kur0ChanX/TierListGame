@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v95', date:'2026-09-29', items:[
+    'Generi: trovata la causa degli errori (l\'AI riceveva i codici dei generi senza spiegazione e leggeva ADV come "avventura qualsiasi": Elden Ring, Portal, Stardew finivano in Avventura punta e clicca). Ora riceve significato ed esempi per ogni genere, con una regola di sicurezza. La "Verifica generi online" propone anche di TOGLIERE i tag Avventura non confermati da Wikidata.',
+    'Novità per genere: nuovi generi (Avventura d\'azione, Open world, MMO, Simulatori, Quiz) e 16 proposte per ricerca invece di 10. Anche lingua italiana con doppiaggio (D) nelle proposte.'
+  ]},
   {version:'v94', date:'2026-09-29', items:[
     'Novità: le proposte che sono già nel tuo database (aggiunte dopo il caricamento, da un altro dispositivo o con un nome leggermente diverso, es. "Disco Elysium" / "Disco Elysium - The Final Cut") vengono saltate e non compaiono più come "Non nel tuo database". Il riquadro verde "Aggiunto alla tua libreria" è più in alto.'
   ]},

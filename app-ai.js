@@ -365,7 +365,7 @@ function novitaSkipCandidate(c){
   saveNovitaSkipped();
   saveNovitaSkippedDetails();
 }
-const NOVITA_BATCH_COUNT = 10;
+const NOVITA_BATCH_COUNT = 16;   // più giochi per ricerca
 let novitaQueue = [];
 let novitaIdx = 0;
 let novitaLoading = false;
@@ -438,7 +438,7 @@ function buildNovitaPrompt(count, excludeNames){
   return todayLine() + `Suggerisci ${count} RPG/JRPG (di qualunque epoca e piattaforma, anche poco conosciuti) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 Gusti di Mario: ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
-name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (1-3 valori tra questi codici: ${NOVITA_TAG_ENUM.join(',')}), story (1-2 frasi di trama senza spoiler pesanti), hours (ore indicative per finire la storia, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli ufficiali,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere A MARIO IN PARTICOLARE, in una frase, basandoti sui suoi gusti sopra), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
+name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (1-3 valori tra questi codici, con il loro significato: ${genreGlossary(NOVITA_TAG_ENUM)}), story (1-2 frasi di trama senza spoiler pesanti), hours (ore indicative per finire la storia, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("D"=testi e doppiaggio italiani, "S"=solo testi/sottotitoli italiani ufficiali, "F"=solo fan-translation, "N"=nessun italiano ufficiale), cost ("S","M" o "H"), fitIf (perché potrebbe piacere A MARIO IN PARTICOLARE, in una frase, basandoti sui suoi gusti sopra), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
 Scegli titoli realmente esistenti, con dati il più possibile accurati. Varia epoche/piattaforme tra le ${count} proposte.`;
 }
 function buildNovitaGenrePrompt(count, excludeNames, selectedTags, includeOther){
@@ -448,10 +448,10 @@ function buildNovitaGenrePrompt(count, excludeNames, selectedTags, includeOther)
     : `Includi videogiochi di QUALSIASI genere possibile (non solo RPG), di ogni tipo, epoca e piattaforma: varia il più possibile tra i ${count} suggerimenti.`;
   return todayLine() + `Suggerisci ${count} videogiochi (di qualunque genere, epoca e piattaforma, anche poco conosciuti — NON limitarti a RPG/JRPG) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 ${scopeLine}
-Non scartare un gioco valido solo perché non rientra esattamente nei codici di genere che uso per le etichette (${NOVITA_GENRE_ALL_CODES.join(',')}): includilo comunque e assegna i tag più vicini possibile, oppure lascia l'elenco tags vuoto se nessuno si adatta bene — la categorizzazione delle etichette non deve mai essere un motivo per escludere un gioco valido.
+Non scartare un gioco valido solo perché non rientra esattamente nei codici di genere che uso per le etichette (${genreGlossary(NOVITA_GENRE_ALL_CODES)}): includilo comunque e assegna i tag più vicini possibile, oppure lascia l'elenco tags vuoto se nessuno si adatta bene — la categorizzazione delle etichette non deve mai essere un motivo per escludere un gioco valido.
 Contesto sui gusti abituali di Mario, soprattutto orientati a RPG/JRPG (utile SOLO per spiegare perché un titolo potrebbe piacergli comunque, MAI per restringere la ricerca al genere RPG, che qui è solo una delle tante opzioni possibili): ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
-name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (0-3 valori tra questi codici: ${NOVITA_GENRE_ALL_CODES.join(',')}, oppure elenco vuoto se nessuno si adatta), story (1-2 frasi che descrivono il gioco/la sua premessa, senza spoiler pesanti), hours (ore indicative per finirlo, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli/doppiaggio ufficiale in italiano,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere a Mario, in una frase), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
+name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (0-3 valori tra questi codici, con il loro significato: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}. Assegna un tag SOLO se quel genere è centrale nel gioco: meglio 1-2 tag precisi che 3 vaghi, e mai ADV per giochi d'azione, RPG, sandbox o open world; oppure elenco vuoto se nessuno si adatta), story (1-2 frasi che descrivono il gioco/la sua premessa, senza spoiler pesanti), hours (ore indicative per finirlo, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli/doppiaggio ufficiale in italiano,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere a Mario, in una frase), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
 Scegli titoli realmente esistenti, con dati il più possibile accurati.`;
 }
 function parseNovitaJson(text){
@@ -464,6 +464,11 @@ function parseNovitaJson(text){
   t = t.slice(start, end+1);
   try{ const arr = JSON.parse(t); return Array.isArray(arr) ? arr : null; }catch(e){ return null; }
 }
+// rete di sicurezza: "punta e clicca" non convive con generi d'azione/RPG/sandbox (l'AI tendeva a metterlo su qualsiasi avventura)
+function fixNovitaTags(tags){
+  if(tags.includes('ADV') && tags.some(t=> ['ACT','SOUL','OPENW','SAND','LIFE','SIMLIFE','ROG','METR','TAC','TUR','DUN','MON','ACTADV','FPS','TPS','PLAT','SHMUP'].includes(t))) return tags.filter(t=> t !== 'ADV');
+  return tags;
+}
 function cleanNovitaCandidate(raw, tagEnum){
   const enumList = tagEnum || NOVITA_TAG_ENUM;
   const name = String((raw && raw.name) || '').trim();
@@ -474,7 +479,7 @@ function cleanNovitaCandidate(raw, tagEnum){
     year: raw.year ? String(raw.year) : '',
     tier: TIERS_LIST.includes(raw.tier) ? raw.tier : 'B',
     score: clampIntOrNull(raw.score, 0, 100),
-    tags: Array.isArray(raw.tags) ? raw.tags.filter(t=> enumList.includes(t)) : [],
+    tags: fixNovitaTags(Array.isArray(raw.tags) ? raw.tags.filter(t=> enumList.includes(t)) : []),
     story: raw.story ? String(raw.story) : '',
     hours: raw.hours!=null ? Number(raw.hours) : null,
     difficulty: clampIntOrNull(raw.difficulty, 1, 5),
@@ -803,7 +808,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v94';
+const DATA_BUILD_VERSION = 'v95';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

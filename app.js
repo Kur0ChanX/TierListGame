@@ -33,6 +33,11 @@ const EXTRA_GENRE_INFO = {
   FIGHT:{icon:'🥊', label:'Picchiaduro 1v1'},
   STEALTH:{icon:'🥷', label:'Stealth'},
   ADV:{icon:'🔍', label:'Avventura punta e clicca'},
+  ACTADV:{icon:'🦸', label:'Avventura d\'azione'},
+  OPENW:{icon:'🌍', label:'Open world'},
+  MMO:{icon:'🌐', label:'MMO / online persistente'},
+  SIMVEH:{icon:'✈️', label:'Simulatori (volo/veicoli)'},
+  TRIVIA:{icon:'❓', label:'Quiz / trivia'},
   WALK:{icon:'🚶', label:'Narrativo / walking sim'},
   FPS:{icon:'🔫', label:'Sparatutto FPS'},
   TPS:{icon:'🎯', label:'Sparatutto TPS'},
@@ -62,15 +67,35 @@ Object.assign(TAG_INFO, EXTRA_GENRE_INFO);
 // videoludico, raggruppato in modo schematico invece di un listone unico.
 const NOVITA_GENRE_SECTIONS = [
   {title:'RPG e stili affini', codes: TAG_ORDER.slice()},
-  {title:'Azione e avventura', codes:['PLAT','BEAT','FIGHT','STEALTH','ADV','WALK']},
+  {title:'Azione e avventura', codes:['PLAT','BEAT','FIGHT','STEALTH','ADV','ACTADV','OPENW','WALK']},
   {title:'Sparatutto e battle', codes:['FPS','TPS','SHMUP','BR']},
-  {title:'Sport e corse', codes:['SPORT','RACE']},
+  {title:'Sport e corse', codes:['SPORT','RACE','SIMVEH']},
   {title:'Strategia e gestionale', codes:['RTS','TBS4X','MOBA','CITY','TOWERDEF','ECOSIM']},
-  {title:'Puzzle e party', codes:['PUZ','PARTY','RHY','BOARDG']},
+  {title:'Puzzle e party', codes:['PUZ','PARTY','RHY','BOARDG','TRIVIA']},
   {title:'Sandbox e simulazione', codes:['SAND','SIMLIFE']},
-  {title:'Arcade e altro', codes:['ARCADE','IDLE','RUN','COOP']}
+  {title:'Arcade e altro', codes:['ARCADE','IDLE','RUN','COOP','MMO']}
 ];
 const NOVITA_GENRE_ALL_CODES = NOVITA_GENRE_SECTIONS.reduce((acc,s)=> acc.concat(s.codes), []);
+// Significato di ogni codice, da dare SEMPRE all'AI insieme al codice: senza spiegazione "ADV" veniva letto come "avventura qualsiasi" e finivano lì Elden Ring, Portal, Stardew...
+const GENRE_HINT = {
+  ADV:'avventura grafica/narrativa basata su enigmi e dialoghi, tipo Monkey Island, Grim Fandango, Life is Strange; NON i giochi con combattimento o esplorazione libera (quelli sono ACTADV, RPG o OPENW)',
+  ACTADV:'avventura d\'azione con esplorazione, combattimento e piccoli enigmi: Zelda, Uncharted, Tomb Raider, Metroid Prime; non se è un RPG con statistiche',
+  OPENW:'mondo aperto da esplorare liberamente come esperienza centrale (GTA, Red Dead, Breath of the Wild)',
+  WALK:'esperienza narrativa in cui si cammina e si osserva, con poca o nessuna sfida (Firewatch, Gone Home)',
+  PLAT:'platform: saltare tra piattaforme è il cuore del gioco (Mario, Celeste)',
+  SAND:'sandbox / survival con costruzione e raccolta risorse (Minecraft, Subnautica)',
+  SIMLIFE:'simulazione di vita o di lavoro (Stardew Valley, The Sims, Euro Truck Simulator)',
+  COOP:'gioco pensato soprattutto per giocare in cooperativa o multiplayer sociale (It Takes Two)',
+  ARCADE:'gioco arcade/retro a punteggio, partite brevi',
+  TBS4X:'strategia a turni o 4X su mappa (Civilization, XCOM)',
+  BOARDG:'gioco da tavolo o di carte NON GDR',
+  CITY:'costruzione e gestione di città/parchi',
+  ECOSIM:'gestionale economico (tycoon)',
+  SIMVEH:'simulatori di volo, treni o veicoli',
+  MMO:'gioco online persistente con tanti giocatori (WoW, FFXIV)',
+  TUR:'RPG a turni classico', ACT:'RPG d\'azione in tempo reale', REMAKE:'remake o remaster di un titolo già uscito'
+};
+function genreGlossary(codes){ return codes.map(c=> `${c} = ${TAG_INFO[c] ? TAG_INFO[c].label : c}${GENRE_HINT[c] ? ' (' + GENRE_HINT[c] + ')' : ''}`).join('; '); }
 
 // Mappa id gioco -> chiave saga (raggruppamento automatico per franchise, solo sighe con 2+ titoli in classifica)
 const SAGA_MAP = GIOCHI_DATA.sagaMap;
