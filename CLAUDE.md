@@ -26,7 +26,7 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - Fuori da Claude `COVER_DB` è un archivio locale (`makeLocalDb` in app.js) con la stessa interfaccia del db di Claude.
 - Ogni nuovo file JS va aggiunto a `.github/workflows/pages.yml` e alla pubblicazione dell'artifact.
 - Classifiche per genere: `ACTIVE_LIST`, `MY_LISTS`, `inActiveList()` in app.js; `applyFilters()` parte sempre da `GAMES.filter(inActiveList)`. La lista `jrpg` è quella predefinita.
-- App installabile: `manifest.webmanifest` (display fullscreen), `sw.js` (nessuna cache) e `icons/`; il workflow Pages li copia. Il pulsante ⛶ è in `fx.js`.
+- App installabile: `manifest.webmanifest` (display fullscreen), `sw.js` (forza la rivalidazione: GitHub Pages tiene i file in cache 10 min) e `icons/`; il workflow Pages li copia. Il pulsante ⛶ è in `fx.js`.
 - Nei testi dei giochi (agingNote, pro/contro, ecc.) NON usare frasi legate al tempo ("uscito da poco", "recentissimo"): scrivi l'anno. Prima di pubblicare dati esegui `node tools/check-data.js`.
 - Tag di un gioco: il primo è il genere principale; un tag "extra" (Puzzle, Platform, Picchiaduro, RTS…) toglie il gioco dalla lista JRPG / RPG e lo mette nella lista di quel genere.
 - I voti "verificati" (metodo V) vengono da Metacritic (`tools/audit-metacritic.js`); quelli "stima" (S, spesso 72) NON sono verificati. Correggere un voto solo con ≥15 recensioni e differenza >6.
