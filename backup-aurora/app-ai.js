@@ -828,7 +828,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v105';
+const DATA_BUILD_VERSION = 'v99';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

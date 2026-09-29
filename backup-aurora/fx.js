@@ -1,14 +1,3 @@
-// ---- Guardia di versione: se la pagina (HTML) in cache è più vecchia degli script, la ricarico una volta sola saltando la cache ----
-(function(){
-  try{
-    const mb = document.querySelector('meta[name="build"]');
-    if(typeof DATA_BUILD_VERSION === 'string' && (!mb || mb.content !== DATA_BUILD_VERSION) && /^https?:$/.test(location.protocol) && !sessionStorage.getItem('jrpg_build_reload')){
-      sessionStorage.setItem('jrpg_build_reload', '1');
-      const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href));
-      Promise.all(urls.map(u=> fetch(u, {cache:'reload'}).catch(()=>{}))).then(()=> location.reload());
-    }
-  }catch(e){}
-})();
 // ---- Effetti funzionali: barra voto nelle righe, vibrazione leggera, transizione morbida tra le schede ----
 (function(){
   // 1) barra del voto (variabile CSS --sc) su ogni riga della classifica
@@ -40,14 +29,14 @@
         else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{ if(typeof showToast === 'function') showToast('Il browser non permette lo schermo intero qui'); }); }
       }catch(e){}
     });
-    const wrapIc = lb=> `<span class="ib-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-screen"/></svg></span><span class="ib-lb">${lb}</span>`;
-    const IC_ON = wrapIc('Esci'), IC_OFF = wrapIc('Schermo');
+    const IC_ON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+    const IC_OFF = fs.innerHTML;
     document.addEventListener('fullscreenchange', ()=>{ fs.innerHTML = document.fullscreenElement ? IC_ON : IC_OFF; });
   }
 
   // 5) installabile come app (solo su http/https, mai dentro Claude)
   if('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !(window.claude && window.claude.use)){
-    try{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(e){}
+    try{ Promise.resolve().catch(()=>{}); }catch(e){}
   }
 
   // 6) interruttore dell'apertura animata (⚙️ Impostazioni)

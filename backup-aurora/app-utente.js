@@ -3,30 +3,6 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
-  {version:'v105', date:'2026-09-29', items:[
-    'Pulsanti più piccoli e tondi, in vetro trasparente con riflesso 3D: Profilo (distintivo), Novità (gemma), Tema (sfera giorno/notte), Filtri (cursori), Schermo. Icone nuove, moderne e a tema videogioco, con sfumature e riflessi (niente più icone retro o piatte). Stesso stile per le 7 schede in basso, il pulsante Chiedi, la freccia su e il microfono.',
-    'Backup: nel menu ✨ c\'è "Versione di sicurezza (Aurora)", la copia congelata del sito com\'era prima delle palette; funziona sempre, anche se qualcosa del nuovo tema non va.'
-  ]},
-  {version:'v104', date:'2026-09-29', items:[
-    'Pulsanti in alto (Profilo, Novità, Tema, Filtri, Schermo) rifatti come contenitori di vetro cristallino con bordo speculare di luce e icone 3D a tema gaming: Memory Card, Gemma, Joystick, Slider, TV retrò. Anche le 7 schede in basso e il microfono hanno icone 3D (Fluent Emoji, licenza MIT).',
-    'Corretto: dopo un aggiornamento il telefono poteva mescolare una pagina vecchia con script nuovi (tessere viola senza icone, doppia lente nella ricerca). Ora, se le versioni non coincidono, la pagina si ricarica da sola una volta.'
-  ]},
-  {version:'v103', date:'2026-09-29', items:[
-    'Interfaccia in stile Apple: nuove icone vettoriali (Profilo, Novità, Tema, Filtri, Schermo, viste, ricerca, microfono e le 7 schede) su tessere "squircle" con curvatura continua, come le app iOS; la scheda attiva nella barra in basso è una tessera colorata.',
-    'Riflessi rifatti: un solo filo di luce sul bordo, schiarita morbida dall\'alto e ombre ampie e sfumate, al posto delle fasce lucide. Sfondo con sfumature senza bande e grana finissima. Palette predefinita: Apple.',
-    'Nuova icona dell\'app (installazione/Home) in stile Apple: squircle in vetro con il procione.'
-  ]},
-  {version:'v102', date:'2026-09-29', items:[
-    'Palette rifatte in stile "Liquid Glass": sfondo con i colori del tema sfumati, superfici in vetro con riflesso sul bordo, pulsanti lucidi con luce dall\'alto e bagliore colorato. Ora il colore del tema tinge anche sfondo, tabella, schede, filtri, barra in basso, titoli e barre del voto.'
-  ]},
-  {version:'v101', date:'2026-09-29', items:[
-    'Palette più professionali: colori pieni con una sfumatura appena percettibile (niente più arcobaleni a 3 colori), intestazione della tabella neutra, ombre morbide, sfondo più discreto. Nel selettore ogni palette ha un\'anteprima dell\'app invece delle sfere lucide. La palette Aurora originale resta com\'era.'
-  ]},
-  {version:'v100', date:'2026-09-29', items:[
-    '🎨 Palette colori (menu ✨): 34 temi preimpostati in 5 gruppi (Originali, Eleganti, Vivaci, Natura, Gaming), ognuno con sfumature, trasparenze, bagliori e sfondo aurora coordinati, per tema chiaro e scuro.',
-    'Corretto: con i Filtri aperti la lista restava bloccata e non si scorreva fino in fondo; ora si scorre tutta.',
-    'Corretta una riga in cima alla pagina (arrivata col file originale) che spostava l\'intestazione nel corpo della pagina.'
-  ]},
   {version:'v99', date:'2026-09-29', items:[
     'Tre viste della classifica, a scelta (pulsanti ☰ ▦ ▤ accanto al conteggio): Tabella, Copertine (griglia stile libreria) e Schede.',
     'Copertine automatiche (menu ✨): cerca su Wikipedia la copertina di tutti i giochi che non ce l\'hanno, a gruppi di 50 per non appesantire.',

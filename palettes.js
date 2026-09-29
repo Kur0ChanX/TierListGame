@@ -63,7 +63,7 @@
       --grad-soft:linear-gradient(135deg,rgba(${A1},.20),rgba(${A2},.10));
       --glass:${dark ? `rgba(${cr},.58)` : `rgba(255,255,255,.62)`}; --glass-strong:${dark ? `rgba(${cr},.82)` : 'rgba(255,255,255,.86)'};
       --glass-line:${dark ? 'rgba(255,255,255,.09)' : `rgba(${A1},.16)`}; --hl:${dark ? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.9)'};
-      --glow:rgba(${A1},${dark ? .38 : .28});
+      --glow:rgba(${A1},${dark ? .38 : .28}); --hl2:${dark ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,1)'}; --orb-bg:${dark ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.5)'}; --orb-edge:${dark ? 'rgba(0,0,0,.45)' : 'rgba(20,20,60,.22)'};
       --m1:${dark ? .46 : .32}; --m2:${dark ? .32 : .24}; --m3:${dark ? .28 : .22};
       --surface-tint:${dark ? mix(card, a1, .16) : mix('#ffffff', a1, .10)}; --on-accent:${lum(a1) > .45 ? '#141414' : '#ffffff'};
       --dopa-bg:${dark ? mix(card, a1, .14) : mix('#ffffff', a1, .08)}; --dopa-border:${mix(dark ? card : '#ffffff', a1, .35)}; --dopa-ink:${dark ? mix(a1, '#ffffff', .55) : mix(a1, '#000000', .3)};`;
