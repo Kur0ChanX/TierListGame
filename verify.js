@@ -121,10 +121,17 @@
     const yes = x=> String(x).toLowerCase() === 'true';
     return {url: 'https://www.pcgamingwiki.com/wiki/' + encodeURIComponent(row.page.replace(/ /g, '_')), itText: yes(row.Interface) || yes(row.Subtitles), itAudio: yes(row.Audio)};
   }
+  // RAWG (chiave gratuita dell'utente): anno, voto Metacritic, descrizione, giochi affini. Se non c'è la chiave o non risponde, viene saltata.
+  async function rawgInfoFor(g){
+    if(!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has())) return null;
+    const i = await SearchHub.rawg.info(g.name); if(!i) return null;
+    try{ i.similar = (await SearchHub.rawg.suggested(i.id, 8)).filter(n=> n && n.toLowerCase() !== String(g.name).toLowerCase()).slice(0, 6); }catch(e){ i.similar = []; }
+    return i;
+  }
   async function gather(g){
-    const [wiki, wd, itw, steam, pcgw] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), steamInfo(g.name), pcgwInfo(g.name)]);
+    const [wiki, wd, itw, steam, pcgw, rawg] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), steamInfo(g.name), pcgwInfo(g.name), rawgInfoFor(g)]);
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
-    return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
+    return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
@@ -162,6 +169,20 @@
       }
       if(Math.min(...wy) > nowY) ch.push({id:'unreleased', label:'⚠️ Non ancora uscito', from:'', to:'Wikidata indica un\'uscita nel ' + Math.min(...wy) + ': voto e recensioni non possono essere reali', patch:{note:'Non ancora uscito (uscita prevista ' + Math.min(...wy) + '): voto provvisorio.', m:'S'}});
     }
+    // RAWG: conferma l'anno (se Wikidata non ha già proposto), voto Metacritic (mai attivo di default: le recensioni non sono contabili) e giochi affini
+    if(src.rawg){
+      const r = src.rawg, mine = yearsOf(g);
+      if(r.year && mine.length && !mine.some(y=> Math.abs(y - +r.year) <= 1) && !ch.some(c=> c.id === 'year')){
+        ch.push({id:'year', label:'Anno', from: g.year, to: r.year + ' (RAWG ' + r.url + ')', patch:{year: r.year, ysort: +r.year}});
+      }
+      if(r.mc && Math.abs(r.mc - g.score) > 6 && !ch.some(c=> c.id === 'score')){
+        ch.push({id:'score3', label:'Voto (Metacritic secondo RAWG)', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${r.mc} (Metacritic riportato da RAWG: numero di recensioni non verificabile)`, patch:{score: r.mc, tier: tierOf(r.mc), m:'V'}, off:true});
+      }
+      const cur = (g.enrich && g.enrich.similarTo) || [];
+      if(r.similar && r.similar.length >= 3 && cur.join('|') !== r.similar.join('|')){
+        ch.push({id:'similar', label:'Giochi affini (consigliati da RAWG)', from: cur.join(', ') || '—', to: r.similar.join(', '), patch:{enrich:{similarTo: r.similar.slice(0, 5)}}});
+      }
+    }
     return ch;
   }
   function parseJson(t){
@@ -171,11 +192,11 @@
     try{ return JSON.parse(s.slice(a, b + 1)); }catch(e){ return null; }
   }
   async function textChanges(g, src, silent){
-    if(!llmAvailable() || !src.wiki || !src.wiki.text) return {changes:[], note: !src.wiki ? 'Nessuna pagina Wikipedia trovata: testi non riscritti.' : 'Nessun motore AI configurato: testi non riscritti.'};
+    const hasSrc = !!((src.wiki && src.wiki.text) || (src.rawg && src.rawg.desc));
+    if(!llmAvailable() || !hasSrc) return {changes:[], note: !hasSrc ? 'Nessuna pagina Wikipedia o RAWG trovata: testi non riscritti.' : 'Nessun motore AI configurato: testi non riscritti.'};
     const prompt = todayLine() + `Aggiorna la scheda del videogioco "${g.name}" (${g.year}, ${g.plat}) usando SOLO le fonti qui sotto. Se una informazione non è nelle fonti scrivi null: non inventare nulla. Niente espressioni come "recente" o "uscito da poco": usa gli anni.
 Rispondi SOLO con un oggetto JSON valido con questi campi (in italiano): story (trama ricca e dettagliata: 5-8 frasi, circa 600-900 caratteri: ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler pesanti sul finale), pros (3-4 punti di forza concreti, emersi dalla critica), cons (2-3 difetti concreti, emersi dalla critica), agingNote (1-2 frasi su come regge oggi, con gli anni), whyLikeIt (una frase impersonale che spiega cosa rende appagante il gioco; niente riferimenti a persone tipo «gli piacerà»).
-FONTE — Wikipedia (${src.wiki.title}):
-${digest(src.wiki.text)}`;
+${src.wiki && src.wiki.text ? `FONTE — Wikipedia (${src.wiki.title}):\n${digest(src.wiki.text)}` : ''}${src.rawg && src.rawg.desc ? `\nFONTE — RAWG (${src.rawg.name}${src.rawg.playtime ? ', durata media giocata dagli utenti ' + src.rawg.playtime + ' h' : ''}):\n${src.rawg.desc.slice(0, 3500)}` : ''}`;
     const r = await askLLM(prompt, {}, {fast:true, silent: !!silent, label:'Riscrivo la scheda dalle fonti…'});
     const j = parseJson(r && r.text);
     if(!j) return {changes:[], note:'L\'AI non ha restituito un risultato leggibile: riprova.'};
@@ -263,7 +284,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const status = t=>{ const s = el.querySelector('#uiStatus'); if(s) s.textContent = t; };
     let src;
     try{ src = await gather(g); }catch(e){ src = {wiki:null, wd:null, errors:2}; }
-    const openFail = !src.wiki && !src.wd;                       // nessuna fonte aperta ha risposto: non mi arrendo, passo alla ricerca web (Gemini) e alle altre fonti
+    const openFail = !src.wiki && !src.wd && !src.rawg;                       // nessuna fonte aperta ha risposto: non mi arrendo, passo alla ricerca web (Gemini) e alle altre fonti
     if(openFail && !geminiKey() && !src.steam && !src.pcgw && !src.itw){ el.innerHTML = shell('<div class="lp-sub">🦝 Frugu Frugu ha guardato in tutti i bidoni aperti (Wikipedia, Wikidata, it.wikipedia, Steam, PCGamingWiki) e non ha trovato questo titolo. Con una chiave Gemini (⚙️ in Chiedi a Claude) frugherei anche sul web: aggiungila e riprova.</div>'); return; }
     let changes = factChanges(g, src), note = '';
     if(src.steamFailed || src.pcgwFailed) note = 'Non raggiungibili ora: ' + [src.steamFailed && 'Steam', src.pcgwFailed && 'PCGamingWiki'].filter(Boolean).join(', ') + ' (le altre fonti sì).';
@@ -272,7 +293,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     status('Ricerca approfondita di ore, gameplay, lingua ed edizioni…');
     let deepSrc = [];
     try{ const d = await deepChanges(g); if(d.changes.some(c=> c.id === 'aging')) changes = changes.filter(c=> c.id !== 'aging'); changes = changes.concat(d.changes); deepSrc = d.sources; if(d.note) note += (note ? ' ' : '') + d.note; }catch(e){ note += (note ? ' ' : '') + 'Ricerca approfondita non riuscita: ' + llmErrorText(e); }
-    const sources = [src.itw && `<a href="${src.itw.url}" target="_blank" rel="noopener">it.wikipedia</a>`, src.steam && `<a href="${src.steam.url}" target="_blank" rel="noopener">Steam</a>`, src.pcgw && `<a href="${src.pcgw.url}" target="_blank" rel="noopener">PCGamingWiki</a>`, src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
+    const sources = [src.rawg && `<a href="${src.rawg.url}" target="_blank" rel="noopener">RAWG</a>`, src.itw && `<a href="${src.itw.url}" target="_blank" rel="noopener">it.wikipedia</a>`, src.steam && `<a href="${src.steam.url}" target="_blank" rel="noopener">Steam</a>`, src.pcgw && `<a href="${src.pcgw.url}" target="_blank" rel="noopener">PCGamingWiki</a>`, src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
     if(!changes.length){ markChecked(g.id); el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
     el.innerHTML = shell(`<div class="lp-sub">Fonti: ${sources || 'nessuna'}. ${changes.length} ${changes.length === 1 ? 'modifica proposta' : 'modifiche proposte'}: scorri per vedere tutto e togli la spunta a ciò che non ti convince.${note ? '<br>' + escHtml(note) : ''}</div>
       <div class="au-rev">${changes.map((c,i)=> `<div class="au-chg"><label><h4><input type="checkbox" data-i="${i}" ${(c.off || c.warn) ? '' : 'checked'}> ${escHtml(c.label)}</h4></label>
@@ -344,9 +365,9 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const g = auNext(); if(!g) return auSchedule(6 * 3600e3);
     auBusy = true;
     try{
-      const [wiki, wd, itw] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name)]);
+      const [wiki, wd, itw, rawg] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), rawgInfoFor(g)]);
       const ok = x=> x.status === 'fulfilled' ? x.value : null;
-      const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw)};
+      const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), rawg: ok(rawg)};
       if(wiki.status === 'rejected' && wd.status === 'rejected' && !useAI()) throw new Error('fonti');   // con Gemini si va avanti lo stesso: le fonti aperte sono solo un di più
       let ch = factChanges(g, src), srcs = [], deep = false;
       if(ai){

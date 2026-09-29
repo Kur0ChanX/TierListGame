@@ -692,11 +692,12 @@ const LIST_BAR_MAX = 4;
 function renderListBar(){
   const bar = document.getElementById('listBar'); if(!bar) return;
   const chip = (id, icon, label)=> `<button class="list-chip${ACTIVE_LIST===id?' active':''}" data-list="${id}">${icon} ${escHtml(label)} <span class="list-cnt">${listCount(id)}</span></button>`;
+  const GI = n=> `<svg class="gi" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-${n}"/></svg>`;
   const use = listUsage();
   const cand = MY_LISTS.map(c=> ({c, n: listCount(c), u: use[c] || 0})).filter(o=> o.n > 0 && TAG_INFO[o.c]).sort((a, b)=> b.u - a.u || b.n - a.n);
   let shown = cand.slice(0, LIST_BAR_MAX).map(o=> o.c);
   if(ACTIVE_LIST !== 'jrpg' && ACTIVE_LIST !== 'all' && TAG_INFO[ACTIVE_LIST] && !shown.includes(ACTIVE_LIST)) shown = [ACTIVE_LIST].concat(shown.slice(0, LIST_BAR_MAX - 1));
-  bar.innerHTML = chip('jrpg','🎮','JRPG / RPG') + shown.map(c=> chip(c, TAG_INFO[c].icon, TAG_INFO[c].label)).join('') + chip('all','🌐','Tutti') + `<button class="list-chip list-add" id="listAddBtn" title="Tutti i generi, divisi per gruppi">🔍 Tutti i generi</button>`;
+  bar.innerHTML = chip('jrpg', GI('pad'), 'JRPG / RPG') + shown.map(c=> chip(c, TAG_INFO[c].icon, TAG_INFO[c].label)).join('') + chip('all', GI('globe'), 'Tutti') + `<button class="list-chip list-add" id="listAddBtn" title="Tutti i generi, divisi per gruppi">${GI('lens')} Tutti i generi</button>`;
   bar.querySelectorAll('[data-list]').forEach(b=> b.addEventListener('click', ()=> setActiveList(b.dataset.list)));
   document.getElementById('listAddBtn').addEventListener('click', ()=> openListPicker());
 }
@@ -1022,7 +1023,7 @@ function render(){
     const isFav = FAVS.has(g.id);
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};">${d.pct}%</span>` : ''; })();
     tr.innerHTML = `
-      <td class="fav" data-role="fav">${isFav ? '★' : '☆'}</td>
+      <td class="fav" data-role="fav"><svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>
       <td class="rank mobhide">${g.id}</td>
       <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${miniIcons(g)}${g.name}${dnaBadge}</td>
       <td class="plat mobhide">${g.plat}</td>

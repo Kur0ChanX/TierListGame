@@ -266,16 +266,78 @@
     }).filter(c=> c.name);
   };
 
-  M.rawg = async ctx=>{
-    let key = ''; try{ key = (localStorage.getItem('jrpg_rawg_key') || '').trim(); }catch(e){}
-    if(!key){ const e = new Error('chiave RAWG non impostata'); e.skip = true; throw e; }
-    const RG = {JRPG: 'role-playing-games-rpg', WRPG: 'role-playing-games-rpg', ACT: 'role-playing-games-rpg', TUR: 'role-playing-games-rpg', TAC: 'strategy', DUN: 'role-playing-games-rpg', CARD: 'card', PLAT: 'platformer', PUZ: 'puzzle', FPS: 'shooter', TPS: 'shooter', SHMUP: 'shooter', FIGHT: 'fighting', BEAT: 'fighting', RACE: 'racing', SPORT: 'sports', RTS: 'strategy', TBS4X: 'strategy', ADV: 'adventure', ACTADV: 'action', HNS: 'action', ARCADE: 'arcade', SIMLIFE: 'simulation', CITY: 'simulation', BOARDG: 'board-games', PARTY: 'family', MMO: 'massively-multiplayer'};
-    const slugs = [...new Set(foc(ctx).map(c=> RG[c]).filter(Boolean))].slice(0, 3);
-    const j = await H.json('https://api.rawg.io/api/games?key=' + encodeURIComponent(key) + '&page_size=40&page=' + ri(1, 12) + '&metacritic=50,100&ordering=-added' + (slugs.length ? '&genres=' + slugs.join(',') : ''));
-    return (j.results || []).map(g=>{
-      const sc = g.metacritic || (g.rating ? Math.round(g.rating * 20) : null), names = (g.genres || []).map(x=> x.name);
-      return {name: cleanTitle(g.name), plat: (g.platforms || []).map(x=> x.platform && x.platform.name).filter(Boolean).slice(0, 4).join(' / '), year: (g.released || '').slice(0, 4), score: sc, tier: sc != null ? tierOf(sc) : 'B', tags: (window.wikidataCodesFrom ? window.wikidataCodesFrom(names) : []).slice(0, 3), story: '', fitIf: ''};
-    });
+  // ---------- RAWG (chiave gratuita dell'utente): scoperta, dettagli, giochi affini, saghe e copertine ----------
+  const RAWG_LIMIT = 18000, RUK = 'rt_rawg_usage';                    // il piano gratuito concede 20.000 richieste al mese
+  const rawgKey = ()=>{ try{ return (localStorage.getItem('jrpg_rawg_key') || '').trim(); }catch(e){ return ''; } };
+  const rawgUsage = ()=>{ const m = new Date().toISOString().slice(0, 7), u = ls.get(RUK, {}); return u.m === m ? u : {m, n: 0}; };
+  const skipErr = msg=>{ const e = new Error(msg); e.skip = true; return e; };
+  async function rawgGet(path, params){
+    if(!rawgKey()) throw skipErr('chiave RAWG non impostata');
+    const u = rawgUsage(); if(u.n >= RAWG_LIMIT) throw skipErr('limite mensile RAWG quasi raggiunto (' + u.n + ')');
+    u.n++; ls.set(RUK, u);
+    return H.json('https://api.rawg.io/api/' + path + '?' + new URLSearchParams(Object.assign({key: rawgKey()}, params || {})).toString(), {timeout: 12000});
+  }
+  const RAWG_SLUG = {JRPG: 'role-playing-games-rpg', WRPG: 'role-playing-games-rpg', ACT: 'role-playing-games-rpg', TUR: 'role-playing-games-rpg', TAC: 'strategy', DUN: 'role-playing-games-rpg', MON: 'role-playing-games-rpg', CARD: 'card', ROG: 'role-playing-games-rpg',
+    PLAT: 'platformer', PLAT3D: 'platformer', METR: 'platformer', PUZ: 'puzzle', FPS: 'shooter', TPS: 'shooter', SHMUP: 'shooter', FIGHT: 'fighting', BEAT: 'fighting', RACE: 'racing', KART: 'racing', SPORT: 'sports', RTS: 'strategy', TBS4X: 'strategy',
+    ADV: 'adventure', ACTADV: 'action', HNS: 'action', SOUL: 'action', STEALTH: 'action', OPENW: 'action', HOR: 'action', SURV: 'action', ARCADE: 'arcade', SIMLIFE: 'simulation', CITY: 'simulation', FARM: 'simulation', SAND: 'simulation', BOARDG: 'board-games', PARTY: 'family', MMO: 'massively-multiplayer', VN: 'adventure', TOWERDEF: 'strategy'};
+  const RAWG_MAP = [[/jrpg|japanese rpg/i, 'JRPG'], [/turn-based(?! strategy)/i, 'TUR'], [/tactical/i, 'TAC'], [/roguelike|roguelite|rogue-lite/i, 'ROG'], [/metroidvania/i, 'METR'], [/souls-?like/i, 'SOUL'], [/hack and slash|hack & slash/i, 'HNS'],
+    [/survival horror/i, 'SURV'], [/horror/i, 'HOR'], [/visual novel/i, 'VN'], [/tower defen[cs]e/i, 'TOWERDEF'], [/city builder/i, 'CITY'], [/deckbuild|card game/i, 'CARD'], [/rhythm/i, 'RHY'], [/stealth/i, 'STEALTH'], [/open world/i, 'OPENW'],
+    [/^fps$|first-person shooter/i, 'FPS'], [/third person shooter/i, 'TPS'], [/fighting/i, 'FIGHT'], [/beat 'em up|beat em up/i, 'BEAT'], [/platformer/i, 'PLAT'], [/puzzle/i, 'PUZ'], [/racing/i, 'RACE'], [/^sports$/i, 'SPORT'], [/real time strategy|^rts$/i, 'RTS'],
+    [/4x|grand strategy|turn-based strategy/i, 'TBS4X'], [/massively multiplayer|^mmo/i, 'MMO'], [/dungeon crawler/i, 'DUN'], [/action rpg|action-rpg/i, 'ACT'], [/monster/i, 'MON'], [/point & click|point and click/i, 'ADV'], [/farming/i, 'FARM'],
+    [/life sim/i, 'SIMLIFE'], [/shoot 'em up|shmup|bullet hell/i, 'SHMUP'], [/party/i, 'PARTY'], [/arcade/i, 'ARCADE']];
+  function rawgTags(g, fb){
+    const names = (g.genres || []).map(x=> x.name).concat((g.tags || []).map(x=> x.name)), out = [];
+    RAWG_MAP.forEach(([re, c])=>{ if(names.some(n=> re.test(n)) && !out.includes(c)) out.push(c); });
+    if(!out.length && fb && fb.length) out.push(fb[0]);            // la ricerca era già filtrata per quel genere
+    return out.slice(0, 3);
+  }
+  function rawgItem(g, fb){
+    const mc = g.metacritic || 0, rt = g.rating && g.ratings_count >= 20 ? Math.round(g.rating * 20) : 0;
+    const score = mc || rt || null;
+    return {name: cleanTitle(g.name), plat: (g.platforms || []).map(x=> x.platform && x.platform.name).filter(Boolean).slice(0, 4).join(' / '), year: (g.released || '').slice(0, 4), score, tier: score != null ? tierOf(score) : 'B', tags: rawgTags(g, fb), story: '', fitIf: ''};
+  }
+  const rawgOk = c=> c.name && (c.score == null || c.score >= 50);
+  M.rawg = async ctx=>{           // scoperta: ogni giro cambia anni, generi e ordinamento, così non si ripete mai
+    const fl = foc(ctx), slugs = [...new Set(fl.map(c=> RAWG_SLUG[c]).filter(Boolean))].sort(()=> Math.random() - .5).slice(0, 2);
+    const y1 = ri(1985, 2023), noMc = Math.random() < .4;
+    const params = {page_size: '40', page: String(ri(1, 6)), ordering: noMc ? '-rating' : pickOne(['-added', '-metacritic', '-released']), dates: y1 + '-01-01,' + (y1 + ri(2, 6)) + '-12-31'};
+    if(!noMc) params.metacritic = '50,100';
+    if(slugs.length) params.genres = slugs.join(',');
+    let j = await rawgGet('games', params);
+    if(!(j.results || []).length){ params.page = '1'; j = await rawgGet('games', params); }
+    return (j.results || []).map(g=> rawgItem(g, fl)).filter(rawgOk);
+  };
+  M.rawgnew = async ctx=>{        // uscite dell'ultimo anno e in arrivo
+    const fl = foc(ctx), slugs = [...new Set(fl.map(c=> RAWG_SLUG[c]).filter(Boolean))].slice(0, 2), d = x=> x.toISOString().slice(0, 10), now = Date.now();
+    const params = {page_size: '40', page: String(ri(1, 4)), ordering: '-added', dates: d(new Date(now - 365 * 864e5)) + ',' + d(new Date(now + 240 * 864e5))};
+    if(slugs.length) params.genres = slugs.join(',');
+    const j = await rawgGet('games', params);
+    return (j.results || []).map(g=> rawgItem(g, fl)).filter(rawgOk);
+  };
+  M.rawgsimilar = async ctx=>{    // giochi affini ai preferiti secondo RAWG
+    const seeds = ctx.seeds || []; if(!seeds.length) throw skipErr('nessun preferito da cui partire');
+    const name = pickOne(seeds), g = await H.rawg.find(name); if(!g) return [];
+    const j = await rawgGet('games/' + g.id + '/suggested', {page_size: '30'});
+    return (j.results || []).map(x=> Object.assign(rawgItem(x, []), {because: 'Consigliato da RAWG come affine a «' + name + '»'})).filter(rawgOk);
+  };
+  H.rawg = {
+    has: ()=> !!rawgKey(),
+    usage: ()=> rawgUsage().n,
+    async ping(){ const j = await rawgGet('games', {page_size: '1'}); return !!(j && (j.results || j.count != null)); },
+    async find(name){
+      const j = await rawgGet('games', {search: name, search_precise: 'true', page_size: '6'});
+      const strip = x=> norm(String(x).replace(/\s*\([^)]*\)/g, '')), t = strip(name), list = j.results || [];
+      return list.find(g=> strip(g.name) === t) || list.find(g=> { const n = strip(g.name); return n.length > 4 && (n.startsWith(t) || t.startsWith(n)); }) || null;
+    },
+    async info(name){
+      const g = await H.rawg.find(name); if(!g) return null;
+      let d = null; try{ d = await rawgGet('games/' + g.id); }catch(e){}
+      const x = d || g;
+      return {id: g.id, name: g.name, url: 'https://rawg.io/games/' + (x.slug || g.slug), year: (x.released || '').slice(0, 4), mc: x.metacritic || null, rating: x.rating || null, playtime: x.playtime || 0, desc: (d && d.description_raw) || '',
+        genres: (x.genres || []).map(z=> z.name), platforms: (x.platforms || []).map(z=> z.platform && z.platform.name).filter(Boolean), cover: x.background_image || '', esrb: x.esrb_rating ? x.esrb_rating.name : ''};
+    },
+    async suggested(id, n){ const j = await rawgGet('games/' + id + '/suggested', {page_size: String(n || 12)}); return (j.results || []).map(g=> cleanTitle(g.name)); },
+    async series(id){ const j = await rawgGet('games/' + id + '/game-series', {page_size: '40'}); return (j.results || []).map(g=> rawgItem(g, [])); }
   };
 
   // Forum (Reddit): cerca i thread «giochi simili / nascosti / sottovalutati», legge i commenti e prende i titoli scritti in **grassetto** o tra virgolette,
@@ -325,7 +387,7 @@
 
   const DIRECT_INFO = {
     cheapshark: {name: 'CheapShark', key: 'cheapshark'}, wikicat: {name: 'Wikipedia (categorie)', key: 'wikipedia'}, wikisearch: {name: 'Wikipedia (ricerca)', key: 'wikipedia'},
-    wikidata: {name: 'Wikidata', key: 'wikidata'}, steamspy: {name: 'SteamSpy', key: 'steamspy'}, steamsearch: {name: 'Steam', key: 'steam'}, gog: {name: 'GOG', key: 'gog'},
+    wikidata: {name: 'Wikidata', key: 'wikidata'}, rawgnew: {name: 'RAWG (uscite)', key: 'rawg'}, rawgsimilar: {name: 'RAWG (affini)', key: 'rawg'}, steamspy: {name: 'SteamSpy', key: 'steamspy'}, steamsearch: {name: 'Steam', key: 'steam'}, gog: {name: 'GOG', key: 'gog'},
     rawg: {name: 'RAWG', key: 'rawg'}, reddit: {name: 'Reddit', key: 'reddit'}
   };
   H.directKeys = Object.keys(DIRECT_INFO);
@@ -340,7 +402,8 @@
     const dk = (opts.directKeys || H.directKeys).filter(k=> M[k]);
     const aiOn = !!(opts.ai && opts.ai.available && opts.ai.available());
     const A = aiOn ? (opts.ai.strategies || []).map(s=> ({kind: 'ai', id: 'ai:' + s.src, s, name: s.src, key: s.key || 'ai'})) : [];
-    const D = dk.map(k=> ({kind: 'direct', id: k, name: DIRECT_INFO[k].name, key: DIRECT_INFO[k].key, run: M[k]}));
+    const D = dk.map(k=> ({kind: 'direct', id: k, name: DIRECT_INFO[k].name, key: DIRECT_INFO[k].key, run: M[k]})).sort((a, b)=> (H.rawg.has() ? (/^rawg/.test(b.id) ? 1 : 0) - (/^rawg/.test(a.id) ? 1 : 0) : 0));
+    const rawgSkip = !H.rawg.has();
     const st = {}; A.concat(D).forEach(m=> st[m.id] = {streak: 0, cool: 0, yield: 0, runs: 0});
     let rounds = 0, aiCool = 0, fi = ri(0, 50);
     const active = new Map();
@@ -393,7 +456,8 @@
     }
     const lanes = [];
     if(A.length) lanes.push(lane('ai', A, 1));
-    if(D.length) lanes.push(lane('dir', D, 2));
+    const D2 = D.filter(m=> !(rawgSkip && /^rawg/.test(m.id)));
+    if(D2.length) lanes.push(lane('dir', D2, H.rawg.has() ? 3 : 2));
     await Promise.all(lanes);
     LOG({kind: 'scout', src: 'Ricerca', ok: opts.found() > 0, note: 'fine: ' + opts.found() + ' giochi in ' + rounds + ' giri' + (Date.now() >= deadline ? ' (tempo massimo)' : '')});
     return opts.found();

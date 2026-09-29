@@ -85,7 +85,7 @@
   const cl = document.querySelector('.count-line');
   if(cl){
     const tb = document.createElement('span'); tb.className = 'x-toolbar';
-    tb.innerHTML = `<button type="button" data-x-mode="table" title="Tabella" aria-label="Tabella"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lines"/></svg></button><button type="button" data-x-mode="grid" title="Copertine" aria-label="Copertine"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg></button><button type="button" data-x-mode="cards" title="Schede" aria-label="Schede"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-cards"/></svg></button><button type="button" id="xMenuBtn" title="Strumenti extra" aria-label="Extra"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkle"/></svg></button>`;
+    tb.innerHTML = `<button type="button" data-x-mode="table" title="Tabella" aria-label="Tabella"><svg class="gi" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-table"/></svg></button><button type="button" data-x-mode="grid" title="Copertine" aria-label="Copertine"><svg class="gi" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-grid"/></svg></button><button type="button" data-x-mode="cards" title="Schede" aria-label="Schede"><svg class="gi" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-cards"/></svg></button><button type="button" id="xMenuBtn" title="Strumenti extra" aria-label="Extra"><svg class="gi" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-wand"/></svg></button>`;
     cl.appendChild(tb);
     tb.addEventListener('click', e=>{ const b = e.target.closest('button'); if(!b) return; if(b.dataset.xMode) setMode(b.dataset.xMode); else openMenu(); });
   }
@@ -229,6 +229,8 @@
     }
     say('Wikipedia…');
     try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); if(u) return {url: u, source: 'Wikipedia'}; }catch(e){}
+    // ultima possibilità: immagine ufficiale del gioco su RAWG (non è una box art, ma è sempre del gioco giusto)
+    try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(g.name); if(i && i.cover) return {url: i.cover, source: 'RAWG'}; } }catch(e){}
     return null;
   }
   window.findGameCover = findCover;
@@ -591,7 +593,7 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
     if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ in Chiedi a Claude) per cercare sul web', 3500); return; }
     busy = true; refresh();
     try{
-      const arr = await novitaSearchParallel(n=> buildPrompt(favs, n), 12, VIBES_STRATEGIES, null, {directKeys: ['reddit'], seeds: favs.slice(0, 6).map(f=> f.name)});
+      const arr = await novitaSearchParallel(n=> buildPrompt(favs, n), 12, VIBES_STRATEGIES, null, {directKeys: ['reddit', 'rawgsimilar'], seeds: favs.slice(0, 8).map(f=> f.name)});
       const have = new Set(results.map(c=> c.name.toLowerCase()));
       const fresh = arr.filter(c=> !have.has(c.name.toLowerCase()));
       results = fresh.concat(results); sv(results);

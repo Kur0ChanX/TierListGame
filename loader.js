@@ -59,6 +59,7 @@
     window.__dbgTaps = (window.__dbgTaps || []).filter(x=> Date.now() - x < 2500); window.__dbgTaps.push(Date.now());
     if(window.__dbgTaps.length >= 5){ window.__dbgTaps = []; openDebugLog(); }
   });
+  document.addEventListener('click', e=>{ if(e.target && e.target.id === 'dbgOpenBtn') openDebugLog(); });
   if(/[?&]debug=1/.test(location.search)) window.addEventListener('load', ()=> setTimeout(()=> openDebugLog(), 800));
 })();
 (function(){

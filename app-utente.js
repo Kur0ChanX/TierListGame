@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v125', date:'2026-09-30', items:[
+    'RAWG (chiave gratuita in ⚙️) usata ovunque: scoperta di giochi con anni, generi e ordinamenti sempre diversi, uscite dell\'ultimo anno e in arrivo, giochi affini ai tuoi preferiti, capitoli mancanti delle saghe (elenco ufficiale della serie), controllo di anno e voto Metacritic nel controllo dati e in «Aggiorna info», descrizione come fonte per le trame, giochi affini nelle schede e copertina di riserva.',
+    'Icone a tema videogioco al posto di quelle lineari: barra delle viste (pergamena, inventario, carte, bacchetta), ricerca (lente a gradiente), generi (joypad, globo), preferiti (stella d\'oro). La finestra Chiedi non nasconde più il messaggio iniziale sotto le impostazioni; pulsante «Diagnostica fonti» in ⚙️.'
+  ]},
   {version:'v124', date:'2026-09-30', items:[
     'Ricerca senza sosta: 9 fonti dirette (CheapShark, categorie e ricerca di Wikipedia, Wikidata, SteamSpy, Steam, GOG, RAWG, Reddit) alternate alle ricerche AI. Se una via è bloccata: attesa e nuovo tentativo, poi una catena di ponti pubblici che impara da sola quali funzionano; se una fonte resta muta si passa subito alla successiva, con pause crescenti e strategie diverse fino al tempo massimo di 8 minuti o al tuo «Basta frugare!».',
     'Le chiamate a Wikipedia, Wikidata, Steam e PCGamingWiki di «Aggiorna info» e del controllo dati passano dalla stessa catena di vie alternative. I nomi consigliati nei forum vengono verificati su Wikipedia prima di entrare.'

@@ -634,3 +634,19 @@ body.mt-noscroll{overscroll-behavior:contain}
 .dbg-row{padding:5px 8px; border-bottom:1px solid rgba(128,128,160,.2); overflow-wrap:anywhere}
 .dbg-row.bad{background:rgba(220,80,80,.12)}
 .dbg-st{font-weight:800}
+
+/* v125: la finestra Chiedi non schiaccia più il messaggio iniziale sotto le impostazioni */
+.ask-engine{flex:0 0 auto; max-height:46vh; overflow-y:auto; -webkit-overflow-scrolling:touch}
+.ask-thread{flex:1 1 110px; min-height:110px}
+.ask-thinking{white-space:normal; overflow-wrap:anywhere; line-height:1.4}
+.ask-inputrow textarea{min-height:44px; line-height:1.3}
+
+/* v125: icone a tema videogioco al posto di quelle lineari */
+:root{--lens:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Cdefs%3E%3ClinearGradient%20id='a'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%2338bdf8'/%3E%3Cstop%20offset='1'%20stop-color='%237c5cff'/%3E%3C/linearGradient%3E%3ClinearGradient%20id='b'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%23ffb347'/%3E%3Cstop%20offset='1'%20stop-color='%23ff6a3d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle%20cx='13.5'%20cy='13.5'%20r='8.2'%20fill='%23fff'%20fill-opacity='.18'%20stroke='url%28%23a%29'%20stroke-width='3.2'/%3E%3Cpath%20d='M19.8%2019.8%2027%2027'%20stroke='url%28%23b%29'%20stroke-width='4.2'%20stroke-linecap='round'/%3E%3Cpath%20d='M8.5%2011c.9-2.3%203-3.5%205-3.3'%20stroke='%23fff'%20stroke-opacity='.9'%20stroke-width='1.6'%20stroke-linecap='round'%20fill='none'/%3E%3C/svg%3E")}
+#search{background-size:20px !important}
+html.pal-refined #search{background:var(--lens) 13px 50%/20px no-repeat, linear-gradient(180deg, rgba(var(--a1rgb),.10), rgba(var(--a1rgb),.04)), var(--glass)}
+.x-toolbar svg.gi{width:21px; height:21px}
+.x-toolbar button{width:34px; height:30px}
+.list-chip svg.gi{display:inline-block; width:17px; height:17px; vertical-align:-3px; margin-right:2px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+td.fav svg.gi{width:20px; height:20px; display:inline-block; vertical-align:middle; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+td.fav .fav-off{color:var(--sub)}
