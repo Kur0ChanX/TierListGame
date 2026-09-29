@@ -302,7 +302,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
     const a = auLoad(), now = Date.now(), lim = AU_DAYS * 864e5, ai = useAI();
     let best = null, bt = Infinity;
     GAMES.forEach(g=>{ const r = a[g.id]; const t = r ? new Date(r.t).getTime() : 0;
-      if(r && now - t < lim && (r.deep || !ai)) return;          // già controllato a fondo (o senza AI disponibile: non insisto)
+      if(r && (r.deep || !ai)) return;          // controllato: non lo ricontrollo mai più (solo «Ricomincia» o «Aggiorna info» nella scheda)          // già controllato a fondo (o senza AI disponibile: non insisto)
       if(t < bt){ bt = t; best = g; } });
     return best;
   }

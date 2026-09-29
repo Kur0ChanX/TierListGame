@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v117', date:'2026-09-29', items:[
+    'Un gioco controllato a fondo non viene più ricontrollato (solo con «Ricomincia» o «Aggiorna info»). Il menu ✨ → Controllo dati mostra quante modifiche ci sono da approvare e un avviso compare quando ne arrivano di nuove.'
+  ]},
   {version:'v116', date:'2026-09-29', items:[
     '🔎 Controllo dati a fondo: parte subito all\'apertura e, gioco per gioco, controlla voto, anno, generi, lingua, ore, trama, pro/contro e gameplay con Wikipedia/Wikidata e Gemini (ricerca con fonti). Niente viene cambiato da solo: in ✨ → Controllo dati trovi «Da approvare» (prima/dopo + fonti), «Controllati» e «Applicate» con pulsante Annulla. Limite di 200 giochi al giorno e pausa automatica se Gemini è al limite.'
   ]},
