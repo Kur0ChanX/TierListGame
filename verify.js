@@ -15,6 +15,7 @@
       const o = ov[g.id]; if(!o || g.custom) return;
       ['score','tier','m','tags','year','ysort','story','note'].forEach(k=>{ if(o[k] !== undefined) g[k] = Array.isArray(o[k]) ? o[k].slice() : o[k]; });
       if(o.enrich){ g.enrich = g.enrich || {}; Object.assign(g.enrich, o.enrich); }
+      if(o.label){ g.label = Object.assign({}, g.label || {}, o.label); }
     });
   };
 
@@ -102,19 +103,48 @@ ${digest(src.wiki.text)}`;
     if(typeof j.story === 'string' && j.story.length > 30){ ch.push({id:'story', label:'Trama', from: (g.story || '—').slice(0, 90), to: j.story.slice(0, 160), patch:{story: j.story}}); }
     return {changes: ch, note: ''};
   }
+
+  // ricerca approfondita (Gemini con ricerca Google): ore, "a colpo d'occhio", gameplay, lingua, edizioni. Ogni dato deve avere una fonte, altrimenti null.
+  async function deepChanges(g){
+    if(!geminiKey()) return {changes:[], sources:[], note:'Ricerca approfondita (ore, difficoltà, lingua, gameplay) non fatta: serve la chiave Gemini.'};
+    const prompt = todayLine() + `Cerca online informazioni ATTENDIBILI sul videogioco "${g.name}" (${g.year}, ${g.plat}) consultando fonti come Metacritic, OpenCritic, HowLongToBeat, Wikipedia, RPGamer, RPGFan, gli store ufficiali (Steam, PlayStation Store, Nintendo eShop) e i siti dei publisher. Compila SOLO ciò che trovi in fonti affidabili; se non lo trovi scrivi null, NON stimare e NON inventare.
+Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia principale, numero), hoursCompletionist (ore completista, numero), difficulty (1-5), grind (1-5, quanto grinding serve), storyWeight (1-5, peso della storia), pace ("L" lento, "M" medio, "V" veloce), italian ("S" sottotitoli italiani ufficiali, "F" solo fan-translation, "N" nessuno; verifica lo store), language (una frase in italiano su lingue e localizzazione), remaster (una frase in italiano su edizioni, remaster o remake esistenti), gameplayScore (0-10, in base alla critica), gameplayNote (una frase in italiano sul gameplay), fitIf (una frase: a chi piace), avoidIf (una frase: chi dovrebbe evitarlo), criticScore (Metascore o OpenCritic, numero 0-100, oppure null).`;
+    const r = await askLLM(prompt, {}, {search:true, forceGemini:true});
+    const j = parseJson(r && r.text);
+    const srcs = ((r && r.sources) || []).filter(s=> s.title).slice(0, 6);
+    if(!j) return {changes:[], sources: srcs, note:'La ricerca approfondita non ha dato un risultato leggibile.'};
+    const num = (x, lo, hi)=>{ const n = typeof x === 'number' ? x : parseFloat(x); return (isFinite(n) && n >= lo && n <= hi) ? n : null; };
+    const str = x=> (typeof x === 'string' && x.trim().length > 8 && !/^null$/i.test(x.trim())) ? x.trim() : null;
+    const e = g.enrich || {}, l = g.label || {}, ch = [];
+    const hm = num(j.hoursMain, 1, 400), hc = num(j.hoursCompletionist, 1, 1500);
+    if(hm && hm !== (e.hoursMain || l.h)){ ch.push({id:'hours', label:'Ore di gioco', from: `${e.hoursMain || l.h || '—'}h storia · ${e.hoursCompletionist || '—'}h completista`, to: `${hm}h storia · ${hc || e.hoursCompletionist || '—'}h completista`, patch:{enrich:{hoursMain: hm, hoursCompletionist: hc || e.hoursCompletionist}, label:{h: hm}}}); }
+    const d = num(j.difficulty, 1, 5), gr = num(j.grind, 1, 5), sw = num(j.storyWeight, 1, 5);
+    const pace = ['L','M','V'].includes(j.pace) ? j.pace : null, it = ['S','F','N'].includes(j.italian) ? j.italian : null;
+    const lab = {}; if(d) lab.d = Math.round(d); if(gr) lab.g = Math.round(gr); if(sw) lab.s = Math.round(sw); if(pace) lab.p = pace; if(it) lab.it = it;
+    const fit = str(j.fitIf), avoid = str(j.avoidIf); if(fit) lab.ok = fit; if(avoid) lab.ko = avoid;
+    const diff = Object.keys(lab).filter(k=> lab[k] !== l[k]);
+    if(diff.length){ ch.push({id:'label', label:'A colpo d\'occhio', from: `difficoltà ${l.d || '—'}, grinding ${l.g || '—'}, storia ${l.s || '—'}, ritmo ${l.p || '—'}, italiano ${l.it || '—'}`, to: `difficoltà ${lab.d || l.d || '—'}, grinding ${lab.g || l.g || '—'}, storia ${lab.s || l.s || '—'}, ritmo ${lab.p || l.p || '—'}, italiano ${lab.it || l.it || '—'}` + (fit || avoid ? ' · consigli aggiornati' : ''), patch:{label: lab}}); }
+    const gs = num(j.gameplayScore, 0, 10), gn = str(j.gameplayNote);
+    if(gs != null || gn){ ch.push({id:'gameplay', label:'Gameplay', from: `${e.gameplayScore != null ? e.gameplayScore : '—'}/10 — ${(e.gameplayNote || '').slice(0, 70)}`, to: `${gs != null ? gs : (e.gameplayScore != null ? e.gameplayScore : '—')}/10 — ${(gn || e.gameplayNote || '').slice(0, 110)}`, patch:{enrich:Object.assign({}, gs != null ? {gameplayScore: gs} : {}, gn ? {gameplayNote: gn} : {})}}); }
+    const lg = str(j.language), rm = str(j.remaster);
+    if(lg || rm){ ch.push({id:'lang', label:'Lingua ed edizioni', from: ((e.language || '') + ' ' + (e.remaster || '')).slice(0, 120) || '—', to: [lg, rm].filter(Boolean).join(' ').slice(0, 200), patch:{enrich:Object.assign({}, lg ? {language: lg} : {}, rm ? {remaster: rm} : {})}}); }
+    const cs = num(j.criticScore, 0, 100);
+    if(cs && cs !== g.score){ ch.push({id:'score2', label:'Voto (ricerca AI, da confermare)', from: String(g.score), to: `${cs} (Metascore/OpenCritic secondo la ricerca)`, patch:{score: cs, tier: tierOf(cs), m:'V'}, off:true}); }
+    return {changes: ch, sources: srcs, note:''};
+  }
   function mergePatch(list){
     const p = {};
-    list.forEach(c=>{ Object.keys(c.patch).forEach(k=>{ if(k === 'enrich') p.enrich = Object.assign(p.enrich || {}, c.patch.enrich); else p[k] = c.patch[k]; }); });
+    list.forEach(c=>{ Object.keys(c.patch).forEach(k=>{ if(k === 'enrich') p.enrich = Object.assign(p.enrich || {}, c.patch.enrich); else if(k === 'label') p.label = Object.assign(p.label || {}, c.patch.label); else p[k] = c.patch[k]; }); });
     return p;
   }
   async function applyPatch(g, p){
     if(g.custom){
-      const doc = {name: g.name, plat: g.plat, year: p.year || g.year, tier: p.tier || g.tier, score: p.score != null ? p.score : g.score, tags: p.tags || g.tags, story: p.story != null ? p.story : g.story, note: p.note || g.note, label: g.label,
+      const doc = {name: g.name, plat: g.plat, year: p.year || g.year, tier: p.tier || g.tier, score: p.score != null ? p.score : g.score, tags: p.tags || g.tags, story: p.story != null ? p.story : g.story, note: p.note || g.note, label: Object.assign({}, g.label || {}, p.label || {}),
         pros: (p.enrich && p.enrich.pros) || (g.proscons && g.proscons.pros) || [], cons: (p.enrich && p.enrich.cons) || (g.proscons && g.proscons.cons) || [], addedAt: new Date().toISOString()};
       if(COVER_DB) await COVER_DB.doc('customGames/' + String(g.id)).set(doc);
     } else {
       const ov = loadOv(); const cur = ov[g.id] || {};
-      ov[g.id] = Object.assign({}, cur, p, {enrich: Object.assign({}, cur.enrich || {}, p.enrich || {})});
+      ov[g.id] = Object.assign({}, cur, p, {enrich: Object.assign({}, cur.enrich || {}, p.enrich || {}), label: Object.assign({}, cur.label || {}, p.label || {})});
       saveOv(ov); applyGameOverrides();
     }
     try{ ensureGenreLists(p.tags || []); renderListBar(); render(); }catch(e){}
@@ -139,10 +169,13 @@ ${digest(src.wiki.text)}`;
     let changes = factChanges(g, src), note = '';
     status('Fonti trovate. Riscrivo trama e pro/contro dalle fonti…');
     try{ const t = await textChanges(g, src); changes = changes.concat(t.changes); note = t.note; }catch(e){ note = 'Testi non riscritti: ' + llmErrorText(e); }
-    const sources = [src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].filter(Boolean).join(' · ');
+    status('Ricerca approfondita di ore, gameplay, lingua ed edizioni…');
+    let deepSrc = [];
+    try{ const d = await deepChanges(g); changes = changes.concat(d.changes); deepSrc = d.sources; if(d.note) note += (note ? ' ' : '') + d.note; }catch(e){ note += (note ? ' ' : '') + 'Ricerca approfondita non riuscita: ' + llmErrorText(e); }
+    const sources = [src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
     if(!changes.length){ el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
     el.innerHTML = shell(`<div class="lp-sub">Fonti: ${sources}. Togli la spunta a ciò che non ti convince.${note ? '<br>' + escHtml(note) : ''}</div>
-      <div class="gc-rows">${changes.map((c,i)=> `<label class="gc-row"><input type="checkbox" data-i="${i}" checked> <span><b>${escHtml(c.label)}</b><br><small>Prima: ${escHtml(c.from || '—')}</small><br>Dopo: ${escHtml(c.to)}</span></label>`).join('')}</div>
+      <div class="gc-rows">${changes.map((c,i)=> `<label class="gc-row"><input type="checkbox" data-i="${i}" ${c.off ? '' : 'checked'}> <span><b>${escHtml(c.label)}</b><br><small>Prima: ${escHtml(c.from || '—')}</small><br>Dopo: ${escHtml(c.to)}</span></label>`).join('')}</div>
       <div class="lp-tools"><button class="btn primary" id="uiApply">Applica i selezionati</button></div>`);
     el.querySelector('#uiApply').addEventListener('click', async ()=>{
       const chosen = [...el.querySelectorAll('input[data-i]:checked')].map(cb=> changes[+cb.dataset.i]);
