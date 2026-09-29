@@ -5,6 +5,8 @@ const GEMINI_FALLBACK_MODEL = 'gemini-flash-lite-latest';
 const geminiUrl = m=> 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent';
 const GEMINI_NO_FALLBACK = ['cancelled','refused','empty_completion','prompt_too_large','image_rejected'];
 
+function geminiCustomModel(){ try{ return (localStorage.getItem('jrpg_gemini_model') || '').trim(); }catch(e){ return ''; } }
+let geminiBadModels = new Set();   // modelli che Google ha risposto «non esiste» in questa sessione: non li riprovo
 function geminiKey(){ try{ return (localStorage.getItem('jrpg_gemini_key') || '').trim(); }catch(e){ return ''; } }
 function setGeminiKey(k){ try{ if(k) localStorage.setItem('jrpg_gemini_key', k); else localStorage.removeItem('jrpg_gemini_key'); }catch(e){} }
 function llmEngine(){ try{ return localStorage.getItem('jrpg_engine') || 'auto'; }catch(e){ return 'auto'; } }
@@ -36,12 +38,15 @@ const sleep = ms=> new Promise(r=> setTimeout(r, ms));
 // Se il modello è sovraccarico (503/500) riprova con calma, poi passa al modello più leggero; se è al limite (429) prova subito quello leggero
 async function callGemini(body, signal){
   let lastErr;
-  for(const [mi, model] of [GEMINI_MODEL, GEMINI_FALLBACK_MODEL].entries()){
+  const custom = geminiCustomModel();
+  const chain = [custom, GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter((m, i, a)=> m && a.indexOf(m) === i && !geminiBadModels.has(m));
+  for(const [mi, model] of chain.entries()){
     const attempts = mi === 0 ? 3 : 1;
     for(let a = 0; a < attempts; a++){
       try{ return await geminiFetch(body, signal, model); }
       catch(e){
         lastErr = e;
+        if((e.status === 404 || (e.status === 400 && /model|not found|not supported/i.test(e.message || ''))) && mi < chain.length - 1){ geminiBadModels.add(model); break; }   // modello inesistente: passo al successivo
         if(![429, 500, 503].includes(e.status)) throw e;
         if(e.status === 429) break;
         if(a < attempts - 1){ if(signal && signal.aborted) throw e; await sleep(1500 * (a + 1)); }
@@ -169,12 +174,14 @@ async function askLLM(input, opts, extra){
     say('Verifico la chiave…');
     try{
       const r = await geminiGenerate('Rispondi solo con la parola: ok', {});
-      say('✅ Gemini funziona (' + GEMINI_MODEL + ').', true);
+      say('✅ Gemini funziona (' + (geminiCustomModel() || GEMINI_MODEL) + ').', true);
       refreshFab();
     }catch(e){
       say('❌ ' + askErrorCopy(e && e.code), false);
     }
   });
+  const modEl = document.getElementById('geminiModelInput');
+  if(modEl){ modEl.value = geminiCustomModel(); modEl.addEventListener('change', ()=>{ const v = modEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_gemini_model', v); else localStorage.removeItem('jrpg_gemini_model'); }catch(e){} geminiBadModels = new Set(); say(v ? 'Modello impostato: ' + v + ' (se non esiste uso automaticamente ' + GEMINI_MODEL + ').' : 'Modello automatico: ' + GEMINI_MODEL + ' (sempre l\'ultimo Flash).'); }); }
   document.getElementById('geminiClearBtn').addEventListener('click', ()=>{ setGeminiKey(''); keyEl.value = ''; say('Chiave rimossa.'); });
   refreshFab();
 })();

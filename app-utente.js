@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v121', date:'2026-09-30', items:[
+    'A colpo d\'occhio più coerente: peso storia, ore e grinding sono calibrati (roguelite e tattici: ore di una run, sblocchi contati nel grinding) e «Fa per te se / Lascia stare se» sono sempre in seconda persona.',
+    'Consigli «Se ti è piaciuto prova anche» con affinità reale (genere principale, saga, epoca, struttura di gioco) e senza generi incompatibili come horror per un action indie.',
+    'Saghe automatiche: i giochi aggiunti e quelli non mappati si raggruppano per titolo; pulsante «Capitoli mancanti» per cercarli online.',
+    'Mia Tier: barra di ricerca, salto rapido ai tier e trascinamento col dito (tieni premuto). Pulsante Chiedi al centro in basso senza tastiera automatica e con microfono; badge «da approvare» piccolo; avvisi sempre sopra la barra di navigazione.',
+    'Generi: barra con i più usati + «Tutti i generi», selettore a gruppi espandibili con ricerca e 92 generi/sottogeneri. Novità: filtro per genere immediato, rotazione automatica dei generi e modello Gemini configurabile. Freccia del Tier corretta (▼).'
+  ]},
   {version:'v120', date:'2026-09-30', items:[
     'Anche «Aggiorna info» nella scheda del gioco usa ora la revisione a schede scrollabili con «Prima» e «Dopo» separati e un solo gruppo di pulsanti (Approva / Tieni precedente / Decido dopo). Generi: aggiunto JRPG e i generi RPG sono raggruppati in due sezioni.'
   ]},

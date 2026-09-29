@@ -584,3 +584,41 @@ html:not(.fx-on) .table-wrap, html:not(.fx-on) .glabel, html:not(.fx-on) .filter
 .novita-compact .novita-badge-new{position:static !important; transform:none !important; justify-self:start; margin:0}
 .novita-compact .novita-link-btn{display:inline-flex; align-items:center; gap:4px; white-space:nowrap}
 body:has(.dup-backdrop.show) .au-badge, body:has(.modal-backdrop.show) .au-badge{display:none !important}
+
+/* v121: Mia Tier con ricerca, salto rapido, trascinamento col dito */
+.mt-search{display:flex; gap:6px; margin:6px 0}
+.mt-search input{flex:1; min-width:0; padding:10px 14px; border-radius:14px; border:1px solid var(--border); background:var(--card); color:inherit; font-size:16px}
+.mt-jump{display:flex; gap:6px; overflow-x:auto; padding:2px 0 8px; scrollbar-width:none}
+.mt-jump::-webkit-scrollbar{display:none}
+.mt-jbtn{flex:none; display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); background:var(--card); color:inherit; font-size:.78rem; cursor:pointer}
+.mytier-section.mt-empty .mytier-dropzone{min-height:34px; padding:4px 8px; opacity:.7}
+.mytier-section{scroll-margin-top:12px}
+@media (max-width:760px){ .mytier-chip{flex:1 1 calc(50% - 6px); max-width:none; min-width:0; touch-action:pan-y; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none} .mytier-chip .nm{flex:1; min-width:0} }
+.mt-ghost{position:fixed; z-index:100600; pointer-events:none; opacity:.92; box-shadow:0 10px 30px rgba(0,0,0,.4); transform:scale(1.06); max-width:none}
+.mytier-chip.mt-dragging{opacity:.35}
+body.mt-noscroll{overscroll-behavior:contain}
+
+/* v121: pulsante Chiedi al centro in basso; badge piccolo; avvisi sempre sopra la barra; nessun troncamento nel «Potrebbe piacerti perché» */
+.ask-fab{left:calc(50% - 27px) !important; right:auto !important; bottom:calc(var(--navh,0px) + 12px + env(safe-area-inset-bottom,0px)) !important}
+.toast{bottom:calc(var(--navh,0px) + 76px + env(safe-area-inset-bottom,0px)) !important; z-index:100700 !important; max-width:min(92vw,420px); text-align:center; white-space:normal; line-height:1.3}
+.novita-clamp,.novita-why{display:block !important; -webkit-line-clamp:unset !important; overflow:visible !important; text-overflow:clip !important; white-space:normal !important; overflow-wrap:anywhere}
+.au-badge{left:auto !important; right:12px; bottom:calc(var(--navh,0px) + 66px + env(safe-area-inset-bottom,0px)) !important; padding:0 !important; width:38px; height:38px; justify-content:center; font-size:0 !important; border-width:2px}
+.au-badge::before{content:"📝"; font-size:16px}
+.au-badge b{font-size:11px; position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; border-radius:9px; background:#e11d48; color:#fff; display:grid; place-items:center; padding:0 4px; border:2px solid #fff}
+
+.saga-miss{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 8px; margin-top:6px; border-radius:10px; background:rgba(128,128,160,.12); font-size:.85rem}
+.saga-miss-btn{margin-left:auto}
+
+/* v121: generi a gruppi espandibili */
+.gg{border:1px solid var(--glass-line,rgba(128,128,160,.3)); border-radius:14px; margin:8px 0; background:var(--glass,rgba(255,255,255,.06)); overflow:hidden}
+.gg>summary{cursor:pointer; padding:11px 14px; display:flex; justify-content:space-between; align-items:center; font-weight:700; list-style:none}
+.gg>summary::-webkit-details-marker{display:none}
+.gg>summary::after{content:"▾"; margin-left:8px; opacity:.6; transition:transform .2s}
+.gg[open]>summary::after{transform:rotate(180deg)}
+.gg>summary small{margin-left:auto; opacity:.7; font-weight:600}
+.gg-chips{display:flex; flex-wrap:wrap; gap:6px; padding:4px 12px 12px}
+.lp-search{width:100%; box-sizing:border-box; padding:10px 14px; border-radius:12px; border:1px solid var(--border,#888); background:var(--card,#fff); color:inherit; font-size:16px; margin:6px 0}
+.list-chip.lp-zero{opacity:.45}
+.gg-wrap{max-height:calc(100dvh - 240px); overflow-y:auto; -webkit-overflow-scrolling:touch}
+.nf-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:10px}
+.nf-lbl{font-size:.78rem; opacity:.75}

@@ -584,7 +584,7 @@
     return todayLine() + `Mario ha questi giochi PREFERITI (la sua lista Top):\n${list}\n
 Trova ${count} videogiochi che gli darebbero le STESSE VIBES: atmosfera, mood, tono della storia, sensazioni, meccaniche chiave e affinità emotive. Non limitarti al genere tecnico: sono ben accetti giochi di genere in parte diverso se la sensazione è la stessa. Basati soprattutto su consigli REALI di giocatori (forum, Reddit, ResetEra, commenti e liste), e dì cosa dicono.
 NON proporre nessuno di questi (già nel suo database o già rifiutati): ${novitaExcludeListText(novitaKnownNames())}
-Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (titolo esatto), plat, year, tier (S+, S, A, B, C, D, E, F), score (0-100), tags (0-3 codici tra: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}), story (2-3 frasi di premessa), fitIf (una frase), because (una frase: perché dà le stesse sensazioni, citando almeno un preferito), basedOn (array con 1-3 nomi esatti tra i preferiti elencati), sharedVibes (array di 2-4 parole chiave: es. "malinconia", "viaggio epico", "scelte morali", "esplorazione"), forum (una frase su cosa dicono i giocatori, con la fonte es. "Reddit r/JRPG"; null se non trovi un consiglio reale: NON inventare).`;
+Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (titolo esatto), plat, year, tier (S+, S, A, B, C, D, E, F), score (0-100), tags (0-3 codici tra: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}), story (2-3 frasi di premessa), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), because (una frase: perché dà le stesse sensazioni, citando almeno un preferito), basedOn (array con 1-3 nomi esatti tra i preferiti elencati), sharedVibes (array di 2-4 parole chiave: es. "malinconia", "viaggio epico", "scelte morali", "esplorazione"), forum (una frase su cosa dicono i giocatori, con la fonte es. "Reddit r/JRPG"; null se non trovi un consiglio reale: NON inventare).`;
   }
   async function findVibes(){
     if(busy) return; const favs = favGames();
@@ -651,4 +651,22 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
     const orig = window.renderDiscoverCard;
     window.renderDiscoverCard = function(){ orig.apply(this, arguments); try{ refresh(); }catch(e){ console.error(e); } };
   }
+})();
+
+// microfono anche in «Chiedi»: detta la domanda a voce (la tastiera non si apre da sola)
+(function(){
+  const mic = document.getElementById('askMicBtn'), inp = document.getElementById('askInput');
+  if(!mic || !inp) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ mic.title = 'Il tuo browser non supporta la dettatura'; mic.style.opacity = '.5'; }
+  mic.addEventListener('click', ()=>{
+    if(!SR){ try{ showToast('Questo browser non supporta la voce (prova Chrome o Safari aggiornati)', 3500); }catch(e){} return; }
+    const rec = new SR(); rec.lang = 'it-IT'; rec.interimResults = true; rec.maxAlternatives = 1;
+    mic.classList.add('listening'); mic.textContent = '🔴';
+    const base = inp.value ? inp.value.trim() + ' ' : '';
+    rec.onresult = e=>{ let t = ''; for(let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; inp.value = base + t; try{ inp.dispatchEvent(new Event('input')); }catch(x){} };
+    rec.onerror = e=>{ try{ showToast(e.error === 'not-allowed' ? 'Permesso microfono negato: attivalo nelle impostazioni del browser' : e.error === 'network' ? 'La dettatura ha bisogno di internet' : 'Non ho sentito nulla: riprova', 3500); }catch(x){} };
+    rec.onend = ()=>{ mic.classList.remove('listening'); mic.textContent = '🎤'; };
+    try{ rec.start(); }catch(e){ mic.classList.remove('listening'); mic.textContent = '🎤'; }
+  });
 })();

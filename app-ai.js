@@ -56,8 +56,8 @@ function askToolAddCustomGame(input, sourceLabel){
     p: ['L','M','V'].includes(input.pace) ? input.pace : null,
     h: input.hours != null ? Number(input.hours) : null,
     it: ['D','S','F','N'].includes(input.italian) ? input.italian : null,
-    ok: input.fitIf ? String(input.fitIf) : null,
-    ko: input.avoidIf ? String(input.avoidIf) : null,
+    ok: input.fitIf ? (fixSecondPerson(String(input.fitIf)) || null) : null,
+    ko: input.avoidIf ? (fixSecondPerson(String(input.avoidIf)) || null) : null,
     cost: ['S','M','H'].includes(input.cost) ? input.cost : null
   };
   const doc = {
@@ -94,7 +94,7 @@ function buildEnrichPrompt(games){
   const list = games.map(g=> `- id ${g.id}: "${g.name}" (${g.year || 'anno n.d.'}, ${g.plat}), tier ${g.tier}, voto ${g.score}, generi: ${(g.tags || []).map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', ') || 'n.d.'}${g.story ? '. Trama: ' + g.story : ''}`).join('\n');
   return todayLine() + `Per ciascuno di questi videogiochi cerca informazioni ATTENDIBILI (Metacritic, HowLongToBeat, Wikipedia, recensioni) e compila la scheda. Se di un gioco non trovi dati sicuri, metti null nei campi incerti: NON inventare.
 ${list}
-Rispondi SOLO con un array JSON valido, un oggetto per gioco (nell'ordine dato), con questi campi: id (numero), storyTag (RARO. Il voto del gioco NON conta: un gioco mediocre può meritarlo e un capolavoro no. Cerca sulle fonti se questo gioco ha qualcosa di unico che quasi nessun altro ha: una storia affascinante o memorabile, oppure una meccanica/idea che travolge. Assegnalo solo in quel caso: "romance" = storia d'amore centrale e memorabile, "affinity" = legame tra personaggi che è il cuore del gioco, "wow" = colpi di scena/momenti sorprendenti entrati nella storia del medium. Per la MAGGIOR PARTE dei giochi la risposta giusta è null: il tag deve andare al massimo a 1 gioco su 4), storyTagNote (una frase che dice COSA lo rende unico, null se storyTag è null), dopamine (RARO, indipendente dal voto: true SOLO se una meccanica o un loop di ricompense è unico e travolgente, tipo "ancora un turno" fino all'alba, anche se il resto del gioco è modesto; per la maggior parte dei giochi è false, al massimo 1 su 5), dopaLoop (se dopamine: 3-4 passi del ciclo con un'emoji ciascuno, es. ["⚔️ Battaglia","⭐ Ricompensa","🔓 Sblocco","🔁 Sfida più dura"], altrimenti null), dopaHook (una frase: perché non riesci a smettere, null se dopamine è false), dopaWatch (una frase: quando può stancare, null se dopamine è false), eraScore (voto 0-100 all'uscita), todayScore (voto 0-100 oggi), agingNote (1-2 frasi su come regge oggi, citando gli anni, senza "recente"/"da poco"), gameplayScore (0-10), gameplayNote (una frase sul gameplay), whyLikeIt (una frase: a chi piace), hoursMain (ore storia), hoursCompletionist (ore completista), lengthVerdict (una frase sulla durata), remaster (una frase su edizioni/remaster esistenti), language (una frase su testi e doppiaggio in italiano, solo se lo trovi in una fonte), story (trama RICCA e dettagliata: 5-8 frasi, circa 600-900 caratteri, con ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler sul finale; mai 2-3 righe), difficulty (1-5), grind (1-5), storyWeight (1-5, peso della storia), pace ("L" lento, "M" medio, "V" veloce), italian ("D" testi e doppiaggio italiani, "S" solo testi, "F" solo fan-translation, "N" nessuno; null se non trovi una fonte esplicita), cost ("S" economico/spesso in sconto, "M" medio, "H" prezzo pieno alto), fitIf (una frase: a chi piace), avoidIf (una frase: chi dovrebbe evitarlo), pros (3-4 punti di forza), cons (2-3 difetti).`;
+Rispondi SOLO con un array JSON valido, un oggetto per gioco (nell'ordine dato), con questi campi: id (numero), storyTag (RARO. Il voto del gioco NON conta: un gioco mediocre può meritarlo e un capolavoro no. Cerca sulle fonti se questo gioco ha qualcosa di unico che quasi nessun altro ha: una storia affascinante o memorabile, oppure una meccanica/idea che travolge. Assegnalo solo in quel caso: "romance" = storia d'amore centrale e memorabile, "affinity" = legame tra personaggi che è il cuore del gioco, "wow" = colpi di scena/momenti sorprendenti entrati nella storia del medium. Per la MAGGIOR PARTE dei giochi la risposta giusta è null: il tag deve andare al massimo a 1 gioco su 4), storyTagNote (una frase che dice COSA lo rende unico, null se storyTag è null), dopamine (RARO, indipendente dal voto: true SOLO se una meccanica o un loop di ricompense è unico e travolgente, tipo "ancora un turno" fino all'alba, anche se il resto del gioco è modesto; per la maggior parte dei giochi è false, al massimo 1 su 5), dopaLoop (se dopamine: 3-4 passi del ciclo con un'emoji ciascuno, es. ["⚔️ Battaglia","⭐ Ricompensa","🔓 Sblocco","🔁 Sfida più dura"], altrimenti null), dopaHook (una frase: perché non riesci a smettere, null se dopamine è false), dopaWatch (una frase: quando può stancare, null se dopamine è false), eraScore (voto 0-100 all'uscita), todayScore (voto 0-100 oggi), agingNote (1-2 frasi su come regge oggi, citando gli anni, senza "recente"/"da poco"), gameplayScore (0-10), gameplayNote (una frase sul gameplay), whyLikeIt (una frase impersonale che spiega cosa rende appagante il gioco; niente riferimenti a persone tipo «gli piacerà»), hoursMain (ore indicative per finire la storia principale o la run/campagna principale; nei giochi senza trama vera (roguelite, tattici, puzzle, arcade) indica la durata di UNA run o campagna (1-3h), MAI le ore per sbloccare tutto (quelle vanno in hoursCompletionist)), hoursCompletionist (ore completista), lengthVerdict (una frase sulla durata), remaster (una frase su edizioni/remaster esistenti), language (una frase su testi e doppiaggio in italiano, solo se lo trovi in una fonte), story (trama RICCA e dettagliata: 5-8 frasi, circa 600-900 caratteri, con ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler sul finale; mai 2-3 righe), difficulty (1-5), grind (1-5: quanta ripetizione/farming serve; conta anche sblocchi di contenuti, squadre, armi e meta-progressione dei roguelite: mai lasciarlo vuoto se ci sono sblocchi; 1 = nessuno, 3 = qualche sblocco, 5 = molto grinding), storyWeight (1-5: 1 = trama assente o minima, 5 = la storia è il cuore del gioco; deve essere COERENTE con le ore storia), pace ("L" lento, "M" medio, "V" veloce), italian ("D" testi e doppiaggio italiani, "S" solo testi, "F" solo fan-translation, "N" nessuno; null se non trovi una fonte esplicita), cost ("S" economico/spesso in sconto, "M" medio, "H" prezzo pieno alto), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "cerchi una trama profonda": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), pros (3-4 punti di forza), cons (2-3 difetti), similarTo (3-4 titoli REALI e davvero affini per gameplay, atmosfera e struttura, consigliati da fonti o giocatori; es. per Bastion: Hades, Transistor, Tunic, Death's Door; MAI giochi di generi incompatibili come horror o sport; array vuoto se non sei sicuro).`;
 }
 function queueEnrich(id){
   enrichQueueIds.add(id); clearTimeout(enrichTimer);
@@ -136,8 +136,9 @@ async function runEnrich(ids, opts){
           if(!l.it && ['D','S','F','N'].includes(row.italian)) l.it = row.italian;
           if(!l.cost && ['S','M','H'].includes(row.cost)) l.cost = row.cost;
           if(l.h == null && Number(row.hoursMain) > 0) l.h = Number(row.hoursMain);
-          if(!l.ok && txt(row.fitIf)) l.ok = txt(row.fitIf);
-          if(!l.ko && txt(row.avoidIf)) l.ko = txt(row.avoidIf);
+          if(!l.ok && txt(row.fitIf)) l.ok = fixSecondPerson(txt(row.fitIf)) || l.ok;
+          if(!l.ko && txt(row.avoidIf)) l.ko = fixSecondPerson(txt(row.avoidIf)) || l.ko;
+          if(!labelCoherent(l, doc.tags)){ delete l.h; }                     // storia minima + ore lunghe = dato incoerente: meglio nessun dato
           doc.label = l;
           if(!(doc.pros || []).length && Array.isArray(row.pros)) doc.pros = row.pros.map(String).slice(0, 5);
           if(!(doc.cons || []).length && Array.isArray(row.cons)) doc.cons = row.cons.map(String).slice(0, 5);
@@ -391,8 +392,7 @@ function openAsk(){
   const gs = document.getElementById('geminiSettings');
   if(gs && !llmAvailable()) gs.open = true;
   renderAskThread();
-  const inp = document.getElementById('askInput');
-  if(inp) inp.focus();
+  // niente autofocus: la tastiera del telefono si apre solo quando tocchi tu la casella di testo
 }
 function closeAsk(){ askBackdropEl.classList.remove('show'); }
 document.getElementById('askFab').addEventListener('click', openAsk);
@@ -461,7 +461,7 @@ function loadNovitaGenreSelected(){
     const gs = localStorage.getItem(profileKey('jrpg_novita_genre_selected'));
     if(gs){
       const saved = JSON.parse(gs);
-      if(Array.isArray(saved) && saved.length) NOVITA_GENRE_SELECTED = new Set(saved);
+      if(Array.isArray(saved) && saved.length){ NOVITA_GENRE_SELECTED = new Set(saved); if(saved.length >= 45) NOVITA_GENRE_ALL_CODES.forEach(c=> NOVITA_GENRE_SELECTED.add(c)); }
     }
   }catch(e){}
 }
@@ -528,12 +528,13 @@ function buildNovitaPrompt(count, excludeNames){
   return todayLine() + `Suggerisci ${count} RPG/JRPG (di qualunque epoca e piattaforma, anche poco conosciuti) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 Gusti di Mario: ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
-name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (1-3 valori tra questi codici, con il loro significato: ${genreGlossary(NOVITA_TAG_ENUM)}), story (trama ricca e dettagliata: 5-8 frasi, circa 600-900 caratteri: ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler pesanti sul finale), hours (ore indicative per finire la storia, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("D"=testi e doppiaggio italiani, "S"=solo testi/sottotitoli italiani ufficiali, "F"=solo fan-translation, "N"=nessun italiano ufficiale), cost ("S","M" o "H"), fitIf (perché potrebbe piacere A MARIO IN PARTICOLARE, in una frase, basandoti sui suoi gusti sopra), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
+name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (1-3 valori tra questi codici, con il loro significato: ${genreGlossary(NOVITA_TAG_ENUM)}), story (trama ricca e dettagliata: 5-8 frasi, circa 600-900 caratteri: ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler pesanti sul finale), hours (ore indicative per finire la storia principale o la run/campagna principale; nei giochi senza trama vera (roguelite, tattici, puzzle, arcade) indica la durata di UNA run o campagna (1-3h), MAI le ore per sbloccare tutto (quelle vanno in hoursCompletionist), numero), difficulty (1-5), pace ("L","M" o "V"), italian ("D"=testi e doppiaggio italiani, "S"=solo testi/sottotitoli italiani ufficiali, "F"=solo fan-translation, "N"=nessun italiano ufficiale), cost ("S","M" o "H"), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "cerchi una trama profonda": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
 Scegli titoli realmente esistenti, con dati il più possibile accurati. Varia epoche/piattaforme tra le ${count} proposte.`;
 }
 function buildNovitaGenrePrompt(count, excludeNames, selectedTags, includeOther){
   const labels = selectedTags.map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t);
-  const scopeLine = labels.length
+  const anyGenre = selectedTags.length >= 60;                 // quasi tutti i generi selezionati = nessuna restrizione
+  const scopeLine = (labels.length && !anyGenre)
     ? `Suggerisci SOLO videogiochi che rientrano in almeno uno di questi generi/stili: ${labels.join(', ')}.${includeOther ? ' Includi anche giochi molto simili a questi generi anche se non ci rientrano perfettamente, o stili affini non elencati qui.' : ' Scarta tutto ciò che non rientra chiaramente in questi generi.'} IMPORTANTE: NON limitarti agli RPG — se un genere qui sopra non è un gioco di ruolo (es. sport, corse, sparatutto, strategia, puzzle...), proponi comunque giochi di QUEL genere anche se non hanno alcun elemento da RPG.`
     : `Includi videogiochi di QUALSIASI genere possibile (non solo RPG), di ogni tipo, epoca e piattaforma: varia il più possibile tra i ${count} suggerimenti.`;
   const consoleLine = NOVITA_CONSOLE_SELECTED.size ? `PIATTAFORME: suggerisci SOLO giochi usciti su almeno una di queste piattaforme: ${NOVITA_CONSOLES.map(c=> c[0]).filter(n=> NOVITA_CONSOLE_SELECTED.has(n)).join(', ')} (giochi validi e apprezzati di ogni epoca, anche retro e poco noti; indica in plat le piattaforme reali). ` : 'PIATTAFORME: qualsiasi console o PC, di ogni epoca (anche retro), purché giochi validi e apprezzati. ';
@@ -542,7 +543,7 @@ ${scopeLine}
 Non scartare un gioco valido solo perché non rientra esattamente nei codici di genere che uso per le etichette (${genreGlossary(NOVITA_GENRE_ALL_CODES)}): includilo comunque e assegna i tag più vicini possibile, oppure lascia l'elenco tags vuoto se nessuno si adatta bene — la categorizzazione delle etichette non deve mai essere un motivo per escludere un gioco valido.
 Contesto sui gusti abituali di Mario, soprattutto orientati a RPG/JRPG (utile SOLO per spiegare perché un titolo potrebbe piacergli comunque, MAI per restringere la ricerca al genere RPG, che qui è solo una delle tante opzioni possibili): ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
-name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (0-3 valori tra questi codici, con il loro significato: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}. Assegna un tag SOLO se quel genere è centrale nel gioco: meglio 1-2 tag precisi che 3 vaghi, e mai ADV per giochi d'azione, RPG, sandbox o open world; oppure elenco vuoto se nessuno si adatta), story (trama ricca e dettagliata: 5-8 frasi, circa 600-900 caratteri: ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler pesanti sul finale), hours (ore indicative per finirlo, numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli/doppiaggio ufficiale in italiano,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (perché potrebbe piacere a Mario, in una frase), avoidIf (una frase su chi dovrebbe evitarlo), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
+name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (0-3 valori tra questi codici, con il loro significato: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}. Assegna un tag SOLO se quel genere è centrale nel gioco: meglio 1-2 tag precisi che 3 vaghi, e mai ADV per giochi d'azione, RPG, sandbox o open world; oppure elenco vuoto se nessuno si adatta), story (trama ricca e dettagliata: 5-8 frasi, circa 600-900 caratteri: ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler pesanti sul finale), hours (ore indicative per finire la storia principale o la run/campagna principale; nei giochi senza trama vera (roguelite, tattici, puzzle, arcade) indica la durata di UNA run o campagna (1-3h), MAI le ore per sbloccare tutto (quelle vanno in hoursCompletionist), numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli/doppiaggio ufficiale in italiano,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "cerchi una trama profonda": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
 Scegli titoli realmente esistenti, con dati il più possibile accurati.`;
 }
 function parseNovitaJson(text){
@@ -610,7 +611,14 @@ const NOVITA_STRATEGIES = [
   {src:'giochi retro e di nicchia', hint:"Concentrati su titoli usciti prima del 2005 e su giochi di nicchia o dimenticati."},
   {src:'indie e novità recenti', hint:"Concentrati su indie di qualità e su titoli usciti negli ultimi anni."}
 ];
-async function novitaSearchParallel(makePrompt, total, strategies){
+// gruppi di generi da far ruotare tra le richieste (mescolati): così la ricerca non si incastra su un solo tipo di gioco
+function novitaFocusSets(codes, size){
+  const sets = [];
+  GENRE_GROUPS.forEach(g=>{ const c = g.codes.filter(x=> codes.includes(x)); for(let i = 0; i < c.length; i += size) sets.push(c.slice(i, i + size)); });
+  for(let i = sets.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [sets[i], sets[j]] = [sets[j], sets[i]]; }
+  return sets;
+}
+async function novitaSearchParallel(makePrompt, total, strategies, focusSets){
   const STR = strategies || NOVITA_STRATEGIES;
   const MAX = Math.min(30, Math.max(1, total || NOVITA_BATCH_COUNT));
   const found = [], seen = new Set();
@@ -629,7 +637,7 @@ async function novitaSearchParallel(makePrompt, total, strategies){
     });
     return found.length - before;
   };
-  let errors = 0, lastErr = null, emptyRounds = 0, round = 0;
+  let errors = 0, lastErr = null, emptyRounds = 0, round = 0, fi = Math.floor(Math.random() * 100);
   try{
     while(!stopped && found.length < MAX && round < STR.length && emptyRounds < 4){
       const pair = [STR[round], STR[round + 1]].filter(Boolean); round += 2;
@@ -637,7 +645,9 @@ async function novitaSearchParallel(makePrompt, total, strategies){
       const need = Math.min(14, MAX - found.length + 4);
       const excl = found.length ? '\nNON riproporre nemmeno questi titoli appena trovati: ' + found.map(c=> c.name).join('; ') + '.' : '';
       const crit = "\nCRITERIO: includi qualsiasi gioco reale valutato almeno 5/10 (50/100 su Metacritic/Steam), oppure senza voto ma apprezzato dalla community; scarta solo quelli sotto il 5/10. Per ogni titolo: se non conosci un dato, stima con onestà ma NON inventare giochi inesistenti.";
-      const runs = pair.map(st=> askLLM(makePrompt(need) + '\nFONTE DI QUESTA RICERCA (" ' + st.src + ' "): ' + st.hint + crit + excl, {}, {search:true, fast:true, silent:true, label:'Cerco nuovi giochi…'}));
+      const runs = pair.map(st=>{ const fo = (focusSets && focusSets.length) ? focusSets[(fi++) % focusSets.length] : null;
+        const focus = fo ? '\nGIRO DI RICERCA: in questo giro privilegia giochi di questi generi/stili: ' + fo.map(c=> TAG_INFO[c] ? TAG_INFO[c].label : c).join(', ') + '. VARIETÀ: al massimo 2 titoli dello stesso sottogenere e nessuna raffica di giochi dello stesso tipo (es. non solo Metroidvania): alterna generi, epoche e piattaforme.' : '\nVARIETÀ: al massimo 2 titoli dello stesso sottogenere; alterna generi, epoche e piattaforme.';
+        return askLLM(makePrompt(need) + '\nFONTE DI QUESTA RICERCA (" ' + st.src + ' "): ' + st.hint + crit + focus + excl, {}, {search:true, fast:true, silent:true, label:'Cerco nuovi giochi…'}); });
       const res = await Promise.race([Promise.allSettled(runs), stopP.then(()=> null)]);
       if(!res || stopped) break;
       let got = 0;
@@ -662,7 +672,7 @@ async function fetchNovitaBatch(){
   const excludeNames = novitaKnownNames();
   try{
     // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT);
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4));
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -686,7 +696,7 @@ async function fetchNovitaGenreBatch(){
   const excludeNames = novitaKnownNames();
   const selectedTags = Array.from(NOVITA_GENRE_SELECTED);
   try{
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, selectedTags, novitaGenreIncludeOther), NOVITA_BATCH_COUNT);
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, selectedTags, novitaGenreIncludeOther), NOVITA_BATCH_COUNT, null, novitaFocusSets(selectedTags, 4));
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -703,8 +713,25 @@ async function fetchNovitaGenreBatch(){
   }
 }
 // salta le proposte che nel frattempo sono già nel database (aggiunte a mano, da un altro dispositivo o da Chiedi)
-function currentNovitaGame(){ while(novitaQueue[novitaIdx] && findDuplicateGame(novitaQueue[novitaIdx].name)) novitaIdx++; return novitaQueue[novitaIdx] || null; }
-function currentNovitaGenreGame(){ while(novitaGenreQueue[novitaGenreIdx] && findDuplicateGame(novitaGenreQueue[novitaGenreIdx].name)) novitaGenreIdx++; return novitaGenreQueue[novitaGenreIdx] || null; }
+// filtro per genere sui risultati di «Novità»: si applica subito, senza rifare la ricerca
+let NOVITA_VIEW_FILTER = new Set();
+function novitaVisible(q){ return NOVITA_VIEW_FILTER.size ? q.filter(c=> (c.tags || []).some(t=> NOVITA_VIEW_FILTER.has(t))) : q; }
+function currentNovitaGame(){ novitaQueue = novitaQueue.filter(c=> !findDuplicateGame(c.name)); return novitaVisible(novitaQueue)[0] || null; }
+function currentNovitaGenreGame(){ novitaGenreQueue = novitaGenreQueue.filter(c=> !findDuplicateGame(c.name)); return novitaVisible(novitaGenreQueue)[0] || null; }
+function novitaFilterHtml(queue){
+  const cnt = {}; queue.forEach(c=> (c.tags || []).forEach(t=>{ if(TAG_INFO[t]) cnt[t] = (cnt[t] || 0) + 1; }));
+  const codes = Object.keys(cnt).sort((a, b)=> cnt[b] - cnt[a]);
+  if(codes.length < 2 && !NOVITA_VIEW_FILTER.size) return '';
+  return `<div class="nf-row"><span class="nf-lbl">Filtra per genere:</span>${codes.map(t=> `<button type="button" class="genre-chip${NOVITA_VIEW_FILTER.has(t) ? ' active' : ''}" data-nf="${t}">${TAG_INFO[t].icon} ${escHtml(TAG_INFO[t].label)} <small>${cnt[t]}</small></button>`).join('')}${NOVITA_VIEW_FILTER.size ? '<button type="button" class="genre-chip" data-nf-clear>✕ Tutti</button>' : ''}</div>`;
+}
+function novitaFilteredEmptyHtml(queue){
+  return `<div class="discover-empty"><div class="discover-empty-icon">🔎</div><div>Nessuna proposta con questi generi (ne hai ${queue.length} in attesa con altri generi).</div></div>${novitaFilterHtml(queue)}`;
+}
+function wireNovitaFilter(root, rerender){
+  if(!root) return;
+  root.querySelectorAll('[data-nf]').forEach(b=> b.addEventListener('click', ()=>{ const t = b.dataset.nf; if(NOVITA_VIEW_FILTER.has(t)) NOVITA_VIEW_FILTER.delete(t); else NOVITA_VIEW_FILTER.add(t); rerender(); }));
+  root.querySelectorAll('[data-nf-clear]').forEach(b=> b.addEventListener('click', ()=>{ NOVITA_VIEW_FILTER.clear(); rerender(); }));
+}
 function novitaCardHtml(c, ids){
   ids = ids || {nope:'novitaNopeBtn', like:'novitaLikeBtn'};
   return `<div class="discover-card novita-compact" id="novitaCard">
@@ -814,20 +841,20 @@ function renderNovitaCard(){
   if(novitaErrorMsg){ panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${novitaErrorHtml(novitaErrorMsg)}</div></div>`; wireNovitaCard(); wireNovitaTopbar(); return; }
   const c = currentNovitaGame();
   if(!c){
-    panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${novitaEverFetched ? novitaDoneHtml() : novitaIntroHtml()}</div></div>`;
+    panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${(novitaQueue.length && NOVITA_VIEW_FILTER.size) ? novitaFilteredEmptyHtml(novitaQueue) : (novitaEverFetched ? novitaDoneHtml() : novitaIntroHtml())}</div></div>`;
     wireNovitaCard(); wireNovitaTopbar();
     return;
   }
   panel.innerHTML = `<div class="novita-wrap">${topBar}
     <div class="discover-stage">${novitaCardHtml(c)}</div>
-    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaQueue.length - novitaIdx} da vedere in questo giro</div>
+    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaQueue).length} da vedere in questo giro</div>${novitaFilterHtml(novitaQueue)}
   </div>`;
   wireNovitaCard(); wireNovitaTopbar();
 }
 function novitaAdvanceSkip(){
   const c = currentNovitaGame(); if(!c) return;
   novitaSkipCandidate(c);
-  novitaIdx++;
+  novitaQueue.splice(novitaQueue.indexOf(c), 1);
   renderNovitaCard();
 }
 function novitaAdvanceLike(){
@@ -837,10 +864,11 @@ function novitaAdvanceLike(){
   }catch(e){
     showToast((e && e.message) || 'Non sono riuscito ad aggiungere il gioco.');
   }
-  novitaIdx++;
+  novitaQueue.splice(novitaQueue.indexOf(c), 1);
   renderNovitaCard();
 }
 function wireNovitaCard(){
+  wireNovitaFilter(document.getElementById('novitaPanel'), renderNovitaCard);
   const findBtn = document.getElementById('novitaFindBtn');
   const retryBtn = document.getElementById('novitaRetryBtn');
   const nopeBtn = document.getElementById('novitaNopeBtn');
@@ -856,15 +884,7 @@ function wireNovitaTopbar(){
 }
 // ---- "Novità per genere": stessa proposta, ma filtrata su generi scelti da Mario invece che sui suoi gusti pregressi ----
 function novitaGenrePickerHtml(){
-  const sectionsHtml = NOVITA_GENRE_SECTIONS.map(sec=>{
-    const chips = sec.codes.map(t=>{
-      const info = TAG_INFO[t];
-      if(!info) return '';
-      const active = NOVITA_GENRE_SELECTED.has(t);
-      return `<button class="genre-chip${active?' active':''}" type="button" data-genre-chip="${t}">${info.icon} ${info.label}</button>`;
-    }).join('');
-    return `<div class="novita-genre-section"><div class="novita-genre-section-title">${escHtml(sec.title)}</div><div class="genre-chip-grid">${chips}</div></div>`;
-  }).join('');
+  const sectionsHtml = genreAccordionHtml(t=>{ const info = TAG_INFO[t]; return `<button class="genre-chip${NOVITA_GENRE_SELECTED.has(t)?' active':''}" type="button" data-genre-chip="${t}">${info.icon} ${info.label}</button>`; }, codes=> codes.filter(c=> NOVITA_GENRE_SELECTED.has(c)).length, '');
   const total = NOVITA_GENRE_ALL_CODES.length;
   const activeCount = NOVITA_GENRE_SELECTED.size;
   const consoleChips = NOVITA_CONSOLES.map(([n,y])=> `<button class="genre-chip${NOVITA_CONSOLE_SELECTED.has(n)?' active':''}" type="button" data-console-chip="${escHtml(n)}">${escHtml(n)}${y ? ` <small>${y}</small>` : ''}</button>`).join('');
@@ -896,21 +916,21 @@ function renderNovitaGenreCard(){
   const c = currentNovitaGenreGame();
   if(!c){
     const errorBlock = novitaGenreErrorMsg ? `<div class="novita-error"><div>😕 ${escHtml(novitaGenreErrorMsg)}</div></div>` : '';
-    const doneBlock = (!novitaGenreErrorMsg && novitaGenreEverFetched) ? `<div class="discover-empty" style="padding-bottom:0;"><div class="discover-empty-icon">🎉</div><div>Hai deciso su tutte le proposte di questo giro.</div></div>` : '';
+    const doneBlock = (novitaGenreQueue.length && NOVITA_VIEW_FILTER.size) ? novitaFilteredEmptyHtml(novitaGenreQueue) : (!novitaGenreErrorMsg && novitaGenreEverFetched) ? `<div class="discover-empty" style="padding-bottom:0;"><div class="discover-empty-icon">🎉</div><div>Hai deciso su tutte le proposte di questo giro.</div></div>` : '';
     panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${errorBlock}${doneBlock}${novitaGenrePickerHtml()}</div></div>`;
     wireNovitaGenreCard(); wireNovitaGenreTopbar();
     return;
   }
   panel.innerHTML = `<div class="novita-wrap">${topBar}
     <div class="discover-stage">${novitaCardHtml(c, {nope:'novitaGenreNopeBtn', like:'novitaGenreLikeBtn'})}</div>
-    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaGenreQueue.length - novitaGenreIdx} da vedere in questo giro</div>
+    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaGenreQueue).length} da vedere in questo giro</div>${novitaFilterHtml(novitaGenreQueue)}
   </div>`;
   wireNovitaGenreCard(); wireNovitaGenreTopbar();
 }
 function novitaGenreAdvanceSkip(){
   const c = currentNovitaGenreGame(); if(!c) return;
   novitaSkipCandidate(c);
-  novitaGenreIdx++;
+  novitaGenreQueue.splice(novitaGenreQueue.indexOf(c), 1);
   renderNovitaGenreCard();
 }
 function novitaGenreAdvanceLike(){
@@ -920,15 +940,17 @@ function novitaGenreAdvanceLike(){
   }catch(e){
     showToast((e && e.message) || 'Non sono riuscito ad aggiungere il gioco.');
   }
-  novitaGenreIdx++;
+  novitaGenreQueue.splice(novitaGenreQueue.indexOf(c), 1);
   renderNovitaGenreCard();
 }
 function wireNovitaGenreCard(){
+  wireNovitaFilter(document.getElementById('novitaGenrePanel'), renderNovitaGenreCard);
   document.querySelectorAll('#novitaGenrePanel [data-console-chip]').forEach(btn=>{
     btn.addEventListener('click', ()=>{ const n = btn.dataset.consoleChip; if(NOVITA_CONSOLE_SELECTED.has(n)) NOVITA_CONSOLE_SELECTED.delete(n); else NOVITA_CONSOLE_SELECTED.add(n); saveNovitaConsoles(); renderNovitaGenreCard(); });
   });
   const clrC = document.getElementById('novitaConsoleClearBtn');
   if(clrC) clrC.addEventListener('click', ()=>{ NOVITA_CONSOLE_SELECTED = new Set(); saveNovitaConsoles(); renderNovitaGenreCard(); });
+  const gpanel = document.getElementById('novitaGenrePanel'); if(gpanel) wireAccordion(gpanel, false);
   document.querySelectorAll('#novitaGenrePanel [data-genre-chip]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const t = btn.dataset.genreChip;
@@ -956,7 +978,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v120';
+const DATA_BUILD_VERSION = 'v121';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

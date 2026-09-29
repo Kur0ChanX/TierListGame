@@ -21,66 +21,106 @@ const TAG_INFO = {
   LIFE:{icon:'🌾', label:'Vita / Crafting'},
   ROG:{icon:'🎲', label:'Roguelike'},
   WRPG:{icon:'🧙', label:'RPG occidentale (WRPG)'},
-  JRPG:{icon:'🗾', label:'RPG giapponese (JRPG)'}
+  JRPG:{icon:'🗾', label:'RPG giapponese (JRPG)'},
+  MUD:{icon:'⌨️', label:'MUD / RPG testuale'},
+  GACHA:{icon:'🎰', label:'Gacha'}
 };
-const TAG_ORDER = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','WRPG','JRPG'];
+const TAG_ORDER = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','WRPG','JRPG','MUD','GACHA'];
 
 // Generi extra (NON RPG) usati solo dalla scheda "Novità per genere", per poter cercare titoli di
 // qualunque genere videoludico e non solo RPG/JRPG. Vengono uniti a TAG_INFO (così icona/etichetta
 // si vedono correttamente ovunque nel sito, es. su un gioco aggiunto con uno di questi tag) ma MAI
 // aggiunti a TAG_ORDER, che resta l'elenco dei filtri della lista principale (100% RPG/JRPG).
 const EXTRA_GENRE_INFO = {
-  PLAT:{icon:'🕹️', label:'Platform'},
-  BEAT:{icon:'👊', label:'Picchiaduro a scorrimento'},
-  FIGHT:{icon:'🥊', label:'Picchiaduro 1v1'},
+  PLAT:{icon:'🕹️', label:'Platform 2D / Precision Platformer'},
+  BEAT:{icon:'👊', label:'Picchiaduro a scorrimento (Beat \'em Up)'},
+  FIGHT:{icon:'🥊', label:'Picchiaduro 1v1 (2D/3D)'},
   STEALTH:{icon:'🥷', label:'Stealth'},
   ADV:{icon:'🔍', label:'Avventura punta e clicca'},
-  ACTADV:{icon:'🦸', label:'Avventura d\'azione'},
-  OPENW:{icon:'🌍', label:'Open world'},
-  MMO:{icon:'🌐', label:'MMO / online persistente'},
-  SIMVEH:{icon:'✈️', label:'Simulatori (volo/veicoli)'},
+  ACTADV:{icon:'🦸', label:'Action-Adventure'},
+  OPENW:{icon:'🌍', label:'Open World / Sandbox'},
+  MMO:{icon:'🌐', label:'MMO / MMORPG'},
+  SIMVEH:{icon:'✈️', label:'Simulatori (volo / spazio / mecha)'},
   TRIVIA:{icon:'❓', label:'Quiz / trivia'},
-  WALK:{icon:'🚶', label:'Narrativo / walking sim'},
-  FPS:{icon:'🔫', label:'Sparatutto FPS'},
-  TPS:{icon:'🎯', label:'Sparatutto TPS'},
-  SHMUP:{icon:'🚀', label:'Sparatutto a scorrimento'},
+  WALK:{icon:'🚶', label:'Avventura narrativa / Walking Sim'},
+  FPS:{icon:'🔫', label:'FPS Tattico / Militare'},
+  TPS:{icon:'🎯', label:'TPS / Looter Shooter'},
+  SHMUP:{icon:'🚀', label:'Shoot \'em Up / Bullet Hell / Run & Gun'},
   BR:{icon:'🪂', label:'Battle royale'},
-  SPORT:{icon:'⚽', label:'Sport'},
-  RACE:{icon:'🏎️', label:'Corse / guida'},
+  SPORT:{icon:'⚽', label:'Sport simulazione'},
+  RACE:{icon:'🏎️', label:'Corse simracing'},
   RTS:{icon:'🛰️', label:'Strategia in tempo reale'},
   TBS4X:{icon:'🗺️', label:'Strategia a turni / 4X'},
   MOBA:{icon:'🛡️', label:'MOBA'},
-  CITY:{icon:'🏙️', label:'Gestionale / city builder'},
+  CITY:{icon:'🏙️', label:'Gestionale / City Builder / Colony Sim'},
   TOWERDEF:{icon:'🏹', label:'Tower defense'},
-  ECOSIM:{icon:'📈', label:'Simulazione economica/gestionale'},
-  PUZ:{icon:'🧩', label:'Puzzle'},
+  ECOSIM:{icon:'📈', label:'Tycoon / Simulazione economica'},
+  PUZ:{icon:'🧩', label:'Puzzle / Logica'},
   PARTY:{icon:'🎉', label:'Party game'},
-  RHY:{icon:'🎵', label:'Musicale / ritmo'},
-  BOARDG:{icon:'♠️', label:'Da tavolo / carte (non RPG)'},
-  SAND:{icon:'⛏️', label:'Sandbox / survival crafting'},
-  SIMLIFE:{icon:'🧑‍🌾', label:'Simulazione di vita/lavoro'},
-  ARCADE:{icon:'👾', label:'Arcade / retro'},
+  RHY:{icon:'🎵', label:'Musicale / Rhythm Game'},
+  BOARDG:{icon:'♠️', label:'Tabletop / Carte digitali (non RPG)'},
+  SAND:{icon:'⛏️', label:'Survival Crafting / Sopravvivenza'},
+  SIMLIFE:{icon:'🧑‍🌾', label:'Simulazione di vita / Cozy'},
+  ARCADE:{icon:'👾', label:'Arcade / Cabinati / Pinball'},
   IDLE:{icon:'⏳', label:'Idle / clicker'},
   RUN:{icon:'🏃', label:'Endless runner'},
-  COOP:{icon:'🤝', label:'Cooperativo / multiplayer sociale'},
+  COOP:{icon:'🤝', label:'Cooperativo / Co-op sociale'},
   HNS:{icon:'🪓', label:'Hack & Slash'},
-  SURV:{icon:'🧟', label:'Survival Horror'},
-  STRATTAC:{icon:'🎖️', label:'Strategia a turni tattica (non RPG)'}
+  SURV:{icon:'🧟', label:'Survival Horror classico'},
+  STRATTAC:{icon:'🎖️', label:'Strategia a turni tattica (non RPG)'},
+  PLAT3D:{icon:'🦘', label:'Platform 3D / Collectathon'},
+  PUZPLAT:{icon:'🧱', label:'Puzzle Platformer'},
+  IMSIM:{icon:'🕵️', label:'Immersive Sim'},
+  FMV:{icon:'🎞️', label:'FMV (film interattivo)'},
+  BRAWL:{icon:'🥋', label:'Arena Brawler / Platform Fighter'},
+  FPSARENA:{icon:'⚡', label:'FPS Arena'},
+  BOOMER:{icon:'💥', label:'Boomer Shooter / Retro FPS'},
+  HEROSH:{icon:'🦹', label:'Hero Shooter'},
+  EXTRACT:{icon:'🎒', label:'Extraction Shooter'},
+  TWINSTICK:{icon:'🕹️', label:'Twin-Stick Shooter'},
+  RAILSH:{icon:'🔫', label:'Sparatutto su binari / Light Gun'},
+  SPORTARC:{icon:'🏀', label:'Sport arcade'},
+  SPORTXT:{icon:'🛹', label:'Sport estremi'},
+  SPORTFIGHT:{icon:'🤼', label:'Sport da combattimento (Wrestling/MMA)'},
+  SPORTMGR:{icon:'📋', label:'Manageriale sportivo'},
+  RACEARC:{icon:'🚗', label:'Corse arcade'},
+  KART:{icon:'🏁', label:'Kart racing'},
+  RALLY:{icon:'🌄', label:'Off-road / Rally'},
+  RACEFUT:{icon:'🛸', label:'Corse futuristiche / anti-gravità'},
+  HORACT:{icon:'🔪', label:'Action Horror'},
+  HORPSY:{icon:'🧠', label:'Horror psicologico'},
+  HORMASC:{icon:'🐻', label:'Mascot Horror'},
+  HORASYM:{icon:'🎭', label:'Horror asimmetrico'},
+  GRAND:{icon:'🌐', label:'Grand Strategy'},
+  RTT:{icon:'🪖', label:'RTT (tattica in tempo reale)'},
+  AUTOB:{icon:'♟️', label:'Auto Battler'},
+  ARTY:{icon:'💣', label:'Artiglieria (tipo Worms)'},
+  GOD:{icon:'☁️', label:'God Game'},
+  PHYSPUZ:{icon:'⚙️', label:'Physics Puzzle'},
+  MATCH3:{icon:'💎', label:'Match-3 / Falling Block'},
+  HIDDEN:{icon:'🔎', label:'Hidden Object'},
+  FARM:{icon:'🚜', label:'Farming Sim'},
+  DATING:{icon:'💘', label:'Dating Sim'},
+  JOBSIM:{icon:'🧰', label:'Job Sim'},
+  FITNESS:{icon:'🏋️', label:'Fitness'},
+  SOCDED:{icon:'🕵️‍♂️', label:'Social Deduction'}
 };
 Object.assign(TAG_INFO, EXTRA_GENRE_INFO);
 // Sezioni per il selettore generi di "Novità per genere": copre RPG + praticamente ogni genere
 // videoludico, raggruppato in modo schematico invece di un listone unico.
-const NOVITA_GENRE_SECTIONS = [
-  {title:'RPG — giapponesi e occidentali', codes:['JRPG','WRPG','TUR','ACT','TAC']},
-  {title:'RPG — sottogeneri e stili', codes: TAG_ORDER.filter(c=> !['JRPG','WRPG','TUR','ACT','TAC'].includes(c))},
-  {title:'Azione e avventura', codes:['HNS','SURV','PLAT','BEAT','FIGHT','STEALTH','ADV','ACTADV','OPENW','WALK']},
-  {title:'Sparatutto e battle', codes:['FPS','TPS','SHMUP','BR']},
-  {title:'Sport e corse', codes:['SPORT','RACE','SIMVEH']},
-  {title:'Strategia e gestionale', codes:['RTS','TBS4X','STRATTAC','MOBA','CITY','TOWERDEF','ECOSIM']},
-  {title:'Puzzle e party', codes:['PUZ','PARTY','RHY','BOARDG','TRIVIA']},
-  {title:'Sandbox e simulazione', codes:['SAND','SIMLIFE']},
-  {title:'Arcade e altro', codes:['ARCADE','IDLE','RUN','COOP','MMO']}
+const GENRE_GROUPS = [
+  {icon:'🎲', title:'RPG e ruolistica', codes:['JRPG','WRPG','ACT','TUR','TAC','DUN','MON','CARD','ROG','MUD','GACHA','CROSS','MECH','LIFE','REMAKE']},
+  {icon:'🗡️', title:'Azione, avventura e platform', codes:['ACTADV','HNS','PLAT','PLAT3D','PUZPLAT','METR','SOUL','IMSIM','STEALTH','OPENW','ADV','WALK','VN','FMV']},
+  {icon:'🥊', title:'Picchiaduro e combattimento', codes:['FIGHT','BRAWL','BEAT']},
+  {icon:'🔫', title:'Sparatutto e battle', codes:['FPS','FPSARENA','BOOMER','HEROSH','TPS','EXTRACT','BR','TWINSTICK','RAILSH','SHMUP']},
+  {icon:'⚽', title:'Sport, corse e motori', codes:['SPORT','SPORTARC','SPORTXT','SPORTFIGHT','SPORTMGR','RACE','RACEARC','KART','RALLY','RACEFUT']},
+  {icon:'💀', title:'Horror e sopravvivenza', codes:['SURV','HORACT','HOR','HORPSY','HORMASC','HORASYM','SAND']},
+  {icon:'🧠', title:'Strategia e gestionale', codes:['RTS','TBS4X','GRAND','RTT','STRATTAC','WAR','MOBA','AUTOB','CITY','TOWERDEF','ARTY','ECOSIM','GOD']},
+  {icon:'🧩', title:'Puzzle, simulatori e casual', codes:['PUZ','PHYSPUZ','MATCH3','HIDDEN','RHY','PARTY','SIMLIFE','FARM','DATING','JOBSIM','SIMVEH','BOARDG','TRIVIA','FITNESS']},
+  {icon:'🌐', title:'Multiplayer e arcade', codes:['MMO','COOP','SOCDED','ARCADE','IDLE','RUN']}
 ];
+// compatibilità: sezioni piatte per i selettori esistenti (titolo con icona)
+const NOVITA_GENRE_SECTIONS = GENRE_GROUPS.map(g=> ({title: g.icon + ' ' + g.title, codes: g.codes.filter(c=> TAG_INFO[c])}));
 const NOVITA_GENRE_ALL_CODES = NOVITA_GENRE_SECTIONS.reduce((acc,s)=> acc.concat(s.codes), []);
 // Significato di ogni codice, da dare SEMPRE all'AI insieme al codice: senza spiegazione "ADV" veniva letto come "avventura qualsiasi" e finivano lì Elden Ring, Portal, Stardew...
 const GENRE_HINT = {
@@ -99,6 +139,20 @@ const GENRE_HINT = {
   ECOSIM:'gestionale economico (tycoon)',
   SIMVEH:'simulatori di volo, treni o veicoli',
   MMO:'gioco online persistente con tanti giocatori (WoW, FFXIV)',
+  IMSIM:'immersive sim: sistemi che reagiscono alle scelte del giocatore (Deus Ex, Prey, Dishonored)',
+  HORACT:'horror d\'azione: paura più combattimento (Resident Evil 4, Dead Space)',
+  HORPSY:'horror psicologico: disagio e atmosfera più che mostri (Silent Hill 2, Amnesia)',
+  HORMASC:'mascot horror: personaggi inquietanti in luoghi ordinari (Five Nights at Freddy\'s, Poppy Playtime)',
+  HORASYM:'horror asimmetrico multigiocatore (Dead by Daylight)',
+  BRAWL:'arena brawler / platform fighter (Super Smash Bros., Brawlhalla)',
+  HEROSH:'hero shooter con personaggi dalle abilità uniche (Overwatch, Valorant)',
+  EXTRACT:'extraction shooter: entra, raccogli, esci vivo (Escape from Tarkov)',
+  BOOMER:'boomer shooter: FPS retrò veloce (Doom Eternal, Ultrakill)',
+  AUTOB:'auto battler: schieri le unità, il combattimento è automatico (Teamfight Tactics)',
+  GOD:'god game: controlli un mondo dall\'alto (Populous, Black & White)',
+  FMV:'film interattivo con riprese reali (Her Story, Telling Lies)',
+  MUD:'RPG testuale o MUD',
+  GACHA:'RPG con sistema gacha e personaggi da collezionare (Genshin Impact)',
   JRPG:'RPG giapponese (Final Fantasy, Dragon Quest, Persona, Xenoblade): storia lineare, party fisso, combattimenti a turni o d\'azione',
   WRPG:'RPG occidentale (Skyrim, Baldur\'s Gate, The Witcher, Dragon Age): scelte, dialoghi e mondo aperto; i giapponesi sono JRPG',
   HNS:'hack & slash: combattimento frenetico contro orde di nemici (Diablo, Devil May Cry, Bayonetta) — se ha progressione da RPG usa ACT',
@@ -630,32 +684,54 @@ function inActiveList(g){
   return tags.includes(ACTIVE_LIST);
 }
 function listCount(id){ const prev = ACTIVE_LIST; ACTIVE_LIST = id; const n = GAMES.filter(inActiveList).length; ACTIVE_LIST = prev; return n; }
-function setActiveList(id){ ACTIVE_LIST = id; saveLists(); renderListBar(); if(typeof setView === 'function') setView(state.view); }
+function bumpListUsage(id){ if(id === 'jrpg' || id === 'all') return; try{ const k = profileKey('jrpg_list_usage'); const u = JSON.parse(localStorage.getItem(k) || '{}') || {}; u[id] = (u[id] || 0) + 1; localStorage.setItem(k, JSON.stringify(u)); }catch(e){} }
+function listUsage(){ try{ return JSON.parse(localStorage.getItem(profileKey('jrpg_list_usage')) || '{}') || {}; }catch(e){ return {}; } }
+function setActiveList(id){ ACTIVE_LIST = id; bumpListUsage(id); saveLists(); renderListBar(); if(typeof setView === 'function') setView(state.view); }
+// barra dei generi «salva-pollice»: JRPG/RPG, i generi più usati (max 4), Tutti e il pulsante che apre il selettore completo a gruppi
+const LIST_BAR_MAX = 4;
 function renderListBar(){
   const bar = document.getElementById('listBar'); if(!bar) return;
   const chip = (id, icon, label)=> `<button class="list-chip${ACTIVE_LIST===id?' active':''}" data-list="${id}">${icon} ${escHtml(label)} <span class="list-cnt">${listCount(id)}</span></button>`;
-  bar.innerHTML = chip('jrpg','🎮','JRPG / RPG') + MY_LISTS.map(c=> chip(c, TAG_INFO[c].icon, TAG_INFO[c].label)).join('') + chip('all','🌐','Tutti') + `<button class="list-chip list-add" id="listAddBtn">➕ Generi</button>`;
+  const use = listUsage();
+  const cand = MY_LISTS.map(c=> ({c, n: listCount(c), u: use[c] || 0})).filter(o=> o.n > 0 && TAG_INFO[o.c]).sort((a, b)=> b.u - a.u || b.n - a.n);
+  let shown = cand.slice(0, LIST_BAR_MAX).map(o=> o.c);
+  if(ACTIVE_LIST !== 'jrpg' && ACTIVE_LIST !== 'all' && TAG_INFO[ACTIVE_LIST] && !shown.includes(ACTIVE_LIST)) shown = [ACTIVE_LIST].concat(shown.slice(0, LIST_BAR_MAX - 1));
+  bar.innerHTML = chip('jrpg','🎮','JRPG / RPG') + shown.map(c=> chip(c, TAG_INFO[c].icon, TAG_INFO[c].label)).join('') + chip('all','🌐','Tutti') + `<button class="list-chip list-add" id="listAddBtn" title="Tutti i generi, divisi per gruppi">🔍 Tutti i generi</button>`;
   bar.querySelectorAll('[data-list]').forEach(b=> b.addEventListener('click', ()=> setActiveList(b.dataset.list)));
-  document.getElementById('listAddBtn').addEventListener('click', openListPicker);
+  document.getElementById('listAddBtn').addEventListener('click', ()=> openListPicker());
 }
-function openListPicker(){
+// selettore a gruppi espandibili (accordion): usato dalla barra dei generi e da «Novità per genere»
+const GG_OPEN = new Set([0]);
+function genreAccordionHtml(chipFn, countFn, q){
+  return GENRE_GROUPS.map((g, gi)=>{
+    const codes = g.codes.filter(c=> TAG_INFO[c] && (!q || (TAG_INFO[c].label + ' ' + g.title).toLowerCase().includes(q)));
+    if(!codes.length) return '';
+    const n = countFn ? countFn(codes) : 0;
+    return `<details class="gg" data-gg="${gi}" ${(q || GG_OPEN.has(gi)) ? 'open' : ''}><summary><span>${g.icon} ${escHtml(g.title)}</span><small>${n ? n + ' · ' : ''}${codes.length}</small></summary><div class="gg-chips">${codes.map(chipFn).join('')}</div></details>`;
+  }).join('') || '<div class="lp-sub">Nessun genere con questo nome.</div>';
+}
+function wireAccordion(root, hasQuery){
+  root.querySelectorAll('details.gg').forEach(d=> d.addEventListener('toggle', ()=>{ if(hasQuery) return; const i = +d.dataset.gg; if(d.open) GG_OPEN.add(i); else GG_OPEN.delete(i); }));
+}
+function openListPicker(q){
+  q = typeof q === 'string' ? q.trim().toLowerCase() : '';
   let el = document.getElementById('listPickerBackdrop');
   if(!el){
     el = document.createElement('div'); el.id = 'listPickerBackdrop'; el.className = 'dup-backdrop';
     el.addEventListener('click', (e)=>{ if(e.target === el || e.target.closest('[data-lp-close]')){ el.classList.remove('show'); renderListBar(); } });
     document.body.appendChild(el);
   }
-  const body = NOVITA_GENRE_SECTIONS.map(sec=> `<div class="lp-title">${escHtml(sec.title)}</div><div class="lp-chips">${sec.codes.map(c=> `<button class="list-chip${MY_LISTS.includes(c)?' active':''}" data-lp="${c}">${TAG_INFO[c].icon} ${escHtml(TAG_INFO[c].label)} <span class="list-cnt">${listCount(c)}</span></button>`).join('')}</div>`).join('');
-  el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>Le tue classifiche per genere</b><button class="btn" data-lp-close>Fatto</button></div><div class="lp-sub">Tocca un genere per aggiungerlo o toglierlo dalla barra. La classifica JRPG / RPG resta sempre disponibile.</div><div class="lp-tools"><button class="btn" data-lp-all>➕ Aggiungi tutti i generi che hanno giochi</button><button class="btn" data-lp-none>Togli tutti</button></div>${body}</div>`;
-  el.querySelector('[data-lp-all]').addEventListener('click', ()=>{
-    NOVITA_GENRE_ALL_CODES.forEach(c=>{ if(!MY_LISTS.includes(c) && listCount(c) > 0) MY_LISTS.push(c); });
-    saveLists(); openListPicker();
-  });
-  el.querySelector('[data-lp-none]').addEventListener('click', ()=>{ MY_LISTS = []; ACTIVE_LIST = 'jrpg'; saveLists(); openListPicker(); });
+  const chip = c=>{ const n = listCount(c); return `<button class="list-chip${ACTIVE_LIST===c?' active':''}${n ? '' : ' lp-zero'}" data-lp="${c}">${TAG_INFO[c].icon} ${escHtml(TAG_INFO[c].label)} <span class="list-cnt">${n}</span></button>`; };
+  el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🔍 Tutti i generi</b><button class="btn" data-lp-close>Chiudi</button></div>
+    <div class="lp-sub">Tocca un genere per aprire la sua classifica. I gruppi si aprono e si chiudono; i più usati restano nella barra.</div>
+    <input class="lp-search" id="lpSearch" type="search" placeholder="Cerca un genere (es. horror, kart, puzzle)…" value="${escHtml(q)}" autocomplete="off">
+    <div class="gg-wrap">${genreAccordionHtml(chip, codes=> codes.filter(c=> listCount(c) > 0).length, q)}</div></div>`;
+  const inp = el.querySelector('#lpSearch');
+  let h = 0; inp.addEventListener('input', ()=>{ clearTimeout(h); h = setTimeout(()=>{ const v = inp.value; openListPicker(v); const n = document.getElementById('lpSearch'); if(n){ n.focus(); n.setSelectionRange(v.length, v.length); } }, 200); });
+  wireAccordion(el, !!q);
   el.querySelectorAll('[data-lp]').forEach(b=> b.addEventListener('click', ()=>{
-    const c = b.dataset.lp, i = MY_LISTS.indexOf(c);
-    if(i >= 0){ MY_LISTS.splice(i, 1); if(ACTIVE_LIST === c) ACTIVE_LIST = 'jrpg'; } else MY_LISTS.push(c);
-    saveLists(); openListPicker();
+    const c = b.dataset.lp; if(!MY_LISTS.includes(c)){ MY_LISTS.push(c); }
+    el.classList.remove('show'); setActiveList(c);
   }));
   el.classList.add('show');
 }
@@ -992,7 +1068,9 @@ function updateArrows(){
   document.querySelectorAll('thead th').forEach(th=>{
     const arrow = th.querySelector('.arrow');
     if(!arrow) return;
-    arrow.textContent = (th.dataset.key===state.sortKey) ? (state.sortDir===1 ? '▲' : '▼') : '';
+    // per il Tier la direzione 1 = dal migliore (S+) al peggiore, cioè valori decrescenti → ▼
+    const desc = th.dataset.key==='tier' ? state.sortDir===1 : state.sortDir===-1;
+    arrow.textContent = (th.dataset.key===state.sortKey) ? (desc ? '▼' : '▲') : '';
   });
 }
 
@@ -1122,21 +1200,58 @@ function openTierPicker(btn, gid){
   tierPickerEl = pop;
 }
 
+let mtQuery = '';
+const mtNorm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+// trascinamento con il dito: tieni premuto ~0,35 s su un gioco, poi trascinalo su un altro tier
+function mtEnableTouchDrag(chip, gid){
+  let timer = 0, active = false, ghost = null, sx = 0, sy = 0, lastZone = null;
+  const cleanup = ()=>{ clearTimeout(timer); if(ghost){ ghost.remove(); ghost = null; } if(lastZone) lastZone.classList.remove('dragover'); lastZone = null; chip.classList.remove('mt-dragging'); document.body.classList.remove('mt-noscroll'); active = false; };
+  chip.addEventListener('touchstart', e=>{
+    const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+    if(e.target.closest('.movebtn')) return;
+    timer = setTimeout(()=>{
+      active = true; try{ navigator.vibrate && navigator.vibrate(15); }catch(x){}
+      chip.classList.add('mt-dragging'); document.body.classList.add('mt-noscroll');
+      ghost = chip.cloneNode(true); ghost.className = 'mytier-chip mt-ghost'; ghost.style.width = chip.offsetWidth + 'px'; document.body.appendChild(ghost);
+      ghost.style.left = (sx - 30) + 'px'; ghost.style.top = (sy - 22) + 'px';
+    }, 350);
+  }, {passive:true});
+  chip.addEventListener('touchmove', e=>{
+    const t = e.touches[0];
+    if(!active){ if(Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) clearTimeout(timer); return; }
+    e.preventDefault();
+    ghost.style.left = (t.clientX - 30) + 'px'; ghost.style.top = (t.clientY - 22) + 'px';
+    // scorrimento automatico vicino ai bordi
+    if(t.clientY < 110) window.scrollBy(0, -12); else if(t.clientY > innerHeight - 120) window.scrollBy(0, 12);
+    ghost.style.visibility = 'hidden'; const el = document.elementFromPoint(t.clientX, t.clientY); ghost.style.visibility = '';
+    const z = el && el.closest('.mytier-dropzone');
+    if(z !== lastZone){ if(lastZone) lastZone.classList.remove('dragover'); if(z) z.classList.add('dragover'); lastZone = z; }
+  }, {passive:false});
+  chip.addEventListener('touchend', ()=>{ if(active && lastZone){ const tier = lastZone.dataset.tier; cleanup(); moveToTier(gid, tier); } else cleanup(); });
+  chip.addEventListener('touchcancel', cleanup);
+}
 function renderMyTier(){
   const list = applyFilters();
+  const q = mtNorm(mtQuery);
   const grouped = {};
   TIERS_LIST.forEach(t=> grouped[t]=[]);
   list.forEach(g=>{
+    if(q && !mtNorm(g.name).includes(q)) return;
     const t = effectiveTier(g);
     if(!grouped[t]) grouped[t]=[];
     grouped[t].push(g);
   });
   const wrap = document.getElementById('myTierSections');
   wrap.innerHTML = '';
+  const jump = document.getElementById('mtJump'); if(jump) jump.innerHTML = '';
+  let total = 0;
   TIERS_LIST.forEach(t=>{
-    const games = grouped[t] || [];
+    const games = grouped[t] || []; total += games.length;
+    if(q && !games.length) return;                                   // con la ricerca mostro solo i tier che contengono qualcosa
+    if(jump) jump.insertAdjacentHTML('beforeend', `<button type="button" class="mt-jbtn" data-jt="${t}"><span class="badge ${TIER_LABEL[t]}">${t}</span> ${games.length}</button>`);
     const section = document.createElement('div');
-    section.className = 'mytier-section';
+    section.className = 'mytier-section' + (games.length ? '' : ' mt-empty');
+    section.id = 'mt-sec-' + String(t).replace('+', 'plus');
     section.innerHTML = `<div class="mytier-section-head"><span class="badge big ${TIER_LABEL[t]}">${t}</span><span class="count">${games.length} giochi</span></div>`;
     const dz = document.createElement('div');
     dz.className = 'mytier-dropzone';
@@ -1149,6 +1264,7 @@ function renderMyTier(){
       chip.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', String(g.id)); });
       chip.querySelector('.nm').addEventListener('click', ()=> openModal(g));
       chip.querySelector('.movebtn').addEventListener('click', (e)=>{ e.stopPropagation(); openTierPicker(e.currentTarget, g.id); });
+      mtEnableTouchDrag(chip, g.id);
       dz.appendChild(chip);
     });
     dz.addEventListener('dragover', (e)=>{ e.preventDefault(); dz.classList.add('dragover'); });
@@ -1161,7 +1277,16 @@ function renderMyTier(){
     section.appendChild(dz);
     wrap.appendChild(section);
   });
+  if(q && !total) wrap.innerHTML = '<div class="empty" style="padding:24px;text-align:center;">Nessun gioco trovato con questo nome.</div>';
 }
+(function(){
+  const inp = document.getElementById('mtSearch'), clr = document.getElementById('mtClear'), jump = document.getElementById('mtJump');
+  if(!inp) return;
+  let h = 0;
+  inp.addEventListener('input', ()=>{ clearTimeout(h); h = setTimeout(()=>{ mtQuery = inp.value; clr.hidden = !inp.value; renderMyTier(); }, 120); });
+  clr.addEventListener('click', ()=>{ inp.value = ''; mtQuery = ''; clr.hidden = true; renderMyTier(); inp.focus(); });
+  jump.addEventListener('click', e=>{ const b = e.target.closest('[data-jt]'); if(!b) return; const el = document.getElementById('mt-sec-' + String(b.dataset.jt).replace('+', 'plus')); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); });
+})();
 document.getElementById('resetMyTierBtn').addEventListener('click', ()=>{
   MYTIER = {}; saveMyTier(); renderMyTier();
   showToast('Classifica personale azzerata');

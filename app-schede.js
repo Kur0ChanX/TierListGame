@@ -201,6 +201,33 @@ function cleanProsCons(pros, cons){
   return (p.length || c.length) ? {pros:p, cons:c} : null;
 }
 // ---- Simboli e dettagli dei giochi aggiunti: stessi campi dei giochi di base (💕 storia romantica, 🤝 legame, ✨ sorprendente, 💉 dopamina, voto nel tempo, gameplay...) ----
+// «Fa per te se…» / «Lascia stare se…»: sempre in seconda persona. Corregge le frasi in terza persona dell'AI («gli piacerà», «a chi ama…»); se non riesce, scarta.
+function fixSecondPerson(t){
+  if(t == null) return t;
+  let s = String(t).trim();
+  if(!s) return s;
+  s = s.replace(/^(?:fa per te se|lascia stare se|adatto se|consigliato se)\s*[:,\-–]?\s*/i, '');
+  s = s.replace(/^se\s+/i, '');
+  s = s.replace(/^(?:a chi|per chi|a chiunque|chi)\s+/i, '');
+  const V = {ama:'ami', cerca:'cerchi', vuole:'vuoi', apprezza:'apprezzi', preferisce:'preferisci', gradisce:'gradisci', odia:'odi', teme:'temi', sopporta:'sopporti', desidera:'desideri', ricerca:'ricerchi', predilige:'prediligi', ha:'hai', è:'sei', gioca:'giochi', 'si annoia':'ti annoi', 'si aspetta':'ti aspetti', 'non ama':'non ami', 'non cerca':'cerchi', 'non vuole':'non vuoi', 'non sopporta':'non sopporti', 'non apprezza':'non apprezzi', 'non ha':'non hai', 'non gradisce':'non gradisci', 'non regge':'non reggi', 'ha paura':'hai paura', 'ama':'ami'};
+  s = s.replace(/^(gli|le)\s+piac(?:e|erà|ciono|eranno)\s+/i, 'ami ');
+  s = s.replace(/^piacer[àa]\s+(?:a chi|se)\s+/i, '');
+  s = s.replace(/^non piacer[àa]\s+(?:a chi|se)\s+/i, 'non ');
+  const m = s.match(/^(non ama|non cerca|non vuole|non sopporta|non apprezza|non ha|non gradisce|non regge|si annoia|si aspetta|ha paura|ama|cerca|vuole|apprezza|preferisce|gradisce|odia|teme|sopporta|desidera|ricerca|predilige|ha|è|gioca)\b/i);
+  if(m){ s = V[m[1].toLowerCase()] + s.slice(m[1].length); }
+  s = s.replace(/\.+$/, '');
+  if(/\b(gli|le)\s+piac|\bil giocatore\b|\bi giocatori\b|\bl'utente\b|^Mario\b|\b(?:a|per|da|di)\s+Mario\b(?!\s+(?:Bros|Kart|Party|Golf|Tennis|Odyssey|RPG|Strikers|Maker|Galaxy|Sunshine|Wonder))/i.test(s)) return '';
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+// coerenza tra «peso storia» e «ore storia»: se la trama è minima le ore non possono essere quelle di un gioco lungo
+function labelCoherent(l, tags){
+  if(!l) return true;
+  const noStory = ['ROG','TAC','PUZ','ARCADE','SHMUP','PLAT','RACE','SPORT','RTS','TOWERDEF','FPS','BR','MOBA','FIGHT','BEAT','RHY','CITY','SAND'];
+  const genreNoStory = (tags || []).some(t=> noStory.includes(t));
+  if(l.s != null && l.s <= 1 && l.h != null && l.h > 10) return false;
+  if(l.s != null && l.s <= 2 && genreNoStory && l.h != null && l.h > 15) return false;
+  return true;
+}
 function cleanCustomEnrich(o){
   if(!o || typeof o !== 'object') return null;
   const str = (x, min)=> (typeof x === 'string' && x.trim().length >= (min || 3)) ? x.trim() : null;
@@ -216,6 +243,7 @@ function cleanCustomEnrich(o){
     agingNote: str(o.agingNote, 12), gameplayNote: str(o.gameplayNote, 12), whyLikeIt: str(o.whyLikeIt, 12),
     hoursMain: num(o.hoursMain, 1, 400), hoursCompletionist: num(o.hoursCompletionist, 1, 1500), lengthVerdict: str(o.lengthVerdict, 8), remaster: str(o.remaster, 5), language: str(o.language, 5)};
   if(Object.values(full).every(v=> v != null)) Object.assign(e, full);
+  if(Array.isArray(o.similarTo)){ const sim = o.similarTo.map(x=> String(x).trim()).filter(x=> x.length > 1 && x.length < 80).slice(0, 5); if(sim.length) e.similarTo = sim; }
   e.checked = typeof o.checked === 'string' ? o.checked : undefined;
   return (e.storyTag || e.dopamine || e.eraScore != null || e.checked) ? e : null;
 }
@@ -520,8 +548,8 @@ function labelHtml(g){
       <div class="glabel-row"><span>Ore (storia)</span><span class="v">${l.h!=null ? l.h+'h' : '—'}</span></div>
       <div class="glabel-row"><span>Italiano</span><span class="v">${l.it ? LABEL_IT[l.it] : '—'}</span></div>
     </div>
-    ${l.ok ? `<div class="glabel-ok">🟢 <b>Fa per te se</b>${escHtml(l.ok)}</div>` : ''}
-    ${l.ko ? `<div class="glabel-ko">🔴 <b>Lascia stare se</b>${escHtml(l.ko)}</div>` : ''}
+    ${(l.ok && fixSecondPerson(l.ok)) ? `<div class="glabel-ok">🟢 <b>Fa per te se</b>${escHtml(fixSecondPerson(l.ok))}</div>` : ''}
+    ${(l.ko && fixSecondPerson(l.ko)) ? `<div class="glabel-ko">🔴 <b>Lascia stare se</b>${escHtml(fixSecondPerson(l.ko))}</div>` : ''}
     ${l.play ? `<div class="glabel-play">🎯 <b>Come giocarlo oggi:</b> ${escHtml(l.play)}</div>` : ''}
     ${(l.fam && l.fam.length) || l.cost || l.demo!=null ? `<div class="glabel-stores">
       ${(l.fam||[]).map(f=>`<span class="glabel-store">${LABEL_STORE[f]||f}</span>`).join('')}
@@ -868,8 +896,57 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
 });
 
 // ---- Nuove funzioni: saga, cast, colonna sonora, consigli incrociati ----
+// ---- Saghe automatiche: raggruppa anche i giochi aggiunti e quelli non mappati, per titolo ----
+const SAGA_STOP = new Set(['the','of','a','an','and','e','il','la','lo','di','de']);
+const SAGA_ROMAN = /^(i{1,3}|iv|v|vi{0,3}|ix|x{1,3}|xi{0,3}|xiv|xv|xvi{0,3})$/;
+function sagaTokens(name){
+  let t = String(name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').split(/\s*[:–—]\s+|\s+-\s+/)[0];
+  t = t.replace(/[^a-z0-9& ]/g, ' ').replace(/&/g, ' and ').split(/\s+/).filter(w=> w && !SAGA_STOP.has(w));
+  while(t.length > 1 && (/^\d+$/.test(t[t.length-1]) || SAGA_ROMAN.test(t[t.length-1]) || /^(remake|remastered|remaster|hd|definitive|edition|reloaded|reborn|origins)$/.test(t[t.length-1]))) t.pop();
+  return t;
+}
+function sagaRoot(name){ const t = sagaTokens(name); return t.length >= 2 ? t.slice(0, 2).join(' ') : (t[0] && t[0].length >= 5 ? t[0] : null); }
+let DYN_SAGA = {}, DYN_SAGA_FOR = -1;
+function buildDynamicSagas(){
+  if(DYN_SAGA_FOR === GAMES.length) return;
+  DYN_SAGA_FOR = GAMES.length; DYN_SAGA = {};
+  const idx = {};                                                   // radice del titolo -> saga già nota
+  GAMES.forEach(g=>{ const k = SAGA_MAP[g.id]; if(!k) return; const rk = sagaRoot(g.name); if(!rk) return; (idx[rk] = idx[rk] || {})[k] = ((idx[rk] || {})[k] || 0) + 1; });
+  const loose = {};
+  GAMES.forEach(g=>{
+    if(SAGA_MAP[g.id]) return;
+    const rk = sagaRoot(g.name); if(!rk) return;
+    const known = idx[rk] && Object.entries(idx[rk]).sort((a, b)=> b[1] - a[1])[0];
+    if(known && SAGA_INFO[known[0]]){ DYN_SAGA[g.id] = known[0]; return; }
+    (loose[rk] = loose[rk] || []).push(g);
+  });
+  Object.keys(loose).forEach(rk=>{
+    const arr = loose[rk]; if(arr.length < 2) return;
+    const key = 'auto:' + rk;
+    const nm = String(arr[0].name).replace(/\([^)]*\)/g, '').split(/\s*[:–—]\s+|\s+-\s+/)[0].replace(/\s+(?:[IVX]+|\d+)$/i, '').trim();
+    SAGA_INFO[key] = {name: nm, order: 'per anno di uscita', note: 'Saga raggruppata automaticamente dal titolo. In assenza di indicazioni diverse, l\'ordine consigliato è quello di uscita.', auto: true};
+    arr.forEach(g=>{ DYN_SAGA[g.id] = key; });
+  });
+}
+function sagaKeyOf(g){ buildDynamicSagas(); return SAGA_MAP[g.id] || DYN_SAGA[g.id] || null; }
+// «Cerca capitoli mancanti»: chiede alla ricerca web i capitoli/spin-off della saga che non hai ancora
+async function sagaFindMissing(key, host){
+  const info = SAGA_INFO[key]; if(!info) return;
+  if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ in Chiedi a Claude)', 3000); return; }
+  host.innerHTML = '<div class="lp-sub">🦝 Frugu Frugu cerca gli altri capitoli…</div>';
+  const known = GAMES.filter(g=> sagaKeyOf(g) === key).map(g=> g.name);
+  const prompt = todayLine() + `Elenca i capitoli principali e gli spin-off importanti della saga «${info.name}» che NON sono in questo elenco (già presenti): ${known.join('; ')}.
+Rispondi SOLO con un array JSON (max 10 oggetti, vuoto se non manca nulla) con: name (titolo esatto), plat, year, tier (S+..F), score (0-100), tags (0-3 codici tra: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}), story (2-3 frasi), fitIf (una frase in seconda persona che completa «Fa per te se…»). Solo giochi realmente esistenti.`;
+  try{
+    const r = await askLLM(prompt, {}, {search:true, fast:true, label:'Cerco i capitoli mancanti…'});
+    const arr = dedupeNovitaCandidates(parseNovitaJson(r && r.text) || [], novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
+    host._cands = arr;
+    host.innerHTML = arr.length ? arr.map((c, i)=> `<div class="saga-miss"><span><b>${escHtml(c.name)}</b> <small>${escHtml(c.year || '')} · ${escHtml(c.plat || '')}</small></span><button class="btn" data-add="${i}" title="Aggiungi con scheda completa">♥ Aggiungi</button></div>`).join('') : '<div class="lp-sub">Nessun capitolo mancante trovato ✅</div>';
+    host.querySelectorAll('[data-add]').forEach(b=> b.addEventListener('click', ()=>{ const c = host._cands[+b.dataset.add]; try{ askToolAddCustomGame(c, 'Saghe'); b.closest('.saga-miss').remove(); }catch(e){ showToast(String(e && e.message || 'Non aggiunto').slice(0, 120), 3000); } }));
+  }catch(e){ host.innerHTML = '<div class="lp-sub">Ricerca non riuscita: riprova tra poco.</div>'; }
+}
 function sagaHtml(g){
-  const key = SAGA_MAP[g.id];
+  const key = sagaKeyOf(g);
   if(!key) return '';
   const info = SAGA_INFO[key];
   if(!info) return '';
@@ -887,14 +964,36 @@ function soundtrackHtml(g){
   return `<div class="modal-section-title">🎼 Colonna sonora</div><div class="modal-note"><strong>Compositore:</strong> ${st.composer}</div><ul class="soundtrack-tracks">${tracks}</ul>`;
 }
 function findSimilarGames(g, n){
-  const scored = GAMES.filter(x=>x.id!==g.id).map(x=>{
-    let score = 0;
-    const sharedTags = x.tags.filter(t=> g.tags.includes(t)).length;
-    score += sharedTags;
-    if(g.enrich && x.enrich && g.enrich.storyTag && x.enrich.storyTag===g.enrich.storyTag) score += 2;
-    if(x.tier===g.tier) score += 0.5;
-    return {x, score};
-  }).filter(o=>o.score>0);
+  // Affinità reale, non solo «stesso tag»: genere principale, tag condivisi, saga, stessa epoca, stessa struttura (ritmo, peso storia, difficoltà),
+  // e nessun genere incompatibile (mai horror per chi guarda un action indie, mai sport per un JRPG…). Meglio pochi consigli buoni che quattro sbagliati.
+  const EXCL = [['HOR','SURV'], ['SPORT','RACE','SIMVEH'], ['FIGHT'], ['PARTY','TRIVIA','RHY'], ['FPS','TPS','BR'], ['CITY','ECOSIM','SIMLIFE','LIFE'], ['MECH']];
+  const gt = new Set(g.tags || []);
+  const gYear = g.ysort || (parseInt(String(g.year || '').slice(0,4), 10) || null);
+  const gs = new Set((g.plat || '').toLowerCase().split(/[\/,]/).map(x=> x.trim()).filter(Boolean));
+  const saga = sagaKeyOf(g);
+  const hint = new Set(((g.enrich && g.enrich.similarTo) || []).map(x=> String(x).toLowerCase().replace(/[^a-z0-9]/g, '')));
+  const scored = GAMES.filter(x=> x.id !== g.id).map(x=>{
+    const xt = new Set(x.tags || []);
+    for(const grp of EXCL){ const a = grp.some(t=> gt.has(t)), b = grp.some(t=> xt.has(t)); if(a !== b) return {x, score: -1}; }
+    const shared = [...xt].filter(t=> gt.has(t));
+    const uni = new Set([...gt, ...xt]).size || 1;
+    let score = shared.length / uni * 5;
+    const primary = (g.tags || [])[0] && (g.tags || [])[0] === (x.tags || [])[0];
+    if(primary) score += 2.5;
+    if(saga && sagaKeyOf(x) === saga) score += 4;
+    const xYear = x.ysort || (parseInt(String(x.year || '').slice(0,4), 10) || null);
+    if(gYear && xYear){ const d = Math.abs(gYear - xYear); score += d <= 4 ? 1 : d > 15 ? -1 : 0; }
+    const ge = g.enrich || {}, xe = x.enrich || {}, gl = g.label || {}, xl = x.label || {};
+    if(ge.storyTag && ge.storyTag === xe.storyTag) score += 1.5;
+    if(ge.dopamine && xe.dopamine) score += 1;
+    if(gl.s && xl.s && Math.abs(gl.s - xl.s) <= 1) score += 1;
+    if(gl.p && xl.p && gl.p === xl.p) score += 0.5;
+    if(gl.d && xl.d && Math.abs(gl.d - xl.d) <= 1) score += 0.5;
+    if(gs.size && (x.plat || '').toLowerCase().split(/[\/,]/).some(p=> gs.has(p.trim()))) score += 0.5;
+    if(hint.has(String(x.name).toLowerCase().replace(/[^a-z0-9]/g, ''))) score += 6;      // consigliato da fonti (ricerca web) per questo gioco
+    const ok = primary || shared.length >= 2 || hint.size && score >= 6;
+    return {x, score: ok ? score : -1};
+  }).filter(o=> o.score >= 4);
   scored.sort((a,b)=> b.score-a.score || b.x.score-a.x.score);
   return scored.slice(0,n).map(o=>o.x);
 }
@@ -911,7 +1010,7 @@ function renderSagaView(){
   const list = applyFilters();
   const bySaga = {};
   list.forEach(g=>{
-    const key = SAGA_MAP[g.id];
+    const key = sagaKeyOf(g);
     if(!key) return;
     if(!bySaga[key]) bySaga[key]=[];
     bySaga[key].push(g);
@@ -929,11 +1028,14 @@ function renderSagaView(){
         <span class="saga-section-name">${info.name}</span>
         <span class="badge outline">${games.length} giochi</span>
         <span class="badge outline">${info.order}</span>
+        <button class="btn saga-miss-btn" data-saga="${key}" title="Cerca online i capitoli che non hai">🔎 Capitoli mancanti</button>
       </div>
       <div class="saga-section-note">${info.note}</div>
       <div class="saga-games-grid">${games.map(g=>`<button class="saga-game-chip" data-id="${g.id}"><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>${g.name}${g.year?` (${g.year})`:''}</button>`).join('')}</div>
+      <div class="saga-missing" data-host="${key}"></div>
     </div>`;
   }).join('');
+  panel.querySelectorAll('.saga-miss-btn').forEach(b=> b.addEventListener('click', ()=>{ const host = panel.querySelector(`.saga-missing[data-host="${b.dataset.saga}"]`); if(host) sagaFindMissing(b.dataset.saga, host); }));
   panel.querySelectorAll('.saga-game-chip').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const gg = GAMES.find(x=>x.id===parseInt(btn.dataset.id,10));

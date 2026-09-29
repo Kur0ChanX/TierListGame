@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raccoon Tier — Tier List RPG & JRPG di Mario</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="build" content="v120">
+<meta name="build" content="v121">
 <meta name="theme-color" content="#161221">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -211,9 +211,11 @@
 
   <div id="myTierWrap" style="display:none;">
     <div class="mytier-toolbar">
-      <span class="mytier-hint">Trascina i giochi tra i tier per creare la tua classifica personale (desktop), oppure tocca ⇅ su un gioco per spostarlo (mobile). Salvata solo su questo dispositivo.</span>
+      <span class="mytier-hint">Trascina i giochi tra i tier (desktop), tieni premuto e trascina (telefono) oppure tocca ⇅ per spostarli. Salvata solo su questo dispositivo.</span>
       <button class="btn" id="resetMyTierBtn">↺ Reset alla classifica ufficiale</button>
     </div>
+    <div class="mt-search"><input id="mtSearch" type="search" placeholder="Cerca un gioco nella tua tier list…" autocomplete="off" enterkeyhint="search"><button type="button" id="mtClear" class="btn" hidden aria-label="Cancella">✕</button></div>
+    <div class="mt-jump" id="mtJump"></div>
     <div id="myTierSections"></div>
   </div>
 
@@ -254,6 +256,9 @@
         <label>Chiave API Gemini (Google AI Studio)
           <input type="password" id="geminiKeyInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave">
         </label>
+        <label>Modello Gemini (facoltativo)
+          <input type="text" id="geminiModelInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="vuoto = gemini-flash-latest (sempre l'ultimo Flash)">
+        </label>
         <div class="ask-engine-actions"><button class="btn primary" id="geminiSaveBtn">Salva e verifica</button><button class="btn" id="geminiClearBtn">Rimuovi</button></div>
         <div class="ask-engine-status" id="geminiStatus">La chiave resta solo su questo dispositivo, nel browser.</div>
         <hr>
@@ -272,6 +277,7 @@
     <div class="ask-inputrow">
       <label class="ask-photo-btn" id="askPhotoBtn" title="Allega una foto dalla galleria (es. copertina in negozio)">📷<input type="file" accept="image/*" id="askPhotoInput"></label>
       <label class="ask-photo-btn" id="askCameraBtn" title="Scatta una foto adesso con la fotocamera">📸<input type="file" accept="image/*" capture="environment" id="askCameraInput"></label>
+      <button class="ask-photo-btn" id="askMicBtn" type="button" title="Detta a voce" aria-label="Detta a voce">🎤</button>
       <textarea id="askInput" placeholder="Es: dammi 3 JRPG tattici come Final Fantasy Tactics" rows="1"></textarea>
       <button class="btn primary" id="askSendBtn">➤</button>
     </div>
