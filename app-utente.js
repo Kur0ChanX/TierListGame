@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v132', date:'2026-10-05', items:[
+    'Il simbolo Update+ ora è un piccolo logo dorato con un «+»: compare nella lista, nella scheda e anche nella griglia delle copertine. Sui giochi con voto verificato e Update+ completato la V verde diventa una V dorata.',
+    'Le locandine trovate (in automatico o con «Aggiorna locandina») restano salvate nell\'app e, con la sincronizzazione attiva, si ritrovano su ogni tuo dispositivo.'
+  ]},
   {version:'v131', date:'2026-10-04', items:[
     'Update+: all\'avvio, con calma e in silenzio, l\'app aggiorna da tutte le fonti (nell\'ordine di priorità) le info e la locandina dei giochi, cominciando da quelli con i dati meno attendibili. Ne fa una quarantina per avvio e poi si ferma; ogni gioco viene aggiornato una volta sola. Puoi spegnerlo da ✨ → Controllo dati.',
     'Simbolo dorato (scudo con fulmine) sui giochi con Update+ completato (serve che almeno 2 fonti abbiano risposto); simbolo viola (scudo con lente) sui giochi che hai controllato tu con «Aggiorna info». Toccandolo vedi data e fonti.',

@@ -725,3 +725,6 @@ td.storyicon{width:44px !important; text-align:center; white-space:nowrap; paddi
 .fresh-ic svg.gi{width:19px !important; height:19px !important; display:inline-block !important; vertical-align:-4px; margin-right:3px}
 .fresh-badge svg.gi{width:18px !important; height:18px !important; vertical-align:-4px; margin-right:4px}
 .fresh-ic{cursor:pointer}
+/* v132: logo dorato «+» (Update+) piccolo anche nella griglia; V dorata */
+.x-cover{position:relative} .x-plus{position:absolute; left:5px; top:5px; z-index:2; line-height:0} .x-cover:has(.x-plus) .x-fav{left:32px} .x-plus .fresh-ic{margin:0} .x-plus svg.gi{width:20px !important; height:20px !important; margin:0 !important}
+td.method svg.gi{width:19px !important; height:19px !important; display:inline-block !important; margin:0 !important; vertical-align:middle}

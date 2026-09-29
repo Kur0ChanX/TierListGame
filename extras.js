@@ -42,11 +42,11 @@
     const ph = `<div class="x-ph" style="--tc:${TIER_COL[g.tier] || '#7c5cff'}"><span>${esc(g.name)}</span></div>`;
     const badge = `<span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>`;
     if(MODE === 'grid'){
-      return `<div class="x-card" data-id="${g.id}"><div class="x-cover">${ph}${img}${fav}<div class="x-corner">${badge}<b>${g.score}</b></div></div><div class="x-name">${esc(g.name)}</div></div>`;
+      return `<div class="x-card" data-id="${g.id}"><div class="x-cover">${ph}${img}${fav}${(typeof freshIcon === 'function' && freshIcon(g)) ? '<span class="x-plus">' + freshIcon(g) + '</span>' : ''}<div class="x-corner">${badge}<b>${g.score}</b></div></div><div class="x-name">${esc(g.name)}</div></div>`;
     }
     const tags = (g.tags || []).slice(0, 2).map(t=> TAG_INFO[t] ? `<span class="x-tag">${TAG_INFO[t].icon} ${esc(TAG_INFO[t].label)}</span>` : '').join('');
     const stl = st && STATUS_INFO[st] ? `<span class="x-st">${esc(STATUS_INFO[st].label)}</span>` : '';
-    return `<div class="x-row" data-id="${g.id}"><div class="x-thumb">${ph}${img}</div><div class="x-info"><div class="x-name">${fav}${esc(g.name)}</div><div class="x-meta">${esc(g.plat)} · ${esc(g.year || '')}${hoursOf(g) ? ' · ' + hoursOf(g) + 'h' : ''}</div><div class="x-tags">${tags}${stl}</div></div><div class="x-score">${badge}<b>${g.score}</b></div></div>`;
+    return `<div class="x-row" data-id="${g.id}"><div class="x-thumb">${ph}${img}</div><div class="x-info"><div class="x-name">${fav}${typeof freshIcon === 'function' ? freshIcon(g) : ''}${esc(g.name)}</div><div class="x-meta">${esc(g.plat)} · ${esc(g.year || '')}${hoursOf(g) ? ' · ' + hoursOf(g) + 'h' : ''}</div><div class="x-tags">${tags}${stl}</div></div><div class="x-score">${badge}<b>${g.score}</b></div></div>`;
   }
   function renderAlt(){
     const my = ++altToken;
