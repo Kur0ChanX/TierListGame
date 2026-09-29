@@ -157,13 +157,13 @@
     if(a < 0 || b < a) return null;
     try{ return JSON.parse(s.slice(a, b + 1)); }catch(e){ return null; }
   }
-  async function textChanges(g, src){
+  async function textChanges(g, src, silent){
     if(!llmAvailable() || !src.wiki || !src.wiki.text) return {changes:[], note: !src.wiki ? 'Nessuna pagina Wikipedia trovata: testi non riscritti.' : 'Nessun motore AI configurato: testi non riscritti.'};
     const prompt = todayLine() + `Aggiorna la scheda del videogioco "${g.name}" (${g.year}, ${g.plat}) usando SOLO le fonti qui sotto. Se una informazione non è nelle fonti scrivi null: non inventare nulla. Niente espressioni come "recente" o "uscito da poco": usa gli anni.
 Rispondi SOLO con un oggetto JSON valido con questi campi (in italiano): story (1-2 frasi di trama senza spoiler pesanti), pros (3-4 punti di forza concreti, emersi dalla critica), cons (2-3 difetti concreti, emersi dalla critica), agingNote (1-2 frasi su come regge oggi, con gli anni), whyLikeIt (1 frase: a chi piace).
 FONTE — Wikipedia (${src.wiki.title}):
 ${digest(src.wiki.text)}`;
-    const r = await askLLM(prompt, {}, {fast:true, label:'Riscrivo la scheda dalle fonti…'});
+    const r = await askLLM(prompt, {}, {fast:true, silent: !!silent, label:'Riscrivo la scheda dalle fonti…'});
     const j = parseJson(r && r.text);
     if(!j) return {changes:[], note:'L\'AI non ha restituito un risultato leggibile: riprova.'};
     const arr = a=> Array.isArray(a) ? a.map(x=> String(x).trim()).filter(Boolean).slice(0, 5) : [];
@@ -177,12 +177,12 @@ ${digest(src.wiki.text)}`;
   }
 
   // ricerca approfondita (Gemini con ricerca Google): ore, "a colpo d'occhio", gameplay, lingua, edizioni. Ogni dato deve avere una fonte, altrimenti null.
-  async function deepChanges(g){
+  async function deepChanges(g, silent){
     if(!geminiKey()) return {changes:[], sources:[], note:'Ricerca approfondita (ore, difficoltà, lingua, gameplay) non fatta: serve la chiave Gemini.'};
     const Y = new Date().getFullYear();
     const prompt = todayLine() + `Fai le ricerche includendo gli anni ${Y} e ${Y - 1} nelle query. Per le informazioni che cambiano nel tempo (piattaforme, edizioni, lingue, prezzi, abbonamenti, patch, ore dopo gli aggiornamenti) usa SOLO pagine datate ${Y - 2} o dopo e ignora quelle senza data o più vecchie; per le informazioni storiche (trama, voto alla prima uscita) va bene qualsiasi anno. Se per un dato non trovi fonti aggiornate scrivi null. Cerca online informazioni ATTENDIBILI sul videogioco "${g.name}" (${g.year}, ${g.plat}) consultando fonti come Metacritic, OpenCritic, HowLongToBeat, Wikipedia, PCGamingWiki, Steam (lingue: interfaccia, audio, sottotitoli), PSXDataCenter (edizioni PAL dei giochi PS1/PS2), RPGamer, RPGFan, gli store ufficiali (Steam, PlayStation Store, Nintendo eShop) e i siti dei publisher. Compila SOLO ciò che trovi in fonti affidabili; se non lo trovi scrivi null, NON stimare e NON inventare.
 Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia principale, numero), hoursCompletionist (ore completista, numero), difficulty (1-5), grind (1-5, quanto grinding serve), storyWeight (1-5, peso della storia), pace ("L" lento, "M" medio, "V" veloce), italian ("D" testi E doppiaggio italiani ufficiali, "S" solo testi/sottotitoli italiani ufficiali, "F" solo fan-translation, "N" nessun italiano ufficiale, oppure null se NON trovi una fonte esplicita: NON rispondere "N" per mancanza di informazioni; per i giochi usciti prima del 2010 controlla l'edizione europea/italiana (PAL) originale del disco o della cartuccia e non solo gli store attuali, perché molti giochi PS1/PS2/Wii/DS uscirono localizzati in italiano anche se la versione americana era solo in inglese), language (una frase in italiano su lingue di testi E doppiaggio nell'edizione italiana/europea e nelle riedizioni, citando ciò che dice la fonte; null se non lo trovi), remaster (una frase in italiano su edizioni, remaster o remake esistenti), gameplayScore (0-10, in base alla critica), gameplayNote (una frase in italiano sul gameplay), fitIf (una frase: a chi piace), avoidIf (una frase: chi dovrebbe evitarlo; NON citare la lingua italiana se non hai una fonte esplicita), criticScore (Metascore o OpenCritic, numero 0-100, oppure null), graphicsToday (1-2 frasi in italiano su come regge oggi la grafica e la parte tecnica rispetto agli standard del ${Y}, senza dire "recente"), asOf (l'anno della fonte PIÙ VECCHIA che hai usato per lingua, edizioni, piattaforme e ore).`;
-    const r = await askLLM(prompt, {}, {search:true, forceGemini:true, label:'Ricerca approfondita sul web…'});
+    const r = await askLLM(prompt, {}, {search:true, forceGemini:true, silent: !!silent, label:'Ricerca approfondita sul web…'});
     const j = parseJson(r && r.text);
     const srcs = ((r && r.sources) || []).filter(s=> s.title).slice(0, 6);
     if(!j) return {changes:[], sources: srcs, note:'La ricerca approfondita non ha dato un risultato leggibile.'};
@@ -278,72 +278,112 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
     }catch(e){}
   };
 
-  // ----- controllo passivo del database: un gioco alla volta, in silenzio, SOLO fonti aperte (niente AI, niente token) -----
-  // Non cambia mai nulla da solo: raccoglie le proposte e le mostra nel menu ✨ → "Controllo dati" per la tua conferma.
-  const AU = 'jrpg_audit', AU_SKIP = 'jrpg_audit_skip', AU_ON = 'jrpg_autoaudit', AU_DAYS = 90;
+  // ----- controllo passivo del database: un gioco alla volta, in silenzio, dall'apertura dell'app -----
+  // Per ogni gioco: fonti aperte (Wikipedia, Wikidata, it.wikipedia) + Gemini (riscrittura dalle fonti e ricerca approfondita con fonti).
+  // Non cambia MAI nulla da solo: le proposte vanno in ✨ → Controllo dati, dove vedi prima/dopo e dai tu l'ok (e puoi annullare).
+  const AU = 'jrpg_audit', AU_SKIP = 'jrpg_audit_skip', AU_ON = 'jrpg_autoaudit', AU_CAP = 'jrpg_audit_cap', AU_DAY = 'jrpg_audit_day', AU_UNDO = 'jrpg_audit_undo', AU_DAYS = 90;
   const auLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(AU) || '{}') || {}; }catch(e){ return {}; } };
   const auSave = o=>{ try{ localStorage.setItem(AU, JSON.stringify(o)); }catch(e){} };
   const skLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(AU_SKIP) || '{}') || {}; }catch(e){ return {}; } };
   const auKey = (id, c)=> id + '|' + c.id + '|' + String(c.to).slice(0, 60);
+  const auCap = ()=> parseInt(localStorage.getItem(AU_CAP), 10) || 200;
+  const today = ()=> new Date().toISOString().slice(0, 10);
+  const dayLoad = ()=>{ try{ const d = JSON.parse(localStorage.getItem(AU_DAY) || '{}'); return d.d === today() ? d : {d: today(), n: 0}; }catch(e){ return {d: today(), n: 0}; } };
+  const useAI = ()=>{ try{ return !!geminiKey(); }catch(e){ return false; } };
   window.auditOn = ()=> localStorage.getItem(AU_ON) !== 'off';
-  window.auditSetOn = on=>{ try{ localStorage.setItem(AU_ON, on ? 'on' : 'off'); }catch(e){} if(on) auSchedule(20000); };
+  window.auditSetOn = on=>{ try{ localStorage.setItem(AU_ON, on ? 'on' : 'off'); }catch(e){} if(on) auSchedule(3000); };
   window.auditStats = function(){
     const a = auLoad(), ids = GAMES.map(g=> g.id), done = ids.filter(id=> a[id]).length;
     const props = ids.filter(id=> a[id] && a[id].ch && a[id].ch.length).length;
-    return {done, total: ids.length, props};
+    return {done, total: ids.length, props, today: dayLoad().n, cap: auCap()};
   };
-  let auDelay = 25000, auTimer = 0, auBusy = false;
+  let auDelay = 40000, auTimer = 0, auBusy = false, auPause = '';
   function auNext(){
-    const a = auLoad(), now = Date.now(), lim = AU_DAYS * 864e5;
+    const a = auLoad(), now = Date.now(), lim = AU_DAYS * 864e5, ai = useAI();
     let best = null, bt = Infinity;
-    GAMES.forEach(g=>{ const r = a[g.id]; const t = r ? new Date(r.t).getTime() : 0; if(r && now - t < lim) return; if(t < bt){ bt = t; best = g; } });
+    GAMES.forEach(g=>{ const r = a[g.id]; const t = r ? new Date(r.t).getTime() : 0;
+      if(r && now - t < lim && (r.deep || !ai)) return;          // già controllato a fondo (o senza AI disponibile: non insisto)
+      if(t < bt){ bt = t; best = g; } });
     return best;
   }
   function auSchedule(ms){ clearTimeout(auTimer); auTimer = setTimeout(auStep, ms == null ? auDelay : ms); }
   async function auStep(){
     if(!auditOn() || auBusy) return;
-    const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.modal-backdrop.show, .dup-backdrop.show');
-    if(!calm){ return auSchedule(60000); }
-    const g = auNext(); if(!g) return auSchedule(6 * 3600e3);   // tutto controllato di recente: ricontrollo tra qualche ora
+    const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.modal-backdrop.show, .dup-backdrop.show, .rt-loader.show');
+    if(!calm){ return auSchedule(30000); }
+    const ai = useAI(), day = dayLoad();
+    if(ai && day.n >= auCap()){ auPause = 'Limite giornaliero raggiunto (' + day.n + ' giochi): riprendo domani.'; return auSchedule(30 * 60e3); }
+    auPause = '';
+    const g = auNext(); if(!g) return auSchedule(6 * 3600e3);
     auBusy = true;
     try{
       const [wiki, wd, itw] = await Promise.allSettled([wikiPage(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name)]);
       const ok = x=> x.status === 'fulfilled' ? x.value : null;
       const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw)};
-      if(wiki.status === 'rejected' && wd.status === 'rejected'){ auDelay = Math.min(auDelay * 2, 15 * 60e3); }   // fonti irraggiungibili / limite di richieste: rallento, non insisto
-      else {
-        auDelay = 25000;
-        const sk = skLoad();
-        const ch = factChanges(g, src).filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch}));
-        const a = auLoad(); a[g.id] = {t: new Date().toISOString(), ch}; auSave(a);
-        if(ch.length){ try{ window.dispatchEvent(new Event('audit-update')); }catch(e){} }
+      if(wiki.status === 'rejected' && wd.status === 'rejected') throw new Error('fonti');
+      let ch = factChanges(g, src), srcs = [], deep = false;
+      if(ai){
+        // se l'AI fallisce (limite di richieste, rete) NON segno il gioco come controllato: riproverò più tardi
+        const t = await textChanges(g, src, true).catch(e=>{ throw e; });
+        const d = await deepChanges(g, true);
+        if(d.changes.some(c=> c.id === 'aging')) t.changes = t.changes.filter(c=> c.id !== 'aging');
+        ch = ch.concat(t.changes, d.changes); srcs = (d.sources || []).map(x=>({title: x.title, uri: x.uri})); deep = true;
+        if(t.note && /leggibile/.test(t.note) && d.note && /leggibile/.test(d.note)) throw new Error('risposta');
+        day.n++; try{ localStorage.setItem(AU_DAY, JSON.stringify(day)); }catch(e){}
       }
-    }catch(e){ auDelay = Math.min(auDelay * 2, 15 * 60e3); }
+      auDelay = ai ? 40000 : 20000;
+      const sk = skLoad();
+      const keep = ch.filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch, off: !!c.off, warn: !!c.warn}));
+      const a = auLoad(); a[g.id] = {t: new Date().toISOString(), ch: keep, deep, src: srcs.slice(0, 5)}; auSave(a);
+      if(keep.length){ try{ window.dispatchEvent(new Event('audit-update')); }catch(e){} }
+    }catch(e){
+      auDelay = Math.min(auDelay * 2, 30 * 60e3);
+      auPause = 'Fonti o AI momentaneamente non disponibili: riprovo tra ' + Math.round(auDelay / 60000 * 10) / 10 + ' min.';
+    }
     auBusy = false; auSchedule();
   }
-  window.openAuditPanel = function(){
+  const fmtD = iso=>{ try{ return new Date(iso).toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'}); }catch(e){ return ''; } };
+  window.openAuditPanel = function(tab){
+    tab = tab || 'todo';
     const el = panel(), a = auLoad(), st = auditStats();
-    const list = GAMES.filter(g=> a[g.id] && a[g.id].ch && a[g.id].ch.length);
+    const todo = GAMES.filter(g=> a[g.id] && a[g.id].ch && a[g.id].ch.length);
+    const clean = GAMES.filter(g=> a[g.id] && !(a[g.id].ch && a[g.id].ch.length)).sort((x, y)=> a[y.id].t.localeCompare(a[x.id].t));
+    let undo = {}; try{ undo = JSON.parse(localStorage.getItem(AU_UNDO) || '{}') || {}; }catch(e){}
     const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔎 Controllo dati</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
-    const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · <b>${list.length}</b> con proposte. Va avanti da solo, piano piano, usando solo Wikipedia e Wikidata (nessun costo di AI). <b>Non cambia nulla senza il tuo ok.</b></div>
-      <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>`;
-    el.innerHTML = shell(head + (list.length ? `<div class="gc-rows">${list.map(g=> `<div class="gc-row" data-g="${g.id}"><span><b>${escHtml(g.name)}</b>${a[g.id].ch.map((c, i)=> `<br><label><input type="checkbox" data-g="${g.id}" data-i="${i}" ${/⚠️/.test(c.label + c.to) ? '' : 'checked'}> <b>${escHtml(c.label)}</b>: <small>${escHtml(c.from || '—')}</small> → ${escHtml(c.to)}</label>`).join('')}<br><button class="btn" data-ap="${g.id}">Applica i selezionati</button> <button class="btn" data-ig="${g.id}">Ignora</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Nessuna correzione da proporre finora ✅</div>'));
+    const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · oggi ${st.today}/${st.cap}${useAI() ? '' : ' · <b>senza chiave Gemini controllo solo voto, anno, generi e lingua</b>'}. ${auPause ? '<br>⏸️ ' + escHtml(auPause) : ''}<br><b>Non cambia nulla senza il tuo ok.</b> Le proposte vengono da fonti aperte e da Gemini con ricerca web; controllale prima di applicarle.</div>
+      <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>
+      <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
+    let body;
+    if(tab === 'todo') body = todo.length ? `<div class="gc-rows">${todo.map(g=> `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>controllato il ${fmtD(a[g.id].t)}</small>${a[g.id].ch.map((c, i)=> `<br><label><input type="checkbox" data-g="${g.id}" data-i="${i}" ${(c.off || c.warn) ? '' : 'checked'}> <b>${escHtml(c.label)}</b><br><small>Prima: ${escHtml(c.from || '—')}</small><br>Dopo: ${escHtml(c.to)}</label>`).join('')}${(a[g.id].src || []).length ? '<br><small>Fonti: ' + a[g.id].src.map(x=> `<a href="${escHtml(x.uri || '#')}" target="_blank" rel="noopener">${escHtml(x.title)}</a>`).join(' · ') + '</small>' : ''}<br><button class="btn primary" data-ap="${g.id}">Applica i selezionati</button> <button class="btn" data-ig="${g.id}">Ignora tutto</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Niente da approvare per ora ✅</div>';
+    else if(tab === 'done') body = Object.keys(undo).length ? `<div class="gc-rows">${Object.keys(undo).map(id=>{ const g = GAMES.find(x=> x.id == id); return g ? `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>applicato il ${fmtD(undo[id].t)}</small> <button class="btn" data-un="${id}">↩️ Annulla</button></span></div>` : ''; }).join('')}</div>` : '<div class="lp-sub">Nessuna modifica applicata da qui.</div>';
+    else body = clean.length ? `<div class="gc-rows">${clean.slice(0, 150).map(g=> `<div class="gc-row"><span>✅ <b>${escHtml(g.name)}</b> <small>${fmtD(a[g.id].t)}${a[g.id].deep ? ' · fonti + AI' : ' · solo fonti aperte'}</small></span></div>`).join('')}</div>${clean.length > 150 ? '<div class="lp-sub">…e altri ' + (clean.length - 150) + '</div>' : ''}` : '<div class="lp-sub">Nessun gioco controllato senza modifiche, per ora.</div>';
+    el.innerHTML = shell(head + body);
     el.classList.add('show');
     el.querySelector('#auOn').addEventListener('change', e=> auditSetOn(e.target.checked));
+    el.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click', ()=> openAuditPanel(b.dataset.tab)));
+    el.querySelector('#auReset').addEventListener('click', ()=>{ if(confirm('Cancellare lo storico dei controlli e ricominciare da capo? (le correzioni già applicate restano)')){ auSave({}); openAuditPanel(tab); } });
     el.querySelectorAll('[data-ap]').forEach(b=> b.addEventListener('click', async ()=>{
       const g = GAMES.find(x=> x.id == b.dataset.ap), r = auLoad(), rec = r[g.id]; if(!rec) return;
       const chosen = [...el.querySelectorAll(`input[data-g="${g.id}"]:checked`)].map(cb=> rec.ch[+cb.dataset.i]);
-      const rest = rec.ch.filter(c=> !chosen.includes(c));
-      if(chosen.length){ await applyPatch(g, mergePatch(chosen)); rec.ch = rest; auSave(r); showToast('✅ Scheda aggiornata: ' + g.name, 2500); }
-      openAuditPanel();
+      if(!chosen.length){ showToast('Seleziona almeno una modifica', 2000); return; }
+      try{ const u = JSON.parse(localStorage.getItem(AU_UNDO) || '{}'); if(!g.custom){ u[g.id] = {t: new Date().toISOString(), prev: loadOv()[g.id] || null}; localStorage.setItem(AU_UNDO, JSON.stringify(u)); } }catch(e){}
+      await applyPatch(g, mergePatch(chosen)); rec.ch = rec.ch.filter(c=> !chosen.includes(c)); auSave(r);
+      el.classList.remove('show'); showToast('✅ Applicato a ' + g.name + ' — controlla la scheda' + (g.custom ? '' : ' (↩️ annullabile da Controllo dati)'), 4000);
+      try{ openModal(GAMES.find(x=> x.id === g.id) || g); }catch(e){}
     }));
+    el.querySelectorAll('[data-un]').forEach(b=> b.addEventListener('click', ()=>{ if(confirm('Annullare la modifica e tornare ai dati di prima?')) auditUndo(b.dataset.un); }));
     el.querySelectorAll('[data-ig]').forEach(b=> b.addEventListener('click', ()=>{
       const id = b.dataset.ig, r = auLoad(), rec = r[id]; if(!rec) return;
       const sk = skLoad(); rec.ch.forEach(c=>{ sk[auKey(id, c)] = 1; }); try{ localStorage.setItem(AU_SKIP, JSON.stringify(sk)); }catch(e){}
-      rec.ch = []; auSave(r); openAuditPanel();
+      rec.ch = []; auSave(r); openAuditPanel(tab);
     }));
   };
-  // parte dopo l'avvio, senza disturbare: prima attesa lunga
-  setTimeout(()=> auSchedule(45000), 30000);
+  window.auditUndo = function(id){
+    try{ const u = JSON.parse(localStorage.getItem(AU_UNDO) || '{}'); const e = u[id]; if(!e) return false;
+      const ov = loadOv(); if(e.prev) ov[id] = e.prev; else delete ov[id]; saveOv(ov); delete u[id]; localStorage.setItem(AU_UNDO, JSON.stringify(u));
+      location.reload(); return true; }catch(err){ return false; }
+  };
+  // parte subito dopo l'avvio (poche secondi, quando l'app è già disegnata)
+  setTimeout(()=> auSchedule(4000), 3000);
   try{ applyGameOverrides(); renderListBar(); if(state.view === 'list') render(); }catch(e){}
 })();
