@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v94', date:'2026-09-29', items:[
+    'Novità: le proposte che sono già nel tuo database (aggiunte dopo il caricamento, da un altro dispositivo o con un nome leggermente diverso, es. "Disco Elysium" / "Disco Elysium - The Final Cut") vengono saltate e non compaiono più come "Non nel tuo database". Il riquadro verde "Aggiunto alla tua libreria" è più in alto.'
+  ]},
   {version:'v93', date:'2026-09-29', items:[
     'Apertura molto più veloce: la classifica disegna 80 righe subito e le altre man mano che scorri (prima le disegnava tutte 753). Nessun dato o funzione cambiato.'
   ]},
