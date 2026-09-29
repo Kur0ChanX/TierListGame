@@ -87,17 +87,18 @@ function coverHtml(g){
   const hint = !canUrl
     ? `<div class="cover-hint">Il salvataggio della copertina non è disponibile qui: apri questa pagina restando connesso al tuo account Claude (non da un link "pubblico" o da un altro browser senza accesso).</div>`
     : `<div class="cover-hint">${canUpload ? '<b>Consigliato:</b> usa "Carica dal telefono" o "Scatta foto" qui sopra — funziona sempre, anche se il tuo telefono non riesce a caricare immagini da internet.<br>' : ''}In alternativa, incolla un link diretto a un\'immagine qui sotto (su molti telefoni i link a foto esterne non si aprono: se il link non funziona, usa il caricamento qui sopra invece).</div>`;
+  // strumenti copertina tutti su una riga; link e spiegazioni in un riquadro richiudibile (scheda più ordinata)
   return `<div class="cover-block" id="coverBlock">${media}
-    ${uploadRow}
-    <div class="cover-tools">
+    <div class="cover-tools">${uploadRow ? uploadRow.replace(/^<div class="cover-tools">|<\/div>$/g, '') : ''}
       <a class="cover-pill" href="${coverSearchUrl(g)}" target="_blank" rel="noopener" title="Cerca la copertina su internet">${ICON_GLOBE}<span>Cerca copertina</span></a>
       <button class="cover-pill" type="button" data-cover-diag aria-expanded="${coverDiagOpen?'true':'false'}" title="Mostra la diagnostica">🩺</button>
     </div>
+    <details class="cover-more"${coverBusy || !canUrl ? ' open' : ''}><summary>🔗 Usa un link o leggi i consigli</summary>
     ${canUrl ? `<div class="cover-urlrow">
       <input type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui il link dell'immagine (https://...)" value="${escHtml(currentUrlValue)}" data-cover-url-input ${coverBusy?'disabled':''}>
       <button class="btn primary" type="button" data-cover-url-save ${coverBusy?'disabled':''}>${coverBusy?'…':'Salva'}</button>
     </div>` : ''}
-    ${hint}${coverDiagHtml()}</div>`;
+    ${hint}</details>${coverDiagHtml()}</div>`;
 }
 function wireCover(g){
   const block = document.getElementById('coverBlock'); if(!block) return;

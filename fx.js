@@ -70,7 +70,9 @@
       const vis = Array.from(w.children).filter(x=> x.offsetHeight > 0 && getComputedStyle(x).position !== 'fixed');
       const last = vis[vis.length - 1];
       const bottom = last ? last.getBoundingClientRect().bottom : 0;
-      const room = innerHeight - bottom - 14;
+      const nav = document.getElementById('viewTabs');
+      const floor = (nav && getComputedStyle(nav).position === 'fixed') ? nav.getBoundingClientRect().top : innerHeight;   // sul telefono la barra di navigazione sta in basso
+      const room = floor - bottom - 14;
       const h = Math.min(170, room);
       if(h >= 60){ ff.style.setProperty('--fh', Math.round(h) + 'px'); ff.classList.add('show'); }
       else ff.classList.remove('show');
@@ -81,4 +83,12 @@
     if(img && !img.complete) img.addEventListener('load', sched);
     sched(); setTimeout(sched, 600);
   }
+  // 9) scorciatoie da tastiera (computer): "/" = cerca, 1-7 = cambia vista
+  document.addEventListener('keydown', e=>{
+    const t = e.target, typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+    if(typing || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.modal-backdrop.show')) return;
+    if(e.key === '/'){ const s = document.getElementById('search'); if(s){ e.preventDefault(); s.focus(); } return; }
+    const tabs = document.querySelectorAll('#viewTabs .view-tab');
+    if(/^[1-9]$/.test(e.key) && tabs[+e.key - 1]){ tabs[+e.key - 1].click(); }
+  });
 })();

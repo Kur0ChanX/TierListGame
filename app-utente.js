@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v97', date:'2026-09-29', items:[
+    'Nuovo look da app: sul telefono le schede (Classifica, Scopri, Novità, Per genere, Mia tier, Saghe, Statistiche) sono in una barra fissa in basso, sempre a portata di pollice.',
+    'Corretto: in Statistiche e Saghe il contenuto copriva le schede in alto; ora ogni vista scorre al suo interno come la classifica.',
+    'Scheda gioco più ordinata: i pulsanti della copertina stanno su una riga, link e spiegazioni in un riquadro che si apre a richiesta.',
+    'Da computer: premi "/" per cercare e i tasti 1-7 per cambiare vista.'
+  ]},
   {version:'v96', date:'2026-09-29', items:[
     'Novità per genere: in cima c\'è la scelta della console, tutte in ordine di uscita (dall\'Atari 2600 alla Switch 2, poi PC e Mobile). Nessuna scelta = qualsiasi console, di ogni epoca. La scelta resta salvata.'
   ]},

@@ -237,3 +237,37 @@ html.intro-on{overflow:hidden}
 .frugu-foot.show{visibility:visible}
 .frugu-foot img{display:block; height:var(--fh,0px); width:auto; max-width:calc(100vw - 180px); object-fit:contain; margin:0 auto 8px; filter:drop-shadow(0 4px 10px rgba(124,92,255,.35))}
 .added-banner{top:20%}
+
+/* ===== v97: ordine e navigazione moderna ===== */
+/* le barre in alto non si schiacciano mai; ogni vista scorre al suo interno come la classifica (prima Statistiche/Saghe coprivano le schede) */
+.topbar,.list-bar,.view-tabs{flex-shrink:0}
+#statsPanel,#sagaPanel,#discoverPanel,#novitaPanel,#novitaGenrePanel,#myTierWrap{flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch}
+.view-tab{display:inline-flex; align-items:center; gap:6px}
+.vt-short{display:none}
+/* scheda gioco: strumenti copertina compatti */
+.cover-block .cover-tools{flex-wrap:wrap; justify-content:center}
+.cover-more{margin:6px 0 2px; font-size:.82rem}
+.cover-more>summary{cursor:pointer; color:var(--sub); text-align:center; list-style:none; padding:4px 0}
+.cover-more>summary::-webkit-details-marker{display:none}
+.cover-more[open]>summary{margin-bottom:6px}
+/* telefono: barra di navigazione in basso, come le app */
+@media (max-width:760px){
+  :root{--navh:calc(60px + env(safe-area-inset-bottom,0px))}
+  .view-tabs{position:fixed; left:0; right:0; bottom:0; z-index:60; margin:0; gap:0; padding:4px 4px env(safe-area-inset-bottom,0px); height:var(--navh);
+    background:color-mix(in srgb,var(--bg) 80%,transparent); -webkit-backdrop-filter:blur(16px) saturate(150%); backdrop-filter:blur(16px) saturate(150%);
+    border-top:1px solid var(--glass-line,var(--border)); box-shadow:0 -6px 24px rgba(0,0,0,.18); justify-content:space-between}
+  .view-tab{flex:1 0 54px; flex-direction:column; gap:1px; padding:5px 2px; border:none !important; background:transparent !important; box-shadow:none !important; border-radius:14px; font-size:.62rem; color:var(--sub); transform:none !important}
+  .view-tab .vt-ic{font-size:1.2rem; line-height:1.15; transition:transform .25s}
+  .vt-full{display:none} .vt-short{display:block; white-space:nowrap}
+  .view-tab.active{color:var(--text); font-weight:700; animation:none}
+  .view-tab.active .vt-ic{transform:translateY(-2px) scale(1.12); filter:drop-shadow(0 3px 8px rgba(124,92,255,.6))}
+  .view-tab.active::after{content:""; display:block; width:18px; height:3px; border-radius:3px; background:var(--grad,var(--accent)); margin-top:1px}
+  .wrap{padding-bottom:calc(84px + var(--navh)) !important}
+  .ask-fab,.scrolltop-fab{bottom:calc(var(--navh) + 12px) !important}
+  .frugu-foot{bottom:var(--navh)}
+}
+/* etichetta del gioco: le colonne non escono più dalla scheda sul telefono */
+.glabel-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.glabel-row .v{min-width:0; overflow:hidden; text-overflow:ellipsis}
+@media (max-width:430px){ .glabel-grid{grid-template-columns:minmax(0,1fr)} .glabel-row .v{white-space:normal; text-align:right} }
+@media (min-width:761px){ #gameTable td.year{white-space:nowrap} }
