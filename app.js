@@ -865,6 +865,8 @@ function showToast(msg, ms){
   clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms || 1800);
 }
 
+const ROW_PAGE = 80;
+let renderToken = 0, rowObserver = null, lastViewKey = '', lastShownRows = 0;
 function render(){
   const list = applyFilters();
   const tbody = document.getElementById('tbody');
@@ -872,12 +874,13 @@ function render(){
   document.getElementById('countLine').textContent = `${list.length} risultati su ${GAMES.filter(inActiveList).length}`;
   document.getElementById('favCountLine').textContent = FAVS.size ? `★ ${FAVS.size} preferiti` : '';
 
+  const myRender = ++renderToken;
+  if(rowObserver){ rowObserver.disconnect(); rowObserver = null; }
   if(list.length===0){ tbody.innerHTML=''; emptyMsg.style.display='block'; return; }
   emptyMsg.style.display='none';
 
   const dnaProfileForRow = state.sortKey==='dna' ? buildTasteProfile() : null;
-  const frag = document.createDocumentFragment();
-  list.forEach(g=>{
+  function buildRow(g){
     const tr = document.createElement('tr');
     const isFav = FAVS.has(g.id);
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};">${d.pct}%</span>` : ''; })();
@@ -899,9 +902,27 @@ function render(){
       saveFavs(); renderMetrics(); render();
     });
     tr.addEventListener('click', ()=> openModal(g));
-    frag.appendChild(tr);
-  });
-  tbody.innerHTML=''; tbody.appendChild(frag);
+    return tr;
+  }
+  // Righe a blocchi: ne disegniamo ROW_PAGE subito e le altre solo quando ci si avvicina in fondo alla lista (molto più leggero sul telefono)
+  // se cambia solo un dato di una riga (preferito, stato...) manteniamo le righe già scese, così la posizione nella lista non salta
+  const viewKey = JSON.stringify([state.search, [...state.tiers], state.method, state.decade, state.minScore, state.onlyFavs, state.onlyStory, [...state.tags], state.status, state.sortKey, state.sortDir, state.mood, typeof ACTIVE_LIST !== 'undefined' ? ACTIVE_LIST : '']);
+  const keepRows = viewKey === lastViewKey ? lastShownRows : 0;
+  tbody.innerHTML='';
+  let shown = 0;
+  function addChunk(){
+    if(myRender !== renderToken) return;
+    const frag = document.createDocumentFragment();
+    const end = Math.min(list.length, Math.max(shown + ROW_PAGE, keepRows));
+    for(; shown < end; shown++) frag.appendChild(buildRow(list[shown]));
+    tbody.appendChild(frag);
+    lastViewKey = viewKey; lastShownRows = shown;
+    if(shown < list.length && 'IntersectionObserver' in window){
+      rowObserver = new IntersectionObserver(es=>{ if(es.some(e=> e.isIntersecting)){ rowObserver.disconnect(); rowObserver = null; addChunk(); } }, {rootMargin:'800px 0px'});
+      rowObserver.observe(tbody.lastElementChild);
+    } else if(shown < list.length){ addChunk(); }
+  }
+  addChunk();
   updateArrows();
 }
 

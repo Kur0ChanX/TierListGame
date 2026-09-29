@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v93', date:'2026-09-29', items:[
+    'Apertura molto più veloce: la classifica disegna 80 righe subito e le altre man mano che scorri (prima le disegnava tutte 753). Nessun dato o funzione cambiato.'
+  ]},
   {version:'v92', date:'2026-09-29', items:[
     'Sotto il cofano: il programma è stato diviso in file più piccoli per argomento (nessuna funzione cambiata). Serve a rendere le prossime modifiche più veloci e leggere.'
   ]},
