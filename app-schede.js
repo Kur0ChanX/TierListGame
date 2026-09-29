@@ -8,6 +8,18 @@ function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c=>({
 const ICON_GLOBE = giIcon('globe');
 const ICON_PHOTO = giIcon('photo');
 function coverSearchUrl(g){ return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(g.name + ' cover art boxart'); }
+// ---- Formato della locandina nella scheda: mai tagliata (contain + sfondo sfocato); il pulsante «adatta» passa da un formato all'altro, per gioco ----
+const COVER_FITS = [['auto', 'Automatico (segue l\'immagine)', 0], ['v', 'Verticale 3:4', 0.75], ['s', 'Quadrata 1:1', 1], ['h', 'Orizzontale 4:3', 1.3333], ['w', 'Panorama 16:9', 1.7778]];
+function coverFitMap(){ try{ return JSON.parse(localStorage.getItem('jrpg_cover_fit') || '{}') || {}; }catch(e){ return {}; } }
+function coverFitGet(id){ const m = coverFitMap()[id]; return COVER_FITS.some(f=> f[0] === m) ? m : 'auto'; }
+function coverFitSet(id, mode){ const m = coverFitMap(); m[id] = mode; try{ localStorage.setItem('jrpg_cover_fit', JSON.stringify(m)); }catch(e){} }
+function coverFitApply(frame, mode, img){
+  const f = COVER_FITS.find(x=> x[0] === mode) || COVER_FITS[0];
+  let rn = f[2];
+  if(!rn){ const im = img || frame.querySelector('img'); rn = (im && im.naturalWidth && im.naturalHeight) ? im.naturalWidth / im.naturalHeight : 0.75; rn = Math.min(1.9, Math.max(0.62, rn)); }
+  frame.style.setProperty('--rn', rn.toFixed(3)); frame.dataset.fit = mode;
+}
+function coverFitLoad(img){ const fr = img.closest('.cover-frame'); if(fr && fr.dataset.fit === 'auto') coverFitApply(fr, 'auto', img); }
 function effectiveCover(g){ return USER_COVERS[String(g.id)] || (g.enrich && g.enrich.coverUrl) || null; }
 function coverPlaceholderHtml(g){
   const platShort = (g.plat||'').split('/')[0].trim();
@@ -78,7 +90,8 @@ function coverHtml(g){
   const url = effectiveCover(g);
   const canUrl = !!COVER_DB;
   const canUpload = !!(COVER_DB && COVER_ASSETS);
-  const media = url ? `<img class="modal-cover" src="${escHtml(url)}" alt="Copertina di ${escHtml(g.name)}" loading="lazy" decoding="async">` : coverPlaceholderHtml(g);
+  const fitMode = coverFitGet(g.id), fitF = COVER_FITS.find(f=> f[0] === fitMode), cssUrl = url ? escHtml(String(url).replace(/'/g, '%27').replace(/"/g, '%22').replace(/[()\\]/g, c=> '%' + c.charCodeAt(0).toString(16))) : '';
+  const media = url ? `<div class="cover-frame" data-fit="${fitMode}" style="--rn:${fitF[2] || 0.75};--cov:url('${cssUrl}')"><img class="modal-cover" src="${escHtml(url)}" alt="Copertina di ${escHtml(g.name)}" loading="lazy" decoding="async" onload="coverFitLoad(this)"><div class="cover-mini"><button type="button" data-cover-fit title="Adatta la locandina al formato: ${escHtml(fitF[1])} (tocca per cambiare)" aria-label="Adatta la locandina">${giIcon('screen')}</button><button type="button" data-cover-alt title="Cerca un'altra immagine migliore" aria-label="Cerca un'altra immagine">${giIcon('lens')}</button></div></div>` : coverPlaceholderHtml(g);
   const currentUrlValue = (url && /^https?:\/\//i.test(url)) ? url : '';
   const uploadRow = canUpload ? `<div class="cover-tools">
       <label class="cover-pill${coverBusy?' busy':''}" data-cover-upload-label title="Scegli una foto dalla galleria del telefono">${ICON_PHOTO}<span>Carica dal telefono</span><input type="file" accept="image/*" data-cover-file-input ${coverBusy?'disabled':''}></label>
@@ -104,7 +117,7 @@ function wireCover(g){
   const block = document.getElementById('coverBlock'); if(!block) return;
   const img = block.querySelector('img.modal-cover');
   if(img){
-    img.addEventListener('error', ()=>{ img.outerHTML = coverPlaceholderHtml(g); }, {once:true});
+    img.addEventListener('error', ()=>{ const fr = img.closest('.cover-frame'); (fr || img).outerHTML = coverPlaceholderHtml(g); }, {once:true});
     img.addEventListener('click', ()=>{ openLightbox(img.src, img.alt); });
   }
   const urlInput = block.querySelector('[data-cover-url-input]');

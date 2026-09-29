@@ -728,3 +728,11 @@ td.storyicon{width:44px !important; text-align:center; white-space:nowrap; paddi
 /* v132: logo dorato «+» (Update+) piccolo anche nella griglia; V dorata */
 .x-cover{position:relative} .x-plus{position:absolute; left:5px; top:5px; z-index:2; line-height:0} .x-cover:has(.x-plus) .x-fav{left:32px} .x-plus .fresh-ic{margin:0} .x-plus svg.gi{width:20px !important; height:20px !important; margin:0 !important}
 td.method svg.gi{width:19px !important; height:19px !important; display:inline-block !important; margin:0 !important; vertical-align:middle}
+/* v133: locandina mai tagliata (contain + sfondo sfocato), formato adattabile e mini-pulsanti */
+.cover-frame{position:relative; overflow:hidden; isolation:isolate; border-radius:14px; width:min(100%, calc(52vh * var(--rn,.75))); aspect-ratio:var(--rn,.75); margin:0 auto 8px; background:#1d1633; border:1px solid var(--glass-line,rgba(128,128,160,.3)); transition:aspect-ratio .25s, width .25s}
+.cover-frame::before{content:''; position:absolute; inset:-28px; background:var(--cov) center/cover no-repeat; filter:blur(22px) saturate(1.25) brightness(.72); z-index:-1}
+.cover-frame img.modal-cover{position:absolute; inset:0; width:100%; height:100% !important; object-fit:contain; background:none !important; border:0 !important; padding:0 !important; margin:0 !important; border-radius:0}
+.cover-mini{position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:3}
+.cover-mini button{width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.55); background:rgba(20,16,50,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); display:grid; place-items:center; padding:0; cursor:pointer}
+.cover-mini button:disabled{opacity:.5}
+.cover-mini svg.gi{width:17px !important; height:17px !important; margin:0 !important}
