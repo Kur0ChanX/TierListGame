@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v113', date:'2026-09-29', items:[
+    'Simboli 💕🤝✨💉 solo dove servono: nei giochi aggiunti l\'AI li assegna ormai di rado (al massimo 1 gioco su 4 per la storia e 1 su 5 per la dopamina) e solo se il gioco ha qualcosa di unico; sotto il voto 85 non compaiono mai.'
+  ]},
   {version:'v112', date:'2026-09-29', items:[
     'Copertine automatiche vere: nella scheda di un gioco senza copertina c\'è "✨ Trova copertina", e di base la cerca da sola all\'apertura (si spegne dal menu ✨). Fonti aperte, senza chiavi né CAPTCHA: Wikidata (nome inglese e ID Steam), Steam (copertine verticali dei giochi PC), Libretro/RetroArch (box art originali di PS1, PS2, PSP, SNES, N64, Game Boy, DS, GameCube, Wii, Sega, PC Engine, Xbox) e Wikipedia.',
     'Anche "Copertine automatiche" per tutta la collezione ora usa le stesse fonti. Nella griglia le box art grandi sono mostrate ridotte, per restare leggere.'
