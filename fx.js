@@ -38,4 +38,11 @@
   if('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !(window.claude && window.claude.use)){
     try{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(e){}
   }
+
+  // 6) interruttore dell'apertura animata (⚙️ Impostazioni)
+  const it = document.getElementById('introToggle');
+  if(it){
+    try{ it.checked = localStorage.getItem('jrpg_intro') !== 'off'; }catch(e){}
+    it.addEventListener('change', ()=>{ try{ localStorage.setItem('jrpg_intro', it.checked ? 'on' : 'off'); }catch(e){} });
+  }
 })();
