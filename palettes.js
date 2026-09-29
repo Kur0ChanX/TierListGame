@@ -86,6 +86,7 @@
     try{ localStorage.setItem(KEY, JSON.stringify(p.id)); }catch(e){}
     const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content', vars(p, true).match(/--bg:([^;]+)/)[1]);
   }
+  try{ if(JSON.parse(localStorage.getItem('jrpg_fx') || 'null') === 'on') document.documentElement.classList.add('fx-on'); }catch(e){}
   apply(cur);
   window.RT_PALETTES = P;
   window.applyPalette = apply;

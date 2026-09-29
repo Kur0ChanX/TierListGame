@@ -106,9 +106,11 @@
         <button class="btn" data-a="share">📤 Condividi la tua tier list (immagine)</button>
         <button class="btn" data-a="badges">🏆 Traguardi</button>
         <a class="btn" href="backup-aurora/" title="La versione di prima delle palette, sempre disponibile">🛟 Versione di sicurezza (Aurora)</a>
+        <label class="ask-toggle"><input type="checkbox" id="xFx" ${document.documentElement.classList.contains('fx-on')?'checked':''}> 🪟 Vetro sfocato e sfondo animato <small>(più bello, ma può rallentare lo scorrimento)</small></label>
         <label class="ask-toggle"><input type="checkbox" id="xTint" ${tint?'checked':''}> 🎨 Colori della scheda presi dalla copertina</label>
       </div>`);
     body.querySelectorAll('[data-m]').forEach(b=> b.addEventListener('click', ()=>{ setMode(b.dataset.m); document.getElementById('xMenu').classList.remove('show'); }));
+    body.querySelector('#xFx').addEventListener('change', ev=>{ LS.set('jrpg_fx', ev.target.checked ? 'on' : 'off'); document.documentElement.classList.toggle('fx-on', ev.target.checked); toast(ev.target.checked ? 'Effetti extra attivi' : 'Effetti extra spenti: scorrimento più fluido'); });
     body.querySelector('#xTint').addEventListener('change', e=>{ LS.set('jrpg_cover_tint', e.target.checked); toast(e.target.checked ? 'Apri un gioco con copertina per vedere i colori' : 'Colori standard'); });
     body.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); ({complete: ()=> window.completeCustomGames && window.completeCustomGames(), palette: ()=> window.openPalettePicker && window.openPalettePicker(), covers: openCovers, wish: openWishlist, share: shareTierImage, badges: openBadges})[b.dataset.a](); }));
   }

@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v111', date:'2026-09-29', items:[
+    'Scorrimento fluido: trovata la causa degli scatti (il vetro sfocato ricalcolato a ogni fotogramma sopra lo sfondo animato). Ora di base è spento: nel test lista e scheda gioco passano da 32 e 16 fotogrammi al secondo a 60 (il massimo che la prova permette). I colori sono gli stessi; dal menu ✨ si può riaccendere "Vetro sfocato e sfondo animato".',
+    'Il completamento dei giochi aggiunti ora è un lavoro una tantum e silenzioso: niente più barra di caricamento a ogni avvio; una scheda completata non si rifà mai.',
+    'Toccando un simbolo (💕 🤝 ✨ 💉) accanto al nome di un gioco si legge il perché ce l\'ha.'
+  ]},
   {version:'v110', date:'2026-09-29', items:[
     'Ricerche AI più veloci: Novità e Novità per genere ora lanciano due ricerche insieme (classici e moderni) con meno "ragionamento interno": attesa circa dimezzata, stesse fonti e stessa qualità, più varietà.',
     'Barra di caricamento più onesta: la percentuale si calibra sui tempi reali delle ricerche precedenti e sale davvero quando una delle due ricerche finisce; se ci mette più del solito non resta ferma al 95%, ma mostra i secondi e "sto ancora aspettando".',
