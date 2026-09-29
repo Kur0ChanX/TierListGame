@@ -1761,7 +1761,7 @@ function openModal(g){
   const storyHtml = g.story
     ? `<div class="modal-story">${g.story}</div>`
     : `<div class="modal-story placeholder">Scheda narrativa in arrivo per questo titolo — verrà aggiunta durante la prossima fase di aggiornamento del compendio.</div>`;
-  const reviewUrl = 'https://www.google.com/search?q=' + encodeURIComponent(g.name + ' recensione metacritic');
+  const reviewUrl = itReviewsUrl(g.name);
   const imagesUrl = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(g.name + ' gameplay screenshot');
   const youtubeUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(g.name + ' Gameplay ITA');
   const soundtrackUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(g.name + ' soundtrack OST colonna sonora');
@@ -1796,7 +1796,7 @@ function openModal(g){
     ${similarGamesHtml(g)}
     <div class="modal-links">
       <a class="btn" href="${youtubeUrl}" target="_blank" rel="noopener">▶️ Gameplay ITA (YouTube)</a>
-      <a class="btn" href="${reviewUrl}" target="_blank" rel="noopener">🔗 Recensioni</a>
+      <a class="btn" href="${reviewUrl}" target="_blank" rel="noopener">📰 Recensioni ITA</a>
       <a class="btn" href="${imagesUrl}" target="_blank" rel="noopener">🖼️ Immagini gameplay</a>
       <a class="btn" href="${soundtrackUrl}" target="_blank" rel="noopener">🎵 Colonna sonora (YouTube)</a>
     </div>
@@ -2276,6 +2276,10 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v79', date:'2026-09-29', items:[
+    'Il tasto "📰 Recensioni ITA" (accanto a Gameplay ITA) ora cerca solo su siti italiani (Multiplayer.it, Everyeye, SpazioGames, GamesVillage, TechGaming e altri).',
+    'Aggiorna info: la ricerca Gemini ora sa che giorno è, cerca includendo gli ultimi anni, ignora pagine vecchie per ciò che cambia nel tempo (edizioni, lingue, piattaforme, ore) e giudica la grafica rispetto agli standard di oggi. I dati basati su fonti datate compaiono con ⏳ e deselezionati.'
+  ]},
   {version:'v78', date:'2026-09-29', items:[
     'Aggiorna info ora controlla anche: ore di gioco (storia e completista), "A colpo d\'occhio" (difficoltà, grinding, peso storia, ritmo, lingua italiana, a chi piace / chi evita), gameplay, lingue ed edizioni. Usa Gemini con la ricerca Google (serve la chiave) e mostra le fonti consultate; ogni dato che non trova resta com\'è.'
   ]},
@@ -3207,7 +3211,12 @@ function novitaKnownNames(){
 }
 function novitaGameplaySearchUrl(name){ return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(name + ' gameplay screenshot'); }
 function novitaYoutubeUrl(name){ return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' gameplay ita'); }
-function novitaReviewSearchUrl(name){ return 'https://www.google.com/search?q=' + encodeURIComponent(name + ' recensione ITA'); }
+// Recensioni in italiano: ricerca ristretta ai principali siti italiani di videogiochi
+function itReviewsUrl(name){
+  const sites = ['multiplayer.it','everyeye.it','spaziogames.it','gamesvillage.it','techgaming.it','gamerclick.it','thegamesmachine.it','it.ign.com'];
+  return 'https://www.google.com/search?hl=it&lr=lang_it&q=' + encodeURIComponent('"' + name.replace(/\s*\([^)]*\)/g, '') + '" recensione (' + sites.map(s=> 'site:' + s).join(' OR ') + ')');
+}
+function novitaReviewSearchUrl(name){ return itReviewsUrl(name); }
 function novitaTasteSummaryText(){
   const t = askToolGetTasteProfile();
   if(t.note) return 'Mario non ha ancora segnato abbastanza preferiti/giocati per un profilo affidabile: proponi un mix vario di RPG/JRPG ben considerati, di epoche e piattaforme diverse.';
@@ -3592,7 +3601,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v78';
+const DATA_BUILD_VERSION = 'v79';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
