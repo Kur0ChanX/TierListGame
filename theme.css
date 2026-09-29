@@ -470,3 +470,10 @@ html.pal-refined .ask-fab, html.pal-refined .scrolltop-fab, html.pal-refined .x-
 .ask-fab::after{border-color:rgba(var(--a1rgb),.35); z-index:-1}
 .x-mic{display:grid; place-items:center; width:38px; height:38px; padding:0; position:absolute}
 .x-mic svg.gi{width:22px; height:22px}
+/* v106: icone in alto un po' più giù (lontane dal foro della fotocamera) e staccate dal logo */
+.topbar{padding-top:calc(16px + env(safe-area-inset-top,0px)) !important}
+@media (display-mode:fullscreen){ .topbar{padding-top:calc(16px + env(safe-area-inset-top,0px) * .3) !important} }
+html:fullscreen .topbar{padding-top:calc(16px + env(safe-area-inset-top,0px) * .3) !important}
+.topbar-row1 h1{margin-right:14px}
+.topbar-row1 .brand-logo{margin-right:2px}
+@media (max-width:430px){ .topbar-row1 h1{margin-right:12px} }
