@@ -38,10 +38,9 @@
     });
   };
 
+  const fj = (u, o)=> window.SearchHub ? SearchHub.json(u, o) : fetch(u).then(r=>{ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   async function wp(params){
-    const r = await fetch('https://en.wikipedia.org/w/api.php?' + new URLSearchParams(Object.assign({format:'json', origin:'*'}, params)));
-    if(!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
+    return fj('https://en.wikipedia.org/w/api.php?' + new URLSearchParams(Object.assign({format:'json', origin:'*'}, params)));
   }
   async function wikiPage(name){
     const base = baseName(name), target = normGameName(base);
@@ -84,17 +83,19 @@
   async function itWikiLang(name){
     const base = baseName(name), target = normGameName(base);
     const q = new URLSearchParams({format:'json', origin:'*', action:'query', list:'search', srsearch: base + ' videogioco', srlimit:'3'});
-    const s = await (await fetch('https://it.wikipedia.org/w/api.php?' + q)).json();
+    const s = await fj('https://it.wikipedia.org/w/api.php?' + q);
     const hit = ((s.query && s.query.search) || []).find(h=> normGameName(h.title.replace(/\s*\([^)]*\)\s*$/, '')) === target);
     if(!hit) return null;
     const q2 = new URLSearchParams({format:'json', origin:'*', action:'parse', page: hit.title, prop:'wikitext', redirects:'1'});
-    const w = await (await fetch('https://it.wikipedia.org/w/api.php?' + q2)).json();
+    const w = await fj('https://it.wikipedia.org/w/api.php?' + q2);
     const txt = (w.parse && w.parse.wikitext && w.parse.wikitext['*']) || '';
     return {title: hit.title, url: 'https://it.wikipedia.org/wiki/' + encodeURIComponent(hit.title.replace(/ /g, '_')), dub: /doppiatore italiano|doppiaggio italiano|doppiato in italiano/i.test(txt)};
   }
   // ---- Steam: lingue ufficiali (interfaccia/audio/sottotitoli). Steam non permette l'accesso diretto dal browser: si passa da un ponte pubblico (CORS proxy). Se il ponte non risponde, la fonte viene saltata senza errori.
   const PROXIES = [u=> 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u), u=> 'https://corsproxy.io/?' + encodeURIComponent(u)];
   async function viaProxy(url){
+    // Steam non permette l'accesso diretto dal browser: catena di ponti pubblici con autoapprendimento (SearchHub); se manca, i due ponti storici
+    if(window.SearchHub) return SearchHub.json(url, {direct: false});
     for(const p of PROXIES){
       try{ const r = await fetch(p(url), {signal: AbortSignal.timeout(9000)}); if(r.ok){ const t = await r.text(); try{ return JSON.parse(t); }catch(e){} } }catch(e){}
     }
@@ -115,9 +116,7 @@
   async function pcgwInfo(name){
     const base = baseName(name);
     const q = new URLSearchParams({action:'cargoquery', tables:'L10n', fields:'_pageName=page,Language,Interface,Audio,Subtitles', where:`_pageName="${base.replace(/"/g, '')}" AND Language="Italian"`, format:'json', origin:'*'});
-    const r = await fetch('https://www.pcgamingwiki.com/w/api.php?' + q, {signal: AbortSignal.timeout(9000)});
-    if(!r.ok) throw new Error('HTTP ' + r.status);
-    const j = await r.json(); const row = j.cargoquery && j.cargoquery[0] && j.cargoquery[0].title;
+    const j = await fj('https://www.pcgamingwiki.com/w/api.php?' + q, {timeout: 9000}); const row = j.cargoquery && j.cargoquery[0] && j.cargoquery[0].title;
     if(!row) return null;
     const yes = x=> String(x).toLowerCase() === 'true';
     return {url: 'https://www.pcgamingwiki.com/wiki/' + encodeURIComponent(row.page.replace(/ /g, '_')), itText: yes(row.Interface) || yes(row.Subtitles), itAudio: yes(row.Audio)};

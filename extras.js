@@ -123,10 +123,9 @@
   // =====================================================================
   const WP = 'https://en.wikipedia.org/w/api.php';
   const cleanT = n=> String(n).replace(/\s*\([^)]*\)/g, '').trim();
+  const fj = (u, o)=> window.SearchHub ? SearchHub.json(u, o) : fetch(u).then(r=>{ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   async function wpq(params){
-    const r = await fetch(WP + '?' + new URLSearchParams(Object.assign({format:'json', origin:'*', formatversion:'2'}, params)));
-    if(!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
+    return fj(WP + '?' + new URLSearchParams(Object.assign({format:'json', origin:'*', formatversion:'2'}, params)));
   }
   async function batchCovers(titles){           // titolo -> url copertina (segue i redirect, scarta le disambigue)
     const out = {};
@@ -194,11 +193,11 @@
   async function wikidataInfo(name){
     const W = 'https://www.wikidata.org/w/api.php?';
     const q = cleanT(name), target = normGameName(q);
-    const s = await (await fetch(W + new URLSearchParams({action:'wbsearchentities', search:q, language:'en', uselang:'en', type:'item', limit:'7', format:'json', origin:'*'}))).json();
+    const s = await fj(W + new URLSearchParams({action:'wbsearchentities', search:q, language:'en', uselang:'en', type:'item', limit:'7', format:'json', origin:'*'}));
     const hit = (s.search || []).find(x=> /video ?game|role-playing|game/i.test(x.description || '') && !/series|franchise|soundtrack|film|character/i.test(x.description || '') && normGameName(x.label || '') === target)
       || (s.search || []).find(x=> /video ?game/i.test(x.description || '') && !/series|franchise/i.test(x.description || '') && (normGameName(x.label || '').startsWith(target) || target.startsWith(normGameName(x.label || ''))));
     if(!hit) return null;
-    const d = await (await fetch(W + new URLSearchParams({action:'wbgetentities', ids: hit.id, props:'claims|sitelinks|labels', languages:'en', sitefilter:'enwiki', format:'json', origin:'*'}))).json();
+    const d = await fj(W + new URLSearchParams({action:'wbgetentities', ids: hit.id, props:'claims|sitelinks|labels', languages:'en', sitefilter:'enwiki', format:'json', origin:'*'}));
     const en = d.entities && d.entities[hit.id]; if(!en) return null;
     const c = en.claims || {}, val = p=> ((c[p] || [])[0] || {}).mainsnak;
     const steam = (c.P1733 || []).map(x=> x.mainsnak && x.mainsnak.datavalue && x.mainsnak.datavalue.value).filter(Boolean);
@@ -592,7 +591,7 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
     if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ in Chiedi a Claude) per cercare sul web', 3500); return; }
     busy = true; refresh();
     try{
-      const arr = await novitaSearchParallel(n=> buildPrompt(favs, n), 12, VIBES_STRATEGIES);
+      const arr = await novitaSearchParallel(n=> buildPrompt(favs, n), 12, VIBES_STRATEGIES, null, {directKeys: ['reddit'], seeds: favs.slice(0, 6).map(f=> f.name)});
       const have = new Set(results.map(c=> c.name.toLowerCase()));
       const fresh = arr.filter(c=> !have.has(c.name.toLowerCase()));
       results = fresh.concat(results); sv(results);

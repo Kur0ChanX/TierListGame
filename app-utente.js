@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v124', date:'2026-09-30', items:[
+    'Ricerca senza sosta: 9 fonti dirette (CheapShark, categorie e ricerca di Wikipedia, Wikidata, SteamSpy, Steam, GOG, RAWG, Reddit) alternate alle ricerche AI. Se una via è bloccata: attesa e nuovo tentativo, poi una catena di ponti pubblici che impara da sola quali funzionano; se una fonte resta muta si passa subito alla successiva, con pause crescenti e strategie diverse fino al tempo massimo di 8 minuti o al tuo «Basta frugare!».',
+    'Le chiamate a Wikipedia, Wikidata, Steam e PCGamingWiki di «Aggiorna info» e del controllo dati passano dalla stessa catena di vie alternative. I nomi consigliati nei forum vengono verificati su Wikipedia prima di entrare.'
+  ]},
   {version:'v123', date:'2026-09-30', items:[
     'Barra in basso: «Chiedi» al posto di «Per genere» (il selettore per genere è ora sotto «Fruga altri titoli» nella schermata Novità); tolto il pulsante flottante rosa. Badge «da approvare» in basso a sinistra, speculare a «Torna su». Impostazioni senza testo coperto.',
     'Ricerca: fonti di riserva istantanee (RAWG con chiave gratuita facoltativa e Wikidata) se le altre restano vuote o bloccate; stato live nel box di caricamento con frasi a tema Frugu Frugu; registro diagnostico nascosto (5 tocchi su «Database aggiornato…» o ?debug=1) con fonte, esito, tempi e status HTTP, senza chiavi.'
