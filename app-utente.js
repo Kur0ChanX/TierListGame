@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v118', date:'2026-09-29', items:[
+    'Revisione una modifica alla volta: «Prima» e «Dopo» con i pulsanti ✅ Approva / ↩️ Tieni precedente / ⏭️ Decido dopo. Nella scheda del gioco compare «✅ Aggiornato il…» oppure «📝 N modifiche da approvare».'
+  ]},
   {version:'v117', date:'2026-09-29', items:[
     'Un gioco controllato a fondo non viene più ricontrollato (solo con «Ricomincia» o «Aggiorna info»). Il menu ✨ → Controllo dati mostra quante modifiche ci sono da approvare e un avviso compare quando ne arrivano di nuove.'
   ]},
