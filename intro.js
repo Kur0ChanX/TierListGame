@@ -38,7 +38,7 @@
   el.addEventListener('click', e=>{ e.stopPropagation(); e.preventDefault(); enter(); });
   window.addEventListener('keydown', onKey);
   setTimeout(close, 12000);                            // rete di sicurezza
-  if(start && canFull && wantFs) start.textContent = '▶ ENTRA A SCHERMO INTERO';
+  if(start && canFull && wantFs) start.textContent = '▶ INIZIA A FRUGARE';
 
   // si chiude da sola (2,2 s) solo se non c'è lo schermo intero da attivare; altrimenti aspetta il tocco
   function check(){

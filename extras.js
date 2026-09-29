@@ -93,8 +93,6 @@
   // =====================================================================
   // 2) MENU EXTRA
   // =====================================================================
-  let auToastAt = 0;
-  window.addEventListener('audit-update', ()=>{ if(Date.now() - auToastAt < 10 * 60e3) return; auToastAt = Date.now(); try{ toast('🔎 Ci sono modifiche da approvare: ✨ → Controllo dati'); }catch(e){} });
   function openMenu(){
     const tint = LS.get('jrpg_cover_tint', false);
     const body = sheet('xMenu', '✨ Extra', `
@@ -534,4 +532,123 @@
   // avvio
   syncMode();
   setTimeout(()=>{ checkBadges(true); releaseAlerts(); }, 2500);
+})();
+
+// =====================================================================
+// 10) LE MIE VIBES: preferiti Top + consigli per atmosfera, sensazioni e meccaniche (in «Scopri»)
+//     - «Nel tuo database»: somiglianza calcolata in locale (nessuna AI, nessun costo)
+//     - «Nuovi da fuori»: ricerca web a fonti multiple (Reddit, ResetEra, forum…) con il box Frugu Frugu e il pulsante «Basta frugare»
+// =====================================================================
+(function(){
+  const RK = 'jrpg_vibes_results';
+  const ld = ()=>{ try{ return JSON.parse(localStorage.getItem(RK) || '[]') || []; }catch(e){ return []; } };
+  const sv = a=>{ try{ localStorage.setItem(RK, JSON.stringify(a.slice(0, 40))); }catch(e){} };
+  let results = ld(), busy = false, showLocal = true;
+  const tn = t=> (TAG_INFO[t] ? TAG_INFO[t].label : t);
+  const favGames = ()=> GAMES.filter(g=> FAVS.has(g.id));
+  const pace = {L:0, M:1, V:2};
+  function similarity(g, favs){
+    let best = 0, bestFav = null, why = [];
+    favs.forEach(f=>{
+      if(f.id === g.id) return;
+      const a = new Set(g.tags || []), b = new Set(f.tags || []);
+      const inter = [...a].filter(t=> b.has(t)), uni = new Set([...a, ...b]);
+      let sc = uni.size ? inter.length / uni.size * 0.42 : 0;
+      const ea = g.enrich || {}, eb = f.enrich || {}, la = g.label || {}, lb = f.label || {};
+      const w = [];
+      if(ea.storyTag && ea.storyTag === eb.storyTag){ sc += 0.14; w.push('stessa forza della storia'); }
+      if(ea.dopamine && eb.dopamine){ sc += 0.1; w.push('lo stesso "ancora un turno"'); }
+      if(la.s && lb.s && Math.abs(la.s - lb.s) <= 1 && la.s >= 4){ sc += 0.08; w.push('storia al centro'); }
+      if(la.p && lb.p && la.p === lb.p){ sc += 0.05; w.push('ritmo simile'); }
+      if(la.d && lb.d && Math.abs(la.d - lb.d) <= 1){ sc += 0.04; }
+      if(g.ysort && f.ysort && Math.abs(g.ysort - f.ysort) <= 6){ sc += 0.04; w.push('della stessa epoca'); }
+      sc += Math.max(0, (g.score - 60)) / 40 * 0.13;
+      if(sc > best){ best = sc; bestFav = f; why = inter.slice(0, 2).map(tn).concat(w).slice(0, 3); }
+    });
+    return {sc: best, fav: bestFav, why};
+  }
+  function localList(){
+    const favs = favGames(); if(!favs.length) return [];
+    return GAMES.filter(g=> !FAVS.has(g.id) && !STATUSES[g.id]).map(g=>({g, ...similarity(g, favs)})).sort((a, b)=> b.sc - a.sc).slice(0, 8);
+  }
+  const VIBES_STRATEGIES = [
+    {src:'Reddit', hint:"Cerca nelle discussioni di Reddit (r/patientgamers, r/JRPG, r/rpg_gamers, r/gamingsuggestions, r/truegaming): thread «se ti è piaciuto X prova Y», «giochi simili a X»."},
+    {src:'ResetEra e forum', hint:"Cerca su ResetEra, Steam Discussions, GameFAQs, forum di Multiplayer.it e altri forum: utenti che dicono «se ti è piaciuto X amerai Y perché dà le stesse sensazioni»."},
+    {src:'liste «giochi simili a…»', hint:"Cerca liste e articoli «games like X» di riviste (IGN, Eurogamer, PC Gamer, RPGFan, Game Rant) e siti di raccomandazioni (Similar Games, GamePressure, Lutris)."},
+    {src:'IGDB, RAWG e MobyGames', hint:"Cerca i «simili» di IGDB, RAWG e MobyGames per ciascun preferito."},
+    {src:'YouTube e recensioni', hint:"Cerca video e recensioni «se ti è piaciuto X, gioca a…», e giochi che i recensori paragonano ai preferiti per atmosfera e meccaniche."},
+    {src:'nicchia e retro', hint:"Cerca perle di nicchia o retro che trasmettono le stesse sensazioni, anche di genere in parte diverso."}
+  ];
+  function buildPrompt(favs, count){
+    const list = favs.slice(0, 14).map(f=> `- "${f.name}" (${f.year || 'n.d.'}, ${f.plat}; ${(f.tags || []).map(tn).join(', ') || 'n.d.'})${(f.enrich && f.enrich.whyLikeIt) ? ' — ' + f.enrich.whyLikeIt : ''}`).join('\n');
+    return todayLine() + `Mario ha questi giochi PREFERITI (la sua lista Top):\n${list}\n
+Trova ${count} videogiochi che gli darebbero le STESSE VIBES: atmosfera, mood, tono della storia, sensazioni, meccaniche chiave e affinità emotive. Non limitarti al genere tecnico: sono ben accetti giochi di genere in parte diverso se la sensazione è la stessa. Basati soprattutto su consigli REALI di giocatori (forum, Reddit, ResetEra, commenti e liste), e dì cosa dicono.
+NON proporre nessuno di questi (già nel suo database o già rifiutati): ${novitaExcludeListText(novitaKnownNames())}
+Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (titolo esatto), plat, year, tier (S+, S, A, B, C, D, E, F), score (0-100), tags (0-3 codici tra: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}), story (2-3 frasi di premessa), fitIf (una frase), because (una frase: perché dà le stesse sensazioni, citando almeno un preferito), basedOn (array con 1-3 nomi esatti tra i preferiti elencati), sharedVibes (array di 2-4 parole chiave: es. "malinconia", "viaggio epico", "scelte morali", "esplorazione"), forum (una frase su cosa dicono i giocatori, con la fonte es. "Reddit r/JRPG"; null se non trovi un consiglio reale: NON inventare).`;
+  }
+  async function findVibes(){
+    if(busy) return; const favs = favGames();
+    if(favs.length < 1){ showToast('Aggiungi prima almeno un gioco preferito', 2500); return; }
+    if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ in Chiedi a Claude) per cercare sul web', 3500); return; }
+    busy = true; refresh();
+    try{
+      const arr = await novitaSearchParallel(n=> buildPrompt(favs, n), 12, VIBES_STRATEGIES);
+      const have = new Set(results.map(c=> c.name.toLowerCase()));
+      const fresh = arr.filter(c=> !have.has(c.name.toLowerCase()));
+      results = fresh.concat(results); sv(results);
+      showToast(fresh.length ? '🦝 ' + fresh.length + ' giochi con le tue vibes' : 'Nessun gioco nuovo trovato: riprova più tardi', 3000);
+    }catch(e){ showToast('Ricerca non riuscita: ' + ((typeof llmErrorText === 'function' && e && e.code) ? llmErrorText(e) : 'riprova tra poco'), 4000); }
+    busy = false; refresh();
+  }
+  function barHtml(){
+    const favs = favGames(), loc = showLocal ? localList() : [];
+    return `<div class="vb-wrap" id="vibesBar">
+      <div class="vb-title">❤️ I miei preferiti Top <small>(${favs.length})</small></div>
+      <div class="vb-chips">${favs.slice(0, 40).map(f=> `<span class="vb-chip" data-open="${f.id}">${escHtml(f.name)} <b data-unfav="${f.id}" title="Togli dai preferiti">×</b></span>`).join('') || '<span class="vb-empty">Ancora nessuno: aggiungi i giochi che ami di più.</span>'}</div>
+      <div class="vb-add"><input id="vbInput" list="vbList" placeholder="Aggiungi un gioco ai preferiti…" autocomplete="off"><datalist id="vbList"></datalist><button class="btn" id="vbAdd">＋</button></div>
+      <div class="lp-tools"><button class="btn primary" id="vbFind" ${busy ? 'disabled' : ''}>🔮 Consigliati per le mie vibes</button><button class="btn" id="vbLocal">${showLocal ? 'Nascondi' : 'Mostra'} quelli già nel database</button></div>
+      <div class="vb-hint">Atmosfera, sensazioni e meccaniche dei tuoi preferiti, confrontate con quello che dicono giocatori e forum. Le proposte da fuori si aggiungono con ♥ e diventano schede complete.</div>
+      ${loc.length ? `<div class="vb-sec">📚 Già nel tuo database, con le stesse vibes</div>${loc.map(o=> `<div class="vb-loc" data-open="${o.g.id}"><b>${escHtml(o.g.name)}</b> <span class="badge ${TIER_LABEL[o.g.tier]}">${o.g.tier}</span><br><small>Come «${escHtml(o.fav ? o.fav.name : '')}»${o.why.length ? ': ' + escHtml(o.why.join(' · ')) : ''}</small></div>`).join('')}` : ''}
+      ${results.length ? `<div class="vb-sec">🌐 Nuovi da fuori (${results.length})</div>${results.map((c, i)=> `<div class="vb-card novita-compact">
+        <div class="novita-head"><div class="discover-title">${escHtml(c.name)}</div><div class="novita-acts"><button class="discover-btn nope" data-vno="${i}" title="Non fa per me">✕</button><button class="discover-btn like" data-vyes="${i}" title="Aggiungi con scheda completa">♥</button></div></div>
+        <div class="novita-meta"><span>${escHtml(c.year || '?')}</span> · <span>${escHtml(c.plat || '?')}</span><span class="badge ${TIER_LABEL[c.tier]}">${c.tier}</span>${c.score != null ? `<span class="badge outline">${c.score}/100</span>` : ''}</div>
+        ${c.because ? `<div class="vb-because">${escHtml(c.because)}</div>` : ''}
+        ${(c.sharedVibes || []).length ? `<div class="modal-tags">${c.sharedVibes.map(v=> `<span class="tagpill">${escHtml(v)}</span>`).join('')}</div>` : ''}
+        ${c.forum ? `<div class="novita-why"><b>Cosa dicono i giocatori</b> ${escHtml(c.forum)}</div>` : ''}
+        <div class="novita-links"><a class="novita-link-btn" href="${novitaYoutubeUrl(c.name)}" target="_blank" rel="noopener">▶️ Gameplay ITA</a><a class="novita-link-btn" href="${novitaReviewSearchUrl(c.name)}" target="_blank" rel="noopener">📰 Recensione ITA</a><a class="novita-link-btn" href="${coverSearchUrl({name:c.name})}" target="_blank" rel="noopener">🖼️ Locandina</a><a class="novita-link-btn" href="${novitaGameplaySearchUrl(c.name)}" target="_blank" rel="noopener">📸 Foto gameplay</a></div>
+      </div>`).join('')}` : ''}
+    </div>`;
+  }
+  function wire(root){
+    const inp = root.querySelector('#vbInput'), dl = root.querySelector('#vbList');
+    const fillDl = ()=>{ if(dl && !dl.childElementCount) dl.innerHTML = GAMES.map(g=> `<option value="${escHtml(g.name)}">`).join(''); };
+    if(inp) inp.addEventListener('focus', fillDl);
+    const add = ()=>{
+      const v = (inp.value || '').trim().toLowerCase(); if(!v) return;
+      const g = GAMES.find(x=> x.name.toLowerCase() === v) || GAMES.find(x=> x.name.toLowerCase().includes(v));
+      if(!g){ showToast('Non trovo questo gioco nel database', 2200); return; }
+      FAVS.add(g.id); saveFavs(); try{ renderMetrics(); render(); }catch(e){} showToast('❤️ ' + g.name + ' tra i preferiti', 1600); refresh();
+    };
+    root.querySelector('#vbAdd').addEventListener('click', add);
+    if(inp) inp.addEventListener('keydown', e=>{ if(e.key === 'Enter') add(); });
+    root.querySelector('#vbFind').addEventListener('click', findVibes);
+    root.querySelector('#vbLocal').addEventListener('click', ()=>{ showLocal = !showLocal; refresh(); });
+    root.querySelectorAll('[data-unfav]').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); FAVS.delete(+b.dataset.unfav); saveFavs(); try{ renderMetrics(); render(); }catch(x){} refresh(); }));
+    root.querySelectorAll('[data-open]').forEach(b=> b.addEventListener('click', e=>{ if(e.target.closest('[data-unfav]')) return; const g = GAMES.find(x=> x.id == b.dataset.open); if(g) openModal(g); }));
+    root.querySelectorAll('[data-vyes]').forEach(b=> b.addEventListener('click', ()=>{ const c = results[+b.dataset.vyes]; if(!c) return; try{ askToolAddCustomGame(c, 'Le mie vibes'); }catch(e){ showToast((e && e.message || 'Non aggiunto').slice(0, 120), 3000); } results.splice(+b.dataset.vyes, 1); sv(results); refresh(); }));
+    root.querySelectorAll('[data-vno]').forEach(b=> b.addEventListener('click', ()=>{ const c = results[+b.dataset.vno]; if(!c) return; try{ novitaSkipCandidate(c); }catch(e){} results.splice(+b.dataset.vno, 1); sv(results); refresh(); }));
+  }
+  function refresh(){
+    const panel = document.getElementById('discoverPanel'); if(!panel) return;
+    const old = document.getElementById('vibesBar'); const keep = old && old.querySelector('#vbInput') ? old.querySelector('#vbInput').value : '';
+    if(old) old.remove();
+    const wrap = panel.querySelector('.discover-wrap') || panel;
+    wrap.insertAdjacentHTML('afterbegin', barHtml());
+    const root = document.getElementById('vibesBar'); wire(root);
+    const inp = root.querySelector('#vbInput'); if(inp && keep) inp.value = keep;
+  }
+  if(typeof window.renderDiscoverCard === 'function'){
+    const orig = window.renderDiscoverCard;
+    window.renderDiscoverCard = function(){ orig.apply(this, arguments); try{ refresh(); }catch(e){ console.error(e); } };
+  }
 })();

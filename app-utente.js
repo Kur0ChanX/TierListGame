@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v119', date:'2026-09-30', items:[
+    '🦝 Ricerca senza sosta: «Trova nuovi titoli» accumula fino a 30 giochi passando da una fonte all\'altra (Metacritic, Steam, Wikipedia, riviste, Reddit e forum, IGDB/MobyGames…), accetta i giochi da 5/10 in su, mostra il contatore «Giochi trovati nel bidone» e il pulsante «Basta frugare! Mostra bottino».',
+    'Scheda di ricerca compatta: titolo, ✕ e ♥ sulla stessa riga. Con il ♥ il gioco viene completato con la scheda intera (trama ricca, a colpo d\'occhio, pro e contro, prima di comprarlo).',
+    '❤️ Le mie vibes (in Scopri): lista dei preferiti Top e consigli per atmosfera, sensazioni e meccaniche, dal database e dal web (forum e community).',
+    'Revisione delle modifiche: una sola scheda per gioco, «Prima» e «Dopo» separati e testo intero; badge fisso «giochi da approvare». Aggiorna info prova più fonti prima di arrendersi. Intro: «INIZIA A FRUGARE» e titolo più veloce. Avviso di aggiunta piccolo; nuovi generi WRPG, Hack & Slash, Survival Horror, Strategia tattica.'
+  ]},
   {version:'v118', date:'2026-09-29', items:[
     'Revisione una modifica alla volta: «Prima» e «Dopo» con i pulsanti ✅ Approva / ↩️ Tieni precedente / ⏭️ Decido dopo. Nella scheda del gioco compare «✅ Aggiornato il…» oppure «📝 N modifiche da approvare».'
   ]},
