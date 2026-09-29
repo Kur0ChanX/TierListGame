@@ -1803,7 +1803,7 @@ function openModal(g){
     <div class="modal-actions">
       <button class="btn" id="modalFavBtn">${isFav ? '★ Nei preferiti' : '☆ Aggiungi ai preferiti'}</button>
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
-      <button class="btn" id="updateInfoBtn" title="Controlla voto, generi, anno e testi su Wikipedia e Wikidata">🔄 Aggiorna info</button>
+      ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : '<button class="btn" id="updateInfoBtn">🔄 Aggiorna info</button>'}
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
     </div>
   `;
@@ -2276,6 +2276,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v80', date:'2026-09-29', items:[
+    'Il tasto "Aggiorna info" diventa verde con "✅ Info aggiornate il [data]" dopo il controllo di un gioco, così sai quali hai già verificato. Puoi rifarlo quando vuoi.'
+  ]},
   {version:'v79', date:'2026-09-29', items:[
     'Il tasto "📰 Recensioni ITA" (accanto a Gameplay ITA) ora cerca solo su siti italiani (Multiplayer.it, Everyeye, SpazioGames, GamesVillage, TechGaming e altri).',
     'Aggiorna info: la ricerca Gemini ora sa che giorno è, cerca includendo gli ultimi anni, ignora pagine vecchie per ciò che cambia nel tempo (edizioni, lingue, piattaforme, ore) e giudica la grafica rispetto agli standard di oggi. I dati basati su fonti datate compaiono con ⏳ e deselezionati.'
@@ -3601,7 +3604,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v79';
+const DATA_BUILD_VERSION = 'v80';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
