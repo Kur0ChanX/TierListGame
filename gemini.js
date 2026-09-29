@@ -117,7 +117,9 @@ async function geminiGenerate(input, opts, extra){
       throw err;
     }
     if(opts.onText) opts.onText({text, delta: text});
-    return {text, truncated: !!(cand && cand.finishReason === 'MAX_TOKENS'), engine: 'gemini'};
+    const gm = (cand && cand.groundingMetadata) || {};
+    const sources = (gm.groundingChunks || []).map(c=> c.web).filter(Boolean).map(w=> ({title: w.title || '', uri: w.uri || ''}));
+    return {text, truncated: !!(cand && cand.finishReason === 'MAX_TOKENS'), engine: 'gemini', sources};
   }
   const err = new Error('troppi passaggi'); err.code = 'gemini_error'; throw err;
 }
@@ -127,7 +129,7 @@ async function geminiGenerate(input, opts, extra){
 async function askLLM(input, opts, extra){
   opts = opts || {}; extra = extra || {};
   const eng = llmEngine(), hasG = !!geminiKey();
-  const useGeminiFirst = hasG && (eng === 'gemini' || !askSample || (opts.images && !askImagesSupported && eng !== 'claude'));
+  const useGeminiFirst = hasG && (eng === 'gemini' || extra.forceGemini || !askSample || (opts.images && !askImagesSupported && eng !== 'claude'));
   if(useGeminiFirst) return geminiGenerate(input, opts, extra);
   if(!askSample){ const e = new Error('non disponibile'); e.code = 'not_declared'; throw e; }
   const copts = Object.assign({}, opts);
