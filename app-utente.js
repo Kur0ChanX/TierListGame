@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v130', date:'2026-10-03', items:[
+    'Torna il pulsante «Aggiorna locandina» nella scheda dei giochi che hanno già una copertina: la riscarica dalle fonti online (Steam, Libretro, Wikipedia, RAWG). Senza copertina resta «Trova copertina», che parte anche da solo.'
+  ]},
   {version:'v129', date:'2026-10-03', items:[
     'Ogni ricerca («Fruga altri titoli» e «Fruga per genere») ora raccoglie fino a 60 giochi (prima 30): sono ancora leggeri per la libreria.',
     'Nuovo pulsante «Accetta tutto»: aggiunge in un colpo solo tutte le proposte e poi mostra l\'elenco essenziale dei giochi accettati (nome, voto, tier, piattaforma, anno, genere).'
