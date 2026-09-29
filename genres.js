@@ -75,7 +75,9 @@
       const add = r.codes.filter(c=> !tags.includes(c) && TAG_INFO[c]);
       if(!add.length) return;
       const merged = tags.concat(add).slice(0, 5);
-      const next = Object.assign({}, doc, {tags: merged});
+      // riparto dallo stato attuale del gioco (nel frattempo può essere arrivato il completamento con simboli e dettagli)
+      const cur = GAMES.find(x=> x.id === id);
+      const next = cur ? Object.assign(customDocFromGame(cur, cleanCustomEnrich(cur.enrich) || undefined), {tags: merged}) : Object.assign({}, doc, {tags: merged});
       if(COVER_DB) await COVER_DB.doc('customGames/' + String(id)).set(next);
       ensureGenreLists(merged);
       showToast('🔎 Generi verificati su Wikidata: aggiunti ' + add.map(c=> TAG_INFO[c].label).join(', '), 4500);
@@ -136,7 +138,7 @@
       const ov = loadJson(OV_KEY, {}); let n = 0; const sets = [];
       body.querySelectorAll('input[data-i]:checked').forEach(cb=>{
         const r = rows[+cb.dataset.i]; const tags = r.g.tags.filter(t=> !r.remove.includes(t)).concat(r.add).slice(0, 6);
-        if(r.g.custom){ try{ COVER_DB && COVER_DB.doc('customGames/' + r.g.id).set({name:r.g.name, plat:r.g.plat, year:r.g.year, tier:r.g.tier, score:r.g.score, tags, story:r.g.story, note:r.g.note, label:r.g.label}); }catch(e){} }
+        if(r.g.custom){ try{ COVER_DB && COVER_DB.doc('customGames/' + r.g.id).set(Object.assign(customDocFromGame(r.g, cleanCustomEnrich(r.g.enrich) || undefined), {tags})); }catch(e){} }
         else { ov[r.g.id] = tags; r.g.tags = tags.slice(); }
         n++; sets.push(tags);
       });

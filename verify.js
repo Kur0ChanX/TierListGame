@@ -218,7 +218,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
   async function applyPatch(g, p){
     if(g.custom){
       const doc = {name: g.name, plat: g.plat, year: p.year || g.year, tier: p.tier || g.tier, score: p.score != null ? p.score : g.score, tags: p.tags || g.tags, story: p.story != null ? p.story : g.story, note: p.note || g.note, label: Object.assign({}, g.label || {}, p.label || {}),
-        pros: (p.enrich && p.enrich.pros) || (g.proscons && g.proscons.pros) || [], cons: (p.enrich && p.enrich.cons) || (g.proscons && g.proscons.cons) || [], addedAt: new Date().toISOString()};
+        pros: (p.enrich && p.enrich.pros) || (g.proscons && g.proscons.pros) || [], cons: (p.enrich && p.enrich.cons) || (g.proscons && g.proscons.cons) || [], enrich: cleanCustomEnrich(Object.assign({}, g.enrich || {}, p.enrich || {})) || undefined, addedAt: new Date().toISOString()};
       if(COVER_DB) await COVER_DB.doc('customGames/' + String(g.id)).set(doc);
     } else {
       const ov = loadOv(); const cur = ov[g.id] || {};

@@ -72,14 +72,72 @@ function askToolAddCustomGame(input, sourceLabel){
     label,
     pros: (cleanProsCons(input.pros, input.cons) || {pros:[]}).pros,
     cons: (cleanProsCons(input.pros, input.cons) || {cons:[]}).cons,
+    enrich: cleanCustomEnrich(input.enrich) || undefined,
     addedAt: new Date().toISOString()
   };
   try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){}
+  try{ queueEnrich(id); }catch(e){}
   const newLists = ensureGenreLists(tags);
   try{ if(typeof verifyNewGameGenres === 'function') verifyNewGameGenres(id, doc); }catch(e){}
   showAddedBanner(name, tags, newLists);
   return {id, name, added: true, resultNote: 'Salvato nel database di Mario: comparirà nella classifica su ogni suo dispositivo.'};
 }
+
+// ---- Completamento automatico dei giochi aggiunti (simboli 💕🤝✨💉 e dettagli come nei giochi di base) ----
+const ENRICH_TRIED = 'jrpg_enrich_tried';
+let enrichQueueIds = new Set(), enrichTimer = 0, enrichRunning = false;
+function customDocFromGame(g, enrich){
+  return {name: g.name, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
+    pros: (g.proscons && g.proscons.pros) || [], cons: (g.proscons && g.proscons.cons) || [], enrich: enrich || undefined};
+}
+function buildEnrichPrompt(games){
+  const list = games.map(g=> `- id ${g.id}: "${g.name}" (${g.year || 'anno n.d.'}, ${g.plat}), tier ${g.tier}, voto ${g.score}, generi: ${(g.tags || []).map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', ') || 'n.d.'}${g.story ? '. Trama: ' + g.story : ''}`).join('\n');
+  return todayLine() + `Per ciascuno di questi videogiochi cerca informazioni ATTENDIBILI (Metacritic, HowLongToBeat, Wikipedia, recensioni) e compila la scheda. Se di un gioco non trovi dati sicuri, metti null nei campi incerti: NON inventare.
+${list}
+Rispondi SOLO con un array JSON valido, un oggetto per gioco (nell'ordine dato), con questi campi: id (numero), storyTag ("romance" se la storia ha una forte componente romantica, "affinity" se conta molto il legame speciale tra i personaggi, "wow" se ha colpi di scena/momenti sorprendenti memorabili, altrimenti null), storyTagNote (una frase in italiano che spiega il tag, null se storyTag è null), dopamine (true SOLO se il gioco ha un loop di ricompense così coinvolgente da spingere a dire "ancora un turno", altrimenti false), dopaLoop (se dopamine: 3-4 passi del ciclo con un'emoji ciascuno, es. ["⚔️ Battaglia","⭐ Ricompensa","🔓 Sblocco","🔁 Sfida più dura"], altrimenti null), dopaHook (una frase: perché non riesci a smettere, null se dopamine è false), dopaWatch (una frase: quando può stancare, null se dopamine è false), eraScore (voto 0-100 all'uscita), todayScore (voto 0-100 oggi), agingNote (1-2 frasi su come regge oggi, citando gli anni, senza "recente"/"da poco"), gameplayScore (0-10), gameplayNote (una frase sul gameplay), whyLikeIt (una frase: a chi piace), hoursMain (ore storia), hoursCompletionist (ore completista), lengthVerdict (una frase sulla durata), remaster (una frase su edizioni/remaster esistenti), language (una frase su testi e doppiaggio in italiano, solo se lo trovi in una fonte).`;
+}
+function queueEnrich(id){
+  enrichQueueIds.add(id); clearTimeout(enrichTimer);
+  enrichTimer = setTimeout(()=> runEnrich([...enrichQueueIds]), 2500);
+}
+async function runEnrich(ids, opts){
+  opts = opts || {};
+  if(enrichRunning || !ids.length || typeof llmAvailable !== 'function' || !llmAvailable() || !COVER_DB) return 0;
+  enrichRunning = true; enrichQueueIds = new Set(); let done = 0;
+  const todo = ids.map(id=> GAMES.find(g=> g.id === id)).filter(g=> g && g.custom);
+  const useProgress = opts.progress && window.Progress;
+  try{
+    if(useProgress) Progress.begin('Completo le schede dei giochi…');
+    for(let i = 0; i < todo.length; i += 6){
+      const part = todo.slice(i, i + 6);
+      let arr = null;
+      try{
+        const r = await askLLM(buildEnrichPrompt(part), {}, {search:true, label:'Completo le schede: simboli e dettagli…', silent: useProgress});
+        arr = parseNovitaJson(r && r.text);
+      }catch(e){}
+      const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
+      for(const g of part){
+        tried[g.id] = new Date().toISOString().slice(0, 10);
+        const row = (arr || []).find(x=> x && Number(x.id) === g.id) || (arr && arr[part.indexOf(g)]);
+        if(!row) continue;
+        const raw = Object.assign({}, row, {dopa: row.dopamine === true && Array.isArray(row.dopaLoop) ? {loop: row.dopaLoop, hook: row.dopaHook, watch: row.dopaWatch} : null, checked: tried[g.id]});
+        const ce = cleanCustomEnrich(raw); if(!ce) continue;
+        try{ await COVER_DB.doc('customGames/' + String(g.id)).set(customDocFromGame(g, ce)); done++; }catch(e){}
+      }
+      try{ localStorage.setItem(ENRICH_TRIED, JSON.stringify(tried)); }catch(e){}
+      if(useProgress) Progress.set(Math.min(100, (i + part.length) / todo.length * 100), `Schede completate: ${Math.min(i + part.length, todo.length)}/${todo.length}`);
+    }
+  }finally{ enrichRunning = false; if(useProgress) Progress.end(); }
+  if(done) showToast(`✨ ${done} ${done === 1 ? 'scheda completata' : 'schede completate'} con simboli e dettagli`, 3500);
+  return done;
+}
+// giochi aggiunti senza simboli/dettagli (o con un tentativo vecchio di oltre 7 giorni)
+function customNeedingEnrich(){
+  const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
+  return GAMES.filter(g=> g.custom && !(g.enrich && g.enrich.eraScore != null) && !(g.enrich && g.enrich.checked && tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 7 * 864e5) && !(tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 7 * 864e5));
+}
+window.completeCustomGames = ()=>{ const n = customNeedingEnrich(); if(!n.length){ showToast('Tutti i giochi aggiunti hanno già simboli e dettagli'); return; } return runEnrich(n.map(g=> g.id), {progress:true}); };
+setTimeout(()=>{ try{ const n = customNeedingEnrich(); if(n.length && llmAvailable()) runEnrich(n.slice(0, 12).map(g=> g.id)); }catch(e){} }, 9000);   // a ogni avvio ne completa fino a 12, in automatico
 const ASK_TOOLS = [
   {
     name: 'search_games',
@@ -828,7 +886,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v108';
+const DATA_BUILD_VERSION = 'v109';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

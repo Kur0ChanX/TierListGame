@@ -200,6 +200,25 @@ function cleanProsCons(pros, cons){
   const p = f(pros), c = f(cons);
   return (p.length || c.length) ? {pros:p, cons:c} : null;
 }
+// ---- Simboli e dettagli dei giochi aggiunti: stessi campi dei giochi di base (💕 storia romantica, 🤝 legame, ✨ sorprendente, 💉 dopamina, voto nel tempo, gameplay...) ----
+function cleanCustomEnrich(o){
+  if(!o || typeof o !== 'object') return null;
+  const str = (x, min)=> (typeof x === 'string' && x.trim().length >= (min || 3)) ? x.trim() : null;
+  const num = (x, lo, hi)=>{ const n = typeof x === 'number' ? x : parseFloat(x); return (isFinite(n) && n >= lo && n <= hi) ? n : null; };
+  const e = {};
+  if(['romance','affinity','wow'].includes(o.storyTag)){ e.storyTag = o.storyTag; const n = str(o.storyTagNote, 8); if(n) e.storyTagNote = n; }
+  if(o.dopamine === true){
+    e.dopamine = true;
+    const d = o.dopa;
+    if(d && Array.isArray(d.loop) && d.loop.length >= 2 && str(d.hook, 8)) e.dopa = {loop: d.loop.map(String).slice(0, 5), hook: String(d.hook), watch: str(d.watch, 8) || ''};
+  }
+  const full = {eraScore: num(o.eraScore, 0, 100), todayScore: num(o.todayScore, 0, 100), gameplayScore: num(o.gameplayScore, 0, 10),
+    agingNote: str(o.agingNote, 12), gameplayNote: str(o.gameplayNote, 12), whyLikeIt: str(o.whyLikeIt, 12),
+    hoursMain: num(o.hoursMain, 1, 400), hoursCompletionist: num(o.hoursCompletionist, 1, 1500), lengthVerdict: str(o.lengthVerdict, 8), remaster: str(o.remaster, 5), language: str(o.language, 5)};
+  if(Object.values(full).every(v=> v != null)) Object.assign(e, full);
+  e.checked = typeof o.checked === 'string' ? o.checked : undefined;
+  return (e.storyTag || e.dopamine || e.eraScore != null || e.checked) ? e : null;
+}
 function syncCustomGames(snap){
   const seen = new Set();
   (snap.docs || []).forEach(d=>{
@@ -223,6 +242,7 @@ function syncCustomGames(snap){
       proscons: cleanProsCons(v.pros, v.cons),
       label: (v.label && typeof v.label === 'object') ? v.label : null
     };
+    { const ce = cleanCustomEnrich(v.enrich); if(ce){ if(ce.eraScore != null){ ce.pros = (entry.proscons && entry.proscons.pros) || []; ce.cons = (entry.proscons && entry.proscons.cons) || []; } entry.enrich = ce; } }
     const idx = GAMES.findIndex(x=>x.id===id);
     if(idx>=0) GAMES[idx] = entry; else GAMES.push(entry);
     CUSTOM_GAME_IDS.add(id);
@@ -448,8 +468,8 @@ function customProsConsHtml(g){
 }
 function enrichHtml(g){
   const e = g.enrich;
-  if(!e && g.custom && customProsConsHtml(g)) return customProsConsHtml(g);
-  if(!e){
+  if((!e || e.eraScore == null) && g.custom && customProsConsHtml(g)) return customProsConsHtml(g);
+  if(!e || e.eraScore == null){
     return `<div class="modal-section-title">🔍 Approfondimento</div><div class="modal-story placeholder">Analisi approfondita (voto nel tempo, gameplay, longevità, lingua...) in arrivo per questo titolo.</div>`;
   }
   return `

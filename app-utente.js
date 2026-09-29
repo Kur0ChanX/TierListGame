@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v109', date:'2026-09-29', items:[
+    'I giochi aggiunti (da Novità, Novità per genere o Chiedi) ora hanno gli stessi simboli e dettagli dei giochi di base: 💕 storia romantica, 🤝 legame speciale, ✨ storia sorprendente, 💉 loop coinvolgente (dopamina) con il suo pannello, voto nel tempo, gameplay, perché potrebbe piacerti, longevità e lingua.',
+    'Completamento automatico: all\'aggiunta e a ogni avvio (fino a 12 giochi) l\'app completa da sola le schede che ne sono prive; dal menu ✨ "Completa le schede dei giochi aggiunti" le completa tutte con la barra di avanzamento.'
+  ]},
   {version:'v108', date:'2026-09-29', items:[
     'Barra di caricamento stile JRPG: quando cerchi con l\'AI (Novità, Chiedi, Aggiorna info, voce, wishlist) compare una finestra blu con il bidone Frugu Frugu che fruga (GIF ad alta risoluzione) e la barra dei punti con la percentuale. Con le copertine automatiche e la verifica dei generi la percentuale è reale; con le richieste all\'AI è stimata (~).'
   ]},
