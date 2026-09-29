@@ -33,7 +33,7 @@
 <div class="wrap">
   <div class="topbar">
     <div class="topbar-row1">
-      <h1><img class="brand-logo" src="icons/logo.png" alt="Raccoon Tier" width="53" height="56"><img class="brand-frugu" src="icons/frugu.gif" alt="" width="56" height="44" aria-hidden="true"><span class="sr-only">Raccoon Tier — Tier List RPG &amp; JRPG di Mario</span></h1>
+      <h1><img class="brand-logo" src="icons/logo.png" alt="Raccoon Tier" width="53" height="56"><span class="sr-only">Raccoon Tier — Tier List RPG &amp; JRPG di Mario</span></h1>
       <button class="iconbtn" id="fsBtn" aria-label="Schermo intero" title="Schermo intero (nasconde barra del browser e orario)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button class="iconbtn" id="profileBtn" aria-label="Profilo">👤</button>
       <button class="iconbtn" id="changelogBtn" aria-label="Novità del programma">🆕</button>
@@ -155,6 +155,8 @@
 
 </div>
 
+<div class="frugu-foot" aria-hidden="true"><img src="icons/frugu.gif" alt="" width="240" height="188" loading="lazy"></div>
+
 <button class="scrolltop-fab" id="scrollTopBtn" aria-label="Torna su" title="Torna su">↑</button>
 <button class="ask-fab" id="askFab" aria-label="Chiedi a Claude" title="Chiedi a Claude">💬</button>
 
@@ -191,6 +193,7 @@
         <a href="https://github.com/settings/tokens/new?scopes=gist&description=TierList%20sync&default_expires_at=none" target="_blank" rel="noopener">1) Crea il token (il permesso giusto è già selezionato)</a>
         <div class="ask-engine-actions"><button class="btn primary" id="syncSaveBtn">Attiva sincronizzazione</button><button class="btn" id="syncNowBtn">Sincronizza ora</button><button class="btn" id="syncOffBtn">Disattiva</button></div>
         <label class="ask-toggle"><input type="checkbox" id="introToggle" checked> Mostra l'apertura animata all'avvio</label>
+        <label class="ask-toggle"><input type="checkbox" id="autoFsToggle" checked> Avvia a schermo intero (al primo tocco)</label>
         <div class="ask-engine-actions"><button class="btn" id="genreCheckBtn">🔎 Verifica generi online (Wikidata)</button></div>
         <div class="ask-engine-status" id="syncStatus">Salva preferiti, stati, giochi aggiunti e locandine (link) sul tuo GitHub e li ritrova su ogni dispositivo.</div>
       </div>

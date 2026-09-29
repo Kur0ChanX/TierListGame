@@ -45,4 +45,18 @@
     try{ it.checked = localStorage.getItem('jrpg_intro') !== 'off'; }catch(e){}
     it.addEventListener('change', ()=>{ try{ localStorage.setItem('jrpg_intro', it.checked ? 'on' : 'off'); }catch(e){} });
   }
+  const af = document.getElementById('autoFsToggle');
+  if(af){
+    try{ af.checked = localStorage.getItem('jrpg_autofs') !== 'off'; }catch(e){}
+    af.addEventListener('change', ()=>{ try{ localStorage.setItem('jrpg_autofs', af.checked ? 'on' : 'off'); }catch(e){} });
+  }
+  // 7) schermo intero di default: il browser lo consente solo dopo un tocco, quindi al primo tocco (se l'apertura animata non c'era)
+  try{
+    const wantFs = localStorage.getItem('jrpg_autofs') !== 'off';
+    const isFull = ()=> !!document.fullscreenElement || (window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches));
+    if(wantFs && !document.getElementById('intro') && document.documentElement.requestFullscreen && !isFull() && !navigator.webdriver){
+      const once = ()=>{ document.removeEventListener('click', once, true); try{ if(!isFull()) document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){} };
+      document.addEventListener('click', once, true);
+    }
+  }catch(e){}
 })();

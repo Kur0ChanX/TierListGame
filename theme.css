@@ -201,12 +201,11 @@ html:fullscreen .wrap{padding-top:2px}
 /* animazione Frugu Frugu accanto al logo */
 .brand-frugu{height:44px; width:auto; display:block; margin-left:-4px; image-rendering:auto; filter:drop-shadow(0 3px 8px rgba(124,92,255,.35)); flex:0 0 auto}
 h1{flex:0 1 auto !important; min-width:0}
-@media (max-width:430px){ .brand-frugu{height:38px} .topbar-row1{gap:6px} .iconbtn{padding-left:9px; padding-right:9px} }
-@media (prefers-reduced-motion:reduce){ .brand-frugu{display:none} }
+@media (max-width:430px){ .topbar-row1{gap:6px} .iconbtn{padding-left:9px; padding-right:9px} }
 
 /* ===== apertura animata ===== */
 #intro{position:fixed; inset:0; z-index:200000; background:#0a0620; display:flex; align-items:center; justify-content:center; overflow:hidden; touch-action:manipulation; cursor:pointer; transition:opacity .5s ease}
-#intro.closing{opacity:0; pointer-events:none}
+#intro.closing{opacity:0}
 .intro-bg{position:absolute; inset:0; background:url(icons/intro.jpg) center/cover; filter:blur(26px) brightness(.5) saturate(1.3); transform:scale(1.1)}
 .intro-frame{position:relative; height:100dvh; width:min(100vw, calc(100dvh * .558)); aspect-ratio:768/1376; overflow:hidden; box-shadow:0 0 80px rgba(124,92,255,.55); animation:introIn .8s ease-out both}
 @keyframes introIn{from{opacity:0}to{opacity:1}}
@@ -233,3 +232,7 @@ h1{flex:0 1 auto !important; min-width:0}
 html.intro-on{overflow:hidden}
 @media (prefers-reduced-motion:reduce){ .intro-frame,.intro-start{animation:none !important} .intro-frugu b{animation-duration:2s} .intro-sparks u{display:none} #intro{transition:opacity .3s} }
 .ask-toggle{display:flex; gap:8px; align-items:center; font-size:.85rem}
+
+/* Frugu Frugu in fondo alla pagina, al centro, nello spazio libero: nel flusso normale, così non copre mai nulla */
+.frugu-foot{display:flex; justify-content:center; padding:28px 16px calc(96px + env(safe-area-inset-bottom,0px))}
+.frugu-foot img{width:min(72vw, 320px); height:auto; display:block; filter:drop-shadow(0 6px 16px rgba(124,92,255,.35))}
