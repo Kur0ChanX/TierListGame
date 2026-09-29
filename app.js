@@ -2276,6 +2276,9 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && wizardBackdro
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v90', date:'2026-09-29', items:[
+    'Aggiornamenti subito visibili sul sito: il browser non tiene più in cache la vecchia versione (prima poteva restare fino a 10 minuti). Dopo questa versione basta riaprire il sito.'
+  ]},
   {version:'v89', date:'2026-09-29', items:[
     'Apertura: la scritta Frugu Frugu ora resta ferma (niente effetto fantasma) e cambia colore scorrendo tutto l\'arcobaleno.'
   ]},
@@ -3631,7 +3634,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-28';
-const DATA_BUILD_VERSION = 'v89';
+const DATA_BUILD_VERSION = 'v90';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
