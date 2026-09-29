@@ -7,6 +7,7 @@
   const API = 'https://api.github.com';
   const _get = Storage.prototype.getItem, _set = Storage.prototype.setItem, _rem = Storage.prototype.removeItem;
   const ls = { get:k=>{ try{ return _get.call(localStorage, k); }catch(e){ return null; } }, set:(k,v)=>{ try{ _set.call(localStorage, k, v); }catch(e){} }, rem:k=>{ try{ _rem.call(localStorage, k); }catch(e){} } };
+  const UNION = ['jrpg_db_customGames','jrpg_db_covers','jrpg_db_blobs'];
   const syncable = k=> typeof k === 'string' && k.indexOf('jrpg_') === 0 && !NOSYNC.includes(k);
   const token = ()=> (ls.get('jrpg_sync_token') || '').trim();
   const loadMeta = ()=>{ try{ return JSON.parse(ls.get('jrpg_sync_meta') || '{}') || {}; }catch(e){ return {}; } };
@@ -64,6 +65,17 @@
       Object.keys(remoteKeys || {}).forEach(k=>{
         if(!syncable(k)) return;
         const r = remoteKeys[k]; if(!r || typeof r.t !== 'number') return;
+        if(UNION.includes(k)){
+          // archivi di "elenchi" (giochi aggiunti, copertine): si uniscono invece di sostituirsi, così i giochi aggiunti su due dispositivi non si perdono
+          let lo = {}, ro = {};
+          try{ lo = JSON.parse(ls.get(k) || '{}') || {}; }catch(e){}
+          try{ ro = JSON.parse(r.v || '{}') || {}; }catch(e){}
+          const merged = (r.t > (meta[k] || 0)) ? Object.assign({}, lo, ro) : Object.assign({}, ro, lo);
+          const ms = JSON.stringify(merged);
+          if(ms !== (ls.get(k) || '{}')){ ls.set(k, ms); changed = true; }
+          meta[k] = (JSON.stringify(ro) !== ms) ? Date.now() : Math.max(meta[k] || 0, r.t);
+          return;
+        }
         if(r.t > (meta[k] || 0)){
           if(r.v === null || r.v === undefined) ls.rem(k); else ls.set(k, r.v);
           meta[k] = r.t;
