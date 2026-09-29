@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v114', date:'2026-09-29', items:[
+    'Simboli 💕🤝✨💉: il voto non c\'entra più. L\'AI cerca sul gioco e li assegna solo a chi ha qualcosa di unico (una meccanica travolgente o una storia affascinante), anche se il resto del gioco è modesto.'
+  ]},
   {version:'v113', date:'2026-09-29', items:[
     'Simboli 💕🤝✨💉 solo dove servono: nei giochi aggiunti l\'AI li assegna ormai di rado (al massimo 1 gioco su 4 per la storia e 1 su 5 per la dopamina) e solo se il gioco ha qualcosa di unico; sotto il voto 85 non compaiono mai.'
   ]},
