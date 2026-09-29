@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v115', date:'2026-09-29', items:[
+    '🔎 Controllo dati passivo: in background, un gioco ogni ~25 secondi, l\'app confronta voto, anno, generi e doppiaggio italiano con Wikipedia e Wikidata (nessuna AI, nessun costo). Non cambia mai nulla da sola: le proposte si vedono in ✨ → Controllo dati, e si applicano o si ignorano una per una.'
+  ]},
   {version:'v114', date:'2026-09-29', items:[
     'Simboli 💕🤝✨💉: il voto non c\'entra più. L\'AI cerca sul gioco e li assegna solo a chi ha qualcosa di unico (una meccanica travolgente o una storia affascinante), anche se il resto del gioco è modesto.'
   ]},

@@ -277,5 +277,73 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore storia
       showToast('🔎 Verificato su Wikipedia/Wikidata: ' + ch.map(c=> c.label).join(', ') + ' aggiornati', 5000);
     }catch(e){}
   };
+
+  // ----- controllo passivo del database: un gioco alla volta, in silenzio, SOLO fonti aperte (niente AI, niente token) -----
+  // Non cambia mai nulla da solo: raccoglie le proposte e le mostra nel menu ✨ → "Controllo dati" per la tua conferma.
+  const AU = 'jrpg_audit', AU_SKIP = 'jrpg_audit_skip', AU_ON = 'jrpg_autoaudit', AU_DAYS = 90;
+  const auLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(AU) || '{}') || {}; }catch(e){ return {}; } };
+  const auSave = o=>{ try{ localStorage.setItem(AU, JSON.stringify(o)); }catch(e){} };
+  const skLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(AU_SKIP) || '{}') || {}; }catch(e){ return {}; } };
+  const auKey = (id, c)=> id + '|' + c.id + '|' + String(c.to).slice(0, 60);
+  window.auditOn = ()=> localStorage.getItem(AU_ON) !== 'off';
+  window.auditSetOn = on=>{ try{ localStorage.setItem(AU_ON, on ? 'on' : 'off'); }catch(e){} if(on) auSchedule(20000); };
+  window.auditStats = function(){
+    const a = auLoad(), ids = GAMES.map(g=> g.id), done = ids.filter(id=> a[id]).length;
+    const props = ids.filter(id=> a[id] && a[id].ch && a[id].ch.length).length;
+    return {done, total: ids.length, props};
+  };
+  let auDelay = 25000, auTimer = 0, auBusy = false;
+  function auNext(){
+    const a = auLoad(), now = Date.now(), lim = AU_DAYS * 864e5;
+    let best = null, bt = Infinity;
+    GAMES.forEach(g=>{ const r = a[g.id]; const t = r ? new Date(r.t).getTime() : 0; if(r && now - t < lim) return; if(t < bt){ bt = t; best = g; } });
+    return best;
+  }
+  function auSchedule(ms){ clearTimeout(auTimer); auTimer = setTimeout(auStep, ms == null ? auDelay : ms); }
+  async function auStep(){
+    if(!auditOn() || auBusy) return;
+    const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.modal-backdrop.show, .dup-backdrop.show');
+    if(!calm){ return auSchedule(60000); }
+    const g = auNext(); if(!g) return auSchedule(6 * 3600e3);   // tutto controllato di recente: ricontrollo tra qualche ora
+    auBusy = true;
+    try{
+      const [wiki, wd, itw] = await Promise.allSettled([wikiPage(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name)]);
+      const ok = x=> x.status === 'fulfilled' ? x.value : null;
+      const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw)};
+      if(wiki.status === 'rejected' && wd.status === 'rejected'){ auDelay = Math.min(auDelay * 2, 15 * 60e3); }   // fonti irraggiungibili / limite di richieste: rallento, non insisto
+      else {
+        auDelay = 25000;
+        const sk = skLoad();
+        const ch = factChanges(g, src).filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch}));
+        const a = auLoad(); a[g.id] = {t: new Date().toISOString(), ch}; auSave(a);
+        if(ch.length){ try{ window.dispatchEvent(new Event('audit-update')); }catch(e){} }
+      }
+    }catch(e){ auDelay = Math.min(auDelay * 2, 15 * 60e3); }
+    auBusy = false; auSchedule();
+  }
+  window.openAuditPanel = function(){
+    const el = panel(), a = auLoad(), st = auditStats();
+    const list = GAMES.filter(g=> a[g.id] && a[g.id].ch && a[g.id].ch.length);
+    const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔎 Controllo dati</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
+    const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · <b>${list.length}</b> con proposte. Va avanti da solo, piano piano, usando solo Wikipedia e Wikidata (nessun costo di AI). <b>Non cambia nulla senza il tuo ok.</b></div>
+      <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>`;
+    el.innerHTML = shell(head + (list.length ? `<div class="gc-rows">${list.map(g=> `<div class="gc-row" data-g="${g.id}"><span><b>${escHtml(g.name)}</b>${a[g.id].ch.map((c, i)=> `<br><label><input type="checkbox" data-g="${g.id}" data-i="${i}" ${/⚠️/.test(c.label + c.to) ? '' : 'checked'}> <b>${escHtml(c.label)}</b>: <small>${escHtml(c.from || '—')}</small> → ${escHtml(c.to)}</label>`).join('')}<br><button class="btn" data-ap="${g.id}">Applica i selezionati</button> <button class="btn" data-ig="${g.id}">Ignora</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Nessuna correzione da proporre finora ✅</div>'));
+    el.classList.add('show');
+    el.querySelector('#auOn').addEventListener('change', e=> auditSetOn(e.target.checked));
+    el.querySelectorAll('[data-ap]').forEach(b=> b.addEventListener('click', async ()=>{
+      const g = GAMES.find(x=> x.id == b.dataset.ap), r = auLoad(), rec = r[g.id]; if(!rec) return;
+      const chosen = [...el.querySelectorAll(`input[data-g="${g.id}"]:checked`)].map(cb=> rec.ch[+cb.dataset.i]);
+      const rest = rec.ch.filter(c=> !chosen.includes(c));
+      if(chosen.length){ await applyPatch(g, mergePatch(chosen)); rec.ch = rest; auSave(r); showToast('✅ Scheda aggiornata: ' + g.name, 2500); }
+      openAuditPanel();
+    }));
+    el.querySelectorAll('[data-ig]').forEach(b=> b.addEventListener('click', ()=>{
+      const id = b.dataset.ig, r = auLoad(), rec = r[id]; if(!rec) return;
+      const sk = skLoad(); rec.ch.forEach(c=>{ sk[auKey(id, c)] = 1; }); try{ localStorage.setItem(AU_SKIP, JSON.stringify(sk)); }catch(e){}
+      rec.ch = []; auSave(r); openAuditPanel();
+    }));
+  };
+  // parte dopo l'avvio, senza disturbare: prima attesa lunga
+  setTimeout(()=> auSchedule(45000), 30000);
   try{ applyGameOverrides(); renderListBar(); if(state.view === 'list') render(); }catch(e){}
 })();
