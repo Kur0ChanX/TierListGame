@@ -932,9 +932,24 @@ function sagaKeyOf(g){ buildDynamicSagas(); return SAGA_MAP[g.id] || DYN_SAGA[g.
 // «Cerca capitoli mancanti»: chiede alla ricerca web i capitoli/spin-off della saga che non hai ancora
 async function sagaFindMissing(key, host){
   const info = SAGA_INFO[key]; if(!info) return;
-  if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ in Chiedi a Claude)', 3000); return; }
+  const hasRawg = !!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has());
+  if(!hasRawg && (typeof llmAvailable !== 'function' || !llmAvailable())){ showToast('Serve una chiave Gemini o RAWG (⚙️ in Chiedi a Claude)', 3000); return; }
   host.innerHTML = '<div class="lp-sub">🦝 Frugu Frugu cerca gli altri capitoli…</div>';
   const known = GAMES.filter(g=> sagaKeyOf(g) === key).map(g=> g.name);
+  let fromRawg = [];
+  if(hasRawg){       // fonte diretta: l'elenco ufficiale della serie su RAWG (nessuna AI, nessun rischio di titoli inventati)
+    try{
+      for(const nm of known.slice(0, 3)){ const rg = await SearchHub.rawg.find(nm); if(!rg) continue; fromRawg = fromRawg.concat(await SearchHub.rawg.series(rg.id)); if(fromRawg.length) break; }
+      fromRawg = dedupeNovitaCandidates(fromRawg, novitaKnownNames(), NOVITA_GENRE_ALL_CODES).filter(c=> c.score == null || c.score >= 50);
+    }catch(e){ fromRawg = []; }
+  }
+  if(fromRawg.length && (typeof llmAvailable !== 'function' || !llmAvailable() || fromRawg.length >= 3)){
+    host._cands = fromRawg;
+    host.innerHTML = fromRawg.map((c, i)=> `<div class="saga-miss"><span><b>${escHtml(c.name)}</b> <small>${escHtml(c.year || '')} · ${escHtml(c.plat || '')} · da RAWG</small></span><button class="btn" data-add="${i}" title="Aggiungi con scheda completa">♥ Aggiungi</button></div>`).join('');
+    host.querySelectorAll('[data-add]').forEach(b=> b.addEventListener('click', ()=>{ const c = host._cands[+b.dataset.add]; try{ askToolAddCustomGame(c, 'Saghe'); b.closest('.saga-miss').remove(); }catch(e){ showToast(String(e && e.message || 'Non aggiunto').slice(0, 120), 3000); } }));
+    return;
+  }
+  if(typeof llmAvailable !== 'function' || !llmAvailable()){ host.innerHTML = '<div class="lp-sub">Nessun altro capitolo trovato su RAWG ✅</div>'; return; }
   const prompt = todayLine() + `Elenca i capitoli principali e gli spin-off importanti della saga «${info.name}» che NON sono in questo elenco (già presenti): ${known.join('; ')}.
 Rispondi SOLO con un array JSON (max 10 oggetti, vuoto se non manca nulla) con: name (titolo esatto), plat, year, tier (S+..F), score (0-100), tags (0-3 codici tra: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}), story (2-3 frasi), fitIf (una frase in seconda persona che completa «Fa per te se…»). Solo giochi realmente esistenti.`;
   try{

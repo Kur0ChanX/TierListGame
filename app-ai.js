@@ -677,7 +677,7 @@ async function fetchNovitaBatch(){
   const excludeNames = novitaKnownNames();
   try{
     // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: ['wikicat', 'wikidata', 'steamspy', 'steamsearch', 'gog', 'rawg', 'reddit']});
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: ['wikicat', 'wikidata', 'steamspy', 'steamsearch', 'gog', 'rawg', 'rawgnew', 'reddit']});
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -986,7 +986,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-30';
-const DATA_BUILD_VERSION = 'v124';
+const DATA_BUILD_VERSION = 'v125';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
