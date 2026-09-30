@@ -1054,8 +1054,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-09-30';
-const DATA_BUILD_VERSION = 'v169';
+const DATA_BUILD_DATE = '2026-10-01';
+const DATA_BUILD_VERSION = 'v170';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

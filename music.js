@@ -92,15 +92,17 @@
     let d = document.getElementById('rtMusic');
     if(!d){
       d = document.createElement('div'); d.id = 'rtMusic'; d.className = 'rt-music';
-      d.innerHTML = '<div class="rm-frame"><div id="rtYt"></div></div><button type="button" class="rm-b" data-m="toggle" aria-label="Play/Pausa"></button><div class="rm-t"><b></b><small></small></div><button type="button" class="rm-b" data-m="next" aria-label="Altro brano">⏭</button><button type="button" class="rm-b" data-m="stop" aria-label="Ferma la musica">■</button>';
-      document.body.appendChild(d); dragify(d); placeDock(d);
+      d.innerHTML = '<div class="rm-frame"><div id="rtYt"></div></div><button type="button" class="rm-g" data-m="grip" aria-label="Sposta o blocca il player" title="Trascina per spostare · tocca per bloccare"></button><button type="button" class="rm-b" data-m="toggle" aria-label="Play/Pausa"></button><div class="rm-t"><b></b><small></small></div><button type="button" class="rm-b" data-m="next" aria-label="Altro brano">⏭</button><button type="button" class="rm-b" data-m="stop" aria-label="Ferma la musica">■</button>';
+      document.body.appendChild(d); dragify(d); placeDock(d); lockPaint(d);
       if(!LS.get('jrpg_music_hint', false)){ LS.set('jrpg_music_hint', true); setTimeout(()=> toast('Suggerimento: tieni premuto il player per spostarlo dove vuoi', 4500), 1500); }
       d.addEventListener('click', e=>{ const b = e.target.closest('[data-m]'); if(!b) return; const m = b.dataset.m; if(m === 'toggle') cur.playing ? pause() : resume(); else if(m === 'next') next(); else if(m === 'stop') stopAll(); });
     }
     return d;
   }
   // il player si sposta dove vuoi: tienilo premuto (mezzo secondo), poi trascinalo; la posizione resta salvata
-  const POS = 'jrpg_music_pos';
+  const POS = 'jrpg_music_pos', LOCK = 'jrpg_music_lock';
+  function lockPaint(d){ const on = !!LS.get(LOCK, false); d.classList.toggle('locked', on); const g = d.querySelector('.rm-g'); if(g) g.textContent = on ? '🔒' : '⠿'; }
+  function toggleLock(d){ const on = !LS.get(LOCK, false); LS.set(LOCK, on); lockPaint(d); toast(on ? 'Player bloccato 🔒: non si sposta per sbaglio' : 'Player sbloccato: trascina ⠿ per spostarlo', 2200); }
   function placeDock(d){
     const p = LS.get(POS, null); if(!p) return;
     const w = d.offsetWidth || 240, h = d.offsetHeight || 44;
@@ -108,18 +110,28 @@
   }
   function dragify(d){
     let timer = 0, start = null, drag = null;
+    const fade = ()=>{ d.classList.remove('idle'); clearTimeout(d._idle); d._idle = setTimeout(()=> d.classList.add('idle'), 3500); };
+    fade();
     d.addEventListener('pointerdown', e=>{
-      start = {x: e.clientX, y: e.clientY};
-      timer = setTimeout(()=>{ const r = d.getBoundingClientRect(); drag = {dx: e.clientX - r.left, dy: e.clientY - r.top}; d.classList.add('moving'); try{ navigator.vibrate && navigator.vibrate(20); }catch(x){} try{ d.setPointerCapture(e.pointerId); }catch(x){} }, 480);
+      fade();
+      const grip = !!(e.target.closest && e.target.closest('[data-m="grip"]'));
+      if(LS.get(LOCK, false)){ if(grip) start = {x: e.clientX, y: e.clientY, lockTap: true}; return; }          // bloccato: solo il lucchetto risponde
+      start = {x: e.clientX, y: e.clientY, grip};
+      const begin = ()=>{ const r = d.getBoundingClientRect(); drag = {dx: e.clientX - r.left, dy: e.clientY - r.top, moved: false}; d.classList.add('moving'); try{ navigator.vibrate && navigator.vibrate(12); }catch(x){} try{ d.setPointerCapture(e.pointerId); }catch(x){} };
+      if(grip) begin(); else timer = setTimeout(begin, 480);       // dal piccolo grip si trascina subito; altrove serve tenere premuto
     });
     d.addEventListener('pointermove', e=>{
       if(!drag){ if(start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) clearTimeout(timer); return; }
+      if(Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) drag.moved = true;
       e.preventDefault();
       const x = Math.max(4, Math.min(innerWidth - d.offsetWidth - 4, e.clientX - drag.dx)), y = Math.max(4, Math.min(innerHeight - d.offsetHeight - 4, e.clientY - drag.dy));
       d.style.left = x + 'px'; d.style.top = y + 'px'; d.style.bottom = 'auto';
     });
     const end = ()=>{
-      clearTimeout(timer); start = null;
+      clearTimeout(timer);
+      if(start && start.lockTap){ start = null; toggleLock(d); return; }
+      const wasTap = !!(drag && !drag.moved && start && start.grip); start = null;
+      if(wasTap){ drag = null; d.classList.remove('moving'); toggleLock(d); return; }          // un semplice tocco sul grip = blocca / sblocca
       if(!drag) return; drag = null; d.classList.remove('moving');
       const r = d.getBoundingClientRect(); LS.set(POS, {x: r.left / innerWidth, y: r.top / innerHeight});
       d.dataset.moved = '1'; setTimeout(()=>{ delete d.dataset.moved; }, 350);
@@ -179,7 +191,7 @@
   function resume(){ LS.set('jrpg_music', 'on'); try{ yt && yt.playVideo(); }catch(e){} cur.playing = true; paint(); }
   function next(auto){ if(!cur.list.length) return; cur.i = (cur.i + 1) % cur.list.length; if(!auto){ const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); } playTrack(); }
   function stopAll(){ LS.set('jrpg_music', 'off'); try{ yt && yt.stopVideo(); }catch(e){} cur.playing = false; paint(); toast('Musica spenta ovunque: premi ▶ in una scheda per riaccenderla', 3000); }
-  window.rtMusic = {playFor, stop: stopAll, on: ON};
+  window.rtMusic = {playFor, stop: stopAll, on: ON, dock};
   // barra nella scheda del gioco
   function barHtml(g){
     const mine = cur.id === g.id && cur.list.length, t = mine ? cur.list[cur.i] : null;

@@ -400,13 +400,21 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
 
   window.rtApplyPatch = applyPatch;
+  // regola unica delle approvazioni automatiche: voto da fonte in ordine di priorità, lingua, giochi affini, e QUALSIASI dato che riempie un campo vuoto (non può peggiorare nulla)
+  const isFill = c=>{ const f = String(c.from == null ? '' : c.from).trim(); return f === '' || /^—/.test(f); };
+  function canAuto(c, g){
+    if(!c || !c.patch || c.off || c.warn || c.id === 'score2') return false;
+    if(c.patch.score != null && Math.abs(c.patch.score - g.score) > 15) return false;              // scarto enorme: probabile gioco sbagliato, chiedo
+    if(/^(method|vsrc|score\d?|itsrc|itdub|similar)$/.test(c.id)) return true;
+    return isFill(c) && /^(story|proscons|aging|why|hours|gameplay|lang|label)$/.test(c.id);
+  }
   // le proposte «sicure» (voto da fonte in ordine di priorità, lingua da Steam/PCGamingWiki/it.wikipedia, giochi affini) si applicano da sole, anche quelle rimaste in coda: niente scelte inutili
   async function autoApproveQueue(){
     const a = auLoad(); let n = 0;
     for(const id of Object.keys(a)){
       const rec = a[id]; if(!rec || !rec.ch || !rec.ch.length) continue;
       const g = GAMES.find(x=> String(x.id) === String(id)); if(!g || g.custom) continue;
-      const ok = rec.ch.filter(c=> c.patch && /^(method|vsrc|score\d?|itsrc|itdub|similar)$/.test(c.id) && c.id !== 'score2' && !(c.patch.score != null && Math.abs(c.patch.score - g.score) > 15));
+      const ok = rec.ch.filter(c=> canAuto(c, g));
       if(!ok.length) continue;
       try{ await applyPatch(g, mergePatch(ok), true); rec.ch = rec.ch.filter(c=> !ok.includes(c)); n++; }catch(e){}
       if(n % 10 === 0){ auSave(a); await new Promise(r=> setTimeout(r, 40)); }
@@ -597,6 +605,9 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       }
       auDelay = ai ? auBase() : 8000;
       const sk = skLoad();
+      // le proposte sicure si applicano da sole; in coda restano solo quelle davvero dubbie
+      const autoL = ch.filter(c=> canAuto(c, g) && !sk[auKey(g.id, c)]);
+      if(autoL.length){ try{ await applyPatch(g, mergePatch(autoL), true); }catch(e){} ch = ch.filter(c=> !autoL.includes(c)); }
       const keep = ch.filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch, off: !!c.off, warn: !!c.warn}));
       const a = auLoad(); a[g.id] = {t: new Date().toISOString(), ch: keep, deep, src: srcs.slice(0, 5)}; auSave(a);
       if(keep.length){ try{ window.dispatchEvent(new Event('audit-update')); }catch(e){} }
@@ -748,7 +759,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       if(safe.length){ await applyPatch(g, mergePatch(safe), true); applied = safe.length; }
     } else {
       // il voto Metacritic (o OpenCritic) di un gioco ancora «stima» si applica da solo, anche sui giochi di base: è la fonte che rende un voto verificato
-      const auto = ch.filter(c=> /^(method|vsrc|score\d?|itsrc|itdub|similar)$/.test(c.id) && !c.off && c.patch && c.id !== 'score2');
+      const auto = ch.filter(c=> canAuto(c, g));
       if(auto.length){ try{ await applyPatch(g, mergePatch(auto), true); applied += auto.length; ch = ch.filter(c=> !auto.includes(c)); }catch(e){} }
       const sk = skLoad(), a = auLoad(), old = a[g.id];
       const keep = ch.filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch, off: !!c.off, warn: !!c.warn}));

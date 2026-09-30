@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v170', date:'2026-10-01', time:'01:30', items:[
+    'Scheda del gioco stabile: il vero motivo dello sfarfallio era la cornice della copertina, che cambiava forma quando l\'immagine finiva di caricarsi (da 8 scatti misurati a zero). Ora la cornice è fissa e la copertina appare in dissolvenza; il tema colorato della copertina si ricorda e si applica subito, e passa dolcemente invece di scattare.',
+    'Palloncini (notifiche): il tocco non passa più alla riga sotto. Era questo il «palloncino misterioso» che apriva un gioco a caso: toccandolo, il tocco arrivava alla lista dietro. Ora toccare un palloncino lo chiude e basta.',
+    'Approvazioni: si applicano da sole anche i dati che riempiono un campo vuoto (trama, pro e contro, ore, lingua…), perché non possono peggiorare nulla. In coda restano solo le proposte davvero dubbie.',
+    'Player musica: nuovo piccolo grip ⠿ per spostarlo subito (senza tenere premuto) e lucchetto 🔒 con un semplice tocco per bloccarlo; quando non lo usi diventa più discreto.',
+    'Anteprima a pressione unica (l\'altra, vecchia, è spenta): tieni premuto il titolo e rilasciando sparisce.'
+  ]},
   {version:'v169', date:'2026-09-30', time:'01:16', items:[
     'Approvazioni automatiche: il voto da fonte in ordine di priorità (Metacritic → OpenCritic → RAWG), la lingua italiana e i giochi affini ora si applicano da soli, anche quelli rimasti in coda. Una fonte meno affidabile non sostituisce mai Metacritic. Si chiede conferma solo per scarti sopra 15 punti (probabile gioco sbagliato), generi, anno e testi riscritti.',
     'Anteprima a pressione più piccola: tieni premuto il titolo, compare l\'anteprima; rilasci il dito e sparisce, tornando alla lista. Per aprire la scheda basta un tocco.',

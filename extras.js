@@ -314,7 +314,7 @@
     let pick = null;
     for(let k = 0; k < st.list.length; k++){ st.idx = (st.idx + 1) % st.list.length; if(st.list[st.idx].url !== cur0){ pick = st.list[st.idx]; break; } }
     await saveAutoCover(g, pick.url);
-    try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ render(); }catch(e){}
+    try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ renderWhenIdle({list: true}); }catch(e){}
     toast('Immagine ' + (st.idx + 1) + ' di ' + st.list.length + ' · ' + pick.source + ' (tocca ancora la lente per la prossima)', 3500);
   }, true);
   // le box art Libretro sono PNG grandi: in lista/griglia le mostro ridotte da un servizio di ridimensionamento (se non risponde, si usa l'originale)
@@ -512,7 +512,7 @@
         const r = await findCover(g, {onStep: x=>{ if(my === assistToken) s2.textContent = 'Cerco su ' + x; }});
         if(my !== assistToken) return;
         if(r && r.url !== coverOf(g)){ await saveAutoCover(g, r.url); s2.textContent = '✅ Aggiornata da ' + r.source;
-          try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ render(); }catch(e){} toast('Locandina aggiornata (' + r.source + ')'); }
+          try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ renderWhenIdle({list: true}); }catch(e){} toast('Locandina aggiornata (' + r.source + ')'); }
         else { s2.textContent = r ? 'È già la migliore che trovo.' : 'Nessuna locandina trovata nelle fonti aperte.'; b2.disabled = false; }
       });
       return;
@@ -526,7 +526,7 @@
       const r = await findCover(g, {onStep: s=>{ if(my === assistToken) st.textContent = 'Cerco su ' + s; }});
       if(my !== assistToken) return;
       if(r){ await saveAutoCover(g, r.url); st.textContent = '✅ Trovata su ' + r.source + ' e salvata';
-        try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ render(); }catch(e){} toast('🖼️ Copertina trovata su ' + r.source); }
+        try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ renderWhenIdle({list: true}); }catch(e){} toast('🖼️ Copertina trovata su ' + r.source); }
       else { st.textContent = 'Non trovata nelle fonti aperte: usa "Cerca copertina" qui sopra.'; btn.disabled = false; }
     };
     btn.addEventListener('click', run);

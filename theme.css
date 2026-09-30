@@ -860,3 +860,30 @@ tr.rt-noanim, tr.rt-noanim *{animation:none !important}
   .modal-backdrop{align-items:stretch !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important; background:var(--bg,#0b0b14) !important; transition:opacity .15s !important}
   .modal-card,.modal-card.wide{width:100vw !important; max-width:none !important; height:100dvh; max-height:100dvh !important; border-radius:0 !important; border:none !important; box-shadow:none !important; transform:none !important; transition:opacity .15s !important}
 }
+
+/* v170: scheda stabile — cornice fissa, copertina che appare in dissolvenza, barra musica con altezza riservata, palloncini che non lasciano passare il tocco */
+.cover-frame{transition:none !important}
+.cover-frame img.modal-cover{opacity:0; transition:opacity .28s ease}
+.cover-frame img.modal-cover.ld{opacity:1}
+.cover-frame::before{filter:blur(16px) saturate(1.2) brightness(.72) !important; inset:-20px !important}
+.mz-bar{min-height:56px; box-sizing:border-box; contain:layout}
+.toast.show,.added-banner.show{pointer-events:auto !important; cursor:pointer}
+@media (max-width:760px){
+  .modal-backdrop{padding:0 !important}
+  .modal-card,.modal-card.wide{height:100% !important; max-height:100% !important; padding-top:calc(14px + env(safe-area-inset-top,0px)) !important; padding-bottom:calc(18px + env(safe-area-inset-bottom,0px)) !important; box-sizing:border-box}
+}
+/* colori che passano dolcemente (tema dalla copertina, cambio palette) invece di scattare */
+@property --a1rgb{syntax:'<number>#'; inherits:true; initial-value:124,92,255}
+@property --a2rgb{syntax:'<number>#'; inherits:true; initial-value:176,76,245}
+@property --a3rgb{syntax:'<number>#'; inherits:true; initial-value:255,110,199}
+@property --rt-tint{syntax:'<number>#'; inherits:true; initial-value:124,92,255}
+:root{transition:--a1rgb .7s ease, --a2rgb .7s ease, --a3rgb .7s ease, --rt-tint .7s ease}
+html.rt-tinted #modalBackdrop.show{animation:none !important}
+
+/* player musica: piccolo grip per spostarlo/bloccarlo, e si fa discreto quando non lo usi */
+.rm-g{flex:none; width:22px; height:30px; border:0; border-radius:10px; background:rgba(255,255,255,.10); color:#fff; font-size:.9rem; line-height:1; padding:0; opacity:.8; touch-action:none}
+.rt-music.locked .rm-g{background:rgba(255,210,74,.22)}
+.rt-music{transition:opacity .4s ease}
+.rt-music.idle:not(.moving){opacity:.55}
+
+html.rt-notrans{transition:none !important}
