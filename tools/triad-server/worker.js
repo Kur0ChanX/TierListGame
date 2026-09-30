@@ -4,9 +4,14 @@
 import { DurableObject } from 'cloudflare:workers';
 import Core from '../../triad-core.js';
 import CARDS from '../../triad-cards.js';
+import EXPD from '../../triad-exp.js';
+import { makeEconomy, lvOf } from './economy.js';
 
-const CARD = {}, BY_LV = {};
-CARDS.forEach(c=>{ const o = {id: c[0], name: c[1], year: c[2], plat: c[3], lv: c[4], v: c[5], e: c[6], g: c[7]}; CARD[o.id] = o; (BY_LV[o.lv] = BY_LV[o.lv] || []).push(o); });
+const CARD = {}, BY_LV = {}, BY_SET = {}, BASE = [], ALLC = [], EXPSETS = EXPD.sets;   // BY_LV = carte base per livello; BY_SET[espansione][livello]
+CARDS.concat(EXPD.cards).forEach(c=>{
+  const o = {id: c[0], name: c[1], year: c[2], plat: c[3], lv: c[4], v: c[5], e: c[6], g: c[7], set: c[8] || 'base'}; CARD[o.id] = o; ALLC.push(o);
+  if(o.set === 'base'){ BASE.push(o); (BY_LV[o.lv] = BY_LV[o.lv] || []).push(o); } else { BY_SET[o.set] = BY_SET[o.set] || {}; (BY_SET[o.set][o.lv] = BY_SET[o.set][o.lv] || []).push(o); }
+});
 // copie di ogni carta che possono esistere nel mondo (0 = illimitate). Le carte forti sono rare: dopo l'ultima copia si possono solo rubare.
 const SUPPLY = {1: 0, 2: 0, 3: 0, 4: 0, 5: 14, 6: 10, 7: 8, 8: 6, 9: 4, 10: 3};
 const BOSSES = [
@@ -42,7 +47,7 @@ export default {
   async fetch(req, env){
     if(req.method === 'OPTIONS') return new Response(null, {status: 204, headers: CORS});
     const url = new URL(req.url);
-    if(url.pathname === '/' || url.pathname === '/api/ping') return json({ok: true, service: 'frugu-triad', v: 1, cards: CARDS.length});
+    if(url.pathname === '/' || url.pathname === '/api/ping') return json({ok: true, service: 'frugu-triad', v: 1, cards: ALLC.length});
     const stub = env.HUB.get(env.HUB.idFromName('main'));
     return stub.fetch(req);
   }
@@ -55,6 +60,7 @@ export class Hub extends DurableObject {
     this.turnMs = Math.max(2000, parseInt(env.TURN_MS, 10) || 60000);
     this.scale = parseFloat(env.SUPPLY_SCALE) || 1;
     this.regMax = parseInt(env.REG_MAX, 10) || 8;
+    this.startCoins = env.START_COINS != null ? parseInt(env.START_COINS, 10) : 150;
     ctx.blockConcurrencyWhile(async ()=>{ this.migrate(); });
   }
   migrate(){
@@ -76,6 +82,11 @@ export class Hub extends DurableObject {
     q(`CREATE TABLE IF NOT EXISTS boss(acc TEXT, n INTEGER, wins INTEGER DEFAULT 0, last_reward INTEGER DEFAULT 0, PRIMARY KEY(acc, n))`);
     q(`CREATE TABLE IF NOT EXISTS throttle(k TEXT PRIMARY KEY, n INTEGER, t INTEGER)`);
     q(`CREATE TABLE IF NOT EXISTS pairs(k TEXT PRIMARY KEY, n INTEGER, day INTEGER)`);
+    q(`CREATE TABLE IF NOT EXISTS missions(acc TEXT, sk TEXT, k TEXT, prog INTEGER DEFAULT 0, claimed INTEGER DEFAULT 0, PRIMARY KEY(acc, sk, k))`);
+    q(`CREATE TABLE IF NOT EXISTS claims(acc TEXT, key TEXT, at INTEGER, PRIMARY KEY(acc, key))`);
+    const addCol = (t, c, def)=>{ if(!this.rows('PRAGMA table_info(' + t + ')').some(r=> r.name === c)) this.run('ALTER TABLE ' + t + ' ADD COLUMN ' + c + ' ' + def); };
+    addCol('accounts', 'coins', 'INTEGER DEFAULT 150'); addCol('accounts', 'dust', 'INTEGER DEFAULT 0'); addCol('accounts', 'xp', 'INTEGER DEFAULT 0'); addCol('accounts', 'inv', "TEXT DEFAULT '{}'");
+    addCol('accounts', 'pity', "TEXT DEFAULT '{}'"); addCol('accounts', 'steals', 'INTEGER DEFAULT 0'); addCol('accounts', 'packs_n', 'INTEGER DEFAULT 0'); addCol('cards', 'foil', 'INTEGER DEFAULT 0');
   }
   rows(q, ...a){ return this.sql.exec(q, ...a).toArray(); }
   row(q, ...a){ return this.rows(q, ...a)[0] || null; }
@@ -125,6 +136,15 @@ export class Hub extends DurableObject {
     const id = (re)=>{ const x = p.match(re); return x ? x[1] : null; };
     if(m === 'GET' && p === '/api/me') return this.me(a);
     if(m === 'GET' && p === '/api/collection') return this.collection(a);
+    if(m === 'GET' && p === '/api/shop') return this.shop(a);
+    if(m === 'POST' && p === '/api/packs/open') return this.openPack(a, body);
+    if(m === 'GET' && p === '/api/missions') return this.missionList(a);
+    if(m === 'POST' && p === '/api/missions/claim') return this.missionClaim(a, body);
+    if(m === 'GET' && p === '/api/sets') return this.setList(a);
+    if(m === 'POST' && p === '/api/sets/claim') return this.setClaim(a, body);
+    if(m === 'GET' && p === '/api/achievements') return this.achList(a);
+    if(m === 'POST' && p === '/api/dust/dismantle') return this.dismantle(a, body);
+    if(m === 'POST' && p === '/api/dust/craft') return this.craft(a, body);
     if(m === 'POST' && p === '/api/daily') return this.daily(a);
     if(m === 'GET' && p === '/api/friends') return this.friendList(a);
     if(m === 'POST' && p === '/api/friends/request') return this.friendRequest(a, body);
@@ -173,7 +193,7 @@ export class Hub extends DurableObject {
   // ------------------------------------------------------------------ account
   cfg(){ return {turnMs: this.turnMs, pickMs: PICK_MS, supply: Object.fromEntries(Object.keys(SUPPLY).map(k=> [k, this.cap(+k)])), ranks: RANKS, elements: Core.ELEMENTS}; }
   config(){
-    return Object.assign(this.cfg(), {rules: Core.DEFAULT_RULES, bosses: BOSSES.map(b=> ({n: b.n, name: b.name, title: b.title, ai: b.ai, rules: Core.normRules(b.rules), reward: b.reward}))});
+    return Object.assign(this.cfg(), {expansions: EXPSETS, cards: ALLC.length, dust: this.dustTable(), rules: Core.DEFAULT_RULES, bosses: BOSSES.map(b=> ({n: b.n, name: b.name, title: b.title, ai: b.ai, rules: Core.normRules(b.rules), reward: b.reward}))});
   }
   cap(lv){ const s = SUPPLY[lv]; return s ? Math.max(1, Math.ceil(s * this.scale)) : 0; }
   async register(body, ip){
@@ -188,6 +208,7 @@ export class Hub extends DurableObject {
     const now = Date.now();
     this.run('INSERT INTO accounts(id,nick,nick_l,code,tok,rec,created,seen) VALUES(?,?,?,?,?,?,?,?)', id, nick, nl, code, await sha256(token), await sha256(recovery.replace(/-/g, '')), now, now);
     [1, 1, 2, 2, 3].forEach(lv=> this.mint(id, lv, 'starter'));
+    this.run('UPDATE accounts SET coins=? WHERE id=?', this.startCoins, id);
     return {token, recovery, me: this.me(this.row('SELECT * FROM accounts WHERE id=?', id))};
   }
   async recover(body, ip){
@@ -208,6 +229,7 @@ export class Hub extends DurableObject {
     const now = Date.now(), next = a.daily_at + DAILY_MS;
     return {id: a.id, nick: a.nick, code: a.code, elo: a.elo, rank: rankOf(a.elo), wins: a.wins, losses: a.losses, draws: a.draws, streak: a.streak, best: a.best, ranked: a.ranked,
       cards: cards.length, power, daily: {ready: now >= next, nextAt: next, n: a.daily_n}, match: act ? act.id : null,
+      coins: a.coins, dust: a.dust, level: lvOf(a.xp).lvl, xp: lvOf(a.xp), tickets: this.inv(a.id), event: this.eventInfo(), missions: this.missionsReady(a.id), packs: a.packs_n, steals: a.steals,
       news: this.row('SELECT COUNT(*) n FROM news WHERE acc=? AND seen=0', a.id).n,
       requests: this.row(`SELECT COUNT(*) n FROM friends WHERE b=? AND status='pending'`, a.id).n,
       boss: Object.fromEntries(this.rows('SELECT n,wins FROM boss WHERE acc=?', a.id).map(r=> [r.n, r.wins]))};
@@ -221,16 +243,21 @@ export class Hub extends DurableObject {
   // ------------------------------------------------------------------ carte
   left(cid){ const cap = this.cap(CARD[cid].lv); if(!cap) return 1e9; const r = this.row('SELECT minted FROM supply WHERE cid=?', cid); return cap - (r ? r.minted : 0); }
   // crea una carta nuova (livello richiesto, o il più alto ancora disponibile sotto); null se non ce n'è
-  mint(acc, lv, src){
+  // crea una carta nuova (livello richiesto, o il più alto ancora disponibile sotto) dall'insieme `setId` ('base' o un'espansione); null se non ce n'è
+  mint(acc, lv, src, setId, foil){
+    const table = !setId || setId === 'base' ? BY_LV : (BY_SET[setId] || BY_LV);
     for(let L = Math.min(10, Math.max(1, lv)); L >= 1; L--){
-      const pool = BY_LV[L].filter(c=> this.left(c.id) > 0);
+      const pool = (table[L] || []).filter(c=> this.left(c.id) > 0);
       if(!pool.length) continue;
-      const c = pool[rint(pool.length)], uid = 'u' + hex(7);
-      this.run('INSERT INTO cards(uid,owner,cid,got,src) VALUES(?,?,?,?,?)', uid, acc, c.id, Date.now(), src || '');
-      this.run('INSERT INTO supply(cid,minted) VALUES(?,1) ON CONFLICT(cid) DO UPDATE SET minted=minted+1', c.id);
-      return {uid, cid: c.id, lv: c.lv};
+      return this.mintCid(acc, pool[rint(pool.length)].id, src, foil);
     }
     return null;
+  }
+  mintCid(acc, cid, src, foil){
+    const uid = 'u' + hex(7);
+    this.run('INSERT INTO cards(uid,owner,cid,got,src,foil) VALUES(?,?,?,?,?,?)', uid, acc, cid, Date.now(), src || '', foil ? 1 : 0);
+    this.run('INSERT INTO supply(cid,minted) VALUES(?,1) ON CONFLICT(cid) DO UPDATE SET minted=minted+1', cid);
+    return {uid, cid, lv: CARD[cid].lv, foil: !!foil};
   }
   ensureMin(acc){
     if(String(acc).startsWith('boss')) return 0;
@@ -242,12 +269,12 @@ export class Hub extends DurableObject {
   }
   collection(a){
     this.ensureMin(a.id);
-    return {cards: this.rows('SELECT uid,cid,lock,got,src FROM cards WHERE owner=? ORDER BY got DESC', a.id).map(c=> ({uid: c.uid, cid: c.cid, lock: !!c.lock, got: c.got, src: c.src}))};
+    return {cards: this.rows('SELECT uid,cid,lock,got,src,foil FROM cards WHERE owner=? ORDER BY got DESC', a.id).map(c=> ({uid: c.uid, cid: c.cid, lock: !!c.lock, got: c.got, src: c.src, foil: !!c.foil}))};
   }
   supplyInfo(){
     const m = Object.fromEntries(this.rows('SELECT cid,minted FROM supply').map(r=> [r.cid, r.minted]));
     const out = {};
-    CARDS.forEach(c=>{ const cap = this.cap(c[4]); if(cap) out[c[0]] = [m[c[0]] || 0, cap]; });
+    ALLC.forEach(c=>{ const cap = this.cap(c.lv); if(cap) out[c.id] = [m[c.id] || 0, cap]; });
     return {supply: out};
   }
   daily(a){
@@ -258,7 +285,8 @@ export class Hub extends DurableObject {
     if(n % 7 === 0) lv = 4; else if(n % 3 === 0) lv = Math.max(lv, 2);
     const c = this.mint(a.id, lv, 'daily');
     this.run('UPDATE accounts SET daily_at=?, daily_n=? WHERE id=?', now, n, a.id);
-    return {card: c, streak: n};
+    const gain = this.grant(a.id, {coins: 30 + 8 * Math.min(n % 7 || 7, 7), xp: 25, ticket: n % 7 === 0 ? 'rara' : null});
+    return {card: c, streak: n, gain};
   }
   // controlla le 5 carte scelte (tue, diverse, libere) e le blocca con `tag`; ritorna gli uid nell'ordine dato
   takeCards(acc, uids, tag){
@@ -411,6 +439,7 @@ export class Hub extends DurableObject {
   view(m, me){
     const st = JSON.parse(m.state), res = m.result ? JSON.parse(m.result) : null, out = {id: m.id, mode: m.mode, boss: m.boss, status: m.status, ver: m.ver, deadline: m.deadline, turnMs: this.turnMs,
       players: [this.pinfo(m.p0), this.pinfo(m.p1)], you: m.p0 === me ? 0 : (m.p1 === me ? 1 : -1), state: st, result: res, autos: JSON.parse(m.autos)};
+    try{ out.foil = JSON.parse(m.uids).map(l=> l.map(u=>{ const r = /^u[0-9a-f]{14}$/.test(u) ? this.row('SELECT foil FROM cards WHERE uid=?', u) : null; return r ? r.foil : 0; })); }catch(e){}
     if(m.status === 'picking' && st.over){
       const info = Core.tradeInfo(st), uids = JSON.parse(m.uids);
       out.pick = {by: info.winner, n: info.pick, from: info.loser, choices: [0, 1, 2, 3, 4].map(i=> ({u: info.loser * 5 + i, cid: st.stake[info.loser][i]}))};
@@ -440,10 +469,11 @@ export class Hub extends DurableObject {
     if(m.status !== 'active') fail(409, 'La partita è finita', 'over');
     let st = JSON.parse(m.state);
     if(st.turn !== me) fail(409, 'Non è il tuo turno', 'turn');
-    const r = Core.play(st, {hi: body.hi, cell: body.cell});
+    const st0 = st, r = Core.play(st, {hi: body.hi, cell: body.cell});
     if(!r.ok) fail(400, r.error, 'move');
     const autos = JSON.parse(m.autos); autos[me] = 0;
     const ev = r.events.slice(); st = r.state;
+    this.trackEvents(a.id, me, st0, r.events);
     let mm = this.saveMatch(m, st, {deadline: Date.now() + this.turnMs, autos: JSON.stringify(autos)});
     if(st.over){ mm = this.finish(mm, st); }
     else if(mm.boss && st.turn === 1){ const b = this.bossPlay(mm, st); mm = b.m; b.events.forEach(e=> ev.push(e)); }
@@ -525,7 +555,19 @@ export class Hub extends DurableObject {
     const res = st.result, players = [m.p0, m.p1], w = res.winner;
     if(!m.boss) players.forEach((p, i)=> this.stats(p, w == null ? 'd' : (w === i ? 'w' : 'l')));      // le sfide ai Custodi non contano nel record contro gli amici
     const elo = this.elo(m, st, res);
-    const out = {winner: w, score: res.score, round: res.round, forfeit: !!res.forfeit, elo, transfers: []};
+    const out = {winner: w, score: res.score, round: res.round, forfeit: !!res.forfeit, elo, transfers: [], gain: [null, null]};
+    const farm = m.mode === 'ranked' && elo && elo[0] === 0 && elo[1] === 0 && w != null;
+    players.forEach((id, i)=>{
+      if(String(id).startsWith('boss')) return;
+      const won = w === i, draw = w == null; let coins, xp;
+      if(m.boss){ coins = won ? 40 : 5; xp = won ? 60 : 15; }
+      else if(m.mode === 'ranked'){ coins = won ? 25 : draw ? 12 : 6; xp = won ? 45 : draw ? 25 : 15; if(farm || !this.dailyCap(id, 'rc', 30)) coins = 2; }
+      else { coins = won ? 10 : draw ? 6 : 4; xp = won ? 25 : draw ? 15 : 10; if(!this.dailyCap(id, 'fc', 12)){ coins = 0; xp = Math.ceil(xp / 3); } }
+      if(res.forfeit && !won){ coins = Math.min(coins, 2); xp = 5; }
+      out.gain[i] = this.award(id, {coins, xp});
+      this.track(id, 'play', 1); if(won) this.track(id, 'win', 1); if(m.mode === 'ranked' && !m.boss) this.track(id, 'ranked', 1);
+      if(m.boss && won) this.track(id, 'boss', 1);
+    });
     if(m.boss){
       const human = m.p0, won = w === 0, tag = 'm:' + m.id;
       this.unlock(tag);
@@ -536,7 +578,9 @@ export class Hub extends DurableObject {
         else if(now - rec.last_reward >= BOSS_DAILY_MS){ reward = this.mint(human, rint(100) < 30 ? b.reward : Math.max(1, b.reward - 2), 'boss' + b.n); this.run('UPDATE boss SET wins=wins+1, last_reward=? WHERE acc=? AND n=?', now, human, b.n); }
         else this.run('UPDATE boss SET wins=wins+1 WHERE acc=? AND n=?', human, b.n);
         if(reward){ out.reward = reward; this.news(human, 'boss', {boss: b.n, name: b.name, cid: reward.cid, first: !!out.first}); }
+        if(out.first){ const g2 = this.award(human, {coins: 160, xp: 100, noEvent: true}); if(out.gain[0] && g2){ out.gain[0].coins += g2.coins; out.gain[0].xp += g2.xp; out.gain[0].levels = out.gain[0].levels.concat(g2.levels); } }
       }
+      this.checkAch(human);
       const mm = this.saveMatch(m, st, {status: 'done', result: JSON.stringify(out)});
       this.ensureMin(human);
       return mm;
@@ -549,6 +593,7 @@ export class Hub extends DurableObject {
     }
     this.unlock(tag);
     const mm = this.saveMatch(m, st, {status: 'done', result: JSON.stringify(out)});
+    players.forEach(p=> this.checkAch(p));
     return mm;
   }
   // applica gli scambi: `tr` = [{u, id, from, to}] (u = indice carta nella partita 0-9)
@@ -562,9 +607,10 @@ export class Hub extends DurableObject {
     this.unlock('m:' + m.id);
     out.transfers = done.map(d=> ({cid: d.cid, from: d.from, to: d.to}));
     const A = this.pinfo(players[0]), B = this.pinfo(players[1]), nm = id=> id === players[0] ? A.nick : B.nick;
+    done.forEach(d=>{ this.run('UPDATE accounts SET steals=steals+1 WHERE id=?', d.to); this.track(d.to, 'steal', 1); });
     done.forEach(d=>{ this.news(d.from, 'stolen', {by: nm(d.to), byId: d.to, cid: d.cid, match: m.id}); this.news(d.to, 'won', {from: nm(d.from), cid: d.cid, match: m.id}); });
     const mm = this.saveMatch(m, st, {status: 'done', result: JSON.stringify(out)});
-    players.forEach(p=> this.ensureMin(p));
+    players.forEach(p=>{ this.ensureMin(p); this.checkAch(p); });
     return mm;
   }
   bossStart(a, body){
@@ -614,3 +660,4 @@ export class Hub extends DurableObject {
     [mm.p0, mm.p1].forEach(p=> this.push(p, {t: 'move', id: mm.id, events: ev, match: this.view(mm, p)}));
   }
 }
+Object.assign(Hub.prototype, makeEconomy({CARD, BASE, EXPSETS, ALLC, fail, rint}));

@@ -5,7 +5,7 @@
 // Uso: NODE_USE_ENV_PROXY=1 node tools/build-triad-art.js [--only id1,id2] [--redo] [--nowiki]   (riprende da dove era: tiene ciò che è già nel file)
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
-const CARDS = require(path.join(ROOT, 'triad-cards.js'));
+const CARDS = require(path.join(ROOT, 'triad-cards.js')).concat(require(path.join(ROOT, 'triad-exp.js')).cards);      // base + espansioni
 const OUT = path.join(ROOT, 'triad-art.js');
 const args = process.argv.slice(2);
 const only = (args.indexOf('--only') >= 0 ? args[args.indexOf('--only') + 1] : '').split(',').filter(Boolean);
@@ -33,7 +33,7 @@ const LR = {
   'Game Boy': ['Nintendo - Game Boy', 'Nintendo - Game Boy Advance'], 'Game Boy Color': ['Nintendo - Game Boy Color', 'Nintendo - Game Boy'], 'GameCube': ['Nintendo - GameCube'], 'Wii': ['Nintendo - Wii'],
   'PS1': ['Sony - PlayStation'], 'PS2': ['Sony - PlayStation 2'], 'PS3': ['Sony - PlayStation 3'], 'PS Vita': ['Sony - PlayStation Vita'], 'Mega Drive': ['Sega - Mega Drive - Genesis'],
   'Dreamcast': ['Sega - Dreamcast'], 'Atari 2600': ['Atari - 2600'], 'Xbox': ['Microsoft - Xbox'], 'Xbox 360': ['Microsoft - Xbox 360'], 'Arcade': ['MAME', 'FBNeo - Arcade Games'],
-  'PC': ['DOS', 'Sony - PlayStation 2', 'Microsoft - Xbox 360', 'Sony - PlayStation 3', 'Nintendo - Wii'], 'Multi': ['Sony - PlayStation 2', 'Sony - PlayStation', 'Nintendo - Nintendo 64'], 'Switch': [], 'PS4': [], 'Mobile': [], 'Nokia': []
+  'PC': ['DOS', 'Sony - PlayStation 2', 'Microsoft - Xbox 360', 'Sony - PlayStation 3', 'Nintendo - Wii'], 'Multi': ['Sony - PlayStation 2', 'Sony - PlayStation', 'Nintendo - Nintendo 64'], 'Saturn': ['Sega - Saturn'], 'DS': ['Nintendo - Nintendo DS'], '3DS': ['Nintendo - Nintendo 3DS'], 'GBA': ['Nintendo - Game Boy Advance'], 'Switch': [], 'PS4': [], 'Mobile': [], 'Nokia': []
 };
 const REGION_SCORE = n=> (/\(USA\)/.test(n) ? 0 : /\(World\)/.test(n) ? 1 : /\(USA, /.test(n) ? 2 : /\(Europe\)/.test(n) ? 3 : /\(Europe, /.test(n) ? 4 : 5) + (/\((Beta|Proto|Demo|Sample|Unl|Pirate|Hack|Bootleg)/i.test(n) ? 20 : 0) + (/Rev [A-Z0-9]/.test(n) ? 0.5 : 0) + (/\((Disc [2-9]|Disc B)\)/.test(n) ? 8 : 0);
 const decode = s=> s.replace(/&amp;/g, '&').replace(/&#39;/g, '\'').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');

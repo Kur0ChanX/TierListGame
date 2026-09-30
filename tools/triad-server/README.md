@@ -11,7 +11,7 @@ Le mosse le decide il server usando lo stesso motore delle regole dell'app (`tri
 
 ## Prove in locale
 ```
-cd tools/triad-server && npx wrangler dev --port 8799 --local --var TURN_MS:2500 --var REG_MAX:100 --var SUPPLY_SCALE:0.3
+cd tools/triad-server && npx wrangler dev --port 8799 --local --var TURN_MS:2500 --var REG_MAX:100 --var SUPPLY_SCALE:0.3 --var START_COINS:5000
 node tools/triad-server/test.js            # in un altro terminale (27 prove: account, amici, stanze, partite, furto delle carte, timer, Custodi, sicurezza)
 node tools/test-triad-core.js              # 38 prove delle regole
 ```

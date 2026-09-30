@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v142', date:'2026-10-13', items:[
+    'Triple Triad 3.0, il gioco che non finisce mai. Monete, XP e livelli (premi ad ogni livello, buste in regalo ogni 5, 10 e 25). Negozio di buste (Base, Rara, Epica, Leggendaria) con apertura animata: strappi la busta e giri le carte una a una, con anelli colorati per la rarità, scintille, tremolio e suoni crescenti. Ogni busta ha la «fortuna garantita»: dopo un po\' di buste senza carte forti, la prossima è sicura. Carte foil ✨ più brillanti e preziose.',
+    'Ogni giorno nuove missioni giornaliere e settimanali, ricompensa quotidiana con serie e busta al 7° giorno, weekend con monete doppie. 38 traguardi con medaglie e premi, e collezioni da completare (per livello, per genere, per espansione e tutto l\'album) con ricompense grosse.',
+    'Officina: le copie doppie si smontano in polvere e con la polvere crei le carte che ti mancano (fino al livello 8; le carte di livello 9-10 si vincono o si rubano). Le carte forti restano in poche copie nel mondo.',
+    'Espansioni (DLC): 4 nuove serie da 30 carte, Sogni JRPG, Arcade & Retro, Notte Horror e Indie & Cult, che si sbloccano salendo di livello, con buste dedicate e album a parte. Se ne possono aggiungere altre in qualsiasi momento senza toccare l\'app.',
+    'Torre infinita (senza server): scegli 5 carte e sali piano dopo piano; dopo ogni vittoria scegli un potenziamento (+1 ai lati, elementi, carte più forti, prima mossa…), ogni 10 piani c\'è un Guardiano e ogni piano è più duro. Se perdi, i piani superati ti fruttano carte per l\'album.'
+  ]},
   {version:'v141', date:'2026-10-12', items:[
     'Triple Triad 2.0, rifatto da zero. 200 carte solo di giochi che conoscono tutti (Mario, Zelda, Tetris, Pac-Man, Doom, Minecraft, GTA, Elden Ring…), in 10 livelli che seguono i tier della tua lista (E → S+) e 6 rarità (Comune → Mitica). Regole complete di Final Fantasy VIII: Base, Elementale, Same, Same-Muro, Plus, Combo e Morte improvvisa; scambi Uno, Diff, Diretto e Tutto. Le regole sono in un motore unico con 38 prove automatiche.',
     'Grafica delle carte a tua scelta: 6 stili (Classico, Olografico, Pixel 16-bit, Copertina, Neon, Emblema), scelti per tutte o per una sola carta. Per ogni carta scegli anche l\'immagine (copertine da Steam, Libretro e Wikipedia) oppure metti una tua foto. Nessuna carta resta senza grafica: se manca l\'immagine c\'è l\'Emblema disegnato, e l\'app cerca da sola quella vera.',

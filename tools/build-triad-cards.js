@@ -16,9 +16,11 @@ const GEN = {
 };
 const TARGET = [0, 12, 14, 16, 17.5, 19, 21, 22.5, 24, 26, 28];
 const CAP = [0, 6, 7, 7, 8, 8, 9, 9, 9, 10, 10];
-const out = [], seen = new Set();
-for(let L = 1; L <= 10; L++){
-  SRC[L].forEach(([name, year, plat, genre])=>{
+const seen = new Set();
+function gen(SRCX, setId){
+  const out = [];
+  for(let L = 1; L <= 10; L++){
+    (SRCX[L] || []).forEach(([name, year, plat, genre])=>{
     const id = slug(name); if(seen.has(id)) throw new Error('id doppio ' + id); seen.add(id);
     const G = GEN[genre]; if(!G) throw new Error('genere sconosciuto ' + genre);
     const R = rng(hash(id));
@@ -33,14 +35,23 @@ for(let L = 1; L <= 10; L++){
     }
     if(L === 10 && Math.max(...v.filter((x, i)=> i !== v.indexOf(10))) < 8){ const k = v.map((x, i)=> [x, i]).filter(p=> p[0] !== 10).sort((a, b)=> b[0] - a[0])[0][1]; v[k] = 8; }
     const el = G[0] && R() < G[2] ? G[0] : null;
-    out.push([id, name, year, plat, L, v, el, genre]);
-  });
+      out.push(setId ? [id, name, year, plat, L, v, el, genre, setId] : [id, name, year, plat, L, v, el, genre]);
+    });
+  }
+  return out;
 }
+const out = gen(SRC);
 const header = `// Triple Triad di Frugu: le 200 carte (generato da tools/build-triad-cards.js, non modificare a mano).
 // [id, nome, anno, piattaforma, livello 1-10, [alto, destra, basso, sinistra] (10 = A), elemento o null, genere]
 `;
 const body = `(function(root){\n  var TRIAD_CARDS = ${JSON.stringify(out)};\n  if(typeof module === 'object' && module.exports) module.exports = TRIAD_CARDS; else root.TRIAD_CARDS = TRIAD_CARDS;\n})(typeof self !== 'undefined' ? self : this);\n`;
 fs.writeFileSync(path.join(ROOT, 'triad-cards.js'), header + body);
+// espansioni (DLC): triad-exp.js = {sets:[{id, name, emoji, desc, level}], cards:[[...come le base..., idEspansione]]}
+const EXP = require('./triad-exp-src.js'), expCards = [];
+EXP.forEach(e=>{ expCards.push(...gen(e.cards, e.id)); });
+const expBody = `(function(root){\n  var TRIAD_EXP = ${JSON.stringify({sets: EXP.map(e=> ({id: e.id, name: e.name, emoji: e.emoji, desc: e.desc, level: e.level})), cards: expCards})};\n  if(typeof module === 'object' && module.exports) module.exports = TRIAD_EXP; else root.TRIAD_EXP = TRIAD_EXP;\n})(typeof self !== 'undefined' ? self : this);\n`;
+fs.writeFileSync(path.join(ROOT, 'triad-exp.js'), '// Triple Triad: le carte delle espansioni (generato da tools/build-triad-cards.js, non modificare a mano). Come triad-cards.js con l\'id dell\'espansione in fondo.\n' + expBody);
+console.log('espansioni:', EXP.map(e=> e.id + ' ' + gen.length).join(' ').replace(/ 1/g, ''), '· carte:', expCards.length);
 const byL = {}; out.forEach(c=>{ (byL[c[4]] = byL[c[4]] || []).push(c[5].reduce((a, b)=> a + b, 0)); });
 console.log('carte:', out.length, Object.entries(byL).map(([l, s])=> 'L' + l + ' somma ' + Math.min(...s) + '-' + Math.max(...s)).join(' · '));
 const els = {}; out.forEach(c=> els[c[6] || 'nessuno'] = (els[c[6] || 'nessuno'] || 0) + 1); console.log('elementi:', JSON.stringify(els));
