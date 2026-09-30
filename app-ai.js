@@ -1026,8 +1026,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-10-19';
-const DATA_BUILD_VERSION = 'v148';
+const DATA_BUILD_DATE = '2026-10-20';
+const DATA_BUILD_VERSION = 'v149';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

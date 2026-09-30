@@ -568,7 +568,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   // All'avvio dell'app, con calma e in silenzio: prima i giochi con i dati meno attendibili (aggiunti da te, voti «stima»), poi gli altri; e subito dopo aver accettato un gioco col cuore.
   // Fonti nell'ordine di SearchHub.PRIORITY. Copertina mancante: la trova. Giochi aggiunti da te: applica le correzioni sicure; giochi di base: le proposte vanno in «Controllo dati» (le approvi tu).
   // Il simbolo dorato si prende solo se almeno 2 fonti hanno risposto: se i siti non rispondono riprova dopo 3 giorni, senza fingere.
-  const FR = 'jrpg_fresh', FR_ON = 'jrpg_update_plus', FP_BUDGET = 40;
+  const FR = 'jrpg_fresh', FR_ON = 'jrpg_update_plus', FP_BUDGET = 40, FP_EPOCH = 2;      // FP_EPOCH: sale quando cambia la logica dei voti, così i giochi ancora «stima» si ricontrollano una volta
   const frLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(FR) || '{}') || {}; }catch(e){ return {}; } };
   const frSave = o=>{ try{ localStorage.setItem(FR, JSON.stringify(o)); }catch(e){} };
   window.updatePlusOn = ()=> localStorage.getItem(FR_ON) !== 'off';
@@ -591,7 +591,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const weak = g=> g.custom ? 0 : (g.m !== 'V' ? 1 : (window.SearchHub && SearchHub.factsFor(g) ? 3 : 2));
     let best = null, bw = 9, bt = Infinity;
     GAMES.forEach(g=>{
-      const f = fr[g.id]; if(f && f.gold) return;
+      const f = fr[g.id]; if(f && f.gold && !(g.m !== 'V' && (f.e || 0) < FP_EPOCH)) return;
       const t = f ? new Date(f.t).getTime() : 0; if(f && now - t < 3 * 864e5) return;
       const w = weak(g);
       if(w < bw || (w === bw && t < bt)){ best = g; bw = w; bt = t; }
@@ -613,6 +613,9 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       const safe = ch.filter(c=> !c.off && c.patch);
       if(safe.length){ await applyPatch(g, mergePatch(safe), true); applied = safe.length; }
     } else {
+      // il voto Metacritic (o OpenCritic) di un gioco ancora «stima» si applica da solo, anche sui giochi di base: è la fonte che rende un voto verificato
+      const auto = g.m !== 'V' ? ch.filter(c=> /^(method|score\d?)$/.test(c.id) && !c.off && c.patch) : [];
+      if(auto.length){ try{ await applyPatch(g, mergePatch(auto), true); applied += auto.length; ch = ch.filter(c=> !auto.includes(c)); }catch(e){} }
       const sk = skLoad(), a = auLoad(), old = a[g.id];
       const keep = ch.filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch, off: !!c.off, warn: !!c.warn}));
       const seen = new Set(((old && old.ch) || []).map(c=> auKey(g.id, c)));
@@ -623,7 +626,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     if(cover || (window.XCOVER && XCOVER.has(g))) names.push('Locandina');
     const fr = frLoad(), iso = new Date().toISOString();
     const okN = names.filter(n=> n !== 'Locandina').length;
-    if(okN >= 1) fr[g.id] = {gold: 1, t: iso, src: names, ap: applied, pe: pending, cv: cover ? 1 : 0};
+    if(okN >= 1) fr[g.id] = {gold: 1, t: iso, src: names, ap: applied, pe: pending, cv: cover ? 1 : 0, e: FP_EPOCH};
     else fr[g.id] = {t: iso, tries: ((fr[g.id] || {}).tries || 0) + 1, src: names};
     frSave(fr);
     try{ window.DebugLog && DebugLog.add && DebugLog.add({kind: 'note', src: 'Update+', ok: okN >= 1, note: g.name + ': ' + (names.join(', ') || 'nessuna fonte ha risposto') + (applied ? ' · ' + applied + ' correzioni' : '') + (pending ? ' · ' + pending + ' da approvare' : '')}); }catch(e){}
