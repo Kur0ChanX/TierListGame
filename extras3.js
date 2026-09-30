@@ -174,8 +174,10 @@
   function signals(){
     const out = [];
     let MT = {}; try{ MT = MYTIER || {}; }catch(e){}
+    const MV = LS.get('jrpg_myvote', {}) || {};
     GAMES.forEach(g=>{
       let w = 0; const s = STATUSES[g.id];
+      if(MV[g.id] != null) w += (MV[g.id] - 6) * .5;          // il tuo voto personale insegna molto
       if(FAVS.has(g.id)) w += 2;
       if(s === 'played') w += 1; else if(s === 'playing') w += .6; else if(s === 'backlog') w += .25; else if(s === 'dropped') w -= 2;
       if(MT[g.id]) w += (TI(g.tier) - TI(MT[g.id])) * .8;
@@ -253,7 +255,7 @@
       <h4>Ti piace</h4>${pos.map(x=> bar(...x)).join('') || '<small>ancora poco chiaro</small>'}
       <h4>Tendi a evitare</h4>${neg.map(x=> bar(...x)).join('') || '<small>niente di netto</small>'}
       ${tol.length ? '<h4>Nonostante…</h4>' + tol.map(t=> `<div class="tg-tol">${esc(t)}</div>`).join('') : ''}
-      <h4>Da provare secondo i tuoi gusti</h4><div class="tg-recs">${recs.map(r=> `<button class="btn" type="button" data-tg="${r.g.id}">${esc(r.g.name)}</button>`).join('')}</div>`);
+      ${(()=>{ const ps = window.rtPredictStats && rtPredictStats(); return ps ? `<h4>Quanto ti conosce l'app</h4><div class="tg-tol">Previsioni azzeccate (entro 1 punto): <b>${ps.hit}%</b> su ${ps.n} giochi votati · errore medio ${ps.avg.toFixed(1)}</div>` : ''; })()}<h4>Da provare secondo i tuoi gusti</h4><div class="tg-recs">${recs.map(r=> `<button class="btn" type="button" data-tg="${r.g.id}">${esc(r.g.name)}</button>`).join('')}</div>`);
     body.querySelectorAll('[data-tg]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xTaste').classList.remove('show'); openModal(GAMES.find(g=> g.id == b.dataset.tg)); }));
   }
   menu(gi('dna') + ' I tuoi gusti (imparati)', openTaste);

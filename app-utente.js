@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v136', date:'2026-10-09', items:[
+    'Riparata la pubblicazione: la v135 non era arrivata sul sito (per questo non vedevi Update+ e la V dorata). Ora la V+ dorata è un\'etichetta ben visibile nella colonna del voto e nella scheda.',
+    'La lente sulla locandina cerca molte più immagini del gioco (locandine Steam HD, box art, copertine di Wikipedia in 6 lingue, immagini di Wikidata, banner, schermate) e ogni tocco ne mostra una nuova diversa da quella attuale, partendo dalla migliore.',
+    '🔮 Oracolo del procione: descrivi una sensazione («voglio piangere ma con combattimenti a turni») e trova i giochi che te la fanno provare.',
+    'Condividi con un QR: la tua tier list in sola lettura per gli amici, oppure «Regala l\'app»: l\'amico ha la sua copia con il suo nome e i suoi dati; il tuo utente resta blindato (nessun dato o chiave nel link).',
+    'Previsione del voto: la scheda dice quanto ti piacerà un gioco; dopo averlo giocato gli dai il tuo voto e l\'app impara (precisione in «I tuoi gusti»).',
+    'La tua recensione a voce: detti, l\'AI sistema il testo senza cambiare le tue opinioni (vedi prima e dopo e scegli tu), la salvi e puoi fartela leggere; anche «Ascolta la scheda del gioco».'
+  ]},
   {version:'v135', date:'2026-10-08', items:[
     'Update+ ora si vede e si può forzare: pulsante «Update+ adesso» nella scheda, contatore sotto «Database aggiornato», logo dorato anche nella Mia tier; basta che risponda una fonte (sono elencate toccando il simbolo).',
     'Scheda gioco: prova del nove sul voto (quante fonti sono d\'accordo), termometro Steam (recensioni degli ultimi 30 giorni contro quelle di sempre), rischio introvabile, percorso della saga con ore e prezzi, «Quale versione conviene?», «Segna come posseduto», cronologia delle modifiche con Annulla.',
