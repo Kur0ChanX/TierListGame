@@ -1071,7 +1071,7 @@ function render(){
     tr.innerHTML = `
       <td class="fav" data-role="fav"><svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>
       <td class="rank mobhide">${g.id}</td>
-      <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${freshIcon(g)}${miniIcons(g)}${g.name}${dnaBadge}</td>
+      <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${miniIcons(g)}${g.name}${dnaBadge}</td>
       <td class="plat mobhide">${g.plat}</td>
       <td class="year">${g.year || g.ysort || ''}</td>
       <td><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span></td>
@@ -1315,7 +1315,7 @@ function renderMyTier(){
       const chip = document.createElement('div');
       chip.className = 'mytier-chip';
       chip.draggable = true;
-      chip.innerHTML = `<span class="nm" title="${g.name}">${typeof freshIcon === 'function' ? freshIcon(g) : ''}${g.name}</span><span class="sc">${g.score}</span><button class="movebtn" aria-label="Sposta">⇅</button>`;
+      chip.innerHTML = `<span class="nm" title="${g.name}">${g.name}</span><span class="sc">${g.score}</span><button class="movebtn" aria-label="Sposta">⇅</button>`;
       chip.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', String(g.id)); });
       chip.querySelector('.nm').addEventListener('click', ()=> openModal(g));
       chip.querySelector('.movebtn').addEventListener('click', (e)=>{ e.stopPropagation(); openTierPicker(e.currentTarget, g.id); });
@@ -1412,12 +1412,11 @@ function freshWhy(f){
   let d = ''; try{ d = new Date(f.t).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}); }catch(e){}
   return (f.m ? 'Controllato a mano da te il ' : 'Update+ il ') + d + ' · fonti: ' + ((f.src && f.src.length) ? f.src.join(', ') : 'ricerca manuale') + (f.pe ? ' · ' + f.pe + ' modifiche da approvare' : '') + '. Non lo aggiorno più (tranne i prezzi).';
 }
-// aggiorna SOLO la riga di un gioco (simbolo Update+ e V+) senza ridisegnare la lista: niente sfarfallio negli aggiornamenti in background
+// aggiorna SOLO la riga di un gioco (la V+ dorata nella colonna voto; il simbolo Update+ sta solo nella scheda) senza ridisegnare la lista: niente sfarfallio negli aggiornamenti in background
 function refreshRowFresh(g){
   try{
     const tr = document.querySelector('#tbody tr[data-gid="' + g.id + '"]'); if(!tr) return;
     const m = tr.querySelector('td.method'); if(m) m.innerHTML = methodIcon(g.m, g);
-    const nm = tr.children[2]; if(nm){ nm.querySelectorAll('.fresh-ic').forEach(x=> x.remove()); const h = freshIcon(g); if(h){ const first = nm.querySelector('.mini-icon'); if(first) first.insertAdjacentHTML('beforebegin', h); else { const dot = nm.querySelector('.status-dot'); if(dot) dot.insertAdjacentHTML('afterend', h); else nm.insertAdjacentHTML('afterbegin', h); } } }
   }catch(e){}
 }
 function freshIcon(g){
