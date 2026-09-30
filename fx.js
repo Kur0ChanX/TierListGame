@@ -191,3 +191,10 @@
 document.addEventListener('pointerdown', e=>{
   try{ if(!navigator.vibrate || e.pointerType !== 'touch' || localStorage.getItem('jrpg_haptics') === 'off') return; if(e.target.closest && e.target.closest('button, .btn, .iconbtn, .view-tab, .qf-chip, #tbody tr')) navigator.vibrate(7); }catch(x){}
 }, {passive: true});
+
+// v170: palloncini (toast) — il tocco non passa più alla riga sotto, e toccarli li chiude; l'anteprima a pressione sostituisce quella vecchia dei «gesti rapidi»
+window.__rtHoldPreview = true;
+document.addEventListener('click', e=>{
+  const t = e.target && e.target.closest && e.target.closest('#toast.show, #addedBanner.show');
+  if(t){ t.classList.remove('show'); e.stopPropagation(); e.preventDefault(); }
+}, true);

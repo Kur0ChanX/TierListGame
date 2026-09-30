@@ -295,15 +295,19 @@
     const r = document.documentElement; r.classList.remove('rt-tinted');
     ['--a1rgb', '--a2rgb', '--a3rgb', '--rt-tint'].forEach(k=> r.style.removeProperty(k));
   }
+  const TINT_K = 'rt_tint_cache';
+  const tintGet = id=>{ try{ return (JSON.parse(localStorage.getItem(TINT_K) || '{}') || {})[id] || null; }catch(e){ return null; } };
+  const tintPut = (id, cols)=>{ try{ const c = JSON.parse(localStorage.getItem(TINT_K) || '{}') || {}; c[id] = cols; const ks = Object.keys(c); if(ks.length > 400) ks.slice(0, ks.length - 400).forEach(k=> delete c[k]); localStorage.setItem(TINT_K, JSON.stringify(c)); }catch(e){} };
+  function tintSet(cols, instant){ const r = document.documentElement, v = c=> c.join(', '); if(instant){ r.classList.add('rt-notrans'); requestAnimationFrame(()=> requestAnimationFrame(()=> r.classList.remove('rt-notrans'))); } r.style.setProperty('--a1rgb', v(cols[0])); r.style.setProperty('--a2rgb', v(cols[1])); r.style.setProperty('--a3rgb', v(cols[2])); r.style.setProperty('--rt-tint', v(cols[0])); r.classList.add('rt-tinted'); tintOn = true; }
   async function tintApp(g){
+    const cached = tintGet(g.id);
+    if(!TINT_ON()){ tintClear(); return; }
+    if(cached){ tintSet(cached, true); return; }                        // già calcolato: i colori sono pronti fin dal primo fotogramma
     tintClear();
-    if(!TINT_ON()) return;
     const url = (typeof effectiveCover === 'function') ? effectiveCover(g) : null; if(!url || !/^https?:/.test(url)) return;
     const my = g.id, cols = await coverColors(url);
     if(!cols || typeof currentModalGame === 'undefined' || !currentModalGame || currentModalGame.id !== my || !document.getElementById('modalBackdrop').classList.contains('show')) return;
-    const r = document.documentElement, v = c=> c.join(', ');
-    r.style.setProperty('--a1rgb', v(cols[0])); r.style.setProperty('--a2rgb', v(cols[1])); r.style.setProperty('--a3rgb', v(cols[2])); r.style.setProperty('--rt-tint', v(cols[0]));
-    r.classList.add('rt-tinted'); tintOn = true;
+    tintPut(my, cols); tintSet(cols);
   }
   new MutationObserver(()=>{ if(!document.getElementById('modalBackdrop').classList.contains('show')) tintClear(); }).observe(document.getElementById('modalBackdrop'), {attributes: true, attributeFilter: ['class']});
 
@@ -477,7 +481,7 @@
       const s = gset(); if(!s.on) return;
       const tr = e.target.closest('tr'); if(!tr) return;
       const t = e.touches[0]; st = {tr, x: t.clientX, y: t.clientY, dx: 0, lock: null, held: false};
-      if(s.hold) st.timer = setTimeout(()=>{ const g = rowGame(tr); if(g){ st.held = true; peek(g, t.clientX, t.clientY); try{ navigator.vibrate && navigator.vibrate(10); }catch(e){} } }, 480);
+      if(s.hold && !window.__rtHoldPreview) st.timer = setTimeout(()=>{ const g = rowGame(tr); if(g){ st.held = true; peek(g, t.clientX, t.clientY); try{ navigator.vibrate && navigator.vibrate(10); }catch(e){} } }, 480);
     }, {passive: true});
     tb.addEventListener('touchmove', e=>{
       if(!st) return; const t = e.touches[0], dx = t.clientX - st.x, dy = t.clientY - st.y;
