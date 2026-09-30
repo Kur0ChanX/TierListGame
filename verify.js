@@ -213,8 +213,9 @@
         else if(r === 3 && rk(g.vs) < 3) ch.push({id:'vsrc', label:'Fonte del voto', from: g.vs || 'non registrata', to: vs, patch:{vs}});
         return;
       }
-      // differenza fino a 6 punti: si applica da sola; oltre, o se un voto verificato di origine ignota contrasta con OpenCritic/RAWG, chiede conferma
-      const off = v && (Math.abs(sc - g.score) > 6 || (!g.vs && r < 3));
+      // un voto verificato di origine ignota è quasi sempre Metacritic: OpenCritic/RAWG non lo toccano. Metacritic vince sempre da solo; solo uno scarto enorme (>15, probabile gioco sbagliato) chiede conferma
+      if(v && !g.vs && r < 3) return;
+      const off = v && Math.abs(sc - g.score) > 15;
       ch.push({id, label: label + ' (' + to + ')', from: `${g.score} (${v ? 'verificato' : 'stima'})`, to: `${sc} (${to})`, patch:{score: sc, tier: tierOf(sc), m:'V', vs}, off});
     };
     // lingua italiana da fonti ufficiali (solo prove positive: se un sito non elenca l'italiano non significa che il gioco non lo abbia; l'edizione PC può differire da quella console)
@@ -399,6 +400,22 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
 
   window.rtApplyPatch = applyPatch;
+  // le proposte «sicure» (voto da fonte in ordine di priorità, lingua da Steam/PCGamingWiki/it.wikipedia, giochi affini) si applicano da sole, anche quelle rimaste in coda: niente scelte inutili
+  async function autoApproveQueue(){
+    const a = auLoad(); let n = 0;
+    for(const id of Object.keys(a)){
+      const rec = a[id]; if(!rec || !rec.ch || !rec.ch.length) continue;
+      const g = GAMES.find(x=> String(x.id) === String(id)); if(!g || g.custom) continue;
+      const ok = rec.ch.filter(c=> c.patch && /^(method|vsrc|score\d?|itsrc|itdub|similar)$/.test(c.id) && c.id !== 'score2' && !(c.patch.score != null && Math.abs(c.patch.score - g.score) > 15));
+      if(!ok.length) continue;
+      try{ await applyPatch(g, mergePatch(ok), true); rec.ch = rec.ch.filter(c=> !ok.includes(c)); n++; }catch(e){}
+      if(n % 10 === 0){ auSave(a); await new Promise(r=> setTimeout(r, 40)); }
+    }
+    if(n){ auSave(a); try{ window.dispatchEvent(new Event('audit-update')); }catch(e){} try{ auBadge(); }catch(e){} }
+    return n;
+  }
+  window.autoApproveQueue = autoApproveQueue;
+  setTimeout(()=>{ try{ autoApproveQueue(); }catch(e){} }, 25000);
   // ---- Mappa delle fonti: per ogni dato, in che ordine si cerca, e se ogni fonte funziona adesso ----
   const SRC_MAP = [
     ['Voto', 'Metacritic (Wikipedia → Steam → dati settimanali → CheapShark) → OpenCritic → RAWG → altrimenti Stima', ['wiki', 'steam', 'cheap', 'oc', 'rawg']],
@@ -731,7 +748,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       if(safe.length){ await applyPatch(g, mergePatch(safe), true); applied = safe.length; }
     } else {
       // il voto Metacritic (o OpenCritic) di un gioco ancora «stima» si applica da solo, anche sui giochi di base: è la fonte che rende un voto verificato
-      const auto = ch.filter(c=> /^(method|vsrc|score\d?)$/.test(c.id) && !c.off && c.patch && c.id !== 'score2');
+      const auto = ch.filter(c=> /^(method|vsrc|score\d?|itsrc|itdub|similar)$/.test(c.id) && !c.off && c.patch && c.id !== 'score2');
       if(auto.length){ try{ await applyPatch(g, mergePatch(auto), true); applied += auto.length; ch = ch.filter(c=> !auto.includes(c)); }catch(e){} }
       const sk = skLoad(), a = auLoad(), old = a[g.id];
       const keep = ch.filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch, off: !!c.off, warn: !!c.warn}));

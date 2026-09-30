@@ -162,7 +162,8 @@
     sx = x; sy = y; clearTimeout(timer);
     timer = setTimeout(()=>{ fired = Date.now(); try{ navigator.vibrate && navigator.vibrate(18); }catch(e){} preview(g); }, 450);
   };
-  const cancel = ()=> clearTimeout(timer);
+  let peekOpen = false;
+  const cancel = ()=>{ clearTimeout(timer); if(peekOpen){ peekOpen = false; const pv = document.getElementById('pvBackdrop'); if(pv) pv.classList.remove('show'); } };       // anteprima «a pressione»: rilasci il dito e sparisce
   document.addEventListener('touchstart', e=>{ const t = e.touches[0]; start(e.target, t.clientX, t.clientY); }, {passive: true});
   document.addEventListener('touchmove', e=>{ const t = e.touches[0]; if(Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) cancel(); }, {passive: true});
   ['touchend', 'touchcancel'].forEach(n=> document.addEventListener(n, cancel, {passive: true}));
@@ -176,13 +177,17 @@
     const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
     const cov = typeof effectiveCover === 'function' ? effectiveCover(g) : null, l = g.label || {};
     const story = String(g.story || '').replace(/\s+/g, ' ').trim();
-    el.innerHTML = `<div class="lp-card pv-card"><div class="lp-head"><b>${esc(g.name)}</b><button class="btn" data-ui-close>Chiudi</button></div>
+    el.innerHTML = `<div class="lp-card pv-card"><div class="lp-head"><b>${esc(g.name)}</b></div>
       ${cov ? `<img class="pv-cover" src="${esc(cov)}" alt="">` : (typeof coverPlaceholderHtml === 'function' ? coverPlaceholderHtml(g) : '')}
       <div class="pv-badges"><span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span><span class="badge big outline">${typeof scoreTxt === 'function' ? scoreTxt(g) : g.score}${g.tier === 'ND' ? '' : '/100'}</span><span class="badge big outline">${typeof srcIcon === 'function' ? srcIcon(g) : ''}</span><span style="opacity:.8">${esc(g.plat)}${g.year ? ' · ' + esc(g.year) : ''}</span></div>
       ${story ? `<div class="pv-line">${esc(story.slice(0, 230))}${story.length > 230 ? '…' : ''}</div>` : ''}
       ${l.ok ? `<div class="pv-line">🟢 <b>Fa per te se</b> ${esc(l.ok)}</div>` : ''}${l.ko ? `<div class="pv-line">🔴 <b>Lascia stare se</b> ${esc(l.ko)}</div>` : ''}
-      <div class="lp-tools"><button class="btn primary" id="pvOpen">Apri la scheda</button></div></div>`;
-    el.classList.add('show');
-    el.querySelector('#pvOpen').addEventListener('click', ()=>{ el.classList.remove('show'); try{ openModal(g); }catch(e){} });
+      <div class="pv-line" style="opacity:.6">Rilascia per chiudere · tocca il titolo per aprire la scheda</div></div>`;
+    el.classList.add('show'); peekOpen = true;
   }
 })();
+
+// vibrazione brevissima al tocco (come un «tic» di sistema); si può spegnere con localStorage jrpg_haptics = off
+document.addEventListener('pointerdown', e=>{
+  try{ if(!navigator.vibrate || e.pointerType !== 'touch' || localStorage.getItem('jrpg_haptics') === 'off') return; if(e.target.closest && e.target.closest('button, .btn, .iconbtn, .view-tab, .qf-chip, #tbody tr')) navigator.vibrate(7); }catch(x){}
+}, {passive: true});

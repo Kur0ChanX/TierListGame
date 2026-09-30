@@ -849,3 +849,14 @@ tr.rt-noanim, tr.rt-noanim *{animation:none !important}
 .pv-cover{width:100%; max-height:46vh; object-fit:contain; border-radius:14px; display:block; margin:0 auto 10px; background:rgba(255,255,255,.04)}
 .pv-badges{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0}
 .pv-line{font-size:.9rem; margin:6px 0; opacity:.92}
+
+/* anteprima a pressione: piccola, non blocca il dito */
+#pvBackdrop{pointer-events:none !important; align-items:center !important; background:rgba(6,6,16,.55) !important}
+.pv-card{max-width:300px !important}
+.pv-cover{max-height:30vh !important}
+/* scheda gioco: a schermo intero sul telefono, senza sfocature né animazioni che la fanno sfarfallare nel primo secondo */
+.modal-card .proscons li,.modal-card .glabel-bar i,.modal-card .dualscore-box,.modal-card .bar i{animation:none !important}
+@media (max-width:760px){
+  .modal-backdrop{align-items:stretch !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important; background:var(--bg,#0b0b14) !important; transition:opacity .15s !important}
+  .modal-card,.modal-card.wide{width:100vw !important; max-width:none !important; height:100dvh; max-height:100dvh !important; border-radius:0 !important; border:none !important; box-shadow:none !important; transform:none !important; transition:opacity .15s !important}
+}
