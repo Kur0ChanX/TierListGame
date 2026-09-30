@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v139', date:'2026-10-11', items:[
+    'Tolto il «+» giallo accanto al nome dei giochi (lista, copertine, schede compatte, La mia Tier List): restano solo la V+ dorata nella colonna del voto. Per sapere se un gioco è già aggiornato con Update+ apri la scheda: c\'è il badge, la riga con la data e le fonti usate, e il pulsante «Rifai Update+». Un gioco già aggiornato non viene più ripreso dall\'aggiornamento automatico (solo i prezzi).'
+  ]},
   {version:'v138', date:'2026-10-11', items:[
     'Scorrimento della classifica di nuovo fluido: quando un gioco aggiunto da te veniva aggiornato in background (Update+ o completamento delle schede) l\'app ridisegnava tutta la lista e si bloccava per quasi mezzo secondo ogni volta. Ora cambia solo la riga di quel gioco, e i ridisegni completi aspettano che tu smetta di toccare lo schermo.'
   ]},

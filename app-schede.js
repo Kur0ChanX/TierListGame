@@ -735,6 +735,7 @@ function openModal(g){
       <span class="badge big outline">${methodIcon(g.m, g)} ${g.m==='V' ? 'Verificato' : 'Stima'}</span>
       ${(()=>{ const f = freshInfo(g); return f ? `<span class="badge big outline fresh-badge" title="${escHtml(freshWhy(f))}">${giIcon(f.m ? 'upmanual' : 'upplus')} ${f.m ? 'Controllato a mano' : 'Update+'}</span>` : ''; })()}
     </div>
+    ${typeof updatePlusNow === 'function' ? (()=>{ const f = freshInfo(g); return f ? `<div class="fresh-line ok">${giIcon(f.m ? 'upmanual' : 'upplus')} <span>${escHtml(freshWhy(f))}</span></div>` : `<div class="fresh-line">Non ancora aggiornato con Update+: lo faccio io in automatico (una sola volta) oppure premi «Update+ adesso».</div>`; })() : ''}
     <div class="modal-tags">${g.tags.map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${dnaHtml(g)}
     ${labelHtml(g)}
