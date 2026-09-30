@@ -887,3 +887,19 @@ html.rt-tinted #modalBackdrop.show{animation:none !important}
 .rt-music.idle:not(.moving){opacity:.55}
 
 html.rt-notrans{transition:none !important}
+
+/* ===== v171: verdetto d'acquisto ===== */
+.vd-card{--vd:#8b8fa3; margin:12px 0; padding:12px 14px 10px; border-radius:18px; border:1px solid color-mix(in srgb,var(--vd) 55%,transparent); background:linear-gradient(135deg,color-mix(in srgb,var(--vd) 20%,transparent),color-mix(in srgb,var(--vd) 6%,transparent))}
+.vd-buy{--vd:#2f9e6b} .vd-wait{--vd:#d4a017} .vd-try{--vd:#3b82f6} .vd-skip{--vd:#d04444} .vd-unsure{--vd:#8b8fa3} .vd-own{--vd:#a855f7}
+.vd-head{display:flex; align-items:center; gap:12px}
+.vd-ic{flex:none; width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:1.25rem; font-weight:800; color:#fff; background:var(--vd); box-shadow:0 6px 18px color-mix(in srgb,var(--vd) 45%,transparent)}
+.vd-ttl{display:flex; flex-direction:column; line-height:1.15} .vd-ttl small{font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; opacity:.7} .vd-ttl b{font-size:1.15rem}
+.vd-sub{margin:8px 0 6px; font-size:.9rem; opacity:.95}
+.vd-why{list-style:none; margin:4px 0 0; padding:0; display:grid; gap:5px}
+.vd-why li{position:relative; padding-left:22px; font-size:.84rem; line-height:1.3}
+.vd-why li::before{position:absolute; left:0; top:0; width:16px; text-align:center; font-weight:800}
+.vd-why .vd-ok::before{content:'✓'; color:#2f9e6b} .vd-why .vd-warn::before{content:'!'; color:#d4a017} .vd-why .vd-bad::before{content:'✕'; color:#d04444} .vd-why .vd-info::before{content:'•'; color:var(--sub,#8b8fa3)}
+.vd-chiprow{margin:2px 0 6px}
+.vd-chip{--vd:#8b8fa3; display:inline-flex; align-items:center; gap:6px; padding:4px 11px 4px 5px; border-radius:999px; font-size:.82rem; font-weight:700; color:var(--text); background:color-mix(in srgb,var(--vd) 24%,transparent); border:1px solid color-mix(in srgb,var(--vd) 60%,transparent)}
+.vd-chip i{font-style:normal; width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:.75rem; color:#fff; background:var(--vd)}
+.vd-chip.vd-buy{--vd:#2f9e6b} .vd-chip.vd-wait{--vd:#d4a017} .vd-chip.vd-try{--vd:#3b82f6} .vd-chip.vd-skip{--vd:#d04444} .vd-chip.vd-unsure{--vd:#8b8fa3} .vd-chip.vd-own{--vd:#a855f7}

@@ -256,7 +256,8 @@ Hai questi strumenti sul SUO database, usali sempre invece di inventare voti, ta
 - add_custom_game: quando Mario ti chiede consigli su giochi NON nel suo database e ne vuole aggiungere uno alla sua libreria (o te lo chiede esplicitamente, es. "aggiungilo", "mettilo nel database", "salvalo"), verifica prima con search_games che non ci sia già, poi usa add_custom_game per inserirlo DAVVERO con tutte le informazioni che conosci (piattaforma, anno, generi, un tuo voto/tier onesto, trama breve, e se puoi anche difficoltà/ore/lingua italiana) — comparirà nella sua classifica su ogni dispositivo esattamente come un gioco già catalogato. Non aggiungere mai un gioco senza che Mario lo abbia chiaramente chiesto.
 Quando ti chiede "consigliami qualcosa di nuovo" o "cosa mi manca", puoi anche attingere alla tua conoscenza generale di RPG/JRPG oltre al suo database (non sei limitato ai 765 titoli già catalogati): proponi titoli che potrebbero piacergli in base a get_taste_profile, verifica con search_games che non li abbia già, e offriti di aggiungerli con add_custom_game se gli interessano.
 Quando nomini un gioco che hai trovato nel database con search_games, get_game_details o add_custom_game, scrivi il suo id tra doppie graffe subito dopo il nome, così: Nome del gioco{{123}} — diventerà un link cliccabile nella pagina. Non farlo per giochi che non sono (ancora) nel database.
-Se Mario allega una foto (es. copertina vista in un negozio) o ti dà solo un nome, riconosci il titolo e come PRIMA cosa verifica con search_games se è già nel database: se c'è, dillo subito (con il link) e NON aggiungerlo. Poi valuta se può piacergli in base ai suoi gusti reali, non a supposizioni generiche.`;
+Se Mario allega una foto (es. copertina vista in un negozio) o ti dà solo un nome, riconosci il titolo e come PRIMA cosa verifica con search_games se è già nel database: se c'è, dillo subito (con il link) e NON aggiungerlo. Poi valuta se può piacergli in base ai suoi gusti reali, non a supposizioni generiche.
+Quando Mario chiede se conviene comprare un gioco (o "vale la pena?", "lo prendo?"), usa get_game_details e riporta il campo verdictAcquisto (esito e motivi) senza contraddirlo: è lo stesso verdetto che vede nella scheda del gioco.`;
 }
 function askFormatText(text){
   let t = escHtml(text);
@@ -1055,7 +1056,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-01';
-const DATA_BUILD_VERSION = 'v170';
+const DATA_BUILD_VERSION = 'v171';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
