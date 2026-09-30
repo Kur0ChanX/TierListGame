@@ -280,6 +280,17 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     return p;
   }
   async function applyPatch(g, p){
+    // cronologia (idea 29): salvo i valori di prima per poterli ripristinare
+    try{
+      if(window.rtHistory){
+        const undo = {}, sh = v=> v == null ? '—' : Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v).slice(0, 120) : String(v);
+        Object.keys(p).forEach(k=>{
+          if(k === 'enrich' || k === 'label'){ undo[k] = {}; Object.keys(p[k] || {}).forEach(sk=>{ const old = g[k] ? g[k][sk] : undefined; undo[k][sk] = old === undefined ? null : old; rtHistory(g.id, (k === 'label' ? 'Etichetta · ' : 'Scheda · ') + sk, sh(old), sh(p[k][sk]), 'correzione approvata', null); }); }
+          else { undo[k] = g[k] === undefined ? null : g[k]; if(k !== 'tier' && k !== 'ysort' && k !== 'm') rtHistory(g.id, k, sh(g[k]), sh(p[k]), 'correzione approvata', null); }
+        });
+        const h = JSON.parse(localStorage.getItem('jrpg_history') || '{}'); if(h[g.id] && h[g.id][0]) h[g.id][0].u = {patch: undo}; localStorage.setItem('jrpg_history', JSON.stringify(h));
+      }
+    }catch(e){}
     if(g.custom){
       const doc = {name: g.name, plat: g.plat, year: p.year || g.year, tier: p.tier || g.tier, score: p.score != null ? p.score : g.score, tags: p.tags || g.tags, story: p.story != null ? p.story : g.story, note: p.note || g.note, label: Object.assign({}, g.label || {}, p.label || {}),
         pros: (p.enrich && p.enrich.pros) || (g.proscons && g.proscons.pros) || [], cons: (p.enrich && p.enrich.cons) || (g.proscons && g.proscons.cons) || [], enrich: cleanCustomEnrich(Object.assign({}, g.enrich || {}, p.enrich || {})) || undefined, addedAt: new Date().toISOString()};
@@ -292,6 +303,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{ ensureGenreLists(p.tags || []); renderListBar(); render(); }catch(e){}
   }
 
+  window.rtApplyPatch = applyPatch;
   // ----- interfaccia -----
   function panel(){
     let el = document.getElementById('updInfoBackdrop');

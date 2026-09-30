@@ -25,11 +25,11 @@ jobs:
         run: |
           mkdir _site
           cp "Tier List RPG & JRPG di Mario.html" _site/index.html
-          cp style.css theme.css app.js app-schede.js app-utente.js app-ai.js gemini.js loader.js sources.js facts.js discoveries.js sync.js genres.js verify.js fx.js extras.js extras2.js palettes.js intro.js giochi.js giochi-dettagli.js manifest.webmanifest sw.js _site/
+          cp style.css theme.css app.js app-schede.js app-utente.js app-ai.js gemini.js loader.js sources.js facts.js discoveries.js sync.js genres.js verify.js fx.js extras.js extras2.js extras3.js music.js pet.js triad.js radar.js ost.js quality.js palettes.js intro.js giochi.js giochi-dettagli-1.js giochi-dettagli-2.js giochi-dettagli-3.js giochi-dettagli-4.js manifest.webmanifest sw.js _site/
           cp -r icons _site/icons
           cp -r backup-aurora _site/backup-aurora
           # la copia congelata si aspetta enrich/dopa dentro giochi.js: le riunisco al volo nella versione pubblicata (i suoi file nel repo restano intatti)
-          sed -i 's#<script src="../giochi.js"></script>#<script src="../giochi.js"></script><script src="../giochi-dettagli.js"></script><script>Object.assign(GIOCHI_DATA,GIOCHI_DETAILS);</script>#' _site/backup-aurora/index.html
+          sed -i 's#<script src="../giochi.js"></script>#<script src="../giochi.js"></script><script src="../giochi-dettagli-1.js"></script><script src="../giochi-dettagli-2.js"></script><script src="../giochi-dettagli-3.js"></script><script src="../giochi-dettagli-4.js"></script><script>(window.GIOCHI_DETAILS_PARTS||[]).forEach(function(p){GIOCHI_DATA.enrich=Object.assign(GIOCHI_DATA.enrich||{},p.enrich);GIOCHI_DATA.dopa=Object.assign(GIOCHI_DATA.dopa||{},p.dopa);});</script>#' _site/backup-aurora/index.html
           grep -q 'giochi-dettagli.js' _site/backup-aurora/index.html
       - uses: actions/upload-pages-artifact@v3
         with:

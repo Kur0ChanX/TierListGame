@@ -2,7 +2,8 @@ name: Dati settimanali (Steam, GOG, CheapShark, Wikipedia)
 # Ogni lunedì scarica dai SERVER (dove il browser non ha blocchi) i dati che l'app usa per cercare e controllare i giochi:
 #  - facts.js: lingue italiane ufficiali su Steam, prezzo in euro con sconto, Metascore e % di recensioni per ogni gioco del database
 #  - discoveries.js: migliaia di giochi da scoprire (Steam, GOG, CheapShark, Wikipedia, RAWG se c'è il segreto RAWG_API_KEY)
-# Ogni notte (01:23 UTC) un giro leggero: SOLO i prezzi di Steam (6 richieste in tutto), così i prezzi dell'app sono sempre del giorno. Il lunedì il giro completo.
+# Ogni notte (01:23 UTC) un giro leggero, anche a telefono spento: prezzi Steam del giorno, radar delle uscite (radar.js) e controllo qualità (quality.js).
+# Il lunedì il giro completo: giochi da scoprire, dati dei giochi con il termometro delle recensioni, colonne sonore (ost.js).
 # Nessun dato dei giochi viene cambiato da solo: l'app li usa per PROPORRE correzioni (le approvi tu) e come fonte della ricerca.
 on:
   schedule:
@@ -18,7 +19,7 @@ concurrency:
 jobs:
   aggiorna:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,6 +38,16 @@ jobs:
       - name: Prezzi di oggi (giro notturno leggero)
         if: github.event.schedule == '23 1 * * *'
         run: node tools/build-facts.js --light
+      - name: Radar delle uscite (ogni notte)
+        run: node tools/build-radar.js
+        continue-on-error: true
+      - name: Colonne sonore (solo giro completo)
+        if: github.event.schedule != '23 1 * * *'
+        run: node tools/build-ost.js
+        continue-on-error: true
+      - name: Controllo qualità (ogni notte)
+        run: node tools/build-quality.js
+        continue-on-error: true
       - name: Controllo dati
         run: node tools/check-data.js
         continue-on-error: true
@@ -44,11 +55,11 @@ jobs:
         run: |
           git config user.name "raccoon-bot"
           git config user.email "raccoon-bot@users.noreply.github.com"
-          git add facts.js discoveries.js
+          git add facts.js discoveries.js radar.js ost.js quality.js
           if git diff --cached --quiet; then
             echo "Nessuna novità."
           else
-            git commit -m "Dati settimanali: facts.js e discoveries.js"
+            git commit -m "Dati automatici: prezzi, radar, qualità (e ogni lunedì scoperte, termometro, colonne sonore)"
             git push
             gh workflow run pages.yml --ref main
           fi

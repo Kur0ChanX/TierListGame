@@ -583,6 +583,16 @@ const GAMES = GIOCHI_DATA.games;
 GAMES.forEach(g=>{ g.enrich = null; });
 let DETAILS_READY = false;
 function detailsReady(){ return DETAILS_READY; }
+// i dettagli arrivano in 4 pezzi (giochi-dettagli-1..4.js): quando ci sono tutti li unisco e li applico
+const DETAILS_N = 4;
+function detailsPart(){
+  const P = window.GIOCHI_DETAILS_PARTS || [], seen = new Set(P.map(x=> x.part));
+  if(seen.size < DETAILS_N || DETAILS_READY) return false;
+  const all = {enrich: {}, dopa: {}};
+  P.forEach(x=>{ Object.assign(all.enrich, x.enrich || {}); Object.assign(all.dopa, x.dopa || {}); });
+  window.GIOCHI_DETAILS = all;
+  return applyDetails();
+}
 function applyDetails(){
   if(DETAILS_READY || typeof GIOCHI_DETAILS === 'undefined' || !GIOCHI_DETAILS) return false;
   const EN = GIOCHI_DETAILS.enrich || {}, DP = GIOCHI_DETAILS.dopa || {};
@@ -605,11 +615,15 @@ function retryDetails(){
   if(detailsTries >= 3){ try{ showToast('I dettagli dei giochi non si sono caricati: controlla la connessione e ricarica la pagina', 6000); }catch(e){} return; }
   detailsTries++;
   setTimeout(()=>{
-    const s = document.createElement('script');
-    s.src = 'giochi-dettagli.js?r=' + Date.now();
-    s.onload = ()=> applyDetails();
-    s.onerror = retryDetails;
-    document.head.appendChild(s);
+    const have = new Set((window.GIOCHI_DETAILS_PARTS || []).map(x=> x.part));
+    for(let k = 1; k <= DETAILS_N; k++){
+      if(have.has(k)) continue;
+      const s = document.createElement('script');
+      s.src = 'giochi-dettagli-' + k + '.js?r=' + Date.now();
+      s.onload = ()=> detailsPart();
+      s.onerror = retryDetails;
+      document.head.appendChild(s);
+    }
   }, 1500 * detailsTries);
 }
 const LABELS = GIOCHI_DATA.labels;
