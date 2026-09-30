@@ -107,11 +107,15 @@
     const s = await viaProxy('https://store.steampowered.com/api/storesearch/?term=' + encodeURIComponent(base) + '&cc=IT&l=english');
     const hit = ((s && s.items) || []).find(x=> x.type === 'app' && normGameName(String(x.name).replace(/\s*\([^)]*\)/g, '')) === target);
     if(!hit) return null;
-    const d = await viaProxy('https://store.steampowered.com/api/appdetails?appids=' + hit.id + '&l=english&filters=basic,supported_languages');
-    const html = d && d[hit.id] && d[hit.id].data && d[hit.id].data.supported_languages || '';
+    const d = await viaProxy('https://store.steampowered.com/api/appdetails?appids=' + hit.id + '&cc=it&l=english&filters=basic,supported_languages,metacritic,release_date,genres,price_overview');
+    const x = (d && d[hit.id] && d[hit.id].data) || {};
+    const html = x.supported_languages || '';
     if(!html) return null;
     const it = /Italian(<strong>\*<\/strong>)?/i.exec(html);
-    return {id: hit.id, url: 'https://store.steampowered.com/app/' + hit.id + '/', itText: !!it, itAudio: !!(it && it[1]), langs: html.replace(/<[^>]+>/g, '').replace(/languages with full audio support/i, '').trim().slice(0, 300)};
+    const yy = String((x.release_date && x.release_date.date) || '').match(/(19[7-9]\d|20[0-3]\d)/);
+    return {id: hit.id, url: 'https://store.steampowered.com/app/' + hit.id + '/', itText: !!it, itAudio: !!(it && it[1]),
+      mc: (x.metacritic && x.metacritic.score) || null, mcUrl: (x.metacritic && x.metacritic.url) || null, year: yy ? yy[1] : null, genres: (x.genres || []).map(z=> z.description),
+      price: x.price_overview ? x.price_overview.final / 100 : (x.is_free ? 0 : null), desc: String(x.about_the_game || x.detailed_description || x.short_description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 3500), langs: html.replace(/<[^>]+>/g, '').replace(/languages with full audio support/i, '').trim().slice(0, 300)};
   }
   // ---- PCGamingWiki: tabella lingue (interfaccia/audio/sottotitoli). Accesso diretto dal browser; se non risponde viene saltata.
   async function pcgwInfo(name){
@@ -178,11 +182,19 @@
       if(Math.min(...wy) > nowY) ch.push({id:'unreleased', label:'⚠️ Non ancora uscito', from:'', to:'Wikidata indica un\'uscita nel ' + Math.min(...wy) + ': voto e recensioni non possono essere reali', patch:{note:'Non ancora uscito (uscita prevista ' + Math.min(...wy) + '): voto provvisorio.', m:'S'}});
     }
     // dati settimanali dai server: Metascore riportato da Steam/CheapShark (proposta mai attiva di default: le recensioni non sono contabili)
-    if(src.facts){
-      const mcs = [src.facts.s && src.facts.s.mc, src.facts.c && src.facts.c.mc].filter(Boolean);
-      const mc = mcs.length ? mcs[0] : null;
+    {
+      // ordine di attendibilità del Metascore: Wikipedia (già sopra) → Steam dal vivo → Steam nei dati settimanali → CheapShark
+      const cands = [[src.steam && src.steam.mc, 'Steam dal vivo'], [src.facts && src.facts.s && src.facts.s.mc, 'Steam, dati settimanali'], [src.facts && src.facts.c && src.facts.c.mc, 'CheapShark']].filter(x=> x[0]);
+      const [mc, from] = cands[0] || [];
       if(mc && Math.abs(mc - g.score) > 6 && !ch.some(c=> /^score/.test(c.id))){
-        ch.push({id:'score4', label:'Voto (Metascore da Steam/CheapShark)', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${mc} (Metascore riportato dai dati settimanali; recensioni non verificabili)`, patch:{score: mc, tier: tierOf(mc), m:'V'}, off:true});
+        ch.push({id:'score4', label:'Voto (Metascore da ' + from + ')', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${mc} (Metascore riportato da ${from}; recensioni non verificabili)`, patch:{score: mc, tier: tierOf(mc), m:'V'}, off:true});
+      }
+      // anno: Wikidata (già sopra) → Steam dal vivo → Steam nei dati settimanali → CheapShark → RAWG (sotto)
+      const ys = [[src.steam && src.steam.year, 'Steam dal vivo'], [src.facts && src.facts.s && src.facts.s.y, 'Steam, dati settimanali'], [src.facts && src.facts.c && src.facts.c.y, 'CheapShark']].filter(x=> x[0]);
+      const mine = yearsOf(g);
+      if(ys.length && mine.length && !ch.some(c=> c.id === 'year' || c.id === 'unreleased') && !(src.wd && src.wd.years && src.wd.years.length)){
+        const [y, yf] = ys[0];
+        if(!mine.some(m=> Math.abs(m - +y) <= 1)) ch.push({id:'year', label:'Anno', from: g.year, to: y + ' (' + yf + ')', patch:{year: String(y), ysort: +y}});
       }
     }
     // RAWG: conferma l'anno (se Wikidata non ha già proposto), voto Metacritic (mai attivo di default: le recensioni non sono contabili) e giochi affini
@@ -208,11 +220,11 @@
     try{ return JSON.parse(s.slice(a, b + 1)); }catch(e){ return null; }
   }
   async function textChanges(g, src, silent){
-    const hasSrc = !!((src.wiki && src.wiki.text) || (src.rawg && src.rawg.desc));
+    const hasSrc = !!((src.wiki && src.wiki.text) || (src.rawg && src.rawg.desc) || (src.steam && src.steam.desc));
     if(!llmAvailable() || !hasSrc) return {changes:[], note: !hasSrc ? 'Nessuna pagina Wikipedia o RAWG trovata: testi non riscritti.' : 'Nessun motore AI configurato: testi non riscritti.'};
     const prompt = todayLine() + `Aggiorna la scheda del videogioco "${g.name}" (${g.year}, ${g.plat}) usando SOLO le fonti qui sotto. Se una informazione non è nelle fonti scrivi null: non inventare nulla. Niente espressioni come "recente" o "uscito da poco": usa gli anni.
 Rispondi SOLO con un oggetto JSON valido con questi campi (in italiano): story (trama ricca e dettagliata: 5-8 frasi, circa 600-900 caratteri: ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler pesanti sul finale), pros (3-4 punti di forza concreti, emersi dalla critica), cons (2-3 difetti concreti, emersi dalla critica), agingNote (1-2 frasi su come regge oggi, con gli anni), whyLikeIt (una frase impersonale che spiega cosa rende appagante il gioco; niente riferimenti a persone tipo «gli piacerà»).
-${src.wiki && src.wiki.text ? `FONTE — Wikipedia (${src.wiki.title}):\n${digest(src.wiki.text)}` : ''}${src.rawg && src.rawg.desc ? `\nFONTE — RAWG (${src.rawg.name}${src.rawg.playtime ? ', durata media giocata dagli utenti ' + src.rawg.playtime + ' h' : ''}):\n${src.rawg.desc.slice(0, 3500)}` : ''}`;
+${src.wiki && src.wiki.text ? `FONTE — Wikipedia (${src.wiki.title}):\n${digest(src.wiki.text)}` : ''}${src.rawg && src.rawg.desc ? `\nFONTE — RAWG (${src.rawg.name}${src.rawg.playtime ? ', durata media giocata dagli utenti ' + src.rawg.playtime + ' h' : ''}):\n${src.rawg.desc.slice(0, 3500)}` : ''}${src.steam && src.steam.desc ? `\nFONTE — Steam (descrizione ufficiale, testo promozionale: usala solo per confermare i fatti, la priorità è Wikipedia):\n${src.steam.desc.slice(0, 2500)}` : ''}`;
     const r = await askLLM(prompt, {}, {fast:true, silent: !!silent, label:'Riscrivo la scheda dalle fonti…'});
     const j = parseJson(r && r.text);
     if(!j) return {changes:[], note:'L\'AI non ha restituito un risultato leggibile: riprova.'};
@@ -279,7 +291,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     list.forEach(c=>{ Object.keys(c.patch).forEach(k=>{ if(k === 'enrich') p.enrich = Object.assign(p.enrich || {}, c.patch.enrich); else if(k === 'label') p.label = Object.assign(p.label || {}, c.patch.label); else p[k] = c.patch[k]; }); });
     return p;
   }
-  async function applyPatch(g, p){
+  async function applyPatch(g, p, quiet){
     // cronologia (idea 29): salvo i valori di prima per poterli ripristinare
     try{
       if(window.rtHistory){
@@ -300,7 +312,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       ov[g.id] = Object.assign({}, cur, p, {enrich: Object.assign({}, cur.enrich || {}, p.enrich || {}), label: Object.assign({}, cur.label || {}, p.label || {})});
       saveOv(ov); applyGameOverrides();
     }
-    try{ ensureGenreLists(p.tags || []); renderListBar(); render(); }catch(e){}
+    try{ ensureGenreLists(p.tags || []); if(!quiet){ renderListBar(); render(); } }catch(e){}       // quiet = aggiornamento in background: non ridisegno la lista (niente sfarfallio)
   }
 
   window.rtApplyPatch = applyPatch;
@@ -536,7 +548,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   window.updatePlusQueue = id=>{ if(!fpQueue.includes(id)) fpQueue.push(id); fpKick(6000); };
   function frManual(id){                                        // «Aggiorna info» a mano: simbolo viola
     const f = frLoad(); f[id] = {gold: 1, m: 1, t: new Date().toISOString(), src: (f[id] && f[id].src) || []}; frSave(f);
-    try{ render(); }catch(e){}
+    try{ const g = GAMES.find(x=> x.id === id); g && refreshRowFresh(g); }catch(e){}
   }
   function fpNext(){
     while(fpQueue.length){
@@ -555,14 +567,20 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     });
     return best;
   }
-  async function updatePlus(g){
+  let fpTextN = 0;                       // trame riscritte dall'AI in questa sessione (con limite, per non consumare le richieste gratuite)
+  async function updatePlus(g, manual){
     const src = await gather(g, false);
     const names = Object.keys(FP_SRC).filter(k=> src[k]).map(k=> FP_SRC[k]);
-    const ch = factChanges(g, src);
+    let ch = factChanges(g, src);
+    // storia, pro/contro, «perché piacerti»: riscritti dall'AI SOLO dalle fonti (Wikipedia → RAWG → Steam), se c'è una chiave e la scheda è povera (o l'hai chiesto tu)
+    try{
+      const poor = g.custom || String(g.story || '').length < 300 || !((g.enrich && g.enrich.pros) || []).length;
+      if(typeof llmAvailable === 'function' && llmAvailable() && (manual || (poor && fpTextN < 8))){ fpTextN++; const t = await textChanges(g, src, true); ch = ch.concat(t.changes.filter(c=> c.id !== 'aging')); if(t.changes.length) names.push('Testi riscritti dalle fonti'); }
+    }catch(e){}
     let applied = 0, pending = 0, cover = false;
     if(g.custom){
       const safe = ch.filter(c=> !c.off && c.id !== 'score3' && c.patch);
-      if(safe.length){ await applyPatch(g, mergePatch(safe)); applied = safe.length; }
+      if(safe.length){ await applyPatch(g, mergePatch(safe), true); applied = safe.length; }
     } else {
       const sk = skLoad(), a = auLoad(), old = a[g.id];
       const keep = ch.filter(c=> c.patch && !sk[auKey(g.id, c)]).map(c=>({id: c.id, label: c.label, from: c.from, to: c.to, patch: c.patch, off: !!c.off, warn: !!c.warn}));
@@ -578,7 +596,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     else fr[g.id] = {t: iso, tries: ((fr[g.id] || {}).tries || 0) + 1, src: names};
     frSave(fr);
     try{ window.DebugLog && DebugLog.add && DebugLog.add({kind: 'note', src: 'Update+', ok: okN >= 1, note: g.name + ': ' + (names.join(', ') || 'nessuna fonte ha risposto') + (applied ? ' · ' + applied + ' correzioni' : '') + (pending ? ' · ' + pending + ' da approvare' : '')}); }catch(e){}
-    try{ render(); if(typeof renderMyTier === 'function' && state.view === 'mytier') renderMyTier(); }catch(e){}
+    try{ if(applied || pending || cover || (window.XCOVER && false)){ /* i dati della riga sono cambiati */ } refreshRowFresh(g); }catch(e){}
     try{ window.dispatchEvent(new CustomEvent('update-plus', {detail: {id: g.id, ok: okN >= 1, names}})); }catch(e){}
     return {ok: okN >= 1, names, applied, pending, cover};
   }
@@ -586,7 +604,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   window.updatePlusNow = async function(g){
     const P = window.Progress; try{ P && P.begin && P.begin('Update+ di ' + g.name + '…'); }catch(e){}
     let r = null;
-    try{ r = await updatePlus(g); }catch(e){}
+    try{ r = await updatePlus(g, true); }catch(e){}
     try{ P && P.end && P.end(); }catch(e){}
     if(r && r.ok) showToast('Update+ completato · fonti: ' + r.names.join(', ') + (r.pending ? ' · ' + r.pending + ' modifiche da approvare' : '') + (r.applied ? ' · ' + r.applied + ' correzioni applicate' : ''), 5500);
     else showToast('Nessuna fonte ha risposto adesso: riprova tra poco (controlla la connessione o il ponte personale)', 5000);

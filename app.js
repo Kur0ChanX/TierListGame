@@ -1065,6 +1065,7 @@ function render(){
   const dnaProfileForRow = state.sortKey==='dna' ? buildTasteProfile() : null;
   function buildRow(g){
     const tr = document.createElement('tr');
+    tr.dataset.gid = g.id;
     const isFav = FAVS.has(g.id);
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};">${d.pct}%</span>` : ''; })();
     tr.innerHTML = `
@@ -1387,6 +1388,14 @@ function freshInfo(g){ try{ const f = (JSON.parse(localStorage.getItem('jrpg_fre
 function freshWhy(f){
   let d = ''; try{ d = new Date(f.t).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}); }catch(e){}
   return (f.m ? 'Controllato a mano da te il ' : 'Update+ il ') + d + ' · fonti: ' + ((f.src && f.src.length) ? f.src.join(', ') : 'ricerca manuale') + (f.pe ? ' · ' + f.pe + ' modifiche da approvare' : '') + '. Non lo aggiorno più (tranne i prezzi).';
+}
+// aggiorna SOLO la riga di un gioco (simbolo Update+ e V+) senza ridisegnare la lista: niente sfarfallio negli aggiornamenti in background
+function refreshRowFresh(g){
+  try{
+    const tr = document.querySelector('#tbody tr[data-gid="' + g.id + '"]'); if(!tr) return;
+    const m = tr.querySelector('td.method'); if(m) m.innerHTML = methodIcon(g.m, g);
+    const nm = tr.children[2]; if(nm){ nm.querySelectorAll('.fresh-ic').forEach(x=> x.remove()); const h = freshIcon(g); if(h){ const first = nm.querySelector('.mini-icon'); if(first) first.insertAdjacentHTML('beforebegin', h); else { const dot = nm.querySelector('.status-dot'); if(dot) dot.insertAdjacentHTML('afterend', h); else nm.insertAdjacentHTML('afterbegin', h); } } }
+  }catch(e){}
 }
 function freshIcon(g){
   const f = freshInfo(g); if(!f) return '';

@@ -93,13 +93,45 @@
     if(!d){
       d = document.createElement('div'); d.id = 'rtMusic'; d.className = 'rt-music';
       d.innerHTML = '<div class="rm-frame"><div id="rtYt"></div></div><button type="button" class="rm-b" data-m="toggle" aria-label="Play/Pausa"></button><div class="rm-t"><b></b><small></small></div><button type="button" class="rm-b" data-m="next" aria-label="Altro brano">⏭</button><button type="button" class="rm-b" data-m="stop" aria-label="Ferma la musica">■</button>';
-      document.body.appendChild(d);
+      document.body.appendChild(d); dragify(d); placeDock(d);
+      if(!LS.get('jrpg_music_hint', false)){ LS.set('jrpg_music_hint', true); setTimeout(()=> toast('Suggerimento: tieni premuto il player per spostarlo dove vuoi', 4500), 1500); }
       d.addEventListener('click', e=>{ const b = e.target.closest('[data-m]'); if(!b) return; const m = b.dataset.m; if(m === 'toggle') cur.playing ? pause() : resume(); else if(m === 'next') next(); else if(m === 'stop') stopAll(); });
     }
     return d;
   }
+  // il player si sposta dove vuoi: tienilo premuto (mezzo secondo), poi trascinalo; la posizione resta salvata
+  const POS = 'jrpg_music_pos';
+  function placeDock(d){
+    const p = LS.get(POS, null); if(!p) return;
+    const w = d.offsetWidth || 240, h = d.offsetHeight || 44;
+    d.style.left = Math.max(4, Math.min(innerWidth - w - 4, p.x * innerWidth)) + 'px'; d.style.top = Math.max(4, Math.min(innerHeight - h - 4, p.y * innerHeight)) + 'px'; d.style.bottom = 'auto';
+  }
+  function dragify(d){
+    let timer = 0, start = null, drag = null;
+    d.addEventListener('pointerdown', e=>{
+      start = {x: e.clientX, y: e.clientY};
+      timer = setTimeout(()=>{ const r = d.getBoundingClientRect(); drag = {dx: e.clientX - r.left, dy: e.clientY - r.top}; d.classList.add('moving'); try{ navigator.vibrate && navigator.vibrate(20); }catch(x){} try{ d.setPointerCapture(e.pointerId); }catch(x){} }, 480);
+    });
+    d.addEventListener('pointermove', e=>{
+      if(!drag){ if(start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) clearTimeout(timer); return; }
+      e.preventDefault();
+      const x = Math.max(4, Math.min(innerWidth - d.offsetWidth - 4, e.clientX - drag.dx)), y = Math.max(4, Math.min(innerHeight - d.offsetHeight - 4, e.clientY - drag.dy));
+      d.style.left = x + 'px'; d.style.top = y + 'px'; d.style.bottom = 'auto';
+    });
+    const end = ()=>{
+      clearTimeout(timer); start = null;
+      if(!drag) return; drag = null; d.classList.remove('moving');
+      const r = d.getBoundingClientRect(); LS.set(POS, {x: r.left / innerWidth, y: r.top / innerHeight});
+      d.dataset.moved = '1'; setTimeout(()=>{ delete d.dataset.moved; }, 350);
+      toast('Player spostato: resta qui', 1800);
+    };
+    d.addEventListener('pointerup', end); d.addEventListener('pointercancel', end);
+    d.addEventListener('click', e=>{ if(d.dataset.moved){ e.stopPropagation(); e.preventDefault(); } }, true);
+    window.addEventListener('resize', ()=> placeDock(d));
+  }
   function paint(){
     const d = dock(), t = cur.list[cur.i];
+    placeDock(d);
     d.classList.toggle('show', !!t && ON());
     d.querySelector('[data-m="toggle"]').textContent = cur.playing ? '❚❚' : '▶';
     d.querySelector('.rm-t b').textContent = t ? t[1] : '';
@@ -182,10 +214,12 @@
     const body = sheet('xSound', gi('pad') + ' Suoni e musica', `<div class="lp-sub">Suoni dei pulsanti creati nel telefono (nessun download). Scegli un tema: toccalo per sentirlo.</div>
       <label class="ask-toggle"><input type="checkbox" id="muOn" ${ON() ? 'checked' : ''}> ${gi('play')} Colonna sonora automatica quando apri un gioco</label>
       <label class="gs-row">Volume dei suoni <input type="range" min="0" max="1" step="0.05" value="${vol}" id="sfxVol"></label>
+      <button class="btn" type="button" id="muReset">Rimetti il player al suo posto</button>
       <div class="snd-grid"><button type="button" class="btn${cur0 === 'off' ? ' primary' : ''}" data-snd="off">Nessun suono</button>${Object.entries(THEMES).map(([k, t])=> `<button type="button" class="btn${cur0 === k ? ' primary' : ''}" data-snd="${k}">${esc(t.name)}</button>`).join('')}</div>`);
     body.querySelectorAll('[data-snd]').forEach(b=> b.addEventListener('click', ()=>{ LS.set('jrpg_sfx', b.dataset.snd); body.querySelectorAll('[data-snd]').forEach(x=> x.classList.toggle('primary', x === b)); if(b.dataset.snd !== 'off'){ rtSfx('success', b.dataset.snd); } }));
     body.querySelector('#sfxVol').addEventListener('input', e=>{ LS.set('jrpg_sfx_vol', +e.target.value); if(master) master.gain.value = +e.target.value; });
     body.querySelector('#sfxVol').addEventListener('change', ()=> rtSfx('fav'));
+    body.querySelector('#muReset').addEventListener('click', ()=>{ LS.set(POS, null); const d = document.getElementById('rtMusic'); if(d){ d.style.left = ''; d.style.top = ''; d.style.bottom = ''; } toast('Player rimesso al suo posto', 1800); });
     body.querySelector('#muOn').addEventListener('change', e=>{ LS.set('jrpg_music', e.target.checked ? 'on' : 'off'); if(!e.target.checked){ try{ yt && yt.stopVideo(); }catch(x){} cur.playing = false; paint(); } });
   }
   menu(gi('pad') + ' Suoni e musica (15 temi)', openSound);

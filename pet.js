@@ -111,7 +111,8 @@
 
   // ---------- avatar nell'app (angolo) ----------
   function avatar(){
-    let a = document.getElementById('petAvatar');
+    // Frugu vive nel menu ✨ (non più come icona sospesa sullo schermo)
+    let a = document.getElementById('petAvatar'); if(a) a.remove(); if(!window.RT_PET_FLOATING) return;
     if(!P.shown){ if(a) a.remove(); return; }
     if(!a){ a = document.createElement('button'); a.id = 'petAvatar'; a.type = 'button'; a.className = 'pet-av'; a.setAttribute('aria-label', 'Il tuo procione'); document.body.appendChild(a); a.addEventListener('click', openPet); }
     const n = need();
@@ -189,7 +190,7 @@
       <button class="btn pet-it" type="button" data-a="love">🤗 Coccole</button><button class="btn pet-it" type="button" data-a="sleep">${P.asleep ? '☀️ Sveglia' : '🌙 A nanna'}</button></div>`;
     else if(tab === 'gioca') panel = `<div class="pet-play"><div class="pg-menu"><button class="btn" type="button" data-g="coins">🪙 Acchiappa le monete</button><button class="btn" type="button" data-g="tier">🏆 Quiz dei tier</button><button class="btn" type="button" data-g="rps">✊ Morra cinese</button></div></div>`;
     else if(tab === 'negozio') panel = `<div class="pet-shop"><p class="lp-sub">Hai <b>${P.coins}</b> monete. Le guadagni con i minigiochi e usando l'app: gioco finito +25, gioco aggiunto +5, Update+ +2.</p>${SHOP.map(s=>{ const own = (P.owned || []).includes(s.id), on = (P.wear || []).includes(s.id); return `<button class="btn pet-it${on ? ' primary' : ''}" type="button" data-shop="${s.id}">${s.e} ${esc(s.n)} <small>${own ? (on ? 'indossato' : 'indossa') : s.cost + '🪙'}</small></button>`; }).join('')}</div>`;
-    else panel = `<div class="pet-diary"><label class="gs-row">Nome <input id="petName" value="${esc(P.name)}" maxlength="14"></label><label class="ask-toggle"><input type="checkbox" id="petShow" ${P.shown ? 'checked' : ''}> Mostra ${esc(P.name)} nell'angolo dell'app</label>
+    else panel = `<div class="pet-diary"><label class="gs-row">Nome <input id="petName" value="${esc(P.name)}" maxlength="14"></label>
       <p class="lp-sub">Nato il ${new Date(P.born).toLocaleDateString('it-IT')} · ${Math.floor(ageDays())} giorni · ${P.games || 0} giochi finiti insieme</p>${(P.log || []).map(l=> `<div class="hist-row"><small>${new Date(l.t).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}</small> ${esc(l.x)}</div>`).join('')}</div>`;
     body.innerHTML = `<div class="pet-stage">${svg(true)}</div>
       <div class="pet-id"><b>${esc(P.name)}</b> · ${st[1]}${f ? ' ' + esc(f[0]) : ''} · liv. ${level()} · ${P.coins}🪙${n ? `<div class="pet-needtx">${esc(n)}</div>` : ''}</div>
