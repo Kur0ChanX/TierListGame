@@ -3,22 +3,27 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
-  {version:'v153', date:'2026-10-21', items:[
+  {version:'v154', date:'2026-09-30', time:'21:31', items:[
+    'Risolto il problema serio per cui Update V+ sembrava non servire a nulla: nei giochi aggiunti (es. Bayonetta) il completamento automatico dell\'AI, partito prima, scriveva alla fine una copia vecchia della scheda e cancellava il voto verificato, i generi e i testi appena aggiornati (e viceversa). Ora ogni salvataggio parte sempre dall\'ultima versione della scheda.',
+    'Nei giochi aggiunti i generi sono al massimo 3 (prima le fonti potevano aggiungerne 5-6 sbagliati, come Soulslike o Looter Shooter su Bayonetta).',
+    'Nelle novità dell\'app ogni versione mostra ora anche l\'orario, oltre alla data.'
+  ]},
+  {version:'v153', date:'2026-09-30', time:'21:24', items:[
     'Nuovo rank «ND» (voto non disponibile), sotto tutti gli altri: i giochi aggiunti dalla ricerca o da Chiedi il cui voto NON è verificato da Metacritic o OpenCritic ci finiscono da soli, invece di un S+ inventato dall\'AI. Quando Update V+ trova un voto vero, il gioco passa al rank giusto. I giochi della tua classifica curata a mano non cambiano.'
   ]},
-  {version:'v152', date:'2026-10-21', items:[
+  {version:'v152', date:'2026-09-30', time:'21:13', items:[
     'Update+ e «Aggiorna info» sono un solo pulsante: «Update V+». Le modifiche dubbie (voto molto diverso) restano da approvare col pulsante 📝.',
     'Ogni voto dice da dove viene: «Voto preso da Metacritic (da Wikipedia/Steam/RAWG)». Se non c\'è Metacritic lo segnala («Nessun Metacritic trovato»: OpenCritic oppure stima). Il Metacritic ora sostituisce da solo il voto anche nei giochi già verificati, se la differenza è fino a 6 punti (oltre, chiede conferma). Nei prossimi giorni i 765 giochi vengono ricontrollati 40 alla volta.',
     'Ricerca nuovi giochi più severa: prima di proporre un titolo ne controllo il voto reale (Metacritic/OpenCritic). Se non lo trovo, il voto è segnato «stima» e non può superare 79 (tier C): basta titoli sconosciuti con S+ inventato dall\'AI. Sotto 50 di voto reale viene scartato.',
     'Affidabilità dei dati: corretto il motivo per cui restava al 90% («manca: analisi»). Bastava che l\'AI lasciasse vuoto un solo campo (es. lingua o ore) per perdere tutta l\'analisi; ora basta il nucleo (voto nel tempo, come regge oggi, gameplay) e ore/riedizioni/lingua sono facoltativi. Update V+ completa l\'analisi se manca.'
   ]},
-  {version:'v151', date:'2026-10-21', items:[
+  {version:'v151', date:'2026-09-30', time:'20:55', items:[
     'Quando un voto diventa verificato (V), la nota «voto e dettagli sono una stima» viene sostituita da «voto verificato», sia nei giochi nuovi sia in quelli già aggiunti (es. Dark Souls).'
   ]},
-  {version:'v150', date:'2026-10-21', items:[
+  {version:'v150', date:'2026-09-30', time:'20:40', items:[
     'Corretto il vero motivo per cui il voto restava «stima»: nei giochi aggiunti da te (es. Dark Souls) l\'app non salvava mai il segno di voto verificato, anche quando Update+ o «Aggiorna info» trovavano il Metacritic. Ora viene salvato e il gioco diventa V+. Basta ripremere Update+ sulla scheda.'
   ]},
-  {version:'v149', date:'2026-10-20', items:[
+  {version:'v149', date:'2026-09-30', time:'14:42', items:[
     'Update+ ricontrolla i giochi aggiornati in passato il cui voto è ancora una stima (prima li considerava finiti e non li toccava più): ora sono di nuovo in coda, i più deboli per primi. Puoi anche premere Update+ nella scheda per farlo subito.',
     'Il voto Metacritic (o OpenCritic) di un gioco ancora «stima» si applica da solo anche ai giochi di base, senza chiedere conferma, e diventa V+. Prima finiva nell\'elenco «da approvare», dove nessuno lo vedeva.'
   ]},
@@ -429,7 +434,7 @@ function openChangelog(){
     <div class="modal-note">Cronologia degli ultimi aggiornamenti, dal più recente.</div>
     <div class="changelog-list">${CHANGELOG.map(e=> `
       <div class="changelog-entry">
-        <div class="changelog-entry-head"><span class="changelog-version">${escHtml(e.version)}</span><span class="changelog-date">${escHtml(e.date)}</span></div>
+        <div class="changelog-entry-head"><span class="changelog-version">${escHtml(e.version)}</span><span class="changelog-date">${escHtml(e.date.split('-').reverse().join('/'))}${e.time ? ' · ore ' + escHtml(e.time) : ''}</span></div>
         <ul class="changelog-items">${e.items.map(i=>`<li>${escHtml(i)}</li>`).join('')}</ul>
       </div>`).join('')}</div>
   `;
