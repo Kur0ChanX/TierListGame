@@ -226,8 +226,8 @@
       if(r.year && mine.length && !mine.some(y=> Math.abs(y - +r.year) <= 1) && !ch.some(c=> c.id === 'year')){
         ch.push({id:'year', label:'Anno', from: g.year, to: r.year + ' (RAWG ' + r.url + ')', patch:{year: r.year, ysort: +r.year}});
       }
-      if(r.mc && Math.abs(r.mc - g.score) > 6 && !ch.some(c=> c.id === 'score')){
-        ch.push({id:'score3', label:'Voto (Metacritic secondo RAWG)', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${r.mc} (Metacritic riportato da RAWG: numero di recensioni non verificabile)`, patch:{score: r.mc, tier: tierOf(r.mc), m:'V'}, off:true});
+      if(r.mc && (g.m !== 'V' || Math.abs(r.mc - g.score) > 6) && !ch.some(c=> /^score|^method/.test(c.id))){
+        ch.push({id:'score3', label:'Voto (Metacritic secondo RAWG)', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${r.mc} (Metacritic riportato da RAWG: numero di recensioni non verificabile)`, patch:{score: r.mc, tier: tierOf(r.mc), m:'V'}, off: g.m === 'V'});
       }
       const cur = (g.enrich && g.enrich.similarTo) || [];
       if(r.similar && r.similar.length >= 3 && cur.join('|') !== r.similar.join('|')){
@@ -395,7 +395,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{
       const g = GAMES.find(x=> x.id === id); if(!g) return;
       const src = await gather({name: doc.name}, true);
-      const ch = factChanges(g, src).filter(c=> !c.off && c.id !== 'score3');   // in automatico solo le correzioni sicure
+      const ch = factChanges(g, src).filter(c=> !c.off);   // in automatico solo le correzioni sicure
       if(!ch.length) return;
       await applyPatch(g, mergePatch(ch));
       showToast('🔎 Verificato su Wikipedia/Wikidata: ' + ch.map(c=> c.label).join(', ') + ' aggiornati', 5000);
@@ -602,7 +602,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     }catch(e){}
     let applied = 0, pending = 0, cover = false;
     if(g.custom){
-      const safe = ch.filter(c=> !c.off && c.id !== 'score3' && c.patch);
+      const safe = ch.filter(c=> !c.off && c.patch);
       if(safe.length){ await applyPatch(g, mergePatch(safe), true); applied = safe.length; }
     } else {
       const sk = skLoad(), a = auLoad(), old = a[g.id];

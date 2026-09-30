@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v147', date:'2026-10-18', items:[
+    'Update+ si fida di tutte le fonti del Metacritic: Wikipedia, Steam, CheapShark e anche RAWG. Un voto ancora «stima» viene sostituito da solo con il Metascore e diventa verificato (V+). Prima il Metascore di RAWG veniva ignorato dal giro automatico.'
+  ]},
   {version:'v146', date:'2026-10-17', items:[
     'Voto verificato più affidabile: Update+ e «Aggiorna info» ora leggono il Metascore anche per i giochi su più piattaforme (es. Dark Souls, con un voto per PC, PS3 e Xbox: vale il più alto) e, se Wikipedia non lo riporta, lo prendono da Steam o CheapShark. Un voto ancora «stima» diventa verificato (V+) con il Metacritic reale.'
   ]},
