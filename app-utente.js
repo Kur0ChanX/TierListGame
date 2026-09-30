@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v164', date:'2026-09-30', time:'23:34', items:[
+    'Colonna «Fonte» con i loghi: M gialla = Metacritic, cerchio rosso = OpenCritic, R = RAWG, «STIMA» = voto non verificato. Il filtro «Tutte le fonti» ora permette di scegliere una fonte precisa (Metacritic, OpenCritic, RAWG, stima). Finché la fonte di un voto verificato non è registrata resta il simbolo verde.'
+  ]},
   {version:'v163', date:'2026-09-30', time:'23:00', items:[
     'Chiavi in due tocchi: «☁️ Salva chiavi» (sul dispositivo che le ha) e «☁️ Recupera chiavi» (sul nuovo): chiedono solo utente (Mario) e password. Le chiavi, cifrate con la password, stanno in un gist del tuo GitHub; niente codici da copiare a mano.'
   ]},

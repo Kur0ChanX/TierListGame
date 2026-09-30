@@ -838,3 +838,6 @@ html{overscroll-behavior-y:contain}
   .view-tab .vt-ic svg,.view-tab .vt-ic img{width:34px !important; height:34px !important}
   .view-tab.active::after{width:30px !important}
 }
+
+.srcico{display:inline-block; vertical-align:middle; width:24px; height:24px; border-radius:50%; object-fit:cover}
+.srcico[alt^=Stima]{border-radius:6px}
