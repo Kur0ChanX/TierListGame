@@ -999,7 +999,7 @@ function searchFuzzyMatch(g, q){
 function applyFilters(){
   let list = GAMES.filter(inActiveList);
   if(state.tiers.size>0) list = list.filter(g=> state.tiers.has(state.view==='mytier' ? effectiveTier(g) : g.tier));
-  if(state.method) list = list.filter(g=>g.m===state.method);
+  if(state.method) list = list.filter(g=> state.method === 'V' || state.method === 'S' ? g.m === state.method : srcKind(g) === state.method);
   if(state.decade){
     const d = parseInt(state.decade,10);
     list = list.filter(g=> g.ysort>=d && g.ysort < d+10);
@@ -1042,6 +1042,18 @@ function applyFilters(){
 }
 
 function methodIcon(m, g){ const f = g && typeof freshInfo === 'function' ? freshInfo(g) : null; if(m==='V'){ return f ? '<span class="vplus" title="Voto verificato e gioco aggiornato con Update+">V+</span>' : '✅'; } return f ? '<span class="vplus s" title="Gioco aggiornato con Update+, ma il voto è ancora una stima: nessuna fonte affidabile (Metacritic) lo ha confermato. Diventa V+ appena una fonte lo conferma.">🗳️+</span>' : '🗳️'; }   // V+ dorata = voto verificato + Update+   // V dorata = voto verificato + Update+
+// fonte del voto: logo piccolo nella lista (M giallo = Metacritic, rosso = OpenCritic, R = RAWG, STIMA = non verificato)
+function srcKind(g){
+  if(g.m !== 'V') return 'stima';
+  const v = String(g.vs || '');
+  return /^Metacritic/.test(v) ? 'mc' : /^OpenCritic/.test(v) ? 'oc' : /^RAWG/.test(v) ? 'rawg' : 'vunk';
+}
+const SRC_NAME = {mc: 'Metacritic', oc: 'OpenCritic', rawg: 'RAWG', stima: 'Stima (nessun voto verificato)', vunk: 'Voto verificato (fonte da registrare)'};
+function srcIcon(g){
+  const k = srcKind(g);
+  if(k === 'vunk') return methodIcon(g.m, g);
+  return `<img class="srcico" src="icons/fonti/${k}.png" width="24" height="24" alt="${SRC_NAME[k]}" title="${SRC_NAME[k]}${g.vs && k !== 'stima' ? ' · ' + escHtml(g.vs) : ''}" loading="lazy">`;
+}
 function methodLabel(m){ return m==='V' ? 'Metacritic / aggregato verificato' : 'Stima community / recensori specializzate'; }
 
 function showToast(msg, ms){
@@ -1078,7 +1090,7 @@ function render(){
       <td class="year">${g.year || g.ysort || ''}</td>
       <td><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span></td>
       <td class="score">${scoreTxt(g)}</td>
-      <td class="method" title="${methodLabel(g.m)}${g.m==='V' && freshInfo(g) && !freshInfo(g).m ? ' · aggiornato con Update+' : ''}">${methodIcon(g.m, g)}</td>
+      <td class="method" title="${methodLabel(g.m)}${g.m==='V' && freshInfo(g) && !freshInfo(g).m ? ' · aggiornato con Update+' : ''}">${srcIcon(g)}</td>
       <td class="storyicon">${itBadge(g)}</td>
     `;
     tr.querySelector('[data-role="fav"]').addEventListener('click', (ev)=>{
