@@ -345,7 +345,7 @@ html.intro-on{overflow:hidden}
 #modalCard.x-tinted{background:linear-gradient(180deg, rgba(var(--x-tint),.55) 0%, rgba(var(--x-tint),.18) 38%, var(--card) 75%); transition:background .5s}
 
 /* filtri aperti: il pannello scorre al suo interno, così la lista resta lunga e si scorre fino in fondo */
-#filtersPanel.open{max-height:min(46vh,560px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch}
+#filtersPanel.open{max-height:min(46vh,560px); overflow-y:auto; -webkit-overflow-scrolling:touch}
 @media (min-width:761px){ #filtersPanel.open{max-height:min(55vh,640px)} }
 /* selettore palette */
 .pal-group{font-weight:800; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--sub); margin:14px 0 8px}
@@ -527,7 +527,7 @@ html:not(.fx-on) .topbar, html:not(.fx-on) .view-tabs{background:color-mix(in sr
 html:not(.fx-on) .table-wrap, html:not(.fx-on) .glabel, html:not(.fx-on) .filters-more, html:not(.fx-on) .cover-block{background:color-mix(in srgb,var(--card) 88%,transparent) !important}
 /* la scheda del gioco è un livello a sé: lo scorrimento non ridisegna il resto della pagina */
 .modal-card{contain:layout paint style; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; will-change:scroll-position}
-.table-wrap{contain:layout paint; overscroll-behavior:contain}
+.table-wrap{contain:layout paint}
 .modal-card svg.gi, .modal-card .badge{filter:none}
 .mini-icon{cursor:pointer; padding:3px 2px; margin-right:1px}
 .x-autocover{display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px}
@@ -867,3 +867,7 @@ body:has(#modalBackdrop.show) .pet-av, body:has(.x-sheet.show) .pet-av, body:has
 .rt-music{touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
 .rt-music.moving{outline:2px dashed #ffd24a; outline-offset:3px; scale:1.05; box-shadow:0 14px 34px rgba(0,0,0,.5)}
 .fresh-line{margin:8px 2px 2px; font-size:12.5px; line-height:1.4; color:var(--muted,#8a93a8)} .fresh-line.ok{color:var(--text,inherit)} .fresh-line svg.gi{width:18px !important; height:18px !important; vertical-align:-4px; margin-right:4px}
+/* v140 scorrimento: niente «overscroll-behavior: contain» su tabella e filtri (intrappolava il tocco: se la tabella aveva anche solo 1 px di scarto la pagina non si muoveva più).
+   Il «tira per aggiornare» lo blocca la pagina intera; tra un contenitore e la pagina lo scorrimento passa sempre. */
+html{overscroll-behavior-y:contain}
+@media (max-width:760px){ .wrap:has(#filtersPanel.open) .table-wrap{overflow:visible} }   /* col pannello filtri aperto scorre tutta la pagina: la tabella non è un secondo contenitore */

@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v140', date:'2026-10-11', items:[
+    'Scorrimento sistemato davvero: toccando le righe della tabella la pagina a volte non si muoveva (mentre sopra, sui filtri, sì). Era un blocco «anti tira-per-aggiornare» messo sulla tabella e sul pannello dei filtri: se la tabella aveva anche solo 1 pixel di scorrimento in più, il dito restava intrappolato lì. Ora lo scorrimento passa sempre alla pagina, e il blocco del «tira per aggiornare» sta sulla pagina intera. Con i filtri aperti scorre tutta la pagina e l\'intestazione delle colonne resta fissa in alto.'
+  ]},
   {version:'v139', date:'2026-10-11', items:[
     'Tolto il «+» giallo accanto al nome dei giochi (lista, copertine, schede compatte, La mia Tier List): restano solo la V+ dorata nella colonna del voto. Per sapere se un gioco è già aggiornato con Update+ apri la scheda: c\'è il badge, la riga con la data e le fonti usate, e il pulsante «Rifai Update+». Un gioco già aggiornato non viene più ripreso dall\'aggiornamento automatico (solo i prezzi).'
   ]},
