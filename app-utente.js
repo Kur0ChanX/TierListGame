@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v166', date:'2026-09-30', time:'00:07', items:[
+    'Colonna Fonte pulita: una sola icona per significato, niente doppioni. Metacritic (M gialla, anche per i vecchi ✅ e V+), OpenCritic (rosso), RAWG (R) e Stima (il tuo logo, al posto della scatola blu). Lo stesso simbolo compare nella scheda del gioco.',
+    'Regola dei voti in background: prima Metacritic, poi OpenCritic, poi RAWG. Se un sito ti blocca o la quota giornaliera è finita, usa la fonte successiva e riprova il giorno dopo; se il gioco semplicemente non c\'è su quella fonte, tiene la successiva e non riprova più. Se nessuna delle tre lo trova resta «Stima». Lo stato viene condiviso con gli altri dispositivi, così non ripetono le stesse richieste.'
+  ]},
   {version:'v165', date:'2026-09-30', time:'23:37', items:[
     'Dispositivi nuovi: all\'avvio scaricano da soli il catalogo condiviso (giochi aggiunti dal telefono, correzioni, Update V+ già fatti, fonti dei voti). Quindi niente più 753 giochi e niente Update+ da zero: parte solo da ciò che manca.',
     '«🔑 Accedi / Nuovo utente»: Accedi (utente + password) porta chiavi, sincronizzazione e tutto il profilo come sul telefono; Nuovo utente crea un profilo con tutti i giochi e le schede ma con preferiti, tier, classifiche e recensioni solo suoi. Il pulsante «📱 QR» mostra il codice da inquadrare con l\'altro dispositivo: si apre il programma già sulla schermata di accesso.',

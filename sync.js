@@ -153,7 +153,7 @@
 
   // ---- Catalogo condiviso (dati NON personali): giochi aggiunti, correzioni, Update+ già fatto, note sul voto ----
   // Il dispositivo di Mario lo pubblica in un gist pubblico; ogni altro dispositivo lo scarica da solo all'avvio, così non parte da zero e non rifà gli Update+ già fatti.
-  const CAT_KEYS = ['jrpg_db_customGames', 'jrpg_db_covers', 'jrpg_game_overrides', 'jrpg_fresh', 'jrpg_info_checked', 'jrpg_vote_diag', 'jrpg_tag_overrides'];
+  const CAT_KEYS = ['jrpg_db_customGames', 'jrpg_db_covers', 'jrpg_game_overrides', 'jrpg_fresh', 'jrpg_info_checked', 'jrpg_vote_diag', 'jrpg_vote_state', 'jrpg_tag_overrides'];
   const CAT_DESC = 'RaccoonTier-catalogo', CAT_FILE = 'catalogo.json';
   const GH_USER = /\.github\.io$/.test(location.hostname) ? location.hostname.split('.')[0] : 'kur0chanx';
   const isOwner = ()=> String(ls.get('jrpg_keys_user') || '').toLowerCase() === 'mario' && !!token();
