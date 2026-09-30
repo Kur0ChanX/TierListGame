@@ -903,3 +903,20 @@ html.rt-notrans{transition:none !important}
 .vd-chip{--vd:#8b8fa3; display:inline-flex; align-items:center; gap:6px; padding:4px 11px 4px 5px; border-radius:999px; font-size:.82rem; font-weight:700; color:var(--text); background:color-mix(in srgb,var(--vd) 24%,transparent); border:1px solid color-mix(in srgb,var(--vd) 60%,transparent)}
 .vd-chip i{font-style:normal; width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:.75rem; color:#fff; background:var(--vd)}
 .vd-chip.vd-buy{--vd:#2f9e6b} .vd-chip.vd-wait{--vd:#d4a017} .vd-chip.vd-try{--vd:#3b82f6} .vd-chip.vd-skip{--vd:#d04444} .vd-chip.vd-unsure{--vd:#8b8fa3} .vd-chip.vd-own{--vd:#a855f7}
+
+/* ===== v172: scheda cinematografica ===== */
+.hero-shots{position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden; border-radius:inherit}
+.hero-shots .hs{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .9s ease; will-change:opacity,transform; filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))}
+.hero-shots .hs.on{opacity:1; animation:heroKb 6.5s ease-out both}
+@keyframes heroKb{from{transform:scale(1)} to{transform:scale(1.08)}}
+.hero-bar{position:absolute; left:10px; right:10px; top:8px; display:flex; gap:4px; pointer-events:auto; z-index:3}
+.hero-bar i{flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,.3); overflow:hidden; cursor:pointer; padding:5px 0; background-clip:content-box; box-sizing:content-box}
+.hero-bar i.done{background-color:#fff}
+.hero-bar i.cur::after{content:''; display:block; height:4px; background:#fff; margin-top:-5px; margin-bottom:-5px; transform-origin:left; animation:heroProg var(--hd,4.4s) linear both}
+@keyframes heroProg{from{transform:scaleX(0)} to{transform:scaleX(1)}}
+.cover-frame.hero-play img.modal-cover{opacity:0 !important; transition:opacity .9s ease !important}
+.cover-frame.hero-only{min-height:200px}
+@media (prefers-reduced-motion:reduce){ .hero-shots .hs.on{animation:none} }
+
+.hero-bar{opacity:0; transition:opacity .5s ease}
+.cover-frame.hero-play .hero-bar{opacity:1}

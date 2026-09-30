@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v172', date:'2026-10-01', time:'01:46', items:[
+    'Scheda cinematografica: aprendo un gioco la copertina resta ferma in alto per qualche secondo, poi passa con dissolvenze alle schermate ufficiali di gioco (store Steam, scaricate dai server ogni settimana per 292 giochi; per gli altri, da RAWG se hai la chiave), con barra di avanzamento e musica che continua. Nessun filmato: pochi dati e pochi spoiler.',
+    'Si regola da ✨ → «Anteprima cinematografica»: interruttore, secondi di copertina ferma (3, 5, 8, 12). Si spegne da sola con il risparmio dati o «riduci animazioni».'
+  ]},
   {version:'v171', date:'2026-10-01', time:'01:35', items:[
     'Nuovo «Verdetto d\'acquisto» in ogni scheda (pillola sotto il titolo e riquadro completo): Compralo, Aspetta uno sconto, Giocalo senza spendere, Lascialo stare, Mancano i dati oppure Ce l\'hai già. È calcolato sul tuo dispositivo (nessuna AI) da voto e fonte, compatibilità coi tuoi gusti, prezzo su Steam, abbonamenti, andamento delle recensioni recenti, lingua, ore e quanti giochi hai già in coda, e spiega sempre i motivi.',
     'Anche «Chiedi» usa lo stesso verdetto: se gli fotografi una copertina o gli chiedi «lo prendo?», ti risponde con lo stesso esito e gli stessi motivi della scheda.'
