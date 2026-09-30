@@ -828,3 +828,13 @@ body:has(#modalBackdrop.show) .pet-av, body:has(.x-sheet.show) .pet-av, body:has
    Il «tira per aggiornare» lo blocca la pagina intera; tra un contenitore e la pagina lo scorrimento passa sempre. */
 html{overscroll-behavior-y:contain}
 @media (max-width:760px){ .wrap:has(#filtersPanel.open) .table-wrap{overflow:visible} }   /* col pannello filtri aperto scorre tutta la pagina: la tabella non è un secondo contenitore */
+
+/* iPad / tablet (touch, schermo largo): barra in basso più grande e raccolta al centro, icone e scritte leggibili */
+@media (min-width:761px) and (hover:none) and (pointer:coarse){
+  :root{--navh:calc(92px + env(safe-area-inset-bottom,0px))}
+  .view-tabs{justify-content:center !important; gap:14px !important; padding:8px 16px env(safe-area-inset-bottom,0px) !important}
+  .view-tab{flex:0 1 170px !important; padding:8px 6px !important; font-size:.95rem !important; gap:4px !important}
+  .view-tab .vt-ic{width:54px !important; height:54px !important}
+  .view-tab .vt-ic svg,.view-tab .vt-ic img{width:34px !important; height:34px !important}
+  .view-tab.active::after{width:30px !important}
+}
