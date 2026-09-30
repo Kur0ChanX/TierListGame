@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raccoon Tier — Tier List RPG & JRPG di Mario</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="build" content="v160">
+<meta name="build" content="v161">
 <meta name="theme-color" content="#161221">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -330,7 +330,7 @@
           <input type="text" id="relayUrlInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://nome.tuo-account.workers.dev/">
         </label>
         <div class="ask-engine-actions"><button class="btn primary" id="geminiSaveBtn">Salva e verifica</button><button class="btn" id="geminiClearBtn">Rimuovi</button></div>
-        <div class="ask-engine-actions"><button class="btn" id="keysCopyBtn" title="Copia Gemini, RAWG, OpenCritic e ponte per incollarli su un altro dispositivo">📤 Copia le mie chiavi</button><button class="btn" id="keysPasteBtn" title="Incolla il codice copiato dall'altro dispositivo">📥 Incolla le chiavi</button></div>
+        <div class="ask-engine-actions"><button class="btn" id="keysCopyBtn" title="Copia Gemini, RAWG, OpenCritic e ponte per incollarli su un altro dispositivo">📤 Copia le mie chiavi</button><button class="btn" id="keysEncBtn" title="Cifra le chiavi con una password tua: il codice si può mettere nel programma">🔐 Cifra le chiavi</button><button class="btn" id="keysRecBtn" title="Scegli il profilo, scrivi la password e le chiavi tornano da sole">🔓 Recupera chiavi</button><button class="btn" id="keysPasteBtn" title="Incolla il codice copiato dall'altro dispositivo">📥 Incolla le chiavi</button></div>
         <div class="ask-engine-status" id="geminiStatus">La chiave resta solo su questo dispositivo, nel browser.</div>
         <hr>
         <label><svg class="gi gi-s" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-cloud"/></svg> Sincronizzazione tra dispositivi (token GitHub)
@@ -393,6 +393,7 @@
 <script src="app.js"></script>
 <script src="app-schede.js"></script>
 <script src="app-utente.js"></script>
+<script src="chiavi-cifrate.js"></script>
 <script src="app-ai.js"></script>
 <script src="gemini.js"></script>
 <script src="loader.js"></script>

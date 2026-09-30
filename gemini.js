@@ -227,6 +227,52 @@ async function askLLM(input, opts, extra){
       say('✅ Importate ' + n + ' chiavi. Ricarica la pagina per usarle subito dappertutto.', true); try{ refreshFab(); }catch(e){}
     }catch(e){ say('❌ Codice non valido: copialo di nuovo dall\'altro dispositivo.', false); }
   });
+  // chiavi cifrate nel programma: profilo + password → le chiavi tornano da sole (mancanti aggiunte, diverse sostituite)
+  const b64 = u=> btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(u)))), unb64 = s=> Uint8Array.from(atob(s), c=> c.charCodeAt(0));
+  async function kbKey(pw, salt, it){ const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({name: 'PBKDF2', salt, iterations: it, hash: 'SHA-256'}, base, {name: 'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']); }
+  async function kbEncrypt(obj, pw){ const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12)), it = 310000; const k = await kbKey(pw, salt, it); const ct = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify(obj))); return {s: b64(salt), v: b64(iv), c: b64(ct), i: it}; }
+  async function kbDecrypt(box, pw){ const k = await kbKey(pw, unb64(box.s), box.i); const pt = await crypto.subtle.decrypt({name: 'AES-GCM', iv: unb64(box.v)}, k, unb64(box.c)); return JSON.parse(new TextDecoder().decode(pt)); }
+  const applyKeys = o=>{
+    const added = [], changed = [], NM = {g: 'Gemini', r: 'RAWG', o: 'OpenCritic', p: 'Ponte'};
+    KEYS_T.forEach(([k, s])=>{ const v = typeof o[s] === 'string' ? o[s].trim() : ''; if(!v) return; let cur = ''; try{ cur = (localStorage.getItem(k) || '').trim(); }catch(e){}
+      if(!cur){ added.push(NM[s]); } else if(cur !== v){ changed.push(NM[s]); } else return; try{ localStorage.setItem(k, v); }catch(e){} });
+    [['rawgKeyInput', 'jrpg_rawg_key'], ['ocKeyInput', 'jrpg_opencritic_key'], ['relayUrlInput', 'jrpg_relay_url']].forEach(([id, k])=>{ const el = document.getElementById(id); if(el) try{ el.value = localStorage.getItem(k) || ''; }catch(e){} });
+    try{ keyEl.value = geminiKey(); }catch(e){}
+    return {added, changed};
+  };
+  const kenc = document.getElementById('keysEncBtn'), krec = document.getElementById('keysRecBtn');
+  if(kenc) kenc.addEventListener('click', async ()=>{
+    if(!(window.crypto && crypto.subtle)){ say('❌ Questo browser non può cifrare (serve https).', false); return; }
+    const o = {}; KEYS_T.forEach(([k, s])=>{ try{ const v = (localStorage.getItem(k) || '').trim(); if(v) o[s] = v; }catch(e){} });
+    if(!Object.keys(o).length){ say('Non ci sono chiavi da cifrare su questo dispositivo.', false); return; }
+    const prof = (window.prompt('Nome del profilo (es. Mario):', 'Mario') || '').trim().replace(/[^A-Za-z0-9À-ÿ _-]/g, '').slice(0, 24); if(!prof) return;
+    const pw = window.prompt('Scegli una password LUNGA (almeno 12 caratteri, meglio una frase di 4-5 parole). Non la salvo da nessuna parte: se la perdi dovrai rincollare le chiavi a mano.', '') || '';
+    if(pw.length < 12){ say('❌ Password troppo corta: servono almeno 12 caratteri (il codice sarà in un sito pubblico, una password debole si indovina).', false); return; }
+    if(window.prompt('Riscrivi la password per conferma:', '') !== pw){ say('❌ Le due password non coincidono.', false); return; }
+    say('Cifro…');
+    try{
+      const box = await kbEncrypt(o, pw), code = 'RTKB1:' + prof + ':' + btoa(JSON.stringify(box));
+      try{ await navigator.clipboard.writeText(code); say('✅ Codice cifrato copiato (profilo «' + prof + '»). Incollalo a Claude in chat: lo inserisce nel programma. Senza la password non serve a nessuno.', true); }
+      catch(e){ window.prompt('Copia questo codice cifrato e mandalo a Claude:', code); say('✅ Codice cifrato pronto.', true); }
+    }catch(e){ say('❌ Non sono riuscito a cifrare.', false); }
+  });
+  if(krec) krec.addEventListener('click', async ()=>{
+    if(!(window.crypto && crypto.subtle)){ say('❌ Questo browser non può decifrare (serve https).', false); return; }
+    const boxes = window.RT_KEYBOXES || {}, names = Object.keys(boxes);
+    let ans = names.length === 1 ? names[0] : (window.prompt(names.length ? 'Profilo (' + names.join(', ') + ') oppure incolla un codice RTKB1:…' : 'Nel programma non c\'è ancora nessun profilo: incolla qui un codice RTKB1:…', names[0] || '') || '').trim();
+    if(!ans) return;
+    let box = boxes[ans], prof = ans;
+    const m = /^RTKB1:([^:]*):(.+)$/.exec(ans);
+    if(m){ try{ box = JSON.parse(atob(m[2])); prof = m[1]; }catch(e){ say('❌ Codice non valido.', false); return; } }
+    if(!box){ say('❌ Profilo «' + ans + '» non trovato.', false); return; }
+    const pw = window.prompt('Password del profilo «' + prof + '»:', '') || ''; if(!pw) return;
+    say('Decifro…');
+    try{
+      const r = applyKeys(await kbDecrypt(box, pw)), parts = [];
+      if(r.added.length) parts.push('aggiunte: ' + r.added.join(', ')); if(r.changed.length) parts.push('sostituite: ' + r.changed.join(', '));
+      say('✅ ' + (parts.join(' · ') || 'Le chiavi erano già tutte uguali.') + ' Ricarica la pagina per usarle subito.', true); try{ refreshFab(); }catch(e){}
+    }catch(e){ say('❌ Password sbagliata (o profilo rovinato).', false); }
+  });
   const modEl = document.getElementById('geminiModelInput');
   if(modEl){ modEl.value = geminiCustomModel(); modEl.addEventListener('change', ()=>{ const v = modEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_gemini_model', v); else localStorage.removeItem('jrpg_gemini_model'); }catch(e){} geminiBadModels = new Set(); say(v ? 'Modello impostato: ' + v + ' (se non esiste uso automaticamente ' + GEMINI_MODEL + ').' : 'Modello automatico: ' + GEMINI_MODEL + ' (sempre l\'ultimo Flash).'); }); }
   document.getElementById('geminiClearBtn').addEventListener('click', ()=>{ setGeminiKey(''); keyEl.value = ''; say('Chiave rimossa.'); });
