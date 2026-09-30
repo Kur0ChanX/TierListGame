@@ -240,40 +240,53 @@ async function askLLM(input, opts, extra){
     try{ keyEl.value = geminiKey(); }catch(e){}
     return {added, changed};
   };
+  // Salva/Recupera le chiavi in un attimo: utente + password. Le chiavi, cifrate con la password, stanno in un gist pubblico del tuo GitHub (illeggibile senza password)
+  const GH_USER = /\.github\.io$/.test(location.hostname) ? location.hostname.split('.')[0] : 'kur0chanx';
+  const kbDesc = u=> 'RaccoonTier-chiavi-' + u.toLowerCase();
+  const askUP = (verb)=>{
+    const u = (window.prompt('Utente (es. Mario):', localStorage.getItem('jrpg_keys_user') || 'Mario') || '').trim().replace(/[^A-Za-z0-9À-ÿ_-]/g, '').slice(0, 24); if(!u) return null;
+    const pw = window.prompt('Password di ' + u + (verb === 'save' ? ' (almeno 12 caratteri; se la perdi dovrai rincollare le chiavi a mano)' : '') + ':', '') || ''; if(!pw) return null;
+    if(verb === 'save' && pw.length < 12){ say('❌ Password troppo corta: servono almeno 12 caratteri (il codice sta su un sito pubblico, una password debole si indovina).', false); return null; }
+    try{ localStorage.setItem('jrpg_keys_user', u); }catch(e){}
+    return {u, pw};
+  };
   const kenc = document.getElementById('keysEncBtn'), krec = document.getElementById('keysRecBtn');
   if(kenc) kenc.addEventListener('click', async ()=>{
     if(!(window.crypto && crypto.subtle)){ say('❌ Questo browser non può cifrare (serve https).', false); return; }
+    const tok = (localStorage.getItem('jrpg_sync_token') || '').trim();
+    if(!tok){ say('❌ Serve il token GitHub attivo (sezione «Sincronizzazione tra dispositivi» qui sotto) su questo dispositivo.', false); return; }
     const o = {}; KEYS_T.forEach(([k, s])=>{ try{ const v = (localStorage.getItem(k) || '').trim(); if(v) o[s] = v; }catch(e){} });
-    if(!Object.keys(o).length){ say('Non ci sono chiavi da cifrare su questo dispositivo.', false); return; }
-    const prof = (window.prompt('Nome del profilo (es. Mario):', 'Mario') || '').trim().replace(/[^A-Za-z0-9À-ÿ _-]/g, '').slice(0, 24); if(!prof) return;
-    const pw = window.prompt('Scegli una password LUNGA (almeno 12 caratteri, meglio una frase di 4-5 parole). Non la salvo da nessuna parte: se la perdi dovrai rincollare le chiavi a mano.', '') || '';
-    if(pw.length < 12){ say('❌ Password troppo corta: servono almeno 12 caratteri (il codice sarà in un sito pubblico, una password debole si indovina).', false); return; }
-    if(window.prompt('Riscrivi la password per conferma:', '') !== pw){ say('❌ Le due password non coincidono.', false); return; }
-    say('Cifro…');
+    if(!Object.keys(o).length){ say('Non ci sono chiavi da salvare su questo dispositivo.', false); return; }
+    const up = askUP('save'); if(!up) return;
+    say('Cifro e salvo…');
     try{
-      const box = await kbEncrypt(o, pw), code = 'RTKB1:' + prof + ':' + btoa(JSON.stringify(box));
-      let copied = false; try{ await navigator.clipboard.writeText(code); copied = true; }catch(e){}
-      say('✅ Codice cifrato pronto (profilo «' + prof + '»). Mandalo a Claude in chat. Senza la password non serve a nessuno.', true);
-      // lo mostro sempre a schermo: il messaggio di stato sta in fondo al menu e si può non vedere
-      window.prompt((copied ? 'Codice GIÀ COPIATO negli appunti: incollalo a Claude in chat. ' : 'Tieni premuto nella casella, Seleziona tutto, Copia, poi incollalo a Claude in chat. ') + 'È cifrato: senza la tua password non serve a nessuno.', code);
-    }catch(e){ say('❌ Non sono riuscito a cifrare.', false); }
+      const box = await kbEncrypt(o, up.pw), content = JSON.stringify(box), desc = kbDesc(up.u);
+      const H = {'Authorization': 'Bearer ' + tok, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json'};
+      let id = null;
+      for(let page = 1; page <= 5 && !id; page++){
+        const r = await fetch('https://api.github.com/gists?per_page=100&page=' + page, {headers: H}); if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+        const l = await r.json(); const f = l.find(g=> g.description === desc); if(f) id = f.id; if(l.length < 100) break;
+      }
+      const body = JSON.stringify({description: desc, public: true, files: {'chiavi.json': {content}}});
+      const r2 = await fetch('https://api.github.com/gists' + (id ? '/' + id : ''), {method: id ? 'PATCH' : 'POST', headers: H, body});
+      if(!r2.ok){ const e = new Error('HTTP ' + r2.status); e.status = r2.status; throw e; }
+      say('✅ Chiavi salvate per «' + up.u + '». Sugli altri dispositivi: «Recupera chiavi», utente e password.', true);
+    }catch(e){ say('❌ Non sono riuscito a salvare: ' + (e && e.status === 401 ? 'token GitHub non valido.' : e && e.status === 403 ? 'il token deve avere il permesso «gist».' : 'controlla la connessione.'), false); }
   });
   if(krec) krec.addEventListener('click', async ()=>{
     if(!(window.crypto && crypto.subtle)){ say('❌ Questo browser non può decifrare (serve https).', false); return; }
-    const boxes = window.RT_KEYBOXES || {}, names = Object.keys(boxes);
-    let ans = names.length === 1 ? names[0] : (window.prompt(names.length ? 'Profilo (' + names.join(', ') + ') oppure incolla un codice RTKB1:…' : 'Nel programma non c\'è ancora nessun profilo: incolla qui un codice RTKB1:…', names[0] || '') || '').trim();
-    if(!ans) return;
-    let box = boxes[ans], prof = ans;
-    const m = /^RTKB1:([^:]*):(.+)$/.exec(ans);
-    if(m){ try{ box = JSON.parse(atob(m[2])); prof = m[1]; }catch(e){ say('❌ Codice non valido.', false); return; } }
-    if(!box){ say('❌ Profilo «' + ans + '» non trovato.', false); return; }
-    const pw = window.prompt('Password del profilo «' + prof + '»:', '') || ''; if(!pw) return;
-    say('Decifro…');
+    const up = askUP('load'); if(!up) return;
+    say('Cerco le chiavi di ' + up.u + '…');
     try{
-      const r = applyKeys(await kbDecrypt(box, pw)), parts = [];
-      if(r.added.length) parts.push('aggiunte: ' + r.added.join(', ')); if(r.changed.length) parts.push('sostituite: ' + r.changed.join(', '));
-      say('✅ ' + (parts.join(' · ') || 'Le chiavi erano già tutte uguali.') + ' Ricarica la pagina per usarle subito.', true); try{ refreshFab(); }catch(e){}
-    }catch(e){ say('❌ Password sbagliata (o profilo rovinato).', false); }
+      const r = await fetch('https://api.github.com/users/' + GH_USER + '/gists?per_page=100'); if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+      const f = (await r.json()).find(g=> g.description === kbDesc(up.u)); const file = f && f.files && f.files['chiavi.json'];
+      if(!file){ say('❌ Non trovo chiavi salvate per «' + up.u + '». Salvale prima dal dispositivo che le ha.', false); return; }
+      const box = await (await fetch(file.raw_url)).json();
+      let keys; try{ keys = await kbDecrypt(box, up.pw); }catch(e){ say('❌ Password sbagliata.', false); return; }
+      const res = applyKeys(keys), parts = [];
+      if(res.added.length) parts.push('aggiunte: ' + res.added.join(', ')); if(res.changed.length) parts.push('sostituite: ' + res.changed.join(', '));
+      say('✅ ' + (parts.join(' · ') || 'Le chiavi erano già tutte uguali.') + ' Ricarica la pagina.', true); try{ refreshFab(); }catch(e){}
+    }catch(e){ say('❌ Non riesco a leggere da GitHub' + (e && e.status === 403 ? ' (troppe richieste, riprova tra un po\')' : '') + '.', false); }
   });
   const modEl = document.getElementById('geminiModelInput');
   if(modEl){ modEl.value = geminiCustomModel(); modEl.addEventListener('change', ()=>{ const v = modEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_gemini_model', v); else localStorage.removeItem('jrpg_gemini_model'); }catch(e){} geminiBadModels = new Set(); say(v ? 'Modello impostato: ' + v + ' (se non esiste uso automaticamente ' + GEMINI_MODEL + ').' : 'Modello automatico: ' + GEMINI_MODEL + ' (sempre l\'ultimo Flash).'); }); }
