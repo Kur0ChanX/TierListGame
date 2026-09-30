@@ -23,8 +23,8 @@ const BOSSES = [
   {n: 6, name: 'Rex', title: 'Custode degli Sparatutto', ai: 4, rules: {elemental: true, same: true, plus: true, combo: true}, lv: [5, 5, 6, 6, 7], reward: 7},
   {n: 7, name: 'Nova', title: 'Custode dell\'Horror', ai: 4, rules: {elemental: true, same: true, plus: true, sameWall: true, combo: true}, lv: [6, 6, 7, 7, 8], reward: 8},
   {n: 8, name: 'Kaiser', title: 'Custode dei JRPG', ai: 5, rules: {elemental: true, same: true, plus: true, combo: true}, lv: [7, 7, 8, 8, 9], reward: 9},
-  {n: 9, name: 'Ombra', title: 'Custode delle Leggende', ai: 5, rules: {elemental: true, same: true, plus: true, sameWall: true, combo: true}, lv: [8, 8, 9, 9, 9], reward: 10},
-  {n: 10, name: 'Il Re dei Giochi', title: 'Custode Supremo', ai: 5, rules: {elemental: true, same: true, plus: true, sameWall: true, combo: true}, lv: [9, 9, 10, 10, 10], reward: 10}
+  {n: 9, name: 'Ombra', title: 'Custode delle Leggende', ai: 5, rules: {special: true, elemental: true, same: true, plus: true, sameWall: true, combo: true}, lv: [8, 8, 9, 9, 9], reward: 10},
+  {n: 10, name: 'Il Re dei Giochi', title: 'Custode Supremo', ai: 5, rules: {special: true, elemental: true, same: true, plus: true, sameWall: true, combo: true}, lv: [9, 9, 10, 10, 10], reward: 10}
 ];
 const RANKS = [[0, 'Recluta'], [1000, 'Cadetto'], [1150, 'SeeD'], [1300, 'SeeD Elite'], [1450, 'Comandante'], [1600, 'Maestro Triad']];
 const rankOf = elo=> { let r = RANKS[0][1]; RANKS.forEach(x=>{ if(elo >= x[0]) r = x[1]; }); return r; };
@@ -83,6 +83,8 @@ export class Hub extends DurableObject {
     q(`CREATE TABLE IF NOT EXISTS throttle(k TEXT PRIMARY KEY, n INTEGER, t INTEGER)`);
     q(`CREATE TABLE IF NOT EXISTS pairs(k TEXT PRIMARY KEY, n INTEGER, day INTEGER)`);
     q(`CREATE TABLE IF NOT EXISTS missions(acc TEXT, sk TEXT, k TEXT, prog INTEGER DEFAULT 0, claimed INTEGER DEFAULT 0, PRIMARY KEY(acc, sk, k))`);
+    q(`CREATE TABLE IF NOT EXISTS season(id TEXT PRIMARY KEY, started INTEGER)`);
+    q(`CREATE TABLE IF NOT EXISTS season_top(season TEXT, pos INTEGER, acc TEXT, nick TEXT, elo INTEGER, PRIMARY KEY(season, pos))`);
     q(`CREATE TABLE IF NOT EXISTS claims(acc TEXT, key TEXT, at INTEGER, PRIMARY KEY(acc, key))`);
     const addCol = (t, c, def)=>{ if(!this.rows('PRAGMA table_info(' + t + ')').some(r=> r.name === c)) this.run('ALTER TABLE ' + t + ' ADD COLUMN ' + c + ' ' + def); };
     addCol('accounts', 'coins', 'INTEGER DEFAULT 150'); addCol('accounts', 'dust', 'INTEGER DEFAULT 0'); addCol('accounts', 'xp', 'INTEGER DEFAULT 0'); addCol('accounts', 'inv', "TEXT DEFAULT '{}'");
@@ -102,6 +104,7 @@ export class Hub extends DurableObject {
   async fetch(req){
     const url = new URL(req.url);
     try{
+      this.seasonTick();
       if(url.pathname === '/ws') return await this.openSocket(req, url);
       const body = req.method === 'POST' ? await this.readBody(req) : {};
       return json(await this.route(req, url, body));
@@ -131,6 +134,7 @@ export class Hub extends DurableObject {
     if(m === 'POST' && p === '/api/recover') return this.recover(body, ip);
     if(m === 'GET' && p === '/api/config') return this.config();
     if(m === 'GET' && p === '/api/supply') return this.supplyInfo();
+    if(m === 'GET' && p === '/api/season') return this.seasonInfo();
     if(m === 'GET' && p === '/api/leaderboard') return this.leaderboard(url.searchParams.get('by'));
     const a = await this.auth(req, url);
     const id = (re)=>{ const x = p.match(re); return x ? x[1] : null; };
@@ -255,9 +259,9 @@ export class Hub extends DurableObject {
   }
   mintCid(acc, cid, src, foil){
     const uid = 'u' + hex(7);
-    this.run('INSERT INTO cards(uid,owner,cid,got,src,foil) VALUES(?,?,?,?,?,?)', uid, acc, cid, Date.now(), src || '', foil ? 1 : 0);
+    this.run('INSERT INTO cards(uid,owner,cid,got,src,foil) VALUES(?,?,?,?,?,?)', uid, acc, cid, Date.now(), src || '', Math.max(0, Math.min(5, foil | 0)));
     this.run('INSERT INTO supply(cid,minted) VALUES(?,1) ON CONFLICT(cid) DO UPDATE SET minted=minted+1', cid);
-    return {uid, cid, lv: CARD[cid].lv, foil: !!foil};
+    return {uid, cid, lv: CARD[cid].lv, foil: Math.max(0, Math.min(5, foil | 0))};
   }
   ensureMin(acc){
     if(String(acc).startsWith('boss')) return 0;
@@ -269,7 +273,7 @@ export class Hub extends DurableObject {
   }
   collection(a){
     this.ensureMin(a.id);
-    return {cards: this.rows('SELECT uid,cid,lock,got,src,foil FROM cards WHERE owner=? ORDER BY got DESC', a.id).map(c=> ({uid: c.uid, cid: c.cid, lock: !!c.lock, got: c.got, src: c.src, foil: !!c.foil}))};
+    return {cards: this.rows('SELECT uid,cid,lock,got,src,foil FROM cards WHERE owner=? ORDER BY got DESC', a.id).map(c=> ({uid: c.uid, cid: c.cid, lock: !!c.lock, got: c.got, src: c.src, foil: c.foil | 0}))};
   }
   supplyInfo(){
     const m = Object.fromEntries(this.rows('SELECT cid,minted FROM supply').map(r=> [r.cid, r.minted]));
@@ -289,12 +293,13 @@ export class Hub extends DurableObject {
     return {card: c, streak: n, gain};
   }
   // controlla le 5 carte scelte (tue, diverse, libere) e le blocca con `tag`; ritorna gli uid nell'ordine dato
-  takeCards(acc, uids, tag){
+  takeCards(acc, uids, tag, cap){
     if(!Array.isArray(uids) || uids.length !== 5) fail(400, 'Scegli esattamente 5 carte', 'cards');
     const seen = new Set();
     uids.forEach(u=>{ if(typeof u !== 'string' || !/^u[0-9a-f]{14}$/.test(u) || seen.has(u)) fail(400, 'Carte non valide', 'cards'); seen.add(u); });
     const rows = uids.map(u=> this.row('SELECT * FROM cards WHERE uid=? AND owner=?', u, acc));
     rows.forEach(r=>{ if(!r) fail(403, 'Una carta non è tua', 'cards'); if(r.lock) fail(409, 'Una carta è già in una sfida o partita in corso', 'locked'); });
+    if(cap > 0 && rows.reduce((t, r)=> t + (CARD[r.cid] ? CARD[r.cid].lv : 0), 0) > cap) fail(400, 'Il mazzo supera il limite di punti (' + cap + ') di questa partita', 'cap');
     uids.forEach(u=> this.run('UPDATE cards SET lock=? WHERE uid=?', tag, u));
     return rows.map(r=> r.cid);
   }
@@ -353,6 +358,27 @@ export class Hub extends DurableObject {
     q = norm(q || '').replace(/[%_]/g, ''); if(q.length < 2) return {players: []};
     return {players: this.rows(`SELECT id,nick,elo FROM accounts WHERE nick_l LIKE ? AND id<>? ORDER BY elo DESC LIMIT 12`, '%' + q + '%', a.id).map(r=> ({id: r.id, nick: r.nick, elo: r.elo, rank: rankOf(r.elo), online: this.online(r.id)}))};
   }
+  // ------------------------------------------------------------------ stagioni (una al mese, ELO ridotto a metà e premi ai primi 3)
+  seasonKey(t){ const d = new Date(t || Date.now()); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0'); }
+  seasonTick(){
+    const key = this.seasonKey(); if(this.seasonSeen === key) return; this.seasonSeen = key;
+    if(this.row('SELECT 1 FROM season WHERE id=?', key)) return;
+    const prev = this.row('SELECT id FROM season ORDER BY id DESC LIMIT 1');
+    if(prev){
+      const top = this.rows('SELECT id,nick,elo FROM accounts WHERE ranked>0 ORDER BY elo DESC LIMIT 3'), prize = [1000, 600, 300];
+      top.forEach((r, i)=>{
+        this.run('INSERT OR REPLACE INTO season_top(season,pos,acc,nick,elo) VALUES(?,?,?,?,?)', prev.id, i + 1, r.id, r.nick, r.elo);
+        this.run('UPDATE accounts SET coins=coins+? WHERE id=?', prize[i], r.id);
+        this.news(r.id, 'season', {season: prev.id, pos: i + 1, coins: prize[i]});
+      });
+      this.run('UPDATE accounts SET elo=1000+CAST((elo-1000)/2 AS INTEGER), ranked=0, streak=0');
+    }
+    this.run('INSERT INTO season(id,started) VALUES(?,?)', key, Date.now());
+  }
+  seasonInfo(){
+    const d = new Date(), end = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+    return {id: this.seasonKey(), ends: end, prizes: [1000, 600, 300], hall: this.rows('SELECT season,pos,nick,elo FROM season_top ORDER BY season DESC, pos ASC LIMIT 18')};
+  }
   leaderboard(by){
     if(by === 'collection'){
       const rows = this.rows('SELECT a.id,a.nick,a.elo,c.cid FROM accounts a JOIN cards c ON c.owner=a.id');
@@ -365,6 +391,7 @@ export class Hub extends DurableObject {
   // ------------------------------------------------------------------ sfide e stanze
   cleanRules(r, mode){
     r = Core.normRules(r && typeof r === 'object' ? r : {});
+    r.cap = [0, 20, 25, 30, 35].includes(r.cap | 0) ? r.cap | 0 : 0;
     return r;
   }
   challengeCreate(a, body){
@@ -375,7 +402,7 @@ export class Hub extends DurableObject {
     const open = this.row('SELECT COUNT(*) n FROM challenges WHERE from_id=?', a.id).n; if(open >= 6) fail(429, 'Hai già troppe sfide aperte: annullane qualcuna', 'many');
     const id = 'c' + hex(6); let code = null;
     if(!to){ do{ code = rcode(5); }while(this.row('SELECT 1 FROM challenges WHERE code=?', code)); }
-    const cid = this.takeCards(a.id, body.cards, 'c:' + id);
+    const cid = this.takeCards(a.id, body.cards, 'c:' + id, rules.cap);
     const now = Date.now();
     this.run('INSERT INTO challenges(id,code,from_id,to_id,mode,rules,uids,created,expires) VALUES(?,?,?,?,?,?,?,?,?)', id, code, a.id, to ? to.id : null, mode, JSON.stringify(rules), JSON.stringify(body.cards), now, now + CHALLENGE_MS);
     if(to){ this.push(to.id, {t: 'challenge', challenge: this.chView(this.row('SELECT * FROM challenges WHERE id=?', id))}); this.news(to.id, 'challenge', {id, from: a.nick, mode}); }
@@ -412,7 +439,7 @@ export class Hub extends DurableObject {
   }
   startFromChallenge(c, a, cards){
     const mid = 'm' + hex(6);
-    let cidB; try{ cidB = this.takeCards(a.id, cards, 'm:' + mid); }catch(e){ throw e; }
+    let cidB; try{ cidB = this.takeCards(a.id, cards, 'm:' + mid, (JSON.parse(c.rules || '{}') || {}).cap); }catch(e){ throw e; }
     const uidsA = JSON.parse(c.uids); this.run('UPDATE cards SET lock=? WHERE lock=?', 'm:' + mid, 'c:' + c.id);
     this.run('DELETE FROM challenges WHERE id=?', c.id);
     const flip = rint(2), p0 = flip ? c.from_id : a.id, p1 = flip ? a.id : c.from_id, u0 = flip ? uidsA : cards, u1 = flip ? cards : uidsA;

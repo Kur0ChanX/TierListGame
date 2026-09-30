@@ -13,7 +13,7 @@
   }
   var ELEMENTS = ['fuoco', 'ghiaccio', 'tuono', 'terra', 'veleno', 'vento', 'acqua', 'sacro'];
   var MAX_ROUNDS = 5;                                        // morte improvvisa: al massimo 5 manche
-  var DEFAULT_RULES = {elemental: true, same: true, plus: true, sameWall: false, combo: true, sudden: true, trade: 'one'};
+  var DEFAULT_RULES = {elemental: true, same: true, plus: true, sameWall: false, combo: true, sudden: true, special: false, cap: 0, trade: 'one'};
 
   function mulberry(seed){ var a = seed >>> 0; return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function normRules(r){
@@ -27,9 +27,16 @@
   // caselle con elemento: dipendono solo dal seme (uguali per tutti i giocatori e per il server)
   function makeSquares(seed, rules){
     var sq = [null, null, null, null, null, null, null, null, null];
-    if(!rules.elemental) return sq;
-    var R = mulberry((seed >>> 0) ^ 0x9E3779B9);
-    for(var i = 0; i < 9; i++) if(R() < 0.28) sq[i] = ELEMENTS[Math.floor(R() * ELEMENTS.length)];
+    var i;
+    if(rules.elemental){
+      var R = mulberry((seed >>> 0) ^ 0x9E3779B9);
+      for(i = 0; i < 9; i++) if(R() < 0.28) sq[i] = ELEMENTS[Math.floor(R() * ELEMENTS.length)];
+    }
+    // caselle speciali (regola «special»): 'boost' = +2 ai lati di chiunque, 'trap' = -2; solo dove non c'è un elemento
+    if(rules.special){
+      var S = mulberry((seed >>> 0) ^ 0x51ED270B);
+      for(i = 0; i < 9; i++){ var x = S(); if(!sq[i] && x < 0.22) sq[i] = x < 0.11 ? 'boost' : 'trap'; }
+    }
     return sq;
   }
   function cardOf(c, u){ return {id: c.id, v: [c.v[0], c.v[1], c.v[2], c.v[3]], e: c.e || null, u: u}; }
@@ -53,7 +60,8 @@
   // valore di un lato con il bonus/malus dell'elemento della casella (solo regola Base e Combo)
   function eff(st, cell, d){
     var b = st.board[cell], v = b.card.v[d], el = st.squares[cell];
-    if(st.rules.elemental && el) v += (b.card.e === el) ? 1 : -1;
+    if(el === 'boost') v += 2; else if(el === 'trap') v -= 2;
+    else if(st.rules.elemental && el) v += (b.card.e === el) ? 1 : -1;
     return v;
   }
   function score(st){

@@ -6,7 +6,7 @@
   const Core = window.TriadCore, CARD = ()=> TT.CARD;
   const EMOJI = ['😀', '😎', '😮', '😢', '😡', '👏', '🔥', '💀', '🤝', '🦝', '⭐', '🍀'];
   TT.EMOJI = EMOJI;
-  const RULE_N = {elemental: 'Elementale', same: 'Same', sameWall: 'Muro', plus: 'Plus', combo: 'Combo', sudden: 'Morte improvvisa'};
+  const RULE_N = {elemental: 'Elementale', same: 'Same', sameWall: 'Muro', plus: 'Plus', combo: 'Combo', special: 'Caselle speciali', sudden: 'Morte improvvisa'};
   const TRADE_N = {one: 'Uno', diff: 'Diff', direct: 'Diretto', all: 'Tutto'};
   const TRADE_D = {one: 'Il vincitore prende 1 carta a scelta tra le 5 del perdente.', diff: 'Il vincitore prende tante carte quanti punti di scarto (max 5).', direct: 'Ognuno prende le carte che ha girato all\'altro.', all: 'Il vincitore prende tutte e 5 le carte del perdente.'};
   Object.assign(TT, {RULE_N, TRADE_N, TRADE_D});
@@ -34,12 +34,12 @@
       </div>`;
     const play = $('#ttPlay', R), g3 = $('#g3', R);
     const seatPanel = (seat, id)=>{ const n = opt.names[seat] || {nick: '?', av: '🙂'}; $(id, R).className = 'tt2-pl' + (seat === 1 ? ' o' : '') + (st.turn === seat ? ' turn' : ''); $(id, R).innerHTML = `<div class="av">${n.av || '🙂'}</div><div class="nm">${esc(n.nick)}${n.sub ? `<small>${esc(n.sub)}</small>` : ''}</div><div class="tt2-tm" id="tm${seat}" style="display:none"></div><div class="sc" id="sc${seat}">5</div>`; };
-    const elMods = (card, cell, s)=>{ const el = s.squares[cell]; if(!s.rules.elemental || !el) return [0, 0, 0, 0]; const d = card.e === el ? 1 : -1; return [d, d, d, d]; };
-    const hidden = seat=> opt.hidden ? opt.hidden(seat, st) : false, fo = c=> !!(opt.foil && c && opt.foil(c.u));
+    const elMods = (card, cell, s)=>{ const el = s.squares[cell]; if(el === 'boost') return [2, 2, 2, 2]; if(el === 'trap') return [-2, -2, -2, -2]; if(!s.rules.elemental || !el) return [0, 0, 0, 0]; const d = card.e === el ? 1 : -1; return [d, d, d, d]; };
+    const hidden = seat=> opt.hidden ? opt.hidden(seat, st) : false, fo = c=> (opt.foil && c ? opt.foil(c.u) | 0 : 0);
     function handHtml(seat){ const hide = hidden(seat); return sim.hands[seat].map((c, hi)=> `<div class="sl${hide ? ' back' : ''}" data-hi="${hi}" data-seat="${seat}">${c ? cardHtml(c.id, {owner: seat, foil: fo(c)}) : '<div class="ttc used"></div>'}</div>`).join(''); }
     function cellHtml(i){
       const el = sim.squares[i], b = sim.board[i];
-      return `<div class="tt2-cell" data-cell="${i}">${sim.rules.elemental && el ? `<div class="sq">${TT.ELEM[el][1]}</div>` : ''}${b ? cardHtml(b.card.id, {owner: b.owner, mods: elMods(b.card, i, sim), foil: fo(b.card)}) : ''}</div>`;
+      return `<div class="tt2-cell" data-cell="${i}">${el === 'boost' || el === 'trap' ? `<div class="sq sp-${el}">${el === 'boost' ? '+2' : '−2'}</div>` : (sim.rules.elemental && el ? `<div class="sq">${TT.ELEM[el][1]}</div>` : '')}${b ? cardHtml(b.card.id, {owner: b.owner, mods: elMods(b.card, i, sim), foil: fo(b.card)}) : ''}</div>`;
     }
     function renderAll(){
       seatPanel(top, '#plTop'); seatPanel(me, '#plBot');
@@ -125,7 +125,7 @@
           const slot = $(`.sl[data-seat="${ev.p}"][data-hi="${ev.hi}"]`, R); if(slot){ slot.classList.remove('back'); slot.innerHTML = '<div class="ttc used"></div>'; }
           if(cellEl){ $$('.ttc', cellEl).forEach(x=> x.remove()); cellEl.insertAdjacentHTML('beforeend', cardHtml(card.id, {owner: ev.p, cls: 'drop', mods: elMods(card, ev.cell, sim), foil: fo(card)})); }
           TT.snd('place'); scores(true);
-          const el = sim.squares[ev.cell]; if(sim.rules.elemental && el) setTimeout(()=> pop(ev.cell, card.e === el ? '+1' : '−1', card.e === el ? 'up' : 'dn'), 120);
+          const el = sim.squares[ev.cell]; if(el === 'boost' || el === 'trap') setTimeout(()=> pop(ev.cell, el === 'boost' ? '+2' : '−2', el === 'boost' ? 'up' : 'dn'), 120); else if(sim.rules.elemental && el) setTimeout(()=> pop(ev.cell, card.e === el ? '+1' : '−1', card.e === el ? 'up' : 'dn'), 120);
           await sleep(D(430));
         } else if(ev.t === 'rule'){
           banner(ev.rule === 'same' ? (ev.wall ? 'SAME · MURO' : 'SAME!') : ev.rule === 'plus' ? 'PLUS!' : 'COMBO!', ev.rule);
@@ -200,7 +200,7 @@
     {id: 'nonna', n: 'Nonna di Trabia', r: 'Trabia', lv: [5, 7], ai: 3, rules: {plus: true, combo: true, elemental: true}, trade: 'one', face: '👵'},
     {id: 'esploratore', n: 'Esploratore di Centra', r: 'Centra', lv: [6, 8], ai: 4, rules: {same: true, plus: true, combo: true}, trade: 'diff', face: '🧭'},
     {id: 'scienziata', n: 'Scienziata di Esthar', r: 'Esthar', lv: [7, 9], ai: 4, rules: {elemental: true, same: true, sameWall: true, plus: true, combo: true}, trade: 'diff', face: '🔬'},
-    {id: 'regina', n: 'Regina delle Carte', r: 'Ovunque', lv: [7, 10], ai: 5, rules: {elemental: true, same: true, plus: true, combo: true}, trade: 'direct', face: '👸'},
+    {id: 'regina', n: 'Regina delle Carte', r: 'Ovunque', lv: [7, 10], ai: 5, rules: {special: true, elemental: true, same: true, plus: true, combo: true}, trade: 'direct', face: '👸'},
     {id: 're', n: 'Re del Club', r: 'Club delle Carte', lv: [8, 10], ai: 5, rules: {elemental: true, same: true, sameWall: true, plus: true, combo: true}, trade: 'one', face: '🤴'},
     {id: 'leggenda', n: 'Il Procione Leggendario', r: 'Base Lunare', lv: [9, 10], ai: 5, rules: {elemental: true, same: true, sameWall: true, plus: true, combo: true}, trade: 'all', face: '🌕'}
   ];
@@ -211,14 +211,39 @@
     const out = []; [high, pool].forEach(l=> l.forEach(c=>{ if(out.length < 5 && !out.includes(c.id) && (l !== high || out.length < 2)) out.push(c.id); }));
     return out.slice(0, 5);
   }
+  // Sfida del giorno: regole speciali uguali per tutti, decise dalla data (serie di vittorie in jrpg_triad_daily)
+  const dayKey = ()=> new Date().toISOString().slice(0, 10);
+  function dailyNpc(){
+    const k = dayKey(), h = TT.hash ? TT.hash(k) : k.split('').reduce((a, c)=> (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    const sets = [
+      {n: 'Giornata delle trappole', rules: {elemental: true, special: true}},
+      {n: 'Giornata del Same', rules: {same: true, sameWall: true, special: true}},
+      {n: 'Giornata del Plus', rules: {plus: true, combo: true, special: true}},
+      {n: 'Giornata senza elementi', rules: {same: true, plus: true, combo: true}},
+      {n: 'Giornata elementale', rules: {elemental: true, same: true, special: true}},
+      {n: 'Giornata totale', rules: {elemental: true, same: true, sameWall: true, plus: true, combo: true, special: true}}
+    ], d = sets[h % sets.length], ai = 2 + (h >>> 3) % 3, lv = 3 + (h >>> 5) % 4;
+    let st = {}; try{ st = JSON.parse(localStorage.getItem('jrpg_triad_daily') || '{}') || {}; }catch(e){}
+    const done = st.last === k;
+    return {id: 'daily', daily: true, n: 'Sfida del giorno · ' + d.n, r: done ? 'Già vinta oggi ✔ · serie ' + (st.streak || 0) : 'Serie ' + (st.streak || 0) + ' giorni', lv: [lv, lv + 3], ai, rules: d.rules, trade: 'one', face: '🎯'};
+  }
+  function dailyWin(){
+    let st = {}; try{ st = JSON.parse(localStorage.getItem('jrpg_triad_daily') || '{}') || {}; }catch(e){}
+    const k = dayKey(); if(st.last === k) return;
+    const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    st.streak = st.last === y ? (st.streak || 0) + 1 : 1; st.last = k; st.best = Math.max(st.best || 0, st.streak);
+    try{ localStorage.setItem('jrpg_triad_daily', JSON.stringify(st)); }catch(e){}
+    try{ if(TT.toast) TT.toast('🎯 Sfida del giorno vinta! Serie: ' + st.streak); }catch(e){}
+  }
+  TT.dailyNpc = dailyNpc;
   TT.npcList = function(){
     const S = TT.save();
-    TT.screen('Allenamento', `<p class="mut" style="text-align:center">Sfida gli avversari con la tua collezione dell'album. Contro l'IA non perdi mai carte: se vinci, ne prendi una.</p><div class="tt2-list">${NPC.map((n, i)=>{ const rec = S.npc[n.id] || {w: 0, l: 0}; return `<button class="tt2-item" data-n="${i}"><div class="av">${n.face}</div><div class="tx"><b>${esc(n.n)}</b><small>${esc(n.r)} · IA ${AI_N[n.ai]} · carte livello ${n.lv[0]}–${n.lv[1]}</small><div style="margin-top:3px">${ruleChips(Object.assign({sudden: true}, n.rules), n.trade)}</div></div><div class="rt">${rec.w}V ${rec.l}S</div></button>`; }).join('')}</div>`);
+    TT.screen('Allenamento', `<p class="mut" style="text-align:center">Sfida gli avversari con la tua collezione dell'album. Contro l'IA non perdi mai carte: se vinci, ne prendi una.</p><div class="tt2-list">${[dailyNpc()].concat(NPC).map((n, i0)=>{ const i = i0 - 1, rec = S.npc[n.id] || {w: 0, l: 0}; return `<button class="tt2-item" data-n="${i}"><div class="av">${n.face}</div><div class="tx"><b>${esc(n.n)}</b><small>${esc(n.r)} · IA ${AI_N[n.ai]} · carte livello ${n.lv[0]}–${n.lv[1]}</small><div style="margin-top:3px">${ruleChips(Object.assign({sudden: true}, n.rules), n.trade)}</div></div><div class="rt">${rec.w}V ${rec.l}S</div></button>`; }).join('')}</div>`);
     $$('[data-n]').forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); TT.go(npcSetup, +b.dataset.n); }));
   };
   function localItems(){ const S = TT.save(); const items = []; Object.keys(S.owned).forEach(cid=>{ if(CARD()[cid]) for(let i = 0; i < S.owned[cid]; i++) items.push({key: cid + '#' + i, cid}); }); return items; }
   function npcSetup(i){
-    const n = NPC[i]; TT.refill();
+    const n = i < 0 ? dailyNpc() : NPC[i]; TT.refill();
     TT.pickDeck({title: 'Contro ' + n.n, sub: `${n.face} ${esc(n.n)} · ${esc(n.r)}<br>${ruleChips(Object.assign({sudden: true}, n.rules), n.trade)}<br><small>${esc(TRADE_D[n.trade])}</small>`, items: localItems(), ok: 'Gioca', onDone: keys=>{
       const mine = keys.map(k=> k.split('#')[0]);
       startLocal({title: n.n, names: [{nick: 'Tu', av: '🦝', sub: 'Blu'}, {nick: n.n, av: n.face, sub: n.r}], hands: [mine, npcDeck(n)], rules: Object.assign({sudden: true, trade: n.trade}, n.rules), ai: n.ai, npc: n, back: ()=> TT.go(npcSetup, i)});
@@ -284,9 +309,10 @@
       if(over) return; over = true; await sleep(P.fast ? 200 : 700);
       const res = st.result, S = TT.save(), w = res.winner, sc = res.score;
       const won = w === 0, draw = w == null, info = Core.tradeInfo(st);
-      if(!cfg.hot){ S.stats[won ? 'w' : draw ? 'd' : 'l']++; if(won){ S.stats.streak++; S.stats.best = Math.max(S.stats.best || 0, S.stats.streak); } else if(!draw) S.stats.streak = 0; if(cfg.npc){ const r = S.npc[cfg.npc.id] = S.npc[cfg.npc.id] || {w: 0, l: 0}; if(won) r.w++; else if(!draw) r.l++; } }
+      if(!cfg.hot && !cfg.arena){ S.stats[won ? 'w' : draw ? 'd' : 'l']++; if(won){ S.stats.streak++; S.stats.best = Math.max(S.stats.best || 0, S.stats.streak); } else if(!draw) S.stats.streak = 0; if(cfg.npc && cfg.npc.daily && won) dailyWin(); if(cfg.npc){ const r = S.npc[cfg.npc.id] = S.npc[cfg.npc.id] || {w: 0, l: 0}; if(won) r.w++; else if(!draw) r.l++; } }
       const btns = [{label: 'Rivincita', cls: 'pri', fn: ()=>{ board.destroy(); if(cfg.npc) cfg.hands[1] = npcDeck(cfg.npc); startLocal(cfg); }}, {label: 'Esci', fn: ()=>{ board.destroy(); TT.saveS(); TT.back(); }}];
       const gain = ids=>{ ids.forEach(id=>{ S.owned[id] = (S.owned[id] || 0) + 1; }); TT.saveS(); };
+      if(cfg.arena){ board.destroy(); cfg.arena(won, draw, sc); return; }
       if(!cfg.hot && won && info.pick > 0){
         const sel = [], choices = [0, 1, 2, 3, 4].map(i=> ({u: 5 + i, cid: cfg.hands[1][i]}));
         const el = board.showEnd({kind: 'win', title: 'HAI VINTO!', sub: `${sc[0]} a ${sc[1]}`, pick: {n: info.pick, choices, sel, by: 0, onPick: list=>{ gain(list.map(u=> cfg.hands[1][u - 5])); TT.snd('coin'); el.remove(); board.showEnd({kind: 'win', title: 'CARTE PRESE!', sub: 'Sono nel tuo album', cards: list.map(u=> ({cid: cfg.hands[1][u - 5], label: 'Nuova nel mazzo'})), buttons: btns}); }}});
@@ -408,5 +434,47 @@
         board.showEnd({kind: st.result.winner == null ? 'draw' : 'lose', title: 'FINE DELLA SCALATA', sub: `${sc[0]} a ${sc[1]} · hai superato ${cleared} ${cleared === 1 ? 'piano' : 'piani'}`, buttons: [{label: 'Ritira le carte', cls: 'pri', fn: ()=>{ board.destroy(); towerEnd(tload(), cleared, false); }}]});
       }
     }
+  }
+
+  // =====================================================================================================
+  // ARENA (offline): si pesca il mazzo da zero, 5 scelte tra 3 carte a caso. Tutti partono alla pari: conta il colpo d'occhio, non la collezione.
+  // 3 vittorie = premio (una carta in più per l'album), 2 sconfitte = fine. Nessuna carta in palio.
+  // =====================================================================================================
+  const AR_KEY = 'jrpg_triad_arena';
+  const arLoad = ()=>{ try{ return Object.assign({best: 0, runs: 0, perfect: 0}, JSON.parse(localStorage.getItem(AR_KEY) || '{}')); }catch(e){ return {best: 0, runs: 0, perfect: 0}; } };
+  const arSave = a=>{ try{ localStorage.setItem(AR_KEY, JSON.stringify(a)); }catch(e){} };
+  const AR_RULES = [{elemental: true, same: true, plus: true, combo: true, special: true}, {same: true, sameWall: true, special: true}, {plus: true, combo: true, elemental: true}, {elemental: true, same: true, special: true}];
+  TT.arena = function(){
+    const A = arLoad();
+    TT.screen('Arena', `<div class="tt2-tower-hd"><div style="font-size:2.6rem">🏟️</div><div class="fl">${A.best}</div><div class="mut">vittorie record in una corsa · ${A.runs} corse · ${A.perfect} imbattute</div></div>
+      <p>Pesca <b>5 carte</b> scegliendo ogni volta tra <b>3 a caso</b>, poi affronta l'IA. <b>3 vittorie</b> = una carta in premio per l'album; con <b>2 sconfitte</b> la corsa finisce. Non rischi nessuna carta e conta solo il tuo colpo d'occhio: chi ha l'album più ricco non ha vantaggi.</p>
+      <button class="tt2-btn pri w" id="arGo">Inizia la corsa</button>`);
+    $('#arGo').addEventListener('click', ()=> TT.go(arenaDraft, {picked: [], wins: 0, losses: 0}));
+  };
+  function arenaDraft(run){
+    const pool = TT.LIST.filter(c=> c.set === 'base'), n = run.picked.length;
+    // il livello delle proposte sale un po' a ogni scelta: le carte forti arrivano in fondo, ma sono poche
+    const pickLv = ()=>{ const r = Math.random(); return r < .5 ? [1, 4] : r < .85 ? [4, 7] : [7, 10]; };
+    const offer = []; let guard = 0;
+    while(offer.length < 3 && guard++ < 200){ const lv = pickLv(), c = pool[Math.floor(Math.random() * pool.length)]; if(c.lv >= lv[0] && c.lv <= lv[1] && !offer.includes(c.id) && !run.picked.includes(c.id)) offer.push(c.id); }
+    TT.screen('Arena · scelta ' + (n + 1) + ' di 5', `<div class="tt2-row c" style="margin-bottom:8px">${run.picked.map(id=> `<span class="tt2-chip">${esc(TT.chr ? TT.chr(id) : id)}</span>`).join('') || '<span class="mut">Nessuna carta ancora</span>'}</div>
+      <div class="tt2-grid s">${offer.map(id=> `<div class="cw" data-o="${id}">${cardHtml(id, {})}</div>`).join('')}</div><p class="mut" style="text-align:center">Tocca la carta che vuoi tenere.</p>`, {back: false});
+    $$('[data-o]').forEach(b=> b.addEventListener('click', ()=>{ TT.snd('coin'); run.picked.push(b.dataset.o); if(run.picked.length >= 5) arenaFight(run); else arenaDraft(run); }));
+  }
+  function arenaFight(run){
+    const lvs = 3 + run.wins * 2, opp = TT.LIST.filter(c=> c.set === 'base' && c.lv >= Math.max(1, lvs - 3) && c.lv <= Math.min(10, lvs + 1)).sort(()=> Math.random() - .5).slice(0, 5).map(c=> c.id);
+    const rules = AR_RULES[Math.floor(Math.random() * AR_RULES.length)];
+    startLocal({title: 'Arena · ' + run.wins + 'V ' + run.losses + 'S', names: [{nick: 'Tu', av: '🦝', sub: 'Blu'}, {nick: 'Sfidante', av: '🏟️', sub: 'IA ' + AI_N[Math.min(4, 2 + run.wins)]}], hands: [run.picked.slice(), opp], rules: Object.assign({sudden: true, trade: 'one'}, rules), ai: Math.min(4, 2 + run.wins),
+      arena: (won, draw, sc)=>{
+        if(won) run.wins++; else if(!draw) run.losses++;
+        const A = arLoad(); A.best = Math.max(A.best, run.wins);
+        const end = run.wins >= 3 || run.losses >= 2;
+        if(!end){ arSave(A); const m = TT.modal(`<div style="text-align:center"><div style="font-size:2rem">${won ? '🏆' : draw ? '🤝' : '💥'}</div><h3>${won ? 'Vittoria' : draw ? 'Pareggio' : 'Sconfitta'} ${sc[0]}–${sc[1]}</h3><p class="mut">${run.wins} vittorie · ${run.losses} sconfitte</p><button class="tt2-btn pri w" data-y>Prossimo incontro</button></div>`, {center: true, sticky: true}); $('[data-y]', m).addEventListener('click', ()=>{ m.remove(); arenaFight(run); }); return; }
+        A.runs++; let prize = '';
+        if(run.wins >= 3){ if(run.losses === 0) A.perfect++; const S = TT.save(); const ids = TT.LIST.filter(x=> x.set === 'base' && x.lv >= 4 && x.lv <= (run.losses ? 7 : 9)); const pick = ids[Math.floor(Math.random() * ids.length)]; S.owned[pick.id] = (S.owned[pick.id] || 0) + 1; TT.saveS(); prize = `<div class="cw" style="width:120px;margin:8px auto">${cardHtml(pick.id, {})}</div><p>Premio: <b>${esc(pick.name)}</b> nel tuo album!</p>`; }
+        arSave(A);
+        TT.screen('Arena · fine corsa', `<div class="tt2-tower-hd"><div style="font-size:2.6rem">${run.wins >= 3 ? '🏆' : '🏟️'}</div><div class="fl">${run.wins}V ${run.losses}S</div></div>${prize}<button class="tt2-btn pri w" id="arAgain">Nuova corsa</button>`, {back: false});
+        $('#arAgain').addEventListener('click', ()=> TT.go(arenaDraft, {picked: [], wins: 0, losses: 0}));
+      }});
   }
 })();

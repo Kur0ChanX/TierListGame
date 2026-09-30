@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v143', date:'2026-10-14', items:[
+    'Triple Triad: ogni carta ha il suo PERSONAGGIO iconico e la scena da cui è tratto (Cloud, Samus, Link…), non più la copertina del gioco. Le illustrazioni artistiche si aggiungono in triad-img/ (cartella e istruzioni pronte, con i testi per generarle); finché mancano si vedono le immagini di prima.',
+    '6 versioni di ogni carta, tutte solo estetiche (i numeri non cambiano): Normale, Holo, Reverse Holo, Full Art, Oro e Segreta, con riflessi in stile carte collezionabili. Le buste possono farle uscire e valgono più polvere.',
+    'Doppio tocco (o doppio clic) su una carta: si ingrandisce e la muovi in 3D col dito o inclinando il telefono, con riflessi e rilievi; puoi anche provare le altre versioni e gli stili.',
+    'Nuove regole di equilibrio: caselle speciali (+2 e −2), limite di punti del mazzo nelle stanze online, Sfida del giorno con regole diverse e serie di vittorie, Arena (peschi il mazzo da zero, 3 vittorie = carta in premio) e stagioni mensili con ELO ridotto a metà e premi ai primi 3.'
+  ]},
   {version:'v142', date:'2026-10-13', items:[
     'Triple Triad 3.0, il gioco che non finisce mai. Monete, XP e livelli (premi ad ogni livello, buste in regalo ogni 5, 10 e 25). Negozio di buste (Base, Rara, Epica, Leggendaria) con apertura animata: strappi la busta e giri le carte una a una, con anelli colorati per la rarità, scintille, tremolio e suoni crescenti. Ogni busta ha la «fortuna garantita»: dopo un po\' di buste senza carte forti, la prossima è sicura. Carte foil ✨ più brillanti e preziose.',
     'Ogni giorno nuove missioni giornaliere e settimanali, ricompensa quotidiana con serie e busta al 7° giorno, weekend con monete doppie. 38 traguardi con medaglie e premi, e collezioni da completare (per livello, per genere, per espansione e tutto l\'album) con ricompense grosse.',

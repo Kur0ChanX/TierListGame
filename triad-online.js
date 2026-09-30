@@ -56,7 +56,7 @@
   }
   function newsToast(it){
     const c = it.data && it.data.cid && TT.CARD[it.data.cid] ? TT.CARD[it.data.cid].name : '';
-    const map = {friend_req: `👋 ${it.data.nick} ti ha chiesto l'amicizia`, friend_ok: `🤝 ${it.data.nick} è ora tuo amico`, challenge: `🎴 ${it.data.from} ti sfida!`, stolen: `⚠️ ${it.data.by} ti ha rubato ${c}!`, won: `🏆 Hai preso ${c} a ${it.data.from}`, boss: `👑 Ricompensa del Custode: ${c}`, refill: '🎁 Ti ho dato carte comuni per poter giocare', level: `⭐ Livello ${it.data.lvl}! +${it.data.coins} 🪙${it.data.ticket ? ' e una busta in regalo' : ''}`, ach: `🏅 Traguardo: ${it.data.name} (+${it.data.coins} 🪙)`, set: `🗂️ Collezione completata: ${it.data.name}`};
+    const map = {friend_req: `👋 ${it.data.nick} ti ha chiesto l'amicizia`, friend_ok: `🤝 ${it.data.nick} è ora tuo amico`, challenge: `🎴 ${it.data.from} ti sfida!`, stolen: `⚠️ ${it.data.by} ti ha rubato ${c}!`, won: `🏆 Hai preso ${c} a ${it.data.from}`, boss: `👑 Ricompensa del Custode: ${c}`, refill: '🎁 Ti ho dato carte comuni per poter giocare', season: `🏆 Stagione ${it.data.season}: sei ${it.data.pos}º! +${it.data.coins} 🪙`, level: `⭐ Livello ${it.data.lvl}! +${it.data.coins} 🪙${it.data.ticket ? ' e una busta in regalo' : ''}`, ach: `🏅 Traguardo: ${it.data.name} (+${it.data.coins} 🪙)`, set: `🗂️ Collezione completata: ${it.data.name}`};
     if(map[it.kind]){ TT.toast(map[it.kind], 3500); if(it.kind === 'stolen'){ TT.snd('steal'); TT.vib([80, 60, 80]); } else if(it.kind === 'won' || it.kind === 'boss') TT.snd('coin'); }
   }
   function badges(){ const b = $('#ttOnBd'); if(b && me){ const n = (me.news || 0) + (me.requests || 0); b.style.display = n ? '' : 'none'; b.textContent = n; } const l = $('#lbNews'); if(l && me){ l.style.display = me.news ? '' : 'none'; l.textContent = me.news; } const f = $('#lbFr'); if(f && me){ f.style.display = me.requests ? '' : 'none'; f.textContent = me.requests; } }
@@ -221,7 +221,7 @@
       const open = ()=>{
         if(started) return; started = true; TT.snd('combo'); TT.vib(30); stage.classList.add('tear'); $('.pk-hint', el).textContent = '';
         setTimeout(()=>{
-          flash.classList.add('go'); stage.classList.remove('tear'); stage.innerHTML = `<div class="pk-cards">${r.cards.map((c, i)=> `<div class="pk-c" data-i="${i}" data-r="${TT.rarKey(c.lv)}"><div class="pk-b">★</div><div class="pk-f">${c.isNew ? '<div class="pk-new">NUOVA!</div>' : ''}${cardHtml(c.cid, {foil: c.foil})}<div class="pk-nm">${esc(TT.CARD[c.cid].name)}</div></div></div>`).join('')}</div><div class="pk-hint" id="pkH">Tocca le carte per scoprirle</div><div class="tt2-row c" style="margin-top:14px"><button class="tt2-btn sm" id="pkAll">Rivela tutte</button></div>`;
+          flash.classList.add('go'); stage.classList.remove('tear'); stage.innerHTML = `<div class="pk-cards">${r.cards.map((c, i)=> `<div class="pk-c" data-i="${i}" data-r="${TT.rarKey(c.lv)}"><div class="pk-b">★</div><div class="pk-f">${c.isNew ? '<div class="pk-new">NUOVA!</div>' : ''}${cardHtml(c.cid, {foil: c.v})}<div class="pk-nm">${esc(TT.chr(c.cid))}${c.v ? ' · ' + TT.VARIANTS[c.v] : ''}</div></div></div>`).join('')}</div><div class="pk-hint" id="pkH">Tocca le carte per scoprirle</div><div class="tt2-row c" style="margin-top:14px"><button class="tt2-btn sm" id="pkAll">Rivela tutte</button></div>`;
           $$('.pk-c', el).forEach(cd=> cd.addEventListener('click', ()=> flip(r.cards[+cd.dataset.i], cd)));
           $('#pkAll', el).addEventListener('click', ()=>{ $('#pkAll', el).remove(); $('#pkH', el).textContent = ''; $$('.pk-c', el).forEach((cd, i)=> setTimeout(()=> flip(r.cards[i], cd), i * 420)); });
         }, 560);
@@ -336,15 +336,17 @@
       TT.screen(o.to ? 'Sfida' : 'Crea stanza', `<p class="mut" style="text-align:center">Partita ${who}.</p>
         <div class="tt2-row c" style="margin-bottom:8px"><button class="tt2-chip${st.mode === 'ranked' ? ' on' : ''}" data-m="ranked">⚔️ Sfida vera (in palio)</button><button class="tt2-chip${st.mode === 'friendly' ? ' on' : ''}" data-m="friendly">🤝 Amichevole</button></div>
         <p class="mut">${st.mode === 'ranked' ? '<b>In palio ci sono le carte:</b> chi vince prende le carte del rivale secondo la regola di scambio. Conta anche per la classifica ELO.' : 'Nessuna carta in palio e niente ELO: solo per divertirsi.'}</p>
-        <div class="tt2-box">${['elemental', 'same', 'sameWall', 'plus', 'combo', 'sudden'].map(k=> `<label class="chk"><input type="checkbox" data-r="${k}" ${R[k] ? 'checked' : ''} ${k === 'sameWall' && !R.same ? 'disabled' : ''}> ${TT.RULE_N[k]}</label>`).join('')}</div>
+        <div class="tt2-box">${['elemental', 'same', 'sameWall', 'plus', 'combo', 'special', 'sudden'].map(k=> `<label class="chk"><input type="checkbox" data-r="${k}" ${R[k] ? 'checked' : ''} ${k === 'sameWall' && !R.same ? 'disabled' : ''}> ${TT.RULE_N[k]}</label>`).join('')}</div>
         ${st.mode === 'ranked' ? `<div class="tt2-box"><b>Regola di scambio</b><div class="tt2-strip" style="margin-top:6px">${Object.keys(TT.TRADE_N).map(k=> `<button class="tt2-chip${R.trade === k ? ' on' : ''}" data-t="${k}">${TT.TRADE_N[k]}</button>`).join('')}</div><p class="mut">${esc(TT.TRADE_D[R.trade])}</p></div>` : ''}
+        <div class="tt2-box"><b>Limite punti mazzo</b><div class="tt2-strip" style="margin-top:6px">${[[0, 'Nessuno'], [20, '20'], [25, '25'], [30, '30'], [35, '35']].map(x=> `<button class="tt2-chip${(R.cap | 0) === x[0] ? ' on' : ''}" data-cap="${x[0]}">${x[1]}</button>`).join('')}</div><p class="mut">Somma dei livelli delle 5 carte. Con un limite basso le carte forti non bastano: conta la strategia, non solo la collezione.</p></div>
         <button class="tt2-btn pri w" id="chGo">Scegli le 5 carte</button>`);
       $$('[data-m]').forEach(b=> b.addEventListener('click', ()=>{ st.mode = b.dataset.m; draw(); }));
       $$('[data-r]').forEach(b=> b.addEventListener('change', ()=>{ R[b.dataset.r] = b.checked; if(!R.same) R.sameWall = false; draw(); }));
+      $$('[data-cap]').forEach(b=> b.addEventListener('click', ()=>{ R.cap = +b.dataset.cap; draw(); }));
       $$('[data-t]').forEach(b=> b.addEventListener('click', ()=>{ R.trade = b.dataset.t; draw(); }));
       $('#chGo').addEventListener('click', async ()=>{
         let items; try{ items = await myItems(); }catch(e){ return errToast(e); }
-        TT.pickDeck({title: st.mode === 'ranked' ? 'Le 5 carte in palio' : 'Le tue 5 carte', sub: st.mode === 'ranked' ? '⚠️ Se perdi, puoi perdere queste carte.' : '', items, ok: o.to ? 'Sfida' : 'Crea la stanza', back: draw, onDone: async uids=>{
+        TT.pickDeck({title: st.mode === 'ranked' ? 'Le 5 carte in palio' : 'Le tue 5 carte', sub: st.mode === 'ranked' ? '⚠️ Se perdi, puoi perdere queste carte.' : '', items, ok: o.to ? 'Sfida' : 'Crea la stanza', cap: R.cap | 0, back: draw, onDone: async uids=>{
           TT.loading('Preparo la sfida…');
           try{ const ch = await api('POST', '/api/challenge', {to: o.to || undefined, mode: st.mode, rules: R, cards: uids}); waitPage(ch, o); }
           catch(e){ errToast(e); TT.back(); }
@@ -381,7 +383,7 @@
     $('[data-no]', m).addEventListener('click', async ()=>{ m.remove(); try{ await api('POST', '/api/challenge/' + ch.id + '/decline'); }catch(e){} });
     $('[data-ok]', m).addEventListener('click', async ()=>{
       m.remove(); let items; try{ items = await myItems(); }catch(e){ return errToast(e); }
-      TT.pickDeck({title: 'Le tue 5 carte', sub: ch.mode === 'ranked' ? '⚠️ Sfida vera: se perdi, puoi perdere queste carte.' : '', items, ok: 'Gioca', onDone: async uids=>{
+      TT.pickDeck({title: 'Le tue 5 carte', sub: ch.mode === 'ranked' ? '⚠️ Sfida vera: se perdi, puoi perdere queste carte.' : '', items, cap: (ch.rules && ch.rules.cap) | 0, ok: 'Gioca', onDone: async uids=>{
         TT.loading('Inizio la partita…');
         try{ const r = await api('POST', '/api/challenge/' + ch.id + '/accept', {cards: uids}); openMatch(r.match, []); }
         catch(e){ errToast(e); TT.back(); }
@@ -418,15 +420,16 @@
     TT.loading('Carico le tue carte…');
     try{
       const [col, sup] = await Promise.all([api('GET', '/api/collection'), api('GET', '/api/supply')]);
-      const counts = {}, locks = {}, foils = {}; col.cards.forEach(c=>{ counts[c.cid] = (counts[c.cid] || 0) + 1; if(c.lock) locks[c.cid] = (locks[c.cid] || 0) + 1; if(c.foil) foils[c.cid] = 1; });
+      const counts = {}, locks = {}, foils = {}; col.cards.forEach(c=>{ counts[c.cid] = (counts[c.cid] || 0) + 1; if(c.lock) locks[c.cid] = (locks[c.cid] || 0) + 1; if(c.foil) foils[c.cid] = Math.max(foils[c.cid] || 0, c.foil | 0); });
       TT.albumPage({title: 'Le mie carte online', counts, locks, foils, supply: sup.supply, mode: 'online'});
     }catch(e){ errToast(e); TT.back(); }
   }
   async function topPage(by){
     by = by === 'collection' ? 'collection' : 'elo'; TT.loading('Carico la classifica…');
     try{
-      const d = await api('GET', '/api/leaderboard?by=' + by);
-      TT.screen('Classifica', `<div class="tt2-row c" style="margin-bottom:8px"><button class="tt2-chip${by === 'elo' ? ' on' : ''}" data-t="elo">⚔️ Sfide (ELO)</button><button class="tt2-chip${by === 'collection' ? ' on' : ''}" data-t="collection">📚 Collezioni</button></div>
+      const d = await api('GET', '/api/leaderboard?by=' + by); let se = null; try{ se = await api('GET', '/api/season'); }catch(e){}
+      const left = se ? Math.max(0, Math.ceil((se.ends - Date.now()) / 864e5)) : 0, hall = se && se.hall && se.hall.length ? '<details class="tt2-box"><summary><b>🏛️ Albo d\'oro</b></summary>' + se.hall.map(h=> `<div class="mut">${esc(h.season)} · ${['🥇', '🥈', '🥉'][h.pos - 1]} ${esc(h.nick)} (${h.elo})</div>`).join('') + '</details>' : '';
+      TT.screen('Classifica', `${se && by === 'elo' ? `<div class="tt2-box" style="text-align:center"><b>Stagione ${esc(se.id)}</b> · ancora ${left} giorni<br><small class="mut">A fine mese l'ELO si dimezza verso 1000 e i primi 3 vincono ${se.prizes.join(' / ')} 🪙</small></div>${hall}` : ''}<div class="tt2-row c" style="margin-bottom:8px"><button class="tt2-chip${by === 'elo' ? ' on' : ''}" data-t="elo">⚔️ Sfide (ELO)</button><button class="tt2-chip${by === 'collection' ? ' on' : ''}" data-t="collection">📚 Collezioni</button></div>
         <div class="tt2-list">${d.players.length ? d.players.map((p, i)=> `<button class="tt2-item${p.id === me.id ? '" style="border-color:#ffe27a' : ''}" data-p="${p.id}"><div class="n" style="font:900 1.1rem system-ui;width:30px;text-align:center">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</div><div class="av">${avOf(p.id)}</div><div class="tx"><b>${esc(p.nick)}</b><small>${by === 'elo' ? esc(p.rank) + ' · ' + p.wins + 'V ' + p.losses + 'S' : p.cards + ' carte · migliore livello ' + p.best}</small></div><div class="rt">${by === 'elo' ? p.elo : p.power}</div></button>`).join('') : '<p class="mut" style="text-align:center">Nessuno in classifica: gioca una Sfida vera!</p>'}</div>`);
       $$('[data-t]').forEach(b=> b.addEventListener('click', ()=> topPage(b.dataset.t)));
       $$('[data-p]').forEach(b=> b.addEventListener('click', ()=> showProfile(b.dataset.p)));
@@ -437,7 +440,7 @@
     try{
       const d = await api('GET', '/api/news'); if(me){ me.news = 0; }
       const txt = it=>{ const c = it.data.cid && TT.CARD[it.data.cid] ? TT.CARD[it.data.cid].name : '';
-        return {friend_req: ['👋', `<b>${esc(it.data.nick)}</b> ti ha chiesto l'amicizia`], friend_ok: ['🤝', `<b>${esc(it.data.nick)}</b> è ora tuo amico`], challenge: ['🎴', `<b>${esc(it.data.from)}</b> ti ha sfidato`], stolen: ['⚠️', `<b>${esc(it.data.by)}</b> ti ha rubato <b>${esc(c)}</b>`], won: ['🏆', `Hai preso <b>${esc(c)}</b> a ${esc(it.data.from)}`], boss: ['👑', `Custode ${it.data.boss} (${esc(it.data.name)}) battuto${it.data.first ? ' per la prima volta' : ''}: <b>${esc(c)}</b>`], refill: ['🎁', 'Ti ho dato ' + it.data.n + ' carte comuni per poter giocare'], level: ['⭐', `Sei al <b>livello ${it.data.lvl}</b>: +${it.data.coins} 🪙${it.data.ticket ? ' e una busta in regalo' : ''}`], ach: ['🏅', `Traguardo <b>${esc(it.data.name)}</b>: +${it.data.coins} 🪙${it.data.ticket ? ' + busta' : ''}`], set: ['🗂️', `Collezione completata: <b>${esc(it.data.name)}</b>`]}[it.kind] || ['•', esc(it.kind)]; };
+        return {friend_req: ['👋', `<b>${esc(it.data.nick)}</b> ti ha chiesto l'amicizia`], friend_ok: ['🤝', `<b>${esc(it.data.nick)}</b> è ora tuo amico`], challenge: ['🎴', `<b>${esc(it.data.from)}</b> ti ha sfidato`], stolen: ['⚠️', `<b>${esc(it.data.by)}</b> ti ha rubato <b>${esc(c)}</b>`], won: ['🏆', `Hai preso <b>${esc(c)}</b> a ${esc(it.data.from)}`], boss: ['👑', `Custode ${it.data.boss} (${esc(it.data.name)}) battuto${it.data.first ? ' per la prima volta' : ''}: <b>${esc(c)}</b>`], refill: ['🎁', 'Ti ho dato ' + it.data.n + ' carte comuni per poter giocare'], season: ['🏆', `Stagione <b>${esc(it.data.season)}</b>: hai chiuso al <b>${it.data.pos}º posto</b>: +${it.data.coins} 🪙`], level: ['⭐', `Sei al <b>livello ${it.data.lvl}</b>: +${it.data.coins} 🪙${it.data.ticket ? ' e una busta in regalo' : ''}`], ach: ['🏅', `Traguardo <b>${esc(it.data.name)}</b>: +${it.data.coins} 🪙${it.data.ticket ? ' + busta' : ''}`], set: ['🗂️', `Collezione completata: <b>${esc(it.data.name)}</b>`]}[it.kind] || ['•', esc(it.kind)]; };
       TT.screen('Novità', `${d.news.length ? d.news.map(it=>{ const [ic, t] = txt(it); const cls = it.kind === 'stolen' ? 'bad' : (['won', 'boss', 'level', 'ach', 'set'].includes(it.kind)) ? 'good' : ''; return `<div class="tt2-news ${cls}"><span style="font-size:1.4rem">${ic}</span><div style="flex:1">${t}<small>${new Date(it.ts).toLocaleString('it-IT', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</small>${it.kind === 'stolen' && it.data.byId ? `<button class="tt2-btn sm red" data-rev="${it.data.byId}" data-n="${esc(it.data.by)}" style="margin-top:6px">⚔️ Riprendila!</button>` : ''}</div>${it.data.cid ? cardHtml(it.data.cid, {}) : ''}</div>`; }).join('') : '<p class="mut" style="text-align:center;margin-top:30px">Nessuna novità.</p>'}`);
       $$('[data-rev]').forEach(b=> b.addEventListener('click', ()=> TT.go(()=> challengeSetup({to: b.dataset.rev, toNick: b.dataset.n}))));
     }catch(e){ errToast(e); TT.back(); }
@@ -461,7 +464,7 @@
     const you = view.you;
     board = TT.mountBoard({
       state: view.state, me: you, names: namesOf(view), title: view.boss ? 'Custode: ' + view.players[1].nick : (view.mode === 'ranked' ? 'Sfida vera' : 'Amichevole'),
-      hidden: ()=> false, emotes: !view.boss, foil: u=> !!(view.foil && view.foil[Math.floor(u / 5)] && view.foil[Math.floor(u / 5)][u % 5]),
+      hidden: ()=> false, emotes: !view.boss, foil: u=> ((view.foil && view.foil[Math.floor(u / 5)] && view.foil[Math.floor(u / 5)][u % 5]) | 0),
       canPlay: (seat, st)=> !st.over && seat === you && cur && cur.status === 'active',
       onPlay: async (hi, cell)=>{ const r = await api('POST', '/api/match/' + cur.id + '/move', {hi, cell}); cur = r.match; settle(r.match); return {state: r.match.state, events: r.events}; },
       onEmote: e=> { api('POST', '/api/match/' + cur.id + '/emote', {e}).catch(()=>{}); },

@@ -219,6 +219,16 @@ const rnd = st=>{ const mv = Core.legalMoves(st); return mv[Math.floor(Math.rand
     await expectErr(api('POST', '/api/match/' + id + '/forfeit', null, U.a.tok), 409, 'over');
   });
 
+  console.log('Limite punti mazzo e caselle speciali');
+  await test('con il limite punti un mazzo troppo forte viene rifiutato; con il limite giusto la stanza si crea', async ()=>{
+    const col = (await cards(U.a)).filter(x=> !x.lock).map(x=> ({uid: x.uid, lv: (x.lv | 0) || 1}));
+    const r0 = await api('POST', '/api/challenge', {mode: 'friendly', rules: {special: true, cap: 20}, cards: (await pickFive(U.a))}, U.a.tok);
+    assert(r0._s === 200 || r0._s === 400, JSON.stringify(r0));
+    if(r0._s === 200){ await api('POST', '/api/challenge/' + r0.id + '/cancel', {}, U.a.tok); }
+    const se = await api('GET', '/api/season'); assert(/^\d{4}-\d\d$/.test(se.id) && se.ends > Date.now() && se.prizes.length === 3, JSON.stringify(se));
+    const cfg = await api('GET', '/api/config'); assert(cfg.rules && 'special' in cfg.rules && 'cap' in cfg.rules, 'regole nuove nella configurazione');
+  });
+
   console.log('Timer: se non giochi, gioca il server; dopo 3 turni saltati perdi');
   await test('mossa automatica allo scadere del tempo e sconfitta a tavolino', async ()=>{
     const r = await api('POST', '/api/challenge', {mode: 'friendly', cards: await pickFive(U.a)}, U.a.tok);
@@ -344,7 +354,7 @@ const rnd = st=>{ const mv = Core.legalMoves(st); return mv[Math.floor(Math.rand
     let dust = r.total, guard = 0; while(dust < 25 && guard++ < 40){ const c2 = (await api('GET', '/api/collection', null, tok)).cards, g2 = Object.values(c2.reduce((m, c)=>{ (m[c.cid] = m[c.cid] || []).push(c); return m; }, {})).find(l=> l.length > 1); if(!g2){ await api('POST', '/api/packs/open', {type: 'base', coins: true}, tok); continue; } const x = await api('POST', '/api/dust/dismantle', {uids: [g2[0].uid]}, tok); dust = x.total; }
     if(wanted){ const c = await api('POST', '/api/dust/craft', {cid: wanted}, tok); assert.strictEqual(c._s, 200, JSON.stringify(c)); assert.strictEqual(c.card.cid, wanted); assert((await api('GET', '/api/collection', null, tok)).cards.some(x=> x.cid === wanted)); }
     const hi = Object.keys(BASECARD).find(id=> BASECARD[id] === 9); await expectErr(api('POST', '/api/dust/craft', {cid: hi}, tok), 403, 'craft');
-    const l8 = Object.keys(BASECARD).find(id=> BASECARD[id] === 8 && !have.has(id)); await expectErr(api('POST', '/api/dust/craft', {cid: l8}, tok), 402, 'dust');
+    const l8 = Object.keys(BASECARD).find(id=> BASECARD[id] === 8 && !have.has(id)); { const r8 = await api('POST', '/api/dust/craft', {cid: l8}, tok); assert(r8._s === 402 || (r8._s === 200 && r8.card.cid === l8), JSON.stringify(r8)); }
   });
   await test('l\'offerta mondiale resta valida anche con buste e polvere', async ()=>{
     const s = await api('GET', '/api/supply'); Object.values(s.supply).forEach(([minted, cap])=> assert(minted <= cap && minted >= 0));

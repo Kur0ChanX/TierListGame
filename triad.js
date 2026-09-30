@@ -20,7 +20,7 @@
   function boot(){
     if(booted) return booted;
     booted = (async ()=>{
-      await Promise.all([loadCSS('triad.css'), loadJS('triad-cards.js'), loadJS('triad-exp.js'), loadJS('triad-core.js')]);
+      await Promise.all([loadCSS('triad.css'), loadJS('triad-cards.js'), loadJS('triad-exp.js'), loadJS('triad-core.js'), loadJS('triad-chars.js').catch(()=>{}), loadJS('triad-imgs.js').catch(()=>{})]);
       loadJS('triad-art.js').catch(()=>{}); await loadJS('triad-play.js');
       try{ await loadJS('triad-config.js'); }catch(e){}
       initCards();
@@ -34,6 +34,8 @@
   const P = Object.assign({style: 'classico', board: 'verde', sound: true, vol: .7, fast: false, confirm: true, hide: true, auto: true, art: {}, st: {}, decks: []}, LS.get(PK, {}) || {});
   const saveP = ()=> LS.set(PK, P);
   TT.P = P; TT.saveP = saveP;
+  const VARIANTS = ['Normale', 'Holo', 'Reverse Holo', 'Full Art', 'Oro', 'Segreta'], VLAB = ['', 'HOLO', 'REVERSE', 'FULL ART', 'ORO', 'SEGRETA'];
+  TT.VARIANTS = VARIANTS;
   const STYLES = [['classico', 'Classico', 'Come le carte di FF8: tinta blu o rossa'], ['olografico', 'Olografico', 'Riflessi arcobaleno che si muovono'], ['pixel', 'Pixel 16-bit', 'Immagine a pixel e righe da vecchio schermo'], ['copertina', 'Copertina', 'La locandina a tutta carta, numeri nei cerchi'], ['neon', 'Neon', 'Cornice luminosa su fondo scuro'], ['emblema', 'Emblema', 'Disegno originale, senza immagini']];
   const BOARDS = [['verde', 'Tavolo verde'], ['notte', 'Notte blu'], ['rosso', 'Velluto rosso'], ['legno', 'Legno'], ['viola', 'Viola'], ['oro', 'Oro'], ['grafite', 'Grafite']];
   Object.assign(TT, {STYLES, BOARDS});
@@ -75,13 +77,17 @@
     const EX = window.TRIAD_EXP || {sets: [], cards: []}; EX.cards.forEach(a=> push(a, a[8]));
     TT.CARD = CARD; TT.LIST = LIST; TT.BASE = LIST.filter(c=> c.set === 'base'); TT.SETS = EX.sets;
   }
+  const chr = cid=> { const e = (window.TRIAD_CHARS || {})[cid]; return e ? e[0] : (CARD[cid] ? CARD[cid].name : ''); }, scene = cid=> { const e = (window.TRIAD_CHARS || {})[cid]; return e ? e[1] : ''; };
+  Object.assign(TT, {chr, scene});
   const sum = c=> c.v[0] + c.v[1] + c.v[2] + c.v[3];
   const V = n=> n >= 10 ? 'A' : String(n);
   Object.assign(TT, {slug, hash, sum, V, rarKey: lv=> RAR[lv] || 'c', starsOf: lv=> '★'.repeat(Math.ceil(lv / 2))});
   const autoArt = ()=> LS.get('jrpg_triad_autoart', {}) || {};
   const photos = ()=> LS.get('jrpg_triad_photos', {}) || {};
+  const hasImg = k=> (window.TRIAD_IMGS || []).indexOf(k) >= 0;
   function arts(cid){
     const list = ((window.TRIAD_ART || {})[cid] || []).slice(), a = autoArt()[cid];
+    if(hasImg(cid)) list.unshift('triad-img/' + cid + '.webp');
     if(a && !list.includes(a)) list.push(a);
     return list;
   }
@@ -134,19 +140,20 @@
       afBusy = false;
     })();
   }
-  function imgTag(cid, ch, st){
+  function imgTag(cid, ch, st, vr){
     if(ch.kind === 'em' || st === 'emblema') return '';
-    const src = ch.kind === 'photo' ? ch.url : (st === 'pixel' ? pix(ch.url) : thumb(ch.url, 360));
+    if(vr >= 3 && ch.kind === 'img' && ch.i === 0 && hasImg(cid + '-full')) ch = Object.assign({}, ch, {url: 'triad-img/' + cid + '-full.webp'});
+    const src = ch.kind === 'photo' ? ch.url : (st === 'pixel' ? pix(ch.url) : (/^triad-img\//.test(ch.url) ? ch.url : thumb(ch.url, 360)));
     return `<img src="${esc(src)}" data-cid="${cid}" data-kind="${ch.kind}" data-i="${ch.i || 0}" data-orig="${esc(ch.url)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add('ok')" onerror="TT.artErr(this)">`;
   }
   // HTML di una carta. o: {owner 0/1, style, mods[4], sel, cnt, lock, cls}
   function cardHtml(cid, o){
     o = o || {}; const c = CARD[cid]; if(!c) return '';
-    const st = o.style || cardStyle(cid), rk = RAR[c.lv] || 'c', mods = o.mods || [0, 0, 0, 0], ch = artChoice(cid), tier = LV_TIER[c.lv];
+    const vr = o.foil === true ? 1 : (o.foil | 0), st = o.style || cardStyle(cid), rk = RAR[c.lv] || 'c', mods = o.mods || [0, 0, 0, 0], ch = artChoice(cid), tier = LV_TIER[c.lv];
     const vals = ['t', 'r', 'b', 'l'].map((k, i)=>{ const raw = c.v[i], eff = raw + (mods[i] || 0); return `<b class="${k}${mods[i] > 0 ? ' up' : mods[i] < 0 ? ' dn' : ''}${eff >= 10 ? ' A' : ''}">${V(Math.max(0, eff))}</b>`; }).join('');
-    const foil = (c.lv >= 9 || st === 'olografico' || o.foil) ? '<b class="ttc-foil"></b>' : '';
+    const foil = (c.lv >= 9 || st === 'olografico' || vr) ? '<b class="ttc-foil"></b>' : '';
     const col = (XUI.TIER_COL || {})[tier] || '#fff';
-    return `<div class="ttc${o.sel ? ' sel' : ''}${o.lock ? ' lock' : ''}${o.cls ? ' ' + o.cls : ''}" data-cid="${cid}" data-r="${rk}" data-st="${st}"${o.owner != null ? ' data-o="' + o.owner + '"' : ''}${o.foil ? ' data-fo="1"' : ''}><div class="ttc-in"><div class="ttc-art"><i class="ttc-em" style="--em:${emblem(cid)}"></i>${imgTag(cid, ch, st)}</div><div class="ttc-tint"></div><div class="ttc-shade"></div><div class="ttc-v">${vals}</div>${c.e ? `<div class="ttc-el" title="${ELEM[c.e][0]}">${ELEM[c.e][1]}</div>` : ''}<div class="ttc-st">${'★'.repeat(Math.ceil(c.lv / 2))}</div><div class="ttc-tier" style="color:${col}">${tier}</div><div class="ttc-nm">${esc(c.name)}</div>${foil}${o.foil ? '<div class="ttc-fo">FOIL</div>' : ''}</div>${o.cnt > 1 ? `<div class="ttc-cnt">×${o.cnt}</div>` : ''}${o.lock === 'x' ? '<div class="ttc-lock">🔒</div>' : ''}</div>`;
+    return `<div class="ttc${o.sel ? ' sel' : ''}${o.lock ? ' lock' : ''}${o.cls ? ' ' + o.cls : ''}" data-cid="${cid}" data-r="${rk}" data-st="${st}"${o.owner != null ? ' data-o="' + o.owner + '"' : ''}${vr ? ' data-fo="' + vr + '"' : ''}><div class="ttc-in"><div class="ttc-art"><i class="ttc-em" style="--em:${emblem(cid)}"></i>${imgTag(cid, ch, st, vr)}</div><div class="ttc-tint"></div><div class="ttc-shade"></div><div class="ttc-v">${vals}</div>${c.e ? `<div class="ttc-el" title="${ELEM[c.e][0]}">${ELEM[c.e][1]}</div>` : ''}<div class="ttc-st">${'★'.repeat(Math.ceil(c.lv / 2))}</div><div class="ttc-tier" style="color:${col}">${tier}</div><div class="ttc-nm">${esc(chr(cid))}</div>${foil}${vr ? '<i class="ttc-gl"></i><div class="ttc-fo">' + VLAB[vr] + '</div>' : ''}</div>${o.cnt > 1 ? `<div class="ttc-cnt">×${o.cnt}</div>` : ''}${o.lock === 'x' ? '<div class="ttc-lock">🔒</div>' : ''}</div>`;
   }
   TT.cardHtml = cardHtml;
   // le carte scelte dal giocatore con la sua grafica: anche il rivale le vede così (stile della carta)
@@ -236,13 +243,14 @@
         <button class="tt2-tile big" data-go="online"><span class="ic">🌐</span><b>Sfida i tuoi amici online</b><small>Con codice, QR o richiesta d'amicizia. Se vinci ti prendi le loro carte migliori!</small><span class="bd" id="ttOnBd" style="display:none"></span></button>
         <button class="tt2-tile" data-go="npc"><span class="ic">🤖</span><b>Allenamento</b><small>11 avversari, IA da 1 a 5</small></button>
         <button class="tt2-tile" data-go="tower"><span class="ic">🗼</span><b>Torre infinita</b><small>Sali senza fine, carte in premio</small></button>
+        <button class="tt2-tile" data-go="arena"><span class="ic">🏟️</span><b>Arena</b><small>Pesca il mazzo: tutti alla pari</small></button>
         <button class="tt2-tile" data-go="hot"><span class="ic">👥</span><b>Due giocatori</b><small>Sullo stesso telefono</small></button>
         <button class="tt2-tile" data-go="album"><span class="ic">📚</span><b>Album</b><small>${uniq} di 200 carte</small></button>
         <button class="tt2-tile" data-go="gfx"><span class="ic">🎨</span><b>Grafica delle carte</b><small>6 stili e l'immagine di ogni carta</small></button>
         <button class="tt2-tile" data-go="rules"><span class="ic">📖</span><b>Regole</b><small>Same, Plus, Combo, Elementi…</small></button>
         <button class="tt2-tile" data-go="settings"><span class="ic">⚙️</span><b>Tavolo e suoni</b><small>Temi, volume, animazioni</small></button>
       </div>`, {back: false});
-    $$('[data-go]', root).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const k = b.dataset.go; if(k === 'online') openOnline(); else if(k === 'npc') go(TT.npcList); else if(k === 'tower') go(TT.tower); else if(k === 'hot') go(TT.hotseat); else if(k === 'album') go(albumLocal); else if(k === 'gfx') go(gfxPage); else if(k === 'rules') go(rulesPage); else if(k === 'settings') go(settingsPage); }));
+    $$('[data-go]', root).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const k = b.dataset.go; if(k === 'online') openOnline(); else if(k === 'npc') go(TT.npcList); else if(k === 'tower') go(TT.tower); else if(k === 'arena') go(TT.arena); else if(k === 'hot') go(TT.hotseat); else if(k === 'album') go(albumLocal); else if(k === 'gfx') go(gfxPage); else if(k === 'rules') go(rulesPage); else if(k === 'settings') go(settingsPage); }));
     try{ if(LS.get('jrpg_triad_acct', null)){ if(window.TT_ONLINE_BADGE) window.TT_ONLINE_BADGE(); else loadJS('triad-online.js').then(()=> window.TT_ONLINE_BADGE && window.TT_ONLINE_BADGE()).catch(()=>{}); } }catch(e){}
   }
   function fanHtml(){
@@ -305,7 +313,7 @@
         <h3>Immagine <small>(scegli quella che preferisci)</small></h3>
         <div class="tt2-arts">${list.map((u, i)=> `<button data-a="${i}" class="${ch.kind === 'img' && ch.i === i ? 'on' : ''}" style="background-image:url('${esc(thumb(u, 200))}')"></button>`).join('')}<button data-a="e" class="${ch.kind === 'em' ? 'on' : ''}" style="background-image:${emblem(cid)}">Emblema</button>${ph ? `<button data-a="f" class="${ch.kind === 'photo' ? 'on' : ''}" style="background-image:url('${ph}')"></button>` : ''}<button data-photo>📷<br>La mia foto</button></div>
         ${list.length ? '' : '<p class="mut">Per questa carta non c\'è ancora un\'immagine ufficiale: uso l\'Emblema disegnato. Puoi metterci una tua foto.</p>'}
-        <div class="tt2-row c" style="margin-top:10px">${P.st[cid] || P.art[cid] != null ? '<button class="tt2-btn sm" data-reset>Ripristina automatico</button>' : ''}${g && window.openModal ? '<button class="tt2-btn sm" data-open>Apri nella Tier List</button>' : ''}<button class="tt2-btn pri" data-mclose>Fatto</button></div>
+        <div class="tt2-row c" style="margin-top:10px">${P.st[cid] || P.art[cid] != null ? '<button class="tt2-btn sm" data-reset>Ripristina automatico</button>' : ''}${g && window.openModal ? '<button class="tt2-btn sm" data-open>Apri nella Tier List</button>' : ''}<button class="tt2-btn" data-insp>🔍 Ingrandisci</button><button class="tt2-btn pri" data-mclose>Fatto</button></div>
         <input type="file" accept="image/*" id="ttPh" style="display:none">`, {onClose: ()=>{}});
       const big = $('#ttBig .ttc', m);
       if(big){
@@ -314,6 +322,7 @@
       }
       $$('[data-s]', m).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); if($('#ttAll', m).checked){ P.style = b.dataset.s; P.st = {}; } else P.st[cid] = b.dataset.s; saveP(); m.remove(); draw(); }));
       $$('[data-a]', m).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const a = b.dataset.a; P.art[cid] = a === 'e' || a === 'f' ? a : +a; saveP(); m.remove(); draw(); }));
+      $('[data-insp]', m).addEventListener('click', ()=> inspect(cid, {src, foil: src && src.foils ? src.foils[cid] : 0}));
       const rs = $('[data-reset]', m); if(rs) rs.addEventListener('click', ()=>{ delete P.st[cid]; delete P.art[cid]; saveP(); m.remove(); draw(); });
       const op = $('[data-open]', m); if(op) op.addEventListener('click', ()=>{ try{ close(); window.openModal(g); }catch(e){} });
       $('[data-photo]', m).addEventListener('click', ()=> $('#ttPh', m).click());
@@ -336,6 +345,51 @@
     };
     fr.readAsDataURL(f);
   }
+
+  // ---------------------------------------------------------------- visore 3D (doppio tocco su una carta)
+  // La carta si muove sotto il dito (o inclinando il telefono): rilievo, riflessi che seguono la luce, tutte le versioni da sfogliare.
+  function inspect(cid, o){
+    o = o || {}; const c = CARD[cid]; if(!c || !root) return;
+    let vr = o.foil === true ? 1 : (o.foil | 0), st = o.style || cardStyle(cid), gyro = false, gh = null;
+    const m = document.createElement('div'); m.className = 'tt2-insp'; root.appendChild(m);
+    const cnt = o.cnt != null ? o.cnt : (o.src && o.src.counts ? (o.src.counts[cid] || 0) : null), sup = o.src && o.src.supply && o.src.supply[cid];
+    const draw = ()=>{
+      m.innerHTML = `<button class="tt2-ib insp-x" data-x aria-label="Chiudi">✕</button>
+        <div class="insp-stage"><div class="insp-card" style="--mx:50;--my:35;--rx:0deg;--ry:0deg">${cardHtml(cid, {foil: vr, style: st, owner: o.owner})}<i class="insp-glare"></i></div></div>
+        <div class="insp-info"><b class="insp-nm">${esc(chr(cid))}</b><div class="mut">${esc(c.name)} · ${esc(c.year)} · ${esc(c.plat)}</div>
+          <div class="tt2-row c" style="margin:6px 0"><span class="tt2-chip r">${RARN[RAR[c.lv]]}</span><span class="tt2-chip t">Livello ${c.lv} · Tier ${LV_TIER[c.lv]}</span>${c.e ? `<span class="tt2-chip r">${ELEM[c.e][1]} ${ELEM[c.e][0]}</span>` : ''}<span class="tt2-chip r">${GLYPH[c.g] || ''} ${GENRE_N[c.g] || ''}</span>${c.set && c.set !== 'base' ? `<span class="tt2-chip r">${((TT.SETS.find(x=> x.id === c.set) || {}).emoji || '')} ${esc((TT.SETS.find(x=> x.id === c.set) || {}).name || '')}</span>` : ''}</div>
+          <div class="mut" style="font-size:.74rem">Alto ${V(c.v[0])} · Destra ${V(c.v[1])} · Basso ${V(c.v[2])} · Sinistra ${V(c.v[3])} (somma ${sum(c)})${cnt != null ? ' · ' + (cnt ? 'ne hai ' + cnt : 'non ancora tua') : ''}${sup ? ' · ' + sup[0] + '/' + sup[1] + ' nel mondo' : ''}</div>
+          ${scene(cid) ? `<div class="insp-sc">“${esc(scene(cid))}”</div>` : ''}
+          <div class="tt2-strip" style="justify-content:center;margin-top:6px">${VARIANTS.map((n, i)=> `<button class="tt2-chip${vr === i ? ' on' : ''}" data-v="${i}">${i ? '✨ ' : ''}${n}</button>`).join('')}</div>
+          <div class="tt2-row c" style="margin-top:4px"><button class="tt2-btn sm${gyro ? ' pri' : ''}" data-gy>🧭 Inclina il telefono</button><button class="tt2-btn sm" data-st>Stile</button></div></div>`;
+      const card = $('.insp-card', m), tc = $('.ttc', card);
+      const set = (x, y)=>{ x = Math.max(0, Math.min(1, x)); y = Math.max(0, Math.min(1, y)); card.style.setProperty('--mx', (x * 100).toFixed(1)); card.style.setProperty('--my', (y * 100).toFixed(1)); card.style.setProperty('--ry', ((x - .5) * 44).toFixed(1) + 'deg'); card.style.setProperty('--rx', ((.5 - y) * 44).toFixed(1) + 'deg'); };
+      const rel = e=>{ const r = card.getBoundingClientRect(); set((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); };
+      let drag = false;
+      m.addEventListener('pointerdown', e=>{ if(e.target.closest('.insp-info, .insp-x')) return; drag = true; card.classList.add('drag'); rel(e); try{ m.setPointerCapture(e.pointerId); }catch(x){} });
+      m.addEventListener('pointermove', e=>{ if(drag || e.pointerType === 'mouse') rel(e); });
+      const up = ()=>{ if(!drag && !card.classList.contains('drag')) return; drag = false; card.classList.remove('drag'); if(!gyro){ card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg'); card.style.setProperty('--mx', '50'); card.style.setProperty('--my', '35'); } };
+      m.addEventListener('pointerup', up); m.addEventListener('pointercancel', up); m.addEventListener('pointerleave', ()=>{ if(!drag && !gyro){ card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg'); } });
+      $('[data-x]', m).addEventListener('click', close2);
+      $$('[data-v]', m).forEach(b=> b.addEventListener('click', ()=>{ vr = +b.dataset.v; TT.snd('click'); draw(); }));
+      $('[data-st]', m).addEventListener('click', ()=>{ const i = STYLES.findIndex(x=> x[0] === st); st = STYLES[(i + 1) % STYLES.length][0]; TT.snd('click'); draw(); });
+      $('[data-gy]', m).addEventListener('click', async ()=>{
+        if(gyro){ gyro = false; window.removeEventListener('deviceorientation', gh); draw(); return; }
+        try{ if(window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function'){ const r = await DeviceOrientationEvent.requestPermission(); if(r !== 'granted') return TT.toast('Permesso negato'); } }catch(e){ return; }
+        gyro = true; gh = ev=>{ if(ev.gamma == null) return; set(.5 + Math.max(-30, Math.min(30, ev.gamma)) / 60, .5 - (Math.max(20, Math.min(70, ev.beta || 45)) - 45) / 50); }; window.addEventListener('deviceorientation', gh); draw();
+      });
+      card.addEventListener('dblclick', ()=>{ card.classList.toggle('big'); });
+    };
+    const close2 = ()=>{ try{ window.removeEventListener('deviceorientation', gh); }catch(e){} m.classList.add('out'); setTimeout(()=> m.remove(), 180); };
+    draw(); TT.snd('open' in SND ? 'open' : 'click');
+  }
+  TT.inspect = inspect;
+  (function(){                                                 // doppio clic o doppio tocco su qualunque carta = visore
+    let last = 0, lastEl = null;
+    const open = el=>{ if(!el || el.classList.contains('ghost') || el.classList.contains('used') || el.closest('.tt2-insp') || el.closest('.pk-b')) return; const cid = el.dataset.cid; if(cid) inspect(cid, {foil: +el.dataset.fo || 0, owner: el.dataset.o != null ? +el.dataset.o : undefined, style: el.dataset.st}); };
+    document.addEventListener('dblclick', e=>{ const el = e.target.closest && e.target.closest('.tt2 .ttc'); if(el) open(el); });
+    document.addEventListener('touchend', e=>{ const el = e.target.closest && e.target.closest('.tt2 .ttc'); if(!el) return; const now = Date.now(); if(el === lastEl && now - last < 330){ last = 0; lastEl = null; e.preventDefault(); open(el); } else { last = now; lastEl = el; } }, {passive: false});
+  })();
 
   // ---------------------------------------------------------------- pagina Grafica (stile per tutte le carte)
   function gfxPage(){
@@ -391,21 +445,21 @@
       const pow = chosen.reduce((a, i)=> a + CARD[i.cid].lv, 0);
       screen(o.title || 'Scegli il mazzo', `${o.sub ? `<p class="mut" style="text-align:center">${o.sub}</p>` : ''}
         <div class="tt2-grid s" style="margin:4px 0 8px;padding:8px;border-radius:16px;background:rgba(0,0,0,.25)">${Array.from({length: need}, (_, i)=> chosen[i] ? `<div class="cw" data-x="${chosen[i].key}">${cardHtml(chosen[i].cid, {sel: false, foil: chosen[i].foil})}</div>` : `<div class="ttc" style="opacity:.25;background:rgba(255,255,255,.15)"><div class="ttc-in" style="background:transparent;display:grid;place-items:center;font-size:2rem">＋</div></div>`).join('')}</div>
-        <div class="tt2-row sb"><span class="mut">${sel.length}/${need} · livelli ${pow}</span><span class="tt2-row"><button class="tt2-btn sm" id="dkBest">Migliori 5</button>${P.decks.length ? '<button class="tt2-btn sm" id="dkLoad">Mazzi salvati</button>' : ''}${sel.length === need ? '<button class="tt2-btn sm" id="dkSave">Salva mazzo</button>' : ''}</span></div>
+        <div class="tt2-row sb"><span class="mut">${sel.length}/${need} · livelli ${pow}${o.cap ? '/' + o.cap : ''}${o.cap && pow > o.cap ? ' ⚠️ troppo forte' : ''}</span><span class="tt2-row"><button class="tt2-btn sm" id="dkBest">Migliori 5</button>${P.decks.length ? '<button class="tt2-btn sm" id="dkLoad">Mazzi salvati</button>' : ''}${sel.length === need ? '<button class="tt2-btn sm" id="dkSave">Salva mazzo</button>' : ''}</span></div>
         <div class="tt2-strip">${[['all', 'Tutte'], ...Object.keys(GENRE_N).map(g=> [g, GLYPH[g] + ' ' + GENRE_N[g]])].map(x=> `<button class="tt2-chip${st.f === x[0] ? ' on' : ''}" data-f="${x[0]}">${x[1]}</button>`).join('')}</div>
         <div class="tt2-grid s">${items.filter(i=> st.f === 'all' || CARD[i.cid].g === st.f).map(i=> `<div class="cw" data-k="${i.key}">${cardHtml(i.cid, {foil: i.foil, sel: sel.includes(i.key), lock: i.lock ? 'x' : '', cls: sel.length >= need && !sel.includes(i.key) ? 'dim' : ''})}</div>`).join('')}</div>
-        <div style="position:sticky;bottom:0;padding:10px 0 2px;background:linear-gradient(180deg,transparent,#0a0820 40%)"><button class="tt2-btn pri w" id="dkOk" ${sel.length === need ? '' : 'disabled'}>${o.ok || 'Conferma'} (${sel.length}/${need})</button></div>`, {backFn: o.back});
+        <div style="position:sticky;bottom:0;padding:10px 0 2px;background:linear-gradient(180deg,transparent,#0a0820 40%)"><button class="tt2-btn pri w" id="dkOk" ${sel.length === need && !(o.cap && pow > o.cap) ? '' : 'disabled'}>${o.ok || 'Conferma'} (${sel.length}/${need})</button></div>`, {backFn: o.back});
       $('#ttScr', root).scrollTop = keep;
       $$('[data-k]', root).forEach(b=> b.addEventListener('click', ()=>{ const k = b.dataset.k, it = items.find(i=> i.key === k); if(it.lock){ TT.toast('Questa carta è già in una sfida o in una partita'); return; } const at = sel.indexOf(k); if(at >= 0) sel.splice(at, 1); else if(sel.length < need) sel.push(k); else return TT.toast('Hai già ' + need + ' carte: toglierne una'); TT.snd('click'); draw(); }));
       $$('[data-x]', root).forEach(b=> b.addEventListener('click', ()=>{ sel.splice(sel.indexOf(b.dataset.x), 1); draw(); }));
       $$('[data-f]', root).forEach(b=> b.addEventListener('click', ()=>{ st.f = b.dataset.f; draw(); }));
-      $('#dkBest', root).addEventListener('click', ()=>{ sel.length = 0; items.filter(i=> !i.lock).slice(0, need).forEach(i=> sel.push(i.key)); TT.snd('coin'); draw(); });
+      $('#dkBest', root).addEventListener('click', ()=>{ sel.length = 0; { let tot = 0; items.filter(i=> !i.lock).forEach(i=>{ const l = CARD[i.cid].lv; if(sel.length < need && (!o.cap || tot + l + (need - sel.length - 1) <= o.cap)){ sel.push(i.key); tot += l; } }); } TT.snd('coin'); draw(); });
       const sv = $('#dkSave', root); if(sv) sv.addEventListener('click', ()=>{ P.decks.unshift({cids: chosen.map(i=> i.cid), t: Date.now()}); P.decks = P.decks.slice(0, 6); saveP(); TT.toast('Mazzo salvato'); draw(); });
       const ld = $('#dkLoad', root); if(ld) ld.addEventListener('click', ()=>{
         const m = modal(`<h3 style="margin-top:0">Mazzi salvati</h3>${P.decks.map((d, i)=> `<button class="tt2-item" data-d="${i}"><div class="tx"><b>Mazzo ${i + 1}</b><small>${d.cids.map(c=> esc(CARD[c] ? CARD[c].name : '?')).join(' · ')}</small></div></button>`).join('<div style="height:6px"></div>')}`);
         $$('[data-d]', m).forEach(b=> b.addEventListener('click', ()=>{ const d = P.decks[+b.dataset.d]; sel.length = 0; const used = new Set(); d.cids.forEach(cid=>{ const it = items.find(i=> i.cid === cid && !i.lock && !used.has(i.key)); if(it){ sel.push(it.key); used.add(it.key); } }); m.remove(); if(sel.length < need) TT.toast('Di questo mazzo hai solo ' + sel.length + ' carte'); draw(); }));
       });
-      $('#dkOk', root).addEventListener('click', ()=>{ if(sel.length === need){ TT.snd('coin'); o.onDone(sel.slice()); } });
+      $('#dkOk', root).addEventListener('click', ()=>{ if(sel.length === need && !(o.cap && pow > o.cap)){ TT.snd('coin'); o.onDone(sel.slice()); } });
     };
     draw();
   }

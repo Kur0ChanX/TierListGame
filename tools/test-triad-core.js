@@ -267,5 +267,15 @@ test('il livello 5 risponde in tempo utile anche alla prima mossa', ()=>{
   const st = T.newGame({seed: 3, hands: [filler(), filler()]}); const t0 = Date.now(); T.ai(st, 5); const ms = Date.now() - t0;
   console.log('      prima mossa livello 5:', ms, 'ms'); assert(ms < 4000);
 });
+test('caselle speciali: +2 sulla casella boost, -2 sulla trappola, uguali per il seme', ()=>{
+  const a = T.newGame({seed: 9, rules: {special: true}, hands: [filler(), filler()]}), b = T.newGame({seed: 9, rules: {special: true}, hands: [filler(), filler()]});
+  assert.deepStrictEqual(a.squares, b.squares);
+  assert(T.newGame({seed: 9, rules: {elemental: false}, hands: [filler(), filler()]}).squares.every(x=> !x), 'senza la regola nessuna casella speciale');
+  // avversario in 0 con lato destro 5; io gioco in 1 con lato sinistro 4: senza speciale perdo, con boost (+2 = 6) prendo
+  const run = sq=>{ const st = setup({board: {0: [1, [1, 5, 1, 1]]}, mine: [[1, 1, 1, 4]], squares: sq}); st.rules.special = true; return owners(put(st, 1).state || st); };
+  assert.strictEqual(run([null, null, null, null, null, null, null, null, null]).slice(0, 2), '10');
+  assert.strictEqual(run([null, 'boost', null, null, null, null, null, null, null]).slice(0, 2), '00');
+  assert.strictEqual(run([null, 'trap', null, null, null, null, null, null, null]).slice(0, 2), '10');
+});
 console.log('\n' + ok + ' prove riuscite, ' + bad + ' fallite');
 process.exit(bad ? 1 : 0);
