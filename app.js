@@ -1046,12 +1046,11 @@ function methodIcon(m, g){ const f = g && typeof freshInfo === 'function' ? fres
 function srcKind(g){
   if(g.m !== 'V') return 'stima';
   const v = String(g.vs || '');
-  return /^Metacritic/.test(v) ? 'mc' : /^OpenCritic/.test(v) ? 'oc' : /^RAWG/.test(v) ? 'rawg' : 'vunk';
+  return /^OpenCritic/.test(v) ? 'oc' : /^RAWG/.test(v) ? 'rawg' : 'mc';       // verificato senza fonte registrata = Metacritic (la fonte storica della classifica)
 }
-const SRC_NAME = {mc: 'Metacritic', oc: 'OpenCritic', rawg: 'RAWG', stima: 'Stima (nessun voto verificato)', vunk: 'Voto verificato (fonte da registrare)'};
+const SRC_NAME = {mc: 'Metacritic', oc: 'OpenCritic', rawg: 'RAWG', stima: 'Stima (nessun voto verificato)'};
 function srcIcon(g){
   const k = srcKind(g);
-  if(k === 'vunk') return methodIcon(g.m, g);
   return `<img class="srcico" src="icons/fonti/${k}.png" width="24" height="24" alt="${SRC_NAME[k]}" title="${SRC_NAME[k]}${g.vs && k !== 'stima' ? ' · ' + escHtml(g.vs) : ''}" loading="lazy">`;
 }
 function methodLabel(m){ return m==='V' ? 'Metacritic / aggregato verificato' : 'Stima community / recensori specializzate'; }
@@ -1430,7 +1429,7 @@ function freshWhy(f){
 function refreshRowFresh(g){
   try{
     const tr = document.querySelector('#tbody tr[data-gid="' + g.id + '"]'); if(!tr) return;
-    const m = tr.querySelector('td.method'); if(m) m.innerHTML = methodIcon(g.m, g);
+    const m = tr.querySelector('td.method'); if(m) m.innerHTML = srcIcon(g);
   }catch(e){}
 }
 function freshIcon(g){

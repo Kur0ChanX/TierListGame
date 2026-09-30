@@ -156,6 +156,21 @@
     if(/timeout|Abort/i.test(m)) return 'non ha risposto in tempo';
     return 'non raggiungibile (rete o blocco del sito)';
   }
+  // Stato della ricerca del voto per gioco: se un sito mi ha bloccato (o la quota è finita) riprovo domani; se il gioco semplicemente non c'è, non riprovo più
+  const VSK = 'jrpg_vote_state';
+  const vsLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(VSK) || '{}') || {}; }catch(e){ return {}; } };
+  function voteOutcome(st){
+    let found = 0, retry = false;
+    for(const [r, ks] of [[3, ['wiki', 'steam', 'cheap']], [2, ['oc']], [1, ['rawg']]]){
+      const ss = ks.map(k=> st && st[k]).filter(x=> x && x.state !== 'skip');
+      if(ss.some(x=> x.state === 'ok')){ found = r; break; }
+      if(ss.some(x=> x.state === 'err')) retry = true;                       // bloccato / quota finita: la fonte c'è ma oggi non risponde
+    }
+    return {found, retry};
+  }
+  function saveVoteState(id, st){
+    try{ const o = voteOutcome(st), all = vsLoad(), now = Date.now(); all[id] = {t: now, f: o.found, r: o.retry ? now + 24 * 3600e3 : 0}; localStorage.setItem(VSK, JSON.stringify(all)); return o; }catch(e){ return null; }
+  }
   const VDIAG = 'jrpg_vote_diag';
   const voteLines = st=> ['wiki', 'steam', 'cheap', 'oc', 'rawg'].map(k=> st && st[k]).filter(x=> x && x.state !== 'skip').map(x=> (x.state === 'ok' ? '✅ ' : x.state === 'nd' ? '➖ ' : '⚠️ ') + x.name + ': ' + (x.state === 'ok' ? 'voto ' + x.score : x.why));
   function saveVoteDiag(id, st){
@@ -634,12 +649,13 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       if(g) { fpQueue.shift(); return g; }
       fpMiss[id] = (fpMiss[id] || 0) + 1; if(fpMiss[id] > 8){ fpQueue.shift(); continue; } break;      // il gioco può non essere ancora comparso in libreria
     }
-    const fr = frLoad(), now = Date.now();
+    const fr = frLoad(), now = Date.now(), vs0 = vsLoad();
     const weak = g=> g.custom ? 0 : (g.m !== 'V' ? 1 : (window.SearchHub && SearchHub.factsFor(g) ? 3 : 2));
     let best = null, bw = 9, bt = Infinity;
     GAMES.forEach(g=>{
-      const f = fr[g.id]; if(f && f.gold && !((g.m !== 'V' || !g.vs) && (f.e || 0) < FP_EPOCH)) return;      // rifaccio anche i voti verificati senza fonte registrata (così ogni voto dice da dove viene)
-      const t = f ? new Date(f.t).getTime() : 0; if(f && now - t < 3 * 864e5) return;
+      const f = fr[g.id], vsx = vs0[g.id], due = !!(vsx && vsx.r && now >= vsx.r);                 // due = un sito mi aveva bloccato: riprovo
+      if(f && f.gold && !due && !((g.m !== 'V' || !g.vs) && (f.e || 0) < FP_EPOCH)) return;      // rifaccio anche i voti verificati senza fonte registrata (così ogni voto dice da dove viene)
+      const t = f ? new Date(f.t).getTime() : 0; if(f && now - t < (due ? 20 * 3600e3 : 3 * 864e5)) return;
       const w = weak(g);
       if(w < bw || (w === bw && t < bt)){ best = g; bw = w; bt = t; }
     });
@@ -652,6 +668,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const names = Object.keys(FP_SRC).filter(k=> src[k]).map(k=> FP_SRC[k]);
     let ch = factChanges(g, src);
     const vdiag = saveVoteDiag(g.id, src.st);
+    saveVoteState(g.id, src.st);
     try{ (vdiag && vdiag.prob || []).forEach(p=> window.DebugLog && DebugLog.add && DebugLog.add({kind: 'note', src: 'Voto di ' + g.name, ok: false, note: p})); }catch(e){}
     // storia, pro/contro, «perché piacerti»: riscritti dall'AI SOLO dalle fonti (Wikipedia → RAWG → Steam), se c'è una chiave e la scheda è povera (o l'hai chiesto tu)
     try{

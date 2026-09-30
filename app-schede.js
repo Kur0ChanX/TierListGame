@@ -755,7 +755,7 @@ function openModal(g){
     <div class="modal-badges">
       <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
       <span class="badge big outline">${g.tier === 'ND' ? 'voto ND' : g.score + '/100'}</span>
-      <span class="badge big outline">${methodIcon(g.m, g)} ${g.m==='V' ? 'Verificato' : 'Stima'}</span>
+      <span class="badge big outline">${srcIcon(g)} ${SRC_NAME[srcKind(g)]}</span>
       ${(()=>{ const f = freshInfo(g); return f ? `<span class="badge big outline fresh-badge" title="${escHtml(freshWhy(f))}">${giIcon(f.m ? 'upmanual' : 'upplus')} ${f.m ? 'Controllato a mano' : 'Update V+'}</span>` : ''; })()}
     </div>
     <div class="fresh-line ${g.m === 'V' && /^Metacritic/.test(g.vs || '') ? 'ok' : ''}" id="voteSrc">${voteSourceHtml(g)}</div>
