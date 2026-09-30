@@ -255,7 +255,8 @@ function cleanCustomEnrich(o){
   const full = {eraScore: num(o.eraScore, 0, 100), todayScore: num(o.todayScore, 0, 100), gameplayScore: num(o.gameplayScore, 0, 10),
     agingNote: str(o.agingNote, 12), gameplayNote: str(o.gameplayNote, 12), whyLikeIt: str(o.whyLikeIt, 12),
     hoursMain: num(o.hoursMain, 1, 400), hoursCompletionist: num(o.hoursCompletionist, 1, 1500), lengthVerdict: str(o.lengthVerdict, 8), remaster: str(o.remaster, 5), language: str(o.language, 5)};
-  if(Object.values(full).every(v=> v != null)) Object.assign(e, full);
+  // serve solo il nucleo dell'analisi (prima serviva TUTTO e bastava un campo vuoto per perdere anche «come regge oggi» e gameplay); ore, riedizioni e lingua sono facoltativi
+  if(['eraScore', 'todayScore', 'gameplayScore', 'agingNote', 'gameplayNote', 'whyLikeIt'].every(k=> full[k] != null)) Object.keys(full).forEach(k=>{ if(full[k] != null) e[k] = full[k]; });
   if(Array.isArray(o.similarTo)){ const sim = o.similarTo.map(x=> String(x).trim()).filter(x=> x.length > 1 && x.length < 80).slice(0, 5); if(sim.length) e.similarTo = sim; }
   e.checked = typeof o.checked === 'string' ? o.checked : undefined;
   return (e.storyTag || e.dopamine || e.eraScore != null || e.checked) ? e : null;
@@ -279,6 +280,7 @@ function syncCustomGames(snap){
       ysort: parseInt(v.year, 10) || 0,
       tier: TIERS_LIST.includes(v.tier) ? v.tier : 'B',
       score: clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70,
+      vs: v.vs ? String(v.vs) : undefined,
       m: v.m === 'V' ? 'V' : 'S',          // V = voto verificato da Metacritic/OpenCritic (lo scrive Update+ / «Aggiorna info»)
       note: v.note ? String(v.note) : 'Aggiunto da te tramite "Chiedi" — non è nella classifica ufficiale, il voto è una stima.',
       story: v.story ? String(v.story) : '',
@@ -543,10 +545,10 @@ function enrichHtml(g){
       <ul class="pros">${e.pros.map(p=>`<li>${p}</li>`).join('')}</ul>
       <ul class="cons">${e.cons.map(c=>`<li>${c}</li>`).join('')}</ul>
     </div>
-    <div class="modal-section-title">⏱️ Longevità</div>
-    <div class="modal-note"><strong>${e.hoursMain}h</strong> storia principale · <strong>${e.hoursCompletionist}h</strong> completista.<br>${e.lengthVerdict}</div>
-    <div class="modal-section-title">ℹ️ Dettagli</div>
-    <div class="modal-note"><strong>Riedizioni:</strong> ${e.remaster}<br><strong>Lingua:</strong> ${e.language}</div>
+    ${e.hoursMain != null ? `<div class="modal-section-title">⏱️ Longevità</div>
+    <div class="modal-note"><strong>${e.hoursMain}h</strong> storia principale${e.hoursCompletionist != null ? ` · <strong>${e.hoursCompletionist}h</strong> completista` : ''}.${e.lengthVerdict ? '<br>' + e.lengthVerdict : ''}</div>` : ''}
+    ${(e.remaster || e.language) ? `<div class="modal-section-title">ℹ️ Dettagli</div>
+    <div class="modal-note">${e.remaster ? `<strong>Riedizioni:</strong> ${e.remaster}` : ''}${e.remaster && e.language ? '<br>' : ''}${e.language ? `<strong>Lingua:</strong> ${e.language}` : ''}</div>` : ''}
   `;
 }
 
@@ -558,6 +560,14 @@ const LABEL_STORE = {PS:'PlayStation', XB:'Xbox', NS:'Switch', PC:'PC', MOB:'Mob
 function noteForVoto(g){
   const n = String(g.note || '');
   return g.m === 'V' ? n.replace(/ — voto e dettagli sono una stima[^.]*\./, ' — voto verificato (Metacritic/OpenCritic).') : n;
+}
+// da dove viene il voto: Metacritic se c'è, altrimenti lo dico chiaramente (fonte o stima)
+function voteSourceHtml(g){
+  const vs = g.vs || '';
+  if(g.m === 'V' && /^Metacritic/.test(vs)) return `${giIcon('tag')} <span>Voto preso da <b>${escHtml(vs)}</b>.</span>`;
+  if(g.m === 'V' && vs) return `⚠️ <span>Nessun Metacritic trovato: voto preso da <b>${escHtml(vs.replace(/ \(nessun Metacritic trovato\)/, ''))}</b>.</span>`;
+  if(g.m === 'V') return `${giIcon('tag')} <span>Voto verificato (Metacritic/OpenCritic): fonte esatta non ancora registrata, premi «Update V+» per vederla.</span>`;
+  return `⚠️ <span>Nessun Metacritic trovato: il voto è una <b>stima</b> (non verificata).</span>`;
 }
 function labelBar(n, max){
   let out = '<span class="glabel-bar">';
@@ -738,9 +748,10 @@ function openModal(g){
       <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
       <span class="badge big outline">${g.score}/100</span>
       <span class="badge big outline">${methodIcon(g.m, g)} ${g.m==='V' ? 'Verificato' : 'Stima'}</span>
-      ${(()=>{ const f = freshInfo(g); return f ? `<span class="badge big outline fresh-badge" title="${escHtml(freshWhy(f))}">${giIcon(f.m ? 'upmanual' : 'upplus')} ${f.m ? 'Controllato a mano' : 'Update+'}</span>` : ''; })()}
+      ${(()=>{ const f = freshInfo(g); return f ? `<span class="badge big outline fresh-badge" title="${escHtml(freshWhy(f))}">${giIcon(f.m ? 'upmanual' : 'upplus')} ${f.m ? 'Controllato a mano' : 'Update V+'}</span>` : ''; })()}
     </div>
-    ${typeof updatePlusNow === 'function' ? (()=>{ const f = freshInfo(g); return f ? `<div class="fresh-line ok">${giIcon(f.m ? 'upmanual' : 'upplus')} <span>${escHtml(freshWhy(f))}</span></div>` : `<div class="fresh-line">Non ancora aggiornato con Update+: lo faccio io in automatico (una sola volta) oppure premi «Update+ adesso».</div>`; })() : ''}
+    <div class="fresh-line ${g.m === 'V' && /^Metacritic/.test(g.vs || '') ? 'ok' : ''}" id="voteSrc">${voteSourceHtml(g)}</div>
+    ${typeof updatePlusNow === 'function' ? (()=>{ const f = freshInfo(g); return f ? `<div class="fresh-line ok">${giIcon(f.m ? 'upmanual' : 'upplus')} <span>${escHtml(freshWhy(f))}</span></div>` : `<div class="fresh-line">Non ancora aggiornato con Update V+: lo faccio io in automatico (una sola volta) oppure premi «Update V+».</div>`; })() : ''}
     <div class="modal-tags">${g.tags.map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${dnaHtml(g)}
     ${labelHtml(g)}
@@ -769,8 +780,8 @@ function openModal(g){
     <div class="modal-actions">
       <button class="btn" id="modalFavBtn">${giIcon(isFav ? 'favon' : 'favoff')} ${isFav ? 'Nei preferiti' : 'Aggiungi ai preferiti'}</button>
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
-      ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : '<button class="btn" id="updateInfoBtn">🔄 Aggiorna info</button>'}
-      ${typeof updatePlusNow === 'function' ? `<button class="btn upplus-btn" id="updatePlusBtn" title="Aggiorna subito tutte le info e la locandina da tutte le fonti">${giIcon('upplus')} ${freshInfo(g) ? 'Rifai Update+' : 'Update+ adesso'}</button>` : ''}
+      ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : ''}
+      ${typeof updatePlusNow === 'function' ? `<button class="btn upplus-btn" id="updatePlusBtn" title="Controlla voto (Metacritic), generi, anno, lingua, testi e locandina da tutte le fonti e ti mostra cosa cambiare">${giIcon('upplus')} ${freshInfo(g) ? 'Rifai Update V+' : 'Update V+'}</button>` : ''}
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
     </div>
   `;

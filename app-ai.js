@@ -66,9 +66,11 @@ function askToolAddCustomGame(input, sourceLabel){
     year: input.year ? String(input.year) : null,
     tier,
     score: score != null ? score : 70,
+    m: input.m === 'V' ? 'V' : undefined,
+    vs: input.m === 'V' && input.vs ? String(input.vs) : undefined,
     tags,
     story: input.story ? String(input.story) : '',
-    note: `Aggiunto da Mario tramite "${sourceLabel}" il ` + new Date().toLocaleDateString('it-IT') + ' — voto e dettagli sono una stima automatica, non della classifica ufficiale curata a mano.',
+    note: `Aggiunto da Mario tramite "${sourceLabel}" il ` + new Date().toLocaleDateString('it-IT') + (input.m === 'V' ? ' — voto verificato (' + (input.vs || 'Metacritic/OpenCritic') + ').' : ' — nessun Metacritic trovato: voto e dettagli sono una stima automatica, non della classifica ufficiale curata a mano.'),
     label,
     pros: (cleanProsCons(input.pros, input.cons) || {pros:[]}).pros,
     cons: (cleanProsCons(input.pros, input.cons) || {cons:[]}).cons,
@@ -88,7 +90,7 @@ function askToolAddCustomGame(input, sourceLabel){
 const ENRICH_TRIED = 'jrpg_enrich_tried';
 let enrichQueueIds = new Set(), enrichTimer = 0, enrichRunning = false;
 function customDocFromGame(g, enrich){
-  return {name: g.name, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, m: g.m === 'V' ? 'V' : undefined, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
+  return {name: g.name, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, m: g.m === 'V' ? 'V' : undefined, vs: g.vs || undefined, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
     pros: (g.proscons && g.proscons.pros) || [], cons: (g.proscons && g.proscons.cons) || [], enrich: enrich || undefined};
 }
 function buildEnrichPrompt(games){
@@ -156,7 +158,7 @@ async function runEnrich(ids, opts){
 // giochi aggiunti senza simboli/dettagli (o con un tentativo vecchio di oltre 7 giorni)
 function customNeedingEnrich(){
   const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
-  return GAMES.filter(g=> g.custom && !(g.enrich && (g.enrich.eraScore != null || g.enrich.checked)) && !(tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 2 * 864e5));
+  return GAMES.filter(g=> g.custom && !(g.enrich && (g.enrich.eraScore != null || g.enrich.agingNote || g.enrich.gameplayNote)) && !(tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 2 * 864e5));
 }
 window.completeCustomGames = ()=>{ const n = customNeedingEnrich(); if(!n.length){ showToast('Tutti i giochi aggiunti hanno già simboli e dettagli'); return; } return runEnrich(n.map(g=> g.id), {progress:true}); };
 // lavoro "una tantum", in silenzio: completa tutti i giochi aggiunti che ne sono privi (fino a 40 per volta); una volta completati non si rifà più
@@ -525,6 +527,26 @@ function novitaExcludeListText(excludeNames){
   if(namesList.length > MAX_NAMES_CHARS){ namesList = namesList.slice(0, MAX_NAMES_CHARS) + '…'; }
   return namesList || '(nessuno)';
 }
+// Controllo dei voti PRIMA di proporre i giochi: il voto dato dall'AI è una stima e nelle ricerche finiva spesso troppo alto (S+/A per giochi sconosciuti).
+// Se Metacritic/OpenCritic hanno il gioco, vale il loro voto (verificato); se nessuna fonte lo conferma, il voto resta una stima e non supera il tier C (79).
+const NOVITA_UNVERIFIED_MAX = 79;
+async function novitaVerifyScores(list, say, isStopped){
+  if(typeof rtScoreCheck !== 'function' || !list.length) return;
+  say && say('Controllo i voti reali su Metacritic…');
+  let i = 0;
+  const one = async ()=>{
+    while(i < list.length && !(isStopped && isStopped())){
+      const c = list[i++];
+      let r = null;
+      try{ r = await Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 15000))]); }catch(e){}
+      if(r && r.score != null){ c.aiScore = c.score; c.score = r.score; c.tier = novitaTierOf(r.score); c.m = 'V'; c.vs = r.vs; }
+      else { c.m = 'S'; c.vs = ''; c.aiScore = c.score; if(c.score == null || c.score > NOVITA_UNVERIFIED_MAX){ c.score = NOVITA_UNVERIFIED_MAX; c.tier = novitaTierOf(c.score); } }
+    }
+  };
+  await Promise.all([one(), one(), one(), one()]);
+  for(let k = list.length - 1; k >= 0; k--) if(list[k].m === 'V' && list[k].score < 50) list.splice(k, 1);      // il voto vero è sotto il 5/10: spazzatura
+}
+const novitaTierOf = s=> s >= 95 ? 'S+' : s >= 90 ? 'S' : s >= 85 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : s >= 40 ? 'E' : 'F';
 function buildNovitaPrompt(count, excludeNames){
   return todayLine() + `Suggerisci ${count} RPG/JRPG (di qualunque epoca e piattaforma, anche poco conosciuti) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 Gusti di Mario: ${novitaTasteSummaryText()}
@@ -583,6 +605,7 @@ function cleanNovitaCandidate(raw, tagEnum){
     avoidIf: raw.avoidIf ? String(raw.avoidIf) : '',
     pros: Array.isArray(raw.pros) ? raw.pros.map(String).slice(0,5) : [],
     cons: Array.isArray(raw.cons) ? raw.cons.map(String).slice(0,5) : [],
+    m: raw.m === 'V' ? 'V' : undefined, vs: raw.vs ? String(raw.vs) : '',
     because: raw.because ? String(raw.because) : '',
     basedOn: Array.isArray(raw.basedOn) ? raw.basedOn.map(String).slice(0,4) : [],
     sharedVibes: Array.isArray(raw.sharedVibes) ? raw.sharedVibes.map(String).slice(0,5) : [],
@@ -666,6 +689,7 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets, ex
       });
     }
     if(!found.length && !stopped && lastErr) throw lastErr;
+    await novitaVerifyScores(found, say, ()=> stopped);
   } finally {
     try{ if(P){ P.onStop && P.onStop(null); P.counter && P.counter(null); P.log && P.log(''); P.end && P.end(); if(stopped && P.hideNow) P.hideNow(); } }catch(e){}
   }
@@ -749,6 +773,7 @@ function novitaCardHtml(c, ids){
     <div class="novita-meta">
       <span>${escHtml(c.year || '?')}</span> · <span>${escHtml(c.plat||'?')}</span>
       <span class="badge ${TIER_LABEL[c.tier]}">${c.tier}</span>${c.score!=null ? `<span class="badge outline">${c.score}/100</span>` : ''}
+      ${c.m === 'V' ? `<span class="badge outline" title="Voto reale">✔ ${escHtml(c.vs || 'Verificato')}</span>` : `<span class="badge outline" title="Nessuna fonte ha confermato il voto">⚠️ stima · nessun Metacritic</span>`}
     </div>
     <div class="modal-tags">${c.tags.slice(0,3).map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${c.fitIf ? `<div class="novita-why novita-clamp"><b>Potrebbe piacerti perché</b> ${escHtml(c.fitIf)}</div>` : ''}
@@ -1027,7 +1052,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-21';
-const DATA_BUILD_VERSION = 'v151';
+const DATA_BUILD_VERSION = 'v152';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
