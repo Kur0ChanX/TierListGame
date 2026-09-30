@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v159', date:'2026-09-30', time:'22:16', items:[
+    'iPad: la tastiera non si apriva perché l\'app entrava a schermo intero al primo tocco (su iOS lì la tastiera è bloccata). Ora su iPad/iPhone non entra più a schermo intero da sola, e se si tocca un campo di testo in schermo intero ne esce subito.',
+    'Microfono di «Chiedi» su iPad/iPhone: apre la tastiera e ti ricorda di usare il microfono di sistema, perché la dettatura del sito non parte in modo affidabile su iOS.'
+  ]},
   {version:'v158', date:'2026-09-30', time:'22:11', items:[
     'Le chiavi (Gemini, RAWG, OpenCritic) e il ponte restano su ogni dispositivo: ora in ⚙️ Chiedi a Claude ci sono «📤 Copia le mie chiavi» e «📥 Incolla le chiavi» per portarle da un dispositivo all\'altro in un attimo (per esempio sull\'iPad). Non passano da backup, file o sincronizzazione.',
     'Il messaggio «chiave non impostata» nella ricerca del voto spiega ora che basta copiarla dall\'altro dispositivo.'

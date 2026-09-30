@@ -758,13 +758,16 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
   if(!mic || !inp) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ mic.title = 'Il tuo browser non supporta la dettatura'; mic.style.opacity = '.5'; }
+  const apple = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   mic.addEventListener('click', ()=>{
+    // su iPad/iPhone la dettatura del sito non è affidabile (soprattutto dalla schermata Home): apro la tastiera, dove c'è il microfono di sistema
+    if(apple){ try{ inp.focus(); showToast('Tocca il microfono 🎤 sulla tastiera per dettare', 3500); }catch(e){} return; }
     if(!SR){ try{ showToast('Questo browser non supporta la voce (prova Chrome o Safari aggiornati)', 3500); }catch(e){} return; }
     const rec = new SR(); rec.lang = 'it-IT'; rec.interimResults = true; rec.maxAlternatives = 1;
     mic.classList.add('listening'); mic.textContent = '🔴';
     const base = inp.value ? inp.value.trim() + ' ' : '';
     rec.onresult = e=>{ let t = ''; for(let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; inp.value = base + t; try{ inp.dispatchEvent(new Event('input')); }catch(x){} };
-    rec.onerror = e=>{ try{ showToast(e.error === 'not-allowed' ? 'Permesso microfono negato: attivalo nelle impostazioni del browser' : e.error === 'network' ? 'La dettatura ha bisogno di internet' : 'Non ho sentito nulla: riprova', 3500); }catch(x){} };
+    rec.onerror = e=>{ try{ showToast(e.error === 'not-allowed' ? 'Permesso microfono negato: attivalo nelle impostazioni del browser' : e.error === 'network' ? 'La dettatura ha bisogno di internet' : e.error === 'service-not-allowed' ? 'Dettatura non disponibile qui: usa il microfono della tastiera' : 'Non ho sentito nulla: riprova', 3500); }catch(x){} };
     rec.onend = ()=>{ mic.classList.remove('listening'); mic.textContent = '🎤'; };
     try{ rec.start(); }catch(e){ mic.classList.remove('listening'); mic.textContent = '🎤'; }
   });
