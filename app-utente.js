@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v134', date:'2026-10-07', items:[
+    'La cornice della locandina si adatta sempre da sola alla forma dell\'immagine e allo spazio della scheda: tolto il pulsante del formato. Resta la lente per cercare un\'altra immagine.'
+  ]},
   {version:'v133', date:'2026-10-06', items:[
     'La locandina nella scheda non viene più tagliata: si vede intera su uno sfondo sfocato dei suoi stessi colori.',
     'Due mini-pulsanti sulla locandina: «adatta» cambia il formato della cornice (automatico, verticale 3:4, quadrata, orizzontale 4:3, panorama 16:9) e lo ricorda per ogni gioco; la lente cerca un\'altra immagine (box art, Wikipedia, RAWG, banner) e le fa scorrere una per volta, salvando quella scelta.'
