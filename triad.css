@@ -199,3 +199,8 @@ html.tt2-open,html.tt2-open body{overflow:hidden !important}
 .insp-info{width:100%; max-width:560px; padding:6px 16px calc(24px + env(safe-area-inset-bottom)); text-align:center; touch-action:pan-y}
 .insp-nm{font:900 1.35rem system-ui; text-shadow:0 2px 12px rgba(160,140,255,.7)} .insp-sc{margin:8px 0 2px; font-style:italic; opacity:.8; font-size:.8rem}
 .ttc[data-fo] .ttc-in::before{mix-blend-mode:color-dodge}
+
+/* v143: caselle speciali */
+.tt2-cell .sq.sp-boost,.tt2-cell .sq.sp-trap{font-weight:900;font-size:1.05rem;letter-spacing:.02em;border-radius:50%;width:2.1em;height:2.1em;display:grid;place-items:center;opacity:.95}
+.tt2-cell .sq.sp-boost{color:#062;background:radial-gradient(circle,#b6ffcf,#3ddc84);box-shadow:0 0 14px #3ddc8488}
+.tt2-cell .sq.sp-trap{color:#fff;background:radial-gradient(circle,#ff8a8a,#c62828);box-shadow:0 0 14px #ff3b3b77}

@@ -243,13 +243,14 @@
         <button class="tt2-tile big" data-go="online"><span class="ic">🌐</span><b>Sfida i tuoi amici online</b><small>Con codice, QR o richiesta d'amicizia. Se vinci ti prendi le loro carte migliori!</small><span class="bd" id="ttOnBd" style="display:none"></span></button>
         <button class="tt2-tile" data-go="npc"><span class="ic">🤖</span><b>Allenamento</b><small>11 avversari, IA da 1 a 5</small></button>
         <button class="tt2-tile" data-go="tower"><span class="ic">🗼</span><b>Torre infinita</b><small>Sali senza fine, carte in premio</small></button>
+        <button class="tt2-tile" data-go="arena"><span class="ic">🏟️</span><b>Arena</b><small>Pesca il mazzo: tutti alla pari</small></button>
         <button class="tt2-tile" data-go="hot"><span class="ic">👥</span><b>Due giocatori</b><small>Sullo stesso telefono</small></button>
         <button class="tt2-tile" data-go="album"><span class="ic">📚</span><b>Album</b><small>${uniq} di 200 carte</small></button>
         <button class="tt2-tile" data-go="gfx"><span class="ic">🎨</span><b>Grafica delle carte</b><small>6 stili e l'immagine di ogni carta</small></button>
         <button class="tt2-tile" data-go="rules"><span class="ic">📖</span><b>Regole</b><small>Same, Plus, Combo, Elementi…</small></button>
         <button class="tt2-tile" data-go="settings"><span class="ic">⚙️</span><b>Tavolo e suoni</b><small>Temi, volume, animazioni</small></button>
       </div>`, {back: false});
-    $$('[data-go]', root).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const k = b.dataset.go; if(k === 'online') openOnline(); else if(k === 'npc') go(TT.npcList); else if(k === 'tower') go(TT.tower); else if(k === 'hot') go(TT.hotseat); else if(k === 'album') go(albumLocal); else if(k === 'gfx') go(gfxPage); else if(k === 'rules') go(rulesPage); else if(k === 'settings') go(settingsPage); }));
+    $$('[data-go]', root).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const k = b.dataset.go; if(k === 'online') openOnline(); else if(k === 'npc') go(TT.npcList); else if(k === 'tower') go(TT.tower); else if(k === 'arena') go(TT.arena); else if(k === 'hot') go(TT.hotseat); else if(k === 'album') go(albumLocal); else if(k === 'gfx') go(gfxPage); else if(k === 'rules') go(rulesPage); else if(k === 'settings') go(settingsPage); }));
     try{ if(LS.get('jrpg_triad_acct', null)){ if(window.TT_ONLINE_BADGE) window.TT_ONLINE_BADGE(); else loadJS('triad-online.js').then(()=> window.TT_ONLINE_BADGE && window.TT_ONLINE_BADGE()).catch(()=>{}); } }catch(e){}
   }
   function fanHtml(){
@@ -444,21 +445,21 @@
       const pow = chosen.reduce((a, i)=> a + CARD[i.cid].lv, 0);
       screen(o.title || 'Scegli il mazzo', `${o.sub ? `<p class="mut" style="text-align:center">${o.sub}</p>` : ''}
         <div class="tt2-grid s" style="margin:4px 0 8px;padding:8px;border-radius:16px;background:rgba(0,0,0,.25)">${Array.from({length: need}, (_, i)=> chosen[i] ? `<div class="cw" data-x="${chosen[i].key}">${cardHtml(chosen[i].cid, {sel: false, foil: chosen[i].foil})}</div>` : `<div class="ttc" style="opacity:.25;background:rgba(255,255,255,.15)"><div class="ttc-in" style="background:transparent;display:grid;place-items:center;font-size:2rem">＋</div></div>`).join('')}</div>
-        <div class="tt2-row sb"><span class="mut">${sel.length}/${need} · livelli ${pow}</span><span class="tt2-row"><button class="tt2-btn sm" id="dkBest">Migliori 5</button>${P.decks.length ? '<button class="tt2-btn sm" id="dkLoad">Mazzi salvati</button>' : ''}${sel.length === need ? '<button class="tt2-btn sm" id="dkSave">Salva mazzo</button>' : ''}</span></div>
+        <div class="tt2-row sb"><span class="mut">${sel.length}/${need} · livelli ${pow}${o.cap ? '/' + o.cap : ''}${o.cap && pow > o.cap ? ' ⚠️ troppo forte' : ''}</span><span class="tt2-row"><button class="tt2-btn sm" id="dkBest">Migliori 5</button>${P.decks.length ? '<button class="tt2-btn sm" id="dkLoad">Mazzi salvati</button>' : ''}${sel.length === need ? '<button class="tt2-btn sm" id="dkSave">Salva mazzo</button>' : ''}</span></div>
         <div class="tt2-strip">${[['all', 'Tutte'], ...Object.keys(GENRE_N).map(g=> [g, GLYPH[g] + ' ' + GENRE_N[g]])].map(x=> `<button class="tt2-chip${st.f === x[0] ? ' on' : ''}" data-f="${x[0]}">${x[1]}</button>`).join('')}</div>
         <div class="tt2-grid s">${items.filter(i=> st.f === 'all' || CARD[i.cid].g === st.f).map(i=> `<div class="cw" data-k="${i.key}">${cardHtml(i.cid, {foil: i.foil, sel: sel.includes(i.key), lock: i.lock ? 'x' : '', cls: sel.length >= need && !sel.includes(i.key) ? 'dim' : ''})}</div>`).join('')}</div>
-        <div style="position:sticky;bottom:0;padding:10px 0 2px;background:linear-gradient(180deg,transparent,#0a0820 40%)"><button class="tt2-btn pri w" id="dkOk" ${sel.length === need ? '' : 'disabled'}>${o.ok || 'Conferma'} (${sel.length}/${need})</button></div>`, {backFn: o.back});
+        <div style="position:sticky;bottom:0;padding:10px 0 2px;background:linear-gradient(180deg,transparent,#0a0820 40%)"><button class="tt2-btn pri w" id="dkOk" ${sel.length === need && !(o.cap && pow > o.cap) ? '' : 'disabled'}>${o.ok || 'Conferma'} (${sel.length}/${need})</button></div>`, {backFn: o.back});
       $('#ttScr', root).scrollTop = keep;
       $$('[data-k]', root).forEach(b=> b.addEventListener('click', ()=>{ const k = b.dataset.k, it = items.find(i=> i.key === k); if(it.lock){ TT.toast('Questa carta è già in una sfida o in una partita'); return; } const at = sel.indexOf(k); if(at >= 0) sel.splice(at, 1); else if(sel.length < need) sel.push(k); else return TT.toast('Hai già ' + need + ' carte: toglierne una'); TT.snd('click'); draw(); }));
       $$('[data-x]', root).forEach(b=> b.addEventListener('click', ()=>{ sel.splice(sel.indexOf(b.dataset.x), 1); draw(); }));
       $$('[data-f]', root).forEach(b=> b.addEventListener('click', ()=>{ st.f = b.dataset.f; draw(); }));
-      $('#dkBest', root).addEventListener('click', ()=>{ sel.length = 0; items.filter(i=> !i.lock).slice(0, need).forEach(i=> sel.push(i.key)); TT.snd('coin'); draw(); });
+      $('#dkBest', root).addEventListener('click', ()=>{ sel.length = 0; { let tot = 0; items.filter(i=> !i.lock).forEach(i=>{ const l = CARD[i.cid].lv; if(sel.length < need && (!o.cap || tot + l + (need - sel.length - 1) <= o.cap)){ sel.push(i.key); tot += l; } }); } TT.snd('coin'); draw(); });
       const sv = $('#dkSave', root); if(sv) sv.addEventListener('click', ()=>{ P.decks.unshift({cids: chosen.map(i=> i.cid), t: Date.now()}); P.decks = P.decks.slice(0, 6); saveP(); TT.toast('Mazzo salvato'); draw(); });
       const ld = $('#dkLoad', root); if(ld) ld.addEventListener('click', ()=>{
         const m = modal(`<h3 style="margin-top:0">Mazzi salvati</h3>${P.decks.map((d, i)=> `<button class="tt2-item" data-d="${i}"><div class="tx"><b>Mazzo ${i + 1}</b><small>${d.cids.map(c=> esc(CARD[c] ? CARD[c].name : '?')).join(' · ')}</small></div></button>`).join('<div style="height:6px"></div>')}`);
         $$('[data-d]', m).forEach(b=> b.addEventListener('click', ()=>{ const d = P.decks[+b.dataset.d]; sel.length = 0; const used = new Set(); d.cids.forEach(cid=>{ const it = items.find(i=> i.cid === cid && !i.lock && !used.has(i.key)); if(it){ sel.push(it.key); used.add(it.key); } }); m.remove(); if(sel.length < need) TT.toast('Di questo mazzo hai solo ' + sel.length + ' carte'); draw(); }));
       });
-      $('#dkOk', root).addEventListener('click', ()=>{ if(sel.length === need){ TT.snd('coin'); o.onDone(sel.slice()); } });
+      $('#dkOk', root).addEventListener('click', ()=>{ if(sel.length === need && !(o.cap && pow > o.cap)){ TT.snd('coin'); o.onDone(sel.slice()); } });
     };
     draw();
   }

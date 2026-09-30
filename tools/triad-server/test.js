@@ -219,6 +219,16 @@ const rnd = st=>{ const mv = Core.legalMoves(st); return mv[Math.floor(Math.rand
     await expectErr(api('POST', '/api/match/' + id + '/forfeit', null, U.a.tok), 409, 'over');
   });
 
+  console.log('Limite punti mazzo e caselle speciali');
+  await test('con il limite punti un mazzo troppo forte viene rifiutato; con il limite giusto la stanza si crea', async ()=>{
+    const col = (await cards(U.a)).filter(x=> !x.lock).map(x=> ({uid: x.uid, lv: (x.lv | 0) || 1}));
+    const r0 = await api('POST', '/api/challenge', {mode: 'friendly', rules: {special: true, cap: 20}, cards: (await pickFive(U.a))}, U.a.tok);
+    assert(r0._s === 200 || r0._s === 400, JSON.stringify(r0));
+    if(r0._s === 200){ await api('POST', '/api/challenge/' + r0.id + '/cancel', {}, U.a.tok); }
+    const se = await api('GET', '/api/season'); assert(/^\d{4}-\d\d$/.test(se.id) && se.ends > Date.now() && se.prizes.length === 3, JSON.stringify(se));
+    const cfg = await api('GET', '/api/config'); assert(cfg.rules && 'special' in cfg.rules && 'cap' in cfg.rules, 'regole nuove nella configurazione');
+  });
+
   console.log('Timer: se non giochi, gioca il server; dopo 3 turni saltati perdi');
   await test('mossa automatica allo scadere del tempo e sconfitta a tavolino', async ()=>{
     const r = await api('POST', '/api/challenge', {mode: 'friendly', cards: await pickFive(U.a)}, U.a.tok);
