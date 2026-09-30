@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v169', date:'2026-09-30', time:'01:16', items:[
+    'Approvazioni automatiche: il voto da fonte in ordine di priorità (Metacritic → OpenCritic → RAWG), la lingua italiana e i giochi affini ora si applicano da soli, anche quelli rimasti in coda. Una fonte meno affidabile non sostituisce mai Metacritic. Si chiede conferma solo per scarti sopra 15 punti (probabile gioco sbagliato), generi, anno e testi riscritti.',
+    'Anteprima a pressione più piccola: tieni premuto il titolo, compare l\'anteprima; rilasci il dito e sparisce, tornando alla lista. Per aprire la scheda basta un tocco.',
+    'Scheda del gioco a schermo intero sul telefono e stabile: niente sfocature né animazioni nel primo secondo, quindi niente sfarfallio.',
+    'Vibrazione brevissima al tocco di pulsanti, icone e righe (solo Android; su iPad non esiste).'
+  ]},
   {version:'v168', date:'2026-09-30', time:'00:23', items:[
     'Niente più lampeggi: quando un gioco si aggiorna in background la riga non rifà l\'animazione d\'ingresso e, se nulla cambia, non viene nemmeno toccata.',
     'Il pulsante in alto «Novità» (aggiornamenti del programma) ora si chiama «News» e dentro ha «🔄 Riavvia e aggiorna»: ricarica subito il programma con l\'ultima versione, senza filmato iniziale e senza chiudere e riaprire l\'app.',
