@@ -252,8 +252,8 @@ html.intro-on{overflow:hidden}
 .cover-more>summary{cursor:pointer; color:var(--sub); text-align:center; list-style:none; padding:4px 0}
 .cover-more>summary::-webkit-details-marker{display:none}
 .cover-more[open]>summary{margin-bottom:6px}
-/* telefono: barra di navigazione in basso, come le app */
-@media (max-width:760px){
+/* telefono e tablet (schermo touch, anche iPad in orizzontale o dalla schermata Home): barra di navigazione in basso, come le app */
+@media (max-width:760px), (hover:none) and (pointer:coarse){
   :root{--navh:calc(60px + env(safe-area-inset-bottom,0px))}
   .view-tabs{position:fixed; left:0; right:0; bottom:0; z-index:60; margin:0; gap:0; padding:4px 4px env(safe-area-inset-bottom,0px); height:var(--navh);
     background:color-mix(in srgb,var(--bg) 80%,transparent); -webkit-backdrop-filter:blur(16px) saturate(150%); backdrop-filter:blur(16px) saturate(150%);
