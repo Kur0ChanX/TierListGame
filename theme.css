@@ -851,3 +851,6 @@ html .tt-app .btn{color:#fff !important; background:rgba(255,255,255,.12) !impor
 .tt-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(70px,1fr)); gap:6px} .tt-cell{position:relative} .tt-n{position:absolute; right:2px; bottom:2px; z-index:3; font:800 .6rem system-ui; font-style:normal; background:#000a; padding:1px 4px; border-radius:6px}
 .tt-lvl{margin:6px 0; padding:6px 8px; border-radius:12px; background:rgba(255,255,255,.06)} .tt-lvl summary{cursor:pointer; font-weight:800}
 .tt-pickbar{display:flex; gap:8px; justify-content:center; margin:6px 0 10px; position:sticky; top:0; z-index:5}
+/* v135b: V+ dorata ben leggibile */
+.vplus{display:inline-block; padding:1px 6px; border-radius:8px; font:900 .78rem/1.3 system-ui; color:#3b2200; background:linear-gradient(180deg,#fff3b0,#ffc93c 45%,#e07b00); box-shadow:0 0 0 1px rgba(224,123,0,.6), 0 2px 6px rgba(224,123,0,.45); white-space:nowrap}
+.vplus.s{font-size:.7rem; background:linear-gradient(180deg,#fff7d6,#ffd97a)}
