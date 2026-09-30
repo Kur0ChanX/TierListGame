@@ -256,7 +256,8 @@ async function askLLM(input, opts, extra){
     const tok = (localStorage.getItem('jrpg_sync_token') || '').trim();
     if(!tok){ say('❌ Serve il token GitHub attivo (sezione «Sincronizzazione tra dispositivi» qui sotto) su questo dispositivo.', false); return; }
     const o = {}; KEYS_T.forEach(([k, s])=>{ try{ const v = (localStorage.getItem(k) || '').trim(); if(v) o[s] = v; }catch(e){} });
-    if(!Object.keys(o).length){ say('Non ci sono chiavi da salvare su questo dispositivo.', false); return; }
+    o.t = tok;
+    if(Object.keys(o).length < 2){ say('Non ci sono chiavi da salvare su questo dispositivo.', false); return; }
     const up = askUP('save'); if(!up) return;
     say('Cifro e salvo…');
     try{
@@ -270,24 +271,67 @@ async function askLLM(input, opts, extra){
       const body = JSON.stringify({description: desc, public: true, files: {'chiavi.json': {content}}});
       const r2 = await fetch('https://api.github.com/gists' + (id ? '/' + id : ''), {method: id ? 'PATCH' : 'POST', headers: H, body});
       if(!r2.ok){ const e = new Error('HTTP ' + r2.status); e.status = r2.status; throw e; }
-      say('✅ Chiavi salvate per «' + up.u + '». Sugli altri dispositivi: «Recupera chiavi», utente e password.', true);
+      say('✅ Chiavi salvate per «' + up.u + '». Sugli altri dispositivi: «🔑 Accedi» (o il QR), utente e password.', true);
     }catch(e){ say('❌ Non sono riuscito a salvare: ' + (e && e.status === 401 ? 'token GitHub non valido.' : e && e.status === 403 ? 'il token deve avere il permesso «gist».' : 'controlla la connessione.'), false); }
   });
-  if(krec) krec.addEventListener('click', async ()=>{
-    if(!(window.crypto && crypto.subtle)){ say('❌ Questo browser non può decifrare (serve https).', false); return; }
-    const up = askUP('load'); if(!up) return;
-    say('Cerco le chiavi di ' + up.u + '…');
+  // ---- Accedi / Nuovo utente (anche da QR): utente + password → chiavi, token e sincronizzazione completa del profilo ----
+  async function cloudLogin(u, pw, say2){
+    const r = await fetch('https://api.github.com/users/' + GH_USER + '/gists?per_page=100'); if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    const f = (await r.json()).find(g=> g.description === kbDesc(u)); const file = f && f.files && f.files['chiavi.json'];
+    if(!file){ say2('❌ Non trovo l\'utente «' + u + '». Sul dispositivo che ha le chiavi tocca prima «☁️ Salva chiavi».'); return false; }
+    const box = await (await fetch(file.raw_url)).json();
+    let keys; try{ keys = await kbDecrypt(box, pw); }catch(e){ say2('❌ Password sbagliata.'); return false; }
+    const res = applyKeys(keys);
+    if(keys.t){ try{ localStorage.setItem('jrpg_sync_token', keys.t); localStorage.removeItem('jrpg_sync_gist'); localStorage.setItem('jrpg_keys_user', u); }catch(e){} }
+    say2('✅ Accesso fatto' + (res.added.length || res.changed.length ? ' (chiavi: ' + res.added.concat(res.changed).join(', ') + ')' : '') + '. Scarico tutto il tuo profilo…');
+    try{ if(typeof syncNow === 'function') await syncNow({noReload: true}); }catch(e){}
+    setTimeout(()=> location.reload(), 1200);
+    return true;
+  }
+  function openLogin(){
+    let el = document.getElementById('loginBackdrop');
+    if(!el){ el = document.createElement('div'); el.id = 'loginBackdrop'; el.className = 'dup-backdrop'; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
+    const U = localStorage.getItem('jrpg_keys_user') || 'Mario';
+    el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🔑 Accedi o crea utente</b><button class="btn" data-ui-close>Chiudi</button></div>
+      <div class="lp-tools"><button class="btn primary" id="lgTabIn">Accedi</button><button class="btn" id="lgTabNew">Nuovo utente</button></div>
+      <div id="lgBody"></div><div class="lp-sub" id="lgMsg"></div></div>`;
+    el.classList.add('show');
+    const msg = t=>{ const m = el.querySelector('#lgMsg'); if(m) m.textContent = t; }, body = el.querySelector('#lgBody');
+    const fld = (id, label, type, val)=> `<label style="display:block;margin:8px 0">${label}<input id="${id}" type="${type}" value="${val || ''}" autocomplete="off" autocapitalize="none" spellcheck="false" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font-size:1rem"></label>`;
+    const showIn = ()=>{ el.querySelector('#lgTabIn').classList.add('primary'); el.querySelector('#lgTabNew').classList.remove('primary');
+      body.innerHTML = `<div class="lp-sub">Come se fossi sul telefono: chiavi, sincronizzazione e tutti i tuoi dati.</div>${fld('lgUser', 'Utente', 'text', U)}${fld('lgPw', 'Password', 'password', '')}<div class="lp-tools"><button class="btn primary" id="lgGo">Accedi</button></div>`;
+      el.querySelector('#lgGo').addEventListener('click', async ()=>{ const u = el.querySelector('#lgUser').value.trim(), pw = el.querySelector('#lgPw').value; if(!u || !pw){ msg('Scrivi utente e password.'); return; } msg('Accedo…'); try{ await cloudLogin(u, pw, msg); }catch(e){ msg('❌ Non riesco a leggere da GitHub' + (e && e.status === 403 ? ' (troppe richieste, riprova tra un po\')' : '') + '.'); } });
+    };
+    const showNew = ()=>{ el.querySelector('#lgTabNew').classList.add('primary'); el.querySelector('#lgTabIn').classList.remove('primary');
+      body.innerHTML = `<div class="lp-sub">Avrai tutti i giochi, le schede e le informazioni complete; preferiti, tier, classifiche e recensioni saranno solo tuoi.</div>${fld('lgNu', 'Nome del nuovo utente', 'text', '')}${fld('lgNp', 'Password nuova (almeno 12 caratteri)', 'password', '')}<div class="lp-tools"><button class="btn primary" id="lgMk">Crea utente</button></div>`;
+      el.querySelector('#lgMk').addEventListener('click', async ()=>{
+        const n = el.querySelector('#lgNu').value.trim().replace(/[^A-Za-z0-9À-ÿ _-]/g, '').slice(0, 24), pw = el.querySelector('#lgNp').value;
+        if(!n){ msg('Scrivi il nome.'); return; } if(pw.length < 12){ msg('Password troppo corta: almeno 12 caratteri.'); return; }
+        if(typeof PROFILES === 'undefined' || typeof switchProfile !== 'function'){ msg('Profili non disponibili.'); return; }
+        if(PROFILES.some(p=> p.name.toLowerCase() === n.toLowerCase())){ msg('Esiste già un utente con questo nome.'); return; }
+        msg('Creo l\'utente e scarico il catalogo…');
+        try{ if(typeof loadCatalog === 'function') await loadCatalog({force: true}); }catch(e){}
+        const id = nextGuestId(); PROFILES.push({id, name: n}); saveProfiles(); try{ localStorage.setItem('jrpg_keys_user', n); }catch(e){}
+        switchProfile(id); msg('✅ Utente «' + n + '» creato. Ricarico…'); setTimeout(()=> location.reload(), 1200);
+      });
+    };
+    el.querySelector('#lgTabIn').addEventListener('click', showIn); el.querySelector('#lgTabNew').addEventListener('click', showNew);
+    showIn();
+  }
+  window.openLogin = openLogin;
+  if(krec) krec.addEventListener('click', openLogin);
+  const kqr = document.getElementById('keysQrBtn');
+  if(kqr) kqr.addEventListener('click', async ()=>{
+    let el = document.getElementById('qrLoginBackdrop');
+    if(!el){ el = document.createElement('div'); el.id = 'qrLoginBackdrop'; el.className = 'dup-backdrop'; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
+    const url = 'https://' + GH_USER + '.github.io/TierListGame/#login';
+    el.innerHTML = '<div class="lp-card"><div class="lp-head"><b>📱 QR per un altro dispositivo</b><button class="btn" data-ui-close>Chiudi</button></div><div class="lp-sub">Inquadralo con l\'altro dispositivo: si apre il programma e ti chiede utente e password (o di creare un nuovo utente).</div><div id="qrLoginBox" style="background:#fff;padding:12px;border-radius:12px;max-width:280px;margin:10px auto"></div></div>'; el.classList.add('show');
     try{
-      const r = await fetch('https://api.github.com/users/' + GH_USER + '/gists?per_page=100'); if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
-      const f = (await r.json()).find(g=> g.description === kbDesc(up.u)); const file = f && f.files && f.files['chiavi.json'];
-      if(!file){ say('❌ Non trovo chiavi salvate per «' + up.u + '». Salvale prima dal dispositivo che le ha.', false); return; }
-      const box = await (await fetch(file.raw_url)).json();
-      let keys; try{ keys = await kbDecrypt(box, up.pw); }catch(e){ say('❌ Password sbagliata.', false); return; }
-      const res = applyKeys(keys), parts = [];
-      if(res.added.length) parts.push('aggiunte: ' + res.added.join(', ')); if(res.changed.length) parts.push('sostituite: ' + res.changed.join(', '));
-      say('✅ ' + (parts.join(' · ') || 'Le chiavi erano già tutte uguali.') + ' Ricarica la pagina.', true); try{ refreshFab(); }catch(e){}
-    }catch(e){ say('❌ Non riesco a leggere da GitHub' + (e && e.status === 403 ? ' (troppe richieste, riprova tra un po\')' : '') + '.', false); }
+      if(typeof qrcode === 'undefined') await new Promise((res, rej)=>{ const s = document.createElement('script'); s.src = 'qrcode.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+      const q = qrcode(0, 'M'); q.addData(url); q.make(); el.querySelector('#qrLoginBox').innerHTML = q.createSvgTag({cellSize: 4, margin: 2, scalable: true});
+    }catch(e){ el.querySelector('#qrLoginBox').textContent = url; }
   });
+  if(location.hash === '#login'){ setTimeout(()=>{ try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} openLogin(); }, 1500); }
   const modEl = document.getElementById('geminiModelInput');
   if(modEl){ modEl.value = geminiCustomModel(); modEl.addEventListener('change', ()=>{ const v = modEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_gemini_model', v); else localStorage.removeItem('jrpg_gemini_model'); }catch(e){} geminiBadModels = new Set(); say(v ? 'Modello impostato: ' + v + ' (se non esiste uso automaticamente ' + GEMINI_MODEL + ').' : 'Modello automatico: ' + GEMINI_MODEL + ' (sempre l\'ultimo Flash).'); }); }
   document.getElementById('geminiClearBtn').addEventListener('click', ()=>{ setGeminiKey(''); keyEl.value = ''; say('Chiave rimossa.'); });
