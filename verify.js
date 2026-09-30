@@ -166,11 +166,26 @@
     if(src.wiki && src.wiki.mc && src.wiki.mc !== g.score){
       ch.push({id:'score', label:'Voto', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${src.wiki.mc} (Metacritic, da Wikipedia)`, patch:{score: src.wiki.mc, tier: tierOf(src.wiki.mc), m:'V'}});
     }
+    // Metacritic (da Wikipedia) uguale al voto in lista ma ancora «stima»: il voto è confermato, quindi passa a verificato (V+)
+    if(src.wiki && src.wiki.mc && src.wiki.mc === g.score && g.m !== 'V'){
+      ch.push({id:'method', label:'Voto confermato da Metacritic', from: 'stima', to: 'verificato (V)', patch:{m:'V'}});
+    }
     if(src.wd && src.wd.codes){
       const add = src.wd.codes.filter(c=> TAG_INFO[c] && !g.tags.includes(c));
       if(add.length){
         const warn = add.some(c=> EXTRA_GENRE_INFO[c]);
         ch.push({id:'tags', label:'Generi', from: g.tags.map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', '), to: '+ ' + add.map(c=> TAG_INFO[c].label).join(', ') + (warn ? ' ⚠️ (esce da JRPG / RPG)' : '') + ' (Wikidata)', patch:{tags: g.tags.concat(add).slice(0, 6)}});
+      }
+    }
+    // generi «forti» che nessuna fonte conferma (Wikidata + RAWG + Steam): li tolgo, es. un gioco narrativo segnato Soulslike
+    if(src.wd && src.wd.labels && src.wd.labels.length && src.wd.codes && src.wd.codes.length){
+      const STRONG = ['SOUL', 'METR', 'ROG', 'HOR', 'MECH', 'ACT', 'ACTADV'], WORDS = {SOUL: /soul/i, METR: /metroidvania/i, ROG: /rogue/i, HOR: /horror/i, MECH: /mecha|mech/i, ACT: /action role|action rpg|action-rpg|hack/i, ACTADV: /action[- ]adventure/i};
+      const ev = [].concat(src.wd.labels, src.rawg ? [].concat(src.rawg.genres || [], src.rawg.genreSlugs || [], (src.rawg.tags || []).map(t=> t.name + ' ' + t.slug)) : [], src.steam && src.steam.tags ? [].concat(src.steam.tags) : []).map(x=> typeof x === 'string' ? x : (x && (x.name || x.description)) || '').join(' | ');
+      const drop = g.tags.filter(t=> STRONG.includes(t) && !src.wd.codes.includes(t) && !WORDS[t].test(ev));
+      const keep = g.tags.filter(t=> !drop.includes(t)).concat(src.wd.codes.filter(c=> TAG_INFO[c] && !g.tags.includes(c)));
+      if(drop.length && keep.length){
+        ch.push({id:'tagsrm', label:'Generi non confermati', from: g.tags.map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', '), to: '− ' + drop.map(c=> (TAG_INFO[c] || {}).label || c).join(', ') + ' (nessuna fonte li conferma)', patch:{tags: keep.slice(0, 6)}});
+        const old = ch.findIndex(c=> c.id === 'tags'); if(old >= 0) ch.splice(old, 1);   // le aggiunte di Wikidata sono già dentro `keep`
       }
     }
     if(src.wd && src.wd.years && src.wd.years.length){

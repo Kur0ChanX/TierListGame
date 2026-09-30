@@ -1039,7 +1039,7 @@ function applyFilters(){
   return list;
 }
 
-function methodIcon(m, g){ const f = g && typeof freshInfo === 'function' ? freshInfo(g) : null; if(m==='V'){ return f ? '<span class="vplus" title="Voto verificato e gioco aggiornato con Update+">V+</span>' : '✅'; } return f ? '<span class="vplus s" title="Voto stimato, gioco aggiornato con Update+">🗳️+</span>' : '🗳️'; }   // V+ dorata = voto verificato + Update+   // V dorata = voto verificato + Update+
+function methodIcon(m, g){ const f = g && typeof freshInfo === 'function' ? freshInfo(g) : null; if(m==='V'){ return f ? '<span class="vplus" title="Voto verificato e gioco aggiornato con Update+">V+</span>' : '✅'; } return f ? '<span class="vplus s" title="Gioco aggiornato con Update+, ma il voto è ancora una stima: nessuna fonte affidabile (Metacritic) lo ha confermato. Diventa V+ appena una fonte lo conferma.">🗳️+</span>' : '🗳️'; }   // V+ dorata = voto verificato + Update+   // V dorata = voto verificato + Update+
 function methodLabel(m){ return m==='V' ? 'Metacritic / aggregato verificato' : 'Stima community / recensori specializzate'; }
 
 function showToast(msg, ms){
