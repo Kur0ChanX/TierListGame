@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v165', date:'2026-09-30', time:'23:37', items:[
+    'Dispositivi nuovi: all\'avvio scaricano da soli il catalogo condiviso (giochi aggiunti dal telefono, correzioni, Update V+ già fatti, fonti dei voti). Quindi niente più 753 giochi e niente Update+ da zero: parte solo da ciò che manca.',
+    '«🔑 Accedi / Nuovo utente»: Accedi (utente + password) porta chiavi, sincronizzazione e tutto il profilo come sul telefono; Nuovo utente crea un profilo con tutti i giochi e le schede ma con preferiti, tier, classifiche e recensioni solo suoi. Il pulsante «📱 QR» mostra il codice da inquadrare con l\'altro dispositivo: si apre il programma già sulla schermata di accesso.',
+    '«☁️ Salva chiavi» ora salva cifrate anche il token di sincronizzazione, così un solo accesso basta per avere tutto.'
+  ]},
   {version:'v164', date:'2026-09-30', time:'23:34', items:[
     'Colonna «Fonte» con i loghi: M gialla = Metacritic, cerchio rosso = OpenCritic, R = RAWG, «STIMA» = voto non verificato. Il filtro «Tutte le fonti» ora permette di scegliere una fonte precisa (Metacritic, OpenCritic, RAWG, stima). Finché la fonte di un voto verificato non è registrata resta il simbolo verde.'
   ]},

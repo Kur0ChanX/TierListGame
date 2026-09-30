@@ -703,6 +703,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   function fpKick(ms){ clearTimeout(fpTimer); fpTimer = setTimeout(fpStep, ms == null ? 4000 : ms); }
   async function fpStep(){
     if(!updatePlusOn() || fpBusy) return;
+    if(window.__catalogPending) return fpKick(2500);          // prima scarico il catalogo condiviso: Update+ non riparte da zero su un dispositivo nuovo
     if(typeof detailsReady === 'function' && !detailsReady()) return fpKick(2000);
     const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.rt-loader.show');
     if(!calm) return fpKick(15000);
