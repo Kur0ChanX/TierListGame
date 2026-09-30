@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v161', date:'2026-09-30', time:'22:44', items:[
+    'Chiavi dentro il programma, cifrate: in ⚙️ Chiedi a Claude, «🔐 Cifra le chiavi» crea un codice protetto da una tua password (profilo + password, almeno 12 caratteri); una volta inserito nel programma, su qualsiasi dispositivo basta «🔓 Recupera chiavi»: scegli il profilo, scrivi la password e le chiavi mancanti vengono aggiunte e quelle diverse sostituite. Nel codice non c\'è mai nessuna chiave in chiaro né la password. Restano anche Copia e Incolla.'
+  ]},
   {version:'v160', date:'2026-09-30', time:'22:34', items:[
     'iPad, tastiera: l\'app installata sulla schermata Home era impostata a «schermo intero», che su iOS impedisce alla tastiera di aprirsi. Ora è una normale app (standalone) e funziona anche in orizzontale. Per applicare la modifica: elimina l\'icona dalla Home e rifai «Aggiungi alla schermata Home».'
   ]},
