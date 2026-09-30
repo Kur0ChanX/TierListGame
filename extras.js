@@ -38,7 +38,7 @@
   function cardHtml(g){
     const c = coverOf(g), st = (typeof STATUSES !== 'undefined') && STATUSES[g.id];
     const fav = FAVS.has(g.id) ? '<span class="x-fav">★</span>' : '';
-    const img = c ? `<img src="${esc(coverThumb(c, MODE === 'grid' ? 360 : 160))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onerror="if(this.dataset.orig&&this.src!==this.dataset.orig){this.src=this.dataset.orig}else{this.remove()}">` : '';
+    const img = c ? `<img src="${esc(coverThumb(c, 360))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onerror="if(this.dataset.orig&&this.src!==this.dataset.orig){this.src=this.dataset.orig}else{this.remove()}">` : '';
     const ph = `<div class="x-ph" style="--tc:${TIER_COL[g.tier] || '#7c5cff'}"><span>${esc(g.name)}</span></div>`;
     const badge = `<span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>`;
     if(MODE === 'grid'){

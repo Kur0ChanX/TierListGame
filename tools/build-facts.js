@@ -8,7 +8,8 @@ const ROOT = path.join(__dirname, '..');
 const UA = {'User-Agent': 'TierListGame/1.0 (uso personale; +https://github.com/Kur0ChanX/TierListGame)', 'Accept': 'application/json'};
 const arg = n=>{ const i = process.argv.indexOf('--' + n); return i > -1 ? +process.argv[i + 1] : null; };
 const LIMIT = arg('limit') || 99999, OFFSET = arg('offset') || 0;
-const LIGHT = process.argv.includes('--light');       // solo prezzi (per l'aggiornamento notturno): 1 richiesta ogni 50 giochi
+const LIGHT = process.argv.includes('--light');
+const REVIEWS = process.argv.includes('--reviews');   // solo il «termometro» delle recensioni Steam (ultimi 30 giorni contro sempre)       // solo prezzi (per l'aggiornamento notturno): 1 richiesta ogni 50 giochi
 const sleep = ms=> new Promise(r=> setTimeout(r, ms));
 const norm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[™®©]/g, '').replace(/[^a-z0-9]/g, '');
 const baseName = n=> String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*[-–:]\s*(definitive|remaster|remastered|remake|complete|hd|edition|reborn|reloaded|the final cut|director'?s cut|enhanced).*$/i, '').trim();
@@ -65,6 +66,27 @@ async function cheapFacts(g){
   if(hit.releaseDate) o.y = new Date(hit.releaseDate * 1000).getFullYear();
   return Object.keys(o).length ? o : null;
 }
+// termometro della community: % positive di sempre e delle recensioni degli ultimi 30 giorni (campione fino a 100)
+async function reviewFacts(appid){
+  const j = await getJson('https://store.steampowered.com/appreviews/' + appid + '?json=1&filter=recent&num_per_page=100&language=all&purchase_type=all&day_range=30');
+  if(!j || !j.success || !j.query_summary) return null;
+  const q = j.query_summary, now = Date.now() / 1000;
+  const rec = (j.reviews || []).filter(r=> now - r.timestamp_created < 30 * 86400);
+  const o = {};
+  if(q.total_reviews) { o.ap = Math.round(100 * q.total_positive / q.total_reviews); o.an = q.total_reviews; }
+  if(rec.length >= 5){ o.rp = Math.round(100 * rec.filter(r=> r.voted_up).length / rec.length); o.rn = rec.length; }
+  return Object.keys(o).length ? o : null;
+}
+async function reviewsRun(){
+  const games = Object.assign({}, prev.games || {}); let n = 0;
+  for(const k of Object.keys(games)){
+    const s = games[k].s; if(!s || !s.id) continue;
+    try{ const r = await reviewFacts(s.id); if(r){ Object.assign(s, r); n++; } }catch(e){}
+    await sleep(700);
+  }
+  fs.writeFileSync(path.join(ROOT, 'facts.js'), 'const GAME_FACTS = ' + JSON.stringify({built: prev.built || new Date().toISOString().slice(0, 10), games}) + ';\n');
+  console.log('termometro aggiornato per', n, 'giochi');
+}
 // aggiornamento notturno leggero: riscarica SOLO i prezzi dei giochi che hanno già un id Steam in facts.js
 async function lightRun(){
   const games = Object.assign({}, prev.games || {}), today = new Date().toISOString().slice(0, 10);
@@ -85,6 +107,7 @@ async function lightRun(){
 }
 (async()=>{
   if(LIGHT){ await lightRun(); return; }
+  if(REVIEWS){ await reviewsRun(); return; }
   const out = {built: new Date().toISOString().slice(0, 10), games: Object.assign({}, prev.games || {})};
   const list = GAMES.slice(OFFSET, OFFSET + LIMIT);
   let n = 0, withSteam = 0, withIt = 0;
@@ -93,6 +116,7 @@ async function lightRun(){
     try{
       const f = {};
       const st = await steamFacts(g); if(st){ f.s = st; withSteam++; if(st.it === 'D' || st.it === 'S') withIt++; }
+      if(st && st.id){ await sleep(500); try{ const rv = await reviewFacts(st.id); if(rv) Object.assign(st, rv); }catch(e){} }
       await sleep(700);
       const ch = await cheapFacts(g); if(ch) f.c = ch;
       if(f.s || f.c){ f.t = out.built; out.games[g.id] = f; }

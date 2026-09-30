@@ -753,6 +753,7 @@ function openModal(g){
       <button class="btn" id="modalFavBtn">${giIcon(isFav ? 'favon' : 'favoff')} ${isFav ? 'Nei preferiti' : 'Aggiungi ai preferiti'}</button>
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
       ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : '<button class="btn" id="updateInfoBtn">🔄 Aggiorna info</button>'}
+      ${typeof updatePlusNow === 'function' ? `<button class="btn upplus-btn" id="updatePlusBtn" title="Aggiorna subito tutte le info e la locandina da tutte le fonti">${giIcon('upplus')} ${freshInfo(g) ? 'Rifai Update+' : 'Update+ adesso'}</button>` : ''}
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
     </div>
   `;

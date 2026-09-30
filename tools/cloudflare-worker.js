@@ -5,7 +5,7 @@ const ALLOW_HOSTS = new Set([
   'store.steampowered.com', 'steamspy.com', 'catalog.gog.com',
   'www.reddit.com', 'old.reddit.com', 'api.reddit.com',
   'en.wikipedia.org', 'it.wikipedia.org', 'www.wikidata.org', 'query.wikidata.org',
-  'www.cheapshark.com', 'www.pcgamingwiki.com'
+  'www.cheapshark.com', 'www.pcgamingwiki.com', 'www.youtube.com'
 ]);
 const ALLOW_ORIGINS = new Set(['https://kur0chanx.github.io', 'null']);   // 'null' = app aperta da file
 export default {

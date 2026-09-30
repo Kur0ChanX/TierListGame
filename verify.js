@@ -280,6 +280,17 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     return p;
   }
   async function applyPatch(g, p){
+    // cronologia (idea 29): salvo i valori di prima per poterli ripristinare
+    try{
+      if(window.rtHistory){
+        const undo = {}, sh = v=> v == null ? '—' : Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v).slice(0, 120) : String(v);
+        Object.keys(p).forEach(k=>{
+          if(k === 'enrich' || k === 'label'){ undo[k] = {}; Object.keys(p[k] || {}).forEach(sk=>{ const old = g[k] ? g[k][sk] : undefined; undo[k][sk] = old === undefined ? null : old; rtHistory(g.id, (k === 'label' ? 'Etichetta · ' : 'Scheda · ') + sk, sh(old), sh(p[k][sk]), 'correzione approvata', null); }); }
+          else { undo[k] = g[k] === undefined ? null : g[k]; if(k !== 'tier' && k !== 'ysort' && k !== 'm') rtHistory(g.id, k, sh(g[k]), sh(p[k]), 'correzione approvata', null); }
+        });
+        const h = JSON.parse(localStorage.getItem('jrpg_history') || '{}'); if(h[g.id] && h[g.id][0]) h[g.id][0].u = {patch: undo}; localStorage.setItem('jrpg_history', JSON.stringify(h));
+      }
+    }catch(e){}
     if(g.custom){
       const doc = {name: g.name, plat: g.plat, year: p.year || g.year, tier: p.tier || g.tier, score: p.score != null ? p.score : g.score, tags: p.tags || g.tags, story: p.story != null ? p.story : g.story, note: p.note || g.note, label: Object.assign({}, g.label || {}, p.label || {}),
         pros: (p.enrich && p.enrich.pros) || (g.proscons && g.proscons.pros) || [], cons: (p.enrich && p.enrich.cons) || (g.proscons && g.proscons.cons) || [], enrich: cleanCustomEnrich(Object.assign({}, g.enrich || {}, p.enrich || {})) || undefined, addedAt: new Date().toISOString()};
@@ -292,6 +303,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{ ensureGenreLists(p.tags || []); renderListBar(); render(); }catch(e){}
   }
 
+  window.rtApplyPatch = applyPatch;
   // ----- interfaccia -----
   function panel(){
     let el = document.getElementById('updInfoBackdrop');
@@ -334,6 +346,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     });
   };
   document.addEventListener('click', e=>{ if(e.target && e.target.id === 'auditPendingBtn' && typeof currentModalGame !== 'undefined' && currentModalGame){ try{ document.getElementById('modalBackdrop').classList.remove('show'); }catch(x){} openAuditReview(currentModalGame.id); } });
+  document.addEventListener('click', e=>{ const b = e.target && e.target.closest && e.target.closest('#updatePlusBtn'); if(b && typeof currentModalGame !== 'undefined' && currentModalGame){ b.disabled = true; updatePlusNow(currentModalGame); } });
   document.addEventListener('click', e=>{ if(e.target && e.target.id === 'updateInfoBtn' && typeof currentModalGame !== 'undefined' && currentModalGame) openUpdateInfo(currentModalGame); });
 
   // ----- giochi nuovi: controllo automatico di voto, generi e anno (senza AI) -----
@@ -558,26 +571,52 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       if(merged.length){ a[g.id] = {t: new Date().toISOString(), ch: merged, deep: !!(old && old.deep), src: (old && old.src) || []}; auSave(a); pending = merged.length; try{ window.dispatchEvent(new Event('audit-update')); }catch(e){} }
     }
     try{ if(window.XCOVER && !XCOVER.has(g)){ const r = await XCOVER.find(g, {quick: true}); if(r){ await XCOVER.save(g, r.url); cover = true; } } }catch(e){}
+    if(cover || (window.XCOVER && XCOVER.has(g))) names.push('Locandina');
     const fr = frLoad(), iso = new Date().toISOString();
-    if(names.length >= 2) fr[g.id] = {gold: 1, t: iso, src: names, ap: applied, pe: pending, cv: cover ? 1 : 0};
+    const okN = names.filter(n=> n !== 'Locandina').length;
+    if(okN >= 1) fr[g.id] = {gold: 1, t: iso, src: names, ap: applied, pe: pending, cv: cover ? 1 : 0};
     else fr[g.id] = {t: iso, tries: ((fr[g.id] || {}).tries || 0) + 1, src: names};
     frSave(fr);
-    try{ render(); }catch(e){}
+    try{ window.DebugLog && DebugLog.add && DebugLog.add({kind: 'note', src: 'Update+', ok: okN >= 1, note: g.name + ': ' + (names.join(', ') || 'nessuna fonte ha risposto') + (applied ? ' · ' + applied + ' correzioni' : '') + (pending ? ' · ' + pending + ' da approvare' : '')}); }catch(e){}
+    try{ render(); if(typeof renderMyTier === 'function' && state.view === 'mytier') renderMyTier(); }catch(e){}
+    try{ window.dispatchEvent(new CustomEvent('update-plus', {detail: {id: g.id, ok: okN >= 1, names}})); }catch(e){}
+    return {ok: okN >= 1, names, applied, pending, cover};
   }
+  // «Update+» forzato dalla scheda: subito, con la barra di caricamento
+  window.updatePlusNow = async function(g){
+    const P = window.Progress; try{ P && P.begin && P.begin('Update+ di ' + g.name + '…'); }catch(e){}
+    let r = null;
+    try{ r = await updatePlus(g); }catch(e){}
+    try{ P && P.end && P.end(); }catch(e){}
+    if(r && r.ok) showToast('Update+ completato · fonti: ' + r.names.join(', ') + (r.pending ? ' · ' + r.pending + ' modifiche da approvare' : '') + (r.applied ? ' · ' + r.applied + ' correzioni applicate' : ''), 5500);
+    else showToast('Nessuna fonte ha risposto adesso: riprova tra poco (controlla la connessione o il ponte personale)', 5000);
+    try{ if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) openModal(g); }catch(e){}
+    return r;
+  };
   let fpTimer = 0, fpBusy = false, fpDone = 0;
   function fpKick(ms){ clearTimeout(fpTimer); fpTimer = setTimeout(fpStep, ms == null ? 4000 : ms); }
   async function fpStep(){
     if(!updatePlusOn() || fpBusy) return;
     if(typeof detailsReady === 'function' && !detailsReady()) return fpKick(2000);
-    const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.modal-backdrop.show, .dup-backdrop.show, .rt-loader.show');
-    if(!calm || auBusy) return fpKick(20000);
+    const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.rt-loader.show');
+    if(!calm) return fpKick(15000);
     const queued = fpQueue.length > 0;
     if(!queued && fpDone >= FP_BUDGET) return;                  // per questo avvio basta: gli altri al prossimo, così non appesantisco
     const g = fpNext(); if(!g) return;
-    fpBusy = true;
+    fpBusy = true; try{ fpLine(); }catch(e){}
     try{ await updatePlus(g); if(!queued) fpDone++; }
     catch(e){ const fr = frLoad(); fr[g.id] = {t: new Date().toISOString(), tries: ((fr[g.id] || {}).tries || 0) + 1, src: []}; frSave(fr); }
     fpBusy = false; fpKick(queued ? 4000 : 5000);
   }
-  setTimeout(()=> fpKick(0), 25000);
+  function fpLine(){
+    const el = document.getElementById('buildLine'); if(!el) return;
+    let c = document.getElementById('upPlusLine');
+    if(!c){ c = document.createElement('button'); c.type = 'button'; c.id = 'upPlusLine'; c.className = 'upplus-line'; el.insertAdjacentElement('afterend', c); c.addEventListener('click', ()=> window.openAuditPanel && openAuditPanel('todo')); }
+    const st = updatePlusStats();
+    c.innerHTML = giIcon('upplus') + ' Update+ ' + st.done + '/' + st.total + (updatePlusOn() ? (fpBusy ? ' · al lavoro…' : '') : ' · spento');
+  }
+  window.addEventListener('update-plus', fpLine);
+  setTimeout(fpLine, 2500);
+  setTimeout(()=> fpKick(0), 12000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') fpKick(3000); });
 })();
