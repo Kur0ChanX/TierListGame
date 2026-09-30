@@ -3,6 +3,8 @@
 // e poi: node tools/triad-server/test.js [http://localhost:8799]
 const assert = require('assert');
 const Core = require('../../triad-core.js');
+const EXP = require('../../triad-exp.js'), EXPIDS = {}; EXP.cards.forEach(c=> EXPIDS[c[0]] = c[8]);
+const BASECARD = {}; require('../../triad-cards.js').forEach(c=> BASECARD[c[0]] = c[4]);
 const BASE = process.argv[2] || 'http://localhost:8799';
 let ok = 0, bad = 0;
 const test = async (name, fn)=>{ try{ await fn(); ok++; console.log('  ok  ' + name); }catch(e){ bad++; console.log('  KO  ' + name + '\n      ' + (e && e.stack || e).split('\n').slice(0, 4).join('\n      ')); } };
@@ -39,7 +41,7 @@ const rnd = st=>{ const mv = Core.legalMoves(st); return mv[Math.floor(Math.rand
 (async()=>{
   console.log('Registrazione e account');
   await test('ping e configurazione', async ()=>{
-    const p = await api('GET', '/api/ping'); assert.strictEqual(p.cards, 200);
+    const p = await api('GET', '/api/ping'); assert.strictEqual(p.cards, 320);
     const c = await api('GET', '/api/config'); assert.strictEqual(c.bosses.length, 10); assert.strictEqual(c.turnMs, 2500); assert(c.supply[10] >= 1);
   });
   await test('registro due giocatori con carte iniziali', async ()=>{
@@ -270,6 +272,82 @@ const rnd = st=>{ const mv = Core.legalMoves(st); return mv[Math.floor(Math.rand
   await test('le sfide ai Custodi non toccano record e ELO contro gli amici', async ()=>{
     const me = await api('GET', '/api/me', null, U.a.tok); assert.strictEqual(me.wins + me.losses + me.draws >= 1, true);
     const list = (await api('GET', '/api/matches', null, U.a.tok)).matches; assert(list.some(m=> m.boss === 1));
+  });
+
+
+  console.log('Economia: monete, buste, missioni, collezioni, traguardi, polvere');
+  await test('il negozio mostra monete, buste ed espansioni (alcune chiuse per livello)', async ()=>{
+    const sh = await api('GET', '/api/shop', null, U.a.tok);
+    assert(sh.coins >= 5000, 'monete ' + sh.coins); assert.strictEqual(sh.packs.length, 4); assert.strictEqual(sh.expansions.length, 4);
+    assert.strictEqual(sh.expansions.find(x=> x.id === 'jrpg').locked, false); assert.strictEqual(sh.expansions.find(x=> x.id === 'horror').locked, true);
+    assert(sh.event && (sh.event.mul === 1 || sh.event.mul === 2)); assert.strictEqual(sh.event.mul, [0, 6].includes(new Date().getUTCDay()) ? 2 : 1);
+    const me = await api('GET', '/api/me', null, U.a.tok); assert(me.level >= 1 && me.xp && me.xp.need > 0 && me.tickets && typeof me.dust === 'number');
+  });
+  let packCards = [];
+  await test('busta base: 3 carte, monete scalate; busta rara: almeno una carta dal livello 5', async ()=>{
+    const c0 = (await api('GET', '/api/shop', null, U.a.tok)).coins;
+    const r = await api('POST', '/api/packs/open', {type: 'base', coins: true}, U.a.tok); assert.strictEqual(r._s, 200, JSON.stringify(r));
+    assert.strictEqual(r.cards.length, 3); assert(r.coins >= c0 - 60 && r.coins < c0 + 400, 'monete ' + c0 + ' -> ' + r.coins); assert(r.cards.every(c=> c.uid && c.cid && c.lv >= 1)); packCards.push(...r.cards);
+    const g = await api('POST', '/api/packs/open', {type: 'rara', coins: true}, U.a.tok); assert.strictEqual(g._s, 200, JSON.stringify(g));
+    assert(Math.max(...g.cards.map(c=> c.lv)) >= 5, 'la busta rara garantisce almeno un livello 5'); assert(g.coins >= r.coins - 200 && g.coins < r.coins + 400, 'monete ' + r.coins + ' -> ' + g.coins);   // -200 della busta, più l\'eventuale premio di livello packCards.push(...g.cards);
+  });
+  await test('garanzia anti-sfortuna: in 10 buste base esce sempre almeno una carta dal livello 6', async ()=>{
+    const c = await api('POST', '/api/register', {nick: 'Pity' + Math.floor(Math.random() * 9000 + 1000)}); assert.strictEqual(c._s, 200); U.c = {tok: c.token, me: c.me};
+    let best = 0; for(let i = 0; i < 10; i++){ const r = await api('POST', '/api/packs/open', {type: 'base', coins: true}, U.c.tok); assert.strictEqual(r._s, 200, JSON.stringify(r)); best = Math.max(best, ...r.cards.map(x=> x.lv)); }
+    assert(best >= 6, 'massimo livello in 10 buste: ' + best);
+  });
+  await test('espansioni: la busta dà solo carte di quell\'espansione; chiusa se il livello è basso; monete finite = errore', async ()=>{
+    const r = await api('POST', '/api/packs/open', {type: 'exp:jrpg', coins: true}, U.a.tok); assert.strictEqual(r._s, 200, JSON.stringify(r)); assert(r.cards.every(c=> EXPIDS[c.cid] === 'jrpg'));
+    await expectErr(api('POST', '/api/packs/open', {type: 'exp:horror', coins: true}, U.a.tok), 403, 'locked');
+    await expectErr(api('POST', '/api/packs/open', {type: 'oro'}, U.a.tok), 400, 'pack');
+    let last; for(let i = 0; i < 6; i++){ last = await api('POST', '/api/packs/open', {type: 'leg', coins: true}, U.c.tok); if(last._s !== 200) break; }
+    assert.strictEqual(last._s, 402); assert.strictEqual(last.code, 'coins');
+  });
+  await test('il livello sale con l\'XP e regala monete', async ()=>{
+    const me = await api('GET', '/api/me', null, U.a.tok); assert(me.packs >= 3); assert(me.xp.lvl === me.level);
+    const news = await api('GET', '/api/news', null, U.a.tok); assert(Array.isArray(news.news));
+  });
+  await test('missioni: 3 giornaliere e 2 settimanali, premio solo se completate e una volta sola', async ()=>{
+    const m = await api('GET', '/api/missions', null, U.a.tok); assert.strictEqual(m.daily.length, 3); assert.strictEqual(m.weekly.length, 2);
+    assert(m.daily.every(x=> x.txt && x.t > 0 && x.c > 0)); assert(m.nextDay > Date.now());
+    const todo = m.daily.concat(m.weekly).find(x=> x.prog < x.t); if(todo) await expectErr(api('POST', '/api/missions/claim', {scope: m.daily.includes(todo) ? 'daily' : 'weekly', key: todo.k}, U.a.tok), 409, 'todo');
+    await expectErr(api('POST', '/api/missions/claim', {scope: 'daily', key: 'inesistente'}, U.a.tok), 404);
+    const ready = m.daily.concat(m.weekly).find(x=> x.prog >= x.t && !x.claimed);
+    if(ready){ const sc = m.daily.includes(ready) ? 'daily' : 'weekly', c0 = (await api('GET', '/api/me', null, U.a.tok)).coins; const r = await api('POST', '/api/missions/claim', {scope: sc, key: ready.k}, U.a.tok); assert.strictEqual(r._s, 200, JSON.stringify(r)); assert(r.gain.coins > 0);
+      assert((await api('GET', '/api/me', null, U.a.tok)).coins > c0); await expectErr(api('POST', '/api/missions/claim', {scope: sc, key: ready.k}, U.a.tok), 409, 'claimed'); }
+    else console.log('      (nessuna missione completata ora: controllo solo gli errori)');
+  });
+  await test('le partite danno monete e XP (e il risultato lo dice)', async ()=>{
+    const ml = (await api('GET', '/api/matches', null, U.a.tok)).matches.filter(x=> x.status === 'done' && !x.boss && x.mode === 'ranked'); assert(ml.length);
+    const g = await api('GET', '/api/match/' + ml[0].id, null, U.a.tok); const gain = g.match.result.gain[g.match.you]; assert(gain && gain.xp > 0, JSON.stringify(gain)); assert(gain.coins >= 0);
+  });
+  await test('collezioni: elenco con i set base, per livello, per espansione e l\'album completo', async ()=>{
+    const d = await api('GET', '/api/sets', null, U.a.tok), ids = d.sets.map(x=> x.id);
+    ['all', 'l:1', 'l:10', 'g:rpg', 'x:jrpg', 'x:indie'].forEach(k=> assert(ids.includes(k), k)); assert(d.sets.every(x=> x.total > 0 && x.n <= x.total));
+    const inc = d.sets.find(x=> !x.ready && !x.claimed); await expectErr(api('POST', '/api/sets/claim', {id: inc.id}, U.a.tok), 409, 'todo'); await expectErr(api('POST', '/api/sets/claim', {id: 'boh'}, U.a.tok), 404);
+  });
+  await test('traguardi: elenco con avanzamento e premio automatico', async ()=>{
+    const d = await api('GET', '/api/achievements', null, U.a.tok); assert(d.ach.length >= 30); assert(d.ach.every(x=> x.prog <= x.target));
+    const a2 = await api('GET', '/api/achievements', null, U.b.tok); assert(d.ach.find(x=> x.id === 'first').done || a2.ach.find(x=> x.id === 'first').done, 'qualcuno ha vinto');
+    const p = d.ach.find(x=> x.id === 'p10'); assert(p.prog >= 3);
+  });
+  await test('polvere: si smontano solo le copie doppie; con la polvere si crea una carta che manca (fino al livello 8)', async ()=>{
+    let col = (await api('GET', '/api/collection', null, U.c.tok)).cards;
+    for(let i = 0; i < 40 && !Object.values(col.reduce((m, c)=>{ (m[c.cid] = m[c.cid] || []).push(c); return m; }, {})).some(l=> l.length > 1); i++){ await api('POST', '/api/packs/open', {type: 'base', coins: true}, U.a.tok); col = (await api('GET', '/api/collection', null, U.a.tok)).cards; U.c = U.a; }
+    const tok = U.c.tok, by = col.reduce((m, c)=>{ (m[c.cid] = m[c.cid] || []).push(c); return m; }, {}), dups = Object.values(by).filter(l=> l.length > 1);
+    assert(dups.length, 'nessuna copia doppia trovata');
+    const single = Object.values(by).find(l=> l.length === 1)[0]; await expectErr(api('POST', '/api/dust/dismantle', {uids: [single.uid]}, tok), 409, 'dust');
+    const d0 = dups[0][0], dust0 = (await api('GET', '/api/me', null, tok)).dust, r = await api('POST', '/api/dust/dismantle', {uids: [d0.uid]}, tok); assert.strictEqual(r._s, 200, JSON.stringify(r)); assert(r.dust > 0 && r.total === dust0 + r.dust);
+    assert.strictEqual((await api('GET', '/api/collection', null, tok)).cards.length, col.length - 1);
+    const have = new Set(col.map(c=> c.cid)); const wanted = Object.keys(BASECARD).find(id=> BASECARD[id] === 1 && !have.has(id));
+    // servono 25 di polvere per un livello 1: smonto altre doppie finché basta
+    let dust = r.total, guard = 0; while(dust < 25 && guard++ < 40){ const c2 = (await api('GET', '/api/collection', null, tok)).cards, g2 = Object.values(c2.reduce((m, c)=>{ (m[c.cid] = m[c.cid] || []).push(c); return m; }, {})).find(l=> l.length > 1); if(!g2){ await api('POST', '/api/packs/open', {type: 'base', coins: true}, tok); continue; } const x = await api('POST', '/api/dust/dismantle', {uids: [g2[0].uid]}, tok); dust = x.total; }
+    if(wanted){ const c = await api('POST', '/api/dust/craft', {cid: wanted}, tok); assert.strictEqual(c._s, 200, JSON.stringify(c)); assert.strictEqual(c.card.cid, wanted); assert((await api('GET', '/api/collection', null, tok)).cards.some(x=> x.cid === wanted)); }
+    const hi = Object.keys(BASECARD).find(id=> BASECARD[id] === 9); await expectErr(api('POST', '/api/dust/craft', {cid: hi}, tok), 403, 'craft');
+    const l8 = Object.keys(BASECARD).find(id=> BASECARD[id] === 8 && !have.has(id)); await expectErr(api('POST', '/api/dust/craft', {cid: l8}, tok), 402, 'dust');
+  });
+  await test('l\'offerta mondiale resta valida anche con buste e polvere', async ()=>{
+    const s = await api('GET', '/api/supply'); Object.values(s.supply).forEach(([minted, cap])=> assert(minted <= cap && minted >= 0));
   });
 
   console.log('Limiti e sicurezza');

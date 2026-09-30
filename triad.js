@@ -20,7 +20,7 @@
   function boot(){
     if(booted) return booted;
     booted = (async ()=>{
-      await Promise.all([loadCSS('triad.css'), loadJS('triad-cards.js'), loadJS('triad-core.js')]);
+      await Promise.all([loadCSS('triad.css'), loadJS('triad-cards.js'), loadJS('triad-exp.js'), loadJS('triad-core.js')]);
       loadJS('triad-art.js').catch(()=>{}); await loadJS('triad-play.js');
       try{ await loadJS('triad-config.js'); }catch(e){}
       initCards();
@@ -70,8 +70,10 @@
   const hash = s=>{ let h = 2166136261; for(const c of String(s)){ h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
   function initCards(){
     CARD = {}; LIST = [];
-    (window.TRIAD_CARDS || []).forEach(a=>{ const c = {id: a[0], name: a[1], year: a[2], plat: a[3], lv: a[4], v: a[5], e: a[6], g: a[7]}; CARD[c.id] = c; LIST.push(c); });
-    TT.CARD = CARD; TT.LIST = LIST;
+    const push = (a, set)=>{ const c = {id: a[0], name: a[1], year: a[2], plat: a[3], lv: a[4], v: a[5], e: a[6], g: a[7], set: set || 'base'}; CARD[c.id] = c; LIST.push(c); };
+    (window.TRIAD_CARDS || []).forEach(a=> push(a, 'base'));
+    const EX = window.TRIAD_EXP || {sets: [], cards: []}; EX.cards.forEach(a=> push(a, a[8]));
+    TT.CARD = CARD; TT.LIST = LIST; TT.BASE = LIST.filter(c=> c.set === 'base'); TT.SETS = EX.sets;
   }
   const sum = c=> c.v[0] + c.v[1] + c.v[2] + c.v[3];
   const V = n=> n >= 10 ? 'A' : String(n);
@@ -142,9 +144,9 @@
     o = o || {}; const c = CARD[cid]; if(!c) return '';
     const st = o.style || cardStyle(cid), rk = RAR[c.lv] || 'c', mods = o.mods || [0, 0, 0, 0], ch = artChoice(cid), tier = LV_TIER[c.lv];
     const vals = ['t', 'r', 'b', 'l'].map((k, i)=>{ const raw = c.v[i], eff = raw + (mods[i] || 0); return `<b class="${k}${mods[i] > 0 ? ' up' : mods[i] < 0 ? ' dn' : ''}${eff >= 10 ? ' A' : ''}">${V(Math.max(0, eff))}</b>`; }).join('');
-    const foil = (c.lv >= 9 || st === 'olografico') ? '<b class="ttc-foil"></b>' : '';
+    const foil = (c.lv >= 9 || st === 'olografico' || o.foil) ? '<b class="ttc-foil"></b>' : '';
     const col = (XUI.TIER_COL || {})[tier] || '#fff';
-    return `<div class="ttc${o.sel ? ' sel' : ''}${o.lock ? ' lock' : ''}${o.cls ? ' ' + o.cls : ''}" data-cid="${cid}" data-r="${rk}" data-st="${st}"${o.owner != null ? ' data-o="' + o.owner + '"' : ''}><div class="ttc-in"><div class="ttc-art"><i class="ttc-em" style="--em:${emblem(cid)}"></i>${imgTag(cid, ch, st)}</div><div class="ttc-tint"></div><div class="ttc-shade"></div><div class="ttc-v">${vals}</div>${c.e ? `<div class="ttc-el" title="${ELEM[c.e][0]}">${ELEM[c.e][1]}</div>` : ''}<div class="ttc-st">${'★'.repeat(Math.ceil(c.lv / 2))}</div><div class="ttc-tier" style="color:${col}">${tier}</div><div class="ttc-nm">${esc(c.name)}</div>${foil}</div>${o.cnt > 1 ? `<div class="ttc-cnt">×${o.cnt}</div>` : ''}${o.lock === 'x' ? '<div class="ttc-lock">🔒</div>' : ''}</div>`;
+    return `<div class="ttc${o.sel ? ' sel' : ''}${o.lock ? ' lock' : ''}${o.cls ? ' ' + o.cls : ''}" data-cid="${cid}" data-r="${rk}" data-st="${st}"${o.owner != null ? ' data-o="' + o.owner + '"' : ''}${o.foil ? ' data-fo="1"' : ''}><div class="ttc-in"><div class="ttc-art"><i class="ttc-em" style="--em:${emblem(cid)}"></i>${imgTag(cid, ch, st)}</div><div class="ttc-tint"></div><div class="ttc-shade"></div><div class="ttc-v">${vals}</div>${c.e ? `<div class="ttc-el" title="${ELEM[c.e][0]}">${ELEM[c.e][1]}</div>` : ''}<div class="ttc-st">${'★'.repeat(Math.ceil(c.lv / 2))}</div><div class="ttc-tier" style="color:${col}">${tier}</div><div class="ttc-nm">${esc(c.name)}</div>${foil}${o.foil ? '<div class="ttc-fo">FOIL</div>' : ''}</div>${o.cnt > 1 ? `<div class="ttc-cnt">×${o.cnt}</div>` : ''}${o.lock === 'x' ? '<div class="ttc-lock">🔒</div>' : ''}</div>`;
   }
   TT.cardHtml = cardHtml;
   // le carte scelte dal giocatore con la sua grafica: anche il rivale le vede così (stile della carta)
@@ -233,13 +235,14 @@
       <div class="tt2-menu">
         <button class="tt2-tile big" data-go="online"><span class="ic">🌐</span><b>Sfida i tuoi amici online</b><small>Con codice, QR o richiesta d'amicizia. Se vinci ti prendi le loro carte migliori!</small><span class="bd" id="ttOnBd" style="display:none"></span></button>
         <button class="tt2-tile" data-go="npc"><span class="ic">🤖</span><b>Allenamento</b><small>11 avversari, IA da 1 a 5</small></button>
+        <button class="tt2-tile" data-go="tower"><span class="ic">🗼</span><b>Torre infinita</b><small>Sali senza fine, carte in premio</small></button>
         <button class="tt2-tile" data-go="hot"><span class="ic">👥</span><b>Due giocatori</b><small>Sullo stesso telefono</small></button>
         <button class="tt2-tile" data-go="album"><span class="ic">📚</span><b>Album</b><small>${uniq} di 200 carte</small></button>
         <button class="tt2-tile" data-go="gfx"><span class="ic">🎨</span><b>Grafica delle carte</b><small>6 stili e l'immagine di ogni carta</small></button>
         <button class="tt2-tile" data-go="rules"><span class="ic">📖</span><b>Regole</b><small>Same, Plus, Combo, Elementi…</small></button>
         <button class="tt2-tile" data-go="settings"><span class="ic">⚙️</span><b>Tavolo e suoni</b><small>Temi, volume, animazioni</small></button>
       </div>`, {back: false});
-    $$('[data-go]', root).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const k = b.dataset.go; if(k === 'online') openOnline(); else if(k === 'npc') go(TT.npcList); else if(k === 'hot') go(TT.hotseat); else if(k === 'album') go(albumLocal); else if(k === 'gfx') go(gfxPage); else if(k === 'rules') go(rulesPage); else if(k === 'settings') go(settingsPage); }));
+    $$('[data-go]', root).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const k = b.dataset.go; if(k === 'online') openOnline(); else if(k === 'npc') go(TT.npcList); else if(k === 'tower') go(TT.tower); else if(k === 'hot') go(TT.hotseat); else if(k === 'album') go(albumLocal); else if(k === 'gfx') go(gfxPage); else if(k === 'rules') go(rulesPage); else if(k === 'settings') go(settingsPage); }));
     try{ if(LS.get('jrpg_triad_acct', null)){ if(window.TT_ONLINE_BADGE) window.TT_ONLINE_BADGE(); else loadJS('triad-online.js').then(()=> window.TT_ONLINE_BADGE && window.TT_ONLINE_BADGE()).catch(()=>{}); } }catch(e){}
   }
   function fanHtml(){
@@ -260,21 +263,24 @@
   }
   // src: {title, counts:{cid:n}, locks:{cid:n bloccate}, supply:{cid:[minted,cap]}, mode}
   function albumPage(src){
-    const st = TT.albumState = TT.albumState || {f: 'all', q: '', g: ''};
+    const st = TT.albumState = TT.albumState || {f: 'all', q: '', g: '', x: 'base'};
+    if(src.mode !== 'online') st.x = 'base';
     const have = new Set(Object.keys(src.counts).filter(k=> src.counts[k] > 0 && CARD[k]));
     const draw = ()=>{
-      let body = `<div class="tt2-row sb"><span class="mut">${have.size} di ${LIST.length} carte · ${Object.keys(src.counts).reduce((a, k)=> a + (CARD[k] ? src.counts[k] : 0), 0)} in tutto</span></div><div class="tt2-bar" style="margin:6px 0 8px"><i style="width:${Math.round(have.size / LIST.length * 100)}%"></i></div>
+      const UNI = LIST.filter(c=> c.set === (st.x || 'base')), haveU = UNI.filter(c=> have.has(c.id)).length;
+      let body = (src.mode === 'online' && TT.SETS.length ? `<div class="tt2-strip"><button class="tt2-chip${st.x === 'base' ? ' on' : ''}" data-x="base">🎴 Base</button>${TT.SETS.map(x=> `<button class="tt2-chip${st.x === x.id ? ' on' : ''}" data-x="${x.id}">${x.emoji} ${esc(x.name)}</button>`).join('')}</div>` : '') + `<div class="tt2-row sb"><span class="mut">${haveU} di ${UNI.length} carte · ${Object.keys(src.counts).reduce((a, k)=> a + (CARD[k] ? src.counts[k] : 0), 0)} in tutto</span></div><div class="tt2-bar" style="margin:6px 0 8px"><i style="width:${Math.round(haveU / UNI.length * 100)}%"></i></div>
         <input type="text" id="ttQ" placeholder="Cerca un gioco…" value="${esc(st.q)}"><div class="tt2-strip" style="margin-top:8px">${[['all', 'Tutte'], ['mine', 'Mie'], ['miss', 'Mancanti']].map(x=> `<button class="tt2-chip${st.f === x[0] ? ' on' : ''}" data-f="${x[0]}">${x[1]}</button>`).join('')}<span style="width:8px"></span>${Object.keys(GENRE_N).map(g=> `<button class="tt2-chip${st.g === g ? ' on' : ''}" data-g="${g}">${GLYPH[g]} ${GENRE_N[g]}</button>`).join('')}</div>`;
       const q = slug(st.q || '');
       for(let lv = 10; lv >= 1; lv--){
-        const cs = LIST.filter(c=> c.lv === lv && (!st.g || c.g === st.g) && (!q || slug(c.name).includes(q)) && (st.f === 'all' || (st.f === 'mine' ? have.has(c.id) : !have.has(c.id))));
+        const cs = UNI.filter(c=> c.lv === lv && (!st.g || c.g === st.g) && (!q || slug(c.name).includes(q)) && (st.f === 'all' || (st.f === 'mine' ? have.has(c.id) : !have.has(c.id))));
         if(!cs.length) continue;
-        const own = LIST.filter(c=> c.lv === lv && have.has(c.id)).length;
-        body += `<div class="tt2-lvl" style="color:${(XUI.TIER_COL || {})[LV_TIER[lv]] || '#fff'}">Livello ${lv} · Tier ${LV_TIER[lv]} <small>${RARN[RAR[lv]]} · ${own}/20</small></div><div class="tt2-grid">${cs.sort((a, b)=> sum(b) - sum(a)).map(c=>{ const n = src.counts[c.id] || 0; return `<div class="cw" data-c="${c.id}">${cardHtml(c.id, {cnt: n, lock: n ? (src.locks && src.locks[c.id] >= n ? 'x' : '') : 'x'})}${src.supply && src.supply[c.id] ? `<div class="mut" style="text-align:center;font-size:.62rem;margin-top:3px">${src.supply[c.id][0]}/${src.supply[c.id][1]} nel mondo</div>` : ''}</div>`; }).join('')}</div>`;
+        const own = UNI.filter(c=> c.lv === lv && have.has(c.id)).length, tot = UNI.filter(c=> c.lv === lv).length;
+        body += `<div class="tt2-lvl" style="color:${(XUI.TIER_COL || {})[LV_TIER[lv]] || '#fff'}">Livello ${lv} · Tier ${LV_TIER[lv]} <small>${RARN[RAR[lv]]} · ${own}/${tot}</small></div><div class="tt2-grid">${cs.sort((a, b)=> sum(b) - sum(a)).map(c=>{ const n = src.counts[c.id] || 0; return `<div class="cw" data-c="${c.id}">${cardHtml(c.id, {foil: !!(src.foils && src.foils[c.id]), cnt: n, lock: n ? (src.locks && src.locks[c.id] >= n ? 'x' : '') : 'x'})}${src.supply && src.supply[c.id] ? `<div class="mut" style="text-align:center;font-size:.62rem;margin-top:3px">${src.supply[c.id][0]}/${src.supply[c.id][1]} nel mondo</div>` : ''}</div>`; }).join('')}</div>`;
       }
       const sc = $('#ttScr', root), keep = sc ? sc.scrollTop : 0;
       screen(src.title, body); const sc2 = $('#ttScr', root); sc2.scrollTop = keep;
       const q2 = $('#ttQ', root); q2.addEventListener('input', ()=>{ st.q = q2.value; clearTimeout(draw.t); draw.t = setTimeout(()=>{ draw(); const i = $('#ttQ', root); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 350); });
+      $$('[data-x]', root).forEach(b=> b.addEventListener('click', ()=>{ st.x = b.dataset.x; draw(); }));
       $$('[data-f]', root).forEach(b=> b.addEventListener('click', ()=>{ st.f = b.dataset.f; draw(); }));
       $$('[data-g]', root).forEach(b=> b.addEventListener('click', ()=>{ st.g = st.g === b.dataset.g ? '' : b.dataset.g; draw(); }));
       $$('[data-c]', root).forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); cardDetail(b.dataset.c, src); }));
@@ -384,10 +390,10 @@
       const chosen = sel.map(k=> items.find(i=> i.key === k));
       const pow = chosen.reduce((a, i)=> a + CARD[i.cid].lv, 0);
       screen(o.title || 'Scegli il mazzo', `${o.sub ? `<p class="mut" style="text-align:center">${o.sub}</p>` : ''}
-        <div class="tt2-grid s" style="margin:4px 0 8px;padding:8px;border-radius:16px;background:rgba(0,0,0,.25)">${Array.from({length: need}, (_, i)=> chosen[i] ? `<div class="cw" data-x="${chosen[i].key}">${cardHtml(chosen[i].cid, {sel: false})}</div>` : `<div class="ttc" style="opacity:.25;background:rgba(255,255,255,.15)"><div class="ttc-in" style="background:transparent;display:grid;place-items:center;font-size:2rem">＋</div></div>`).join('')}</div>
+        <div class="tt2-grid s" style="margin:4px 0 8px;padding:8px;border-radius:16px;background:rgba(0,0,0,.25)">${Array.from({length: need}, (_, i)=> chosen[i] ? `<div class="cw" data-x="${chosen[i].key}">${cardHtml(chosen[i].cid, {sel: false, foil: chosen[i].foil})}</div>` : `<div class="ttc" style="opacity:.25;background:rgba(255,255,255,.15)"><div class="ttc-in" style="background:transparent;display:grid;place-items:center;font-size:2rem">＋</div></div>`).join('')}</div>
         <div class="tt2-row sb"><span class="mut">${sel.length}/${need} · livelli ${pow}</span><span class="tt2-row"><button class="tt2-btn sm" id="dkBest">Migliori 5</button>${P.decks.length ? '<button class="tt2-btn sm" id="dkLoad">Mazzi salvati</button>' : ''}${sel.length === need ? '<button class="tt2-btn sm" id="dkSave">Salva mazzo</button>' : ''}</span></div>
         <div class="tt2-strip">${[['all', 'Tutte'], ...Object.keys(GENRE_N).map(g=> [g, GLYPH[g] + ' ' + GENRE_N[g]])].map(x=> `<button class="tt2-chip${st.f === x[0] ? ' on' : ''}" data-f="${x[0]}">${x[1]}</button>`).join('')}</div>
-        <div class="tt2-grid s">${items.filter(i=> st.f === 'all' || CARD[i.cid].g === st.f).map(i=> `<div class="cw" data-k="${i.key}">${cardHtml(i.cid, {sel: sel.includes(i.key), lock: i.lock ? 'x' : '', cls: sel.length >= need && !sel.includes(i.key) ? 'dim' : ''})}</div>`).join('')}</div>
+        <div class="tt2-grid s">${items.filter(i=> st.f === 'all' || CARD[i.cid].g === st.f).map(i=> `<div class="cw" data-k="${i.key}">${cardHtml(i.cid, {foil: i.foil, sel: sel.includes(i.key), lock: i.lock ? 'x' : '', cls: sel.length >= need && !sel.includes(i.key) ? 'dim' : ''})}</div>`).join('')}</div>
         <div style="position:sticky;bottom:0;padding:10px 0 2px;background:linear-gradient(180deg,transparent,#0a0820 40%)"><button class="tt2-btn pri w" id="dkOk" ${sel.length === need ? '' : 'disabled'}>${o.ok || 'Conferma'} (${sel.length}/${need})</button></div>`, {backFn: o.back});
       $('#ttScr', root).scrollTop = keep;
       $$('[data-k]', root).forEach(b=> b.addEventListener('click', ()=>{ const k = b.dataset.k, it = items.find(i=> i.key === k); if(it.lock){ TT.toast('Questa carta è già in una sfida o in una partita'); return; } const at = sel.indexOf(k); if(at >= 0) sel.splice(at, 1); else if(sel.length < need) sel.push(k); else return TT.toast('Hai già ' + need + ' carte: toglierne una'); TT.snd('click'); draw(); }));

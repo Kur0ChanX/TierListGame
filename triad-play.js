@@ -35,11 +35,11 @@
     const play = $('#ttPlay', R), g3 = $('#g3', R);
     const seatPanel = (seat, id)=>{ const n = opt.names[seat] || {nick: '?', av: '🙂'}; $(id, R).className = 'tt2-pl' + (seat === 1 ? ' o' : '') + (st.turn === seat ? ' turn' : ''); $(id, R).innerHTML = `<div class="av">${n.av || '🙂'}</div><div class="nm">${esc(n.nick)}${n.sub ? `<small>${esc(n.sub)}</small>` : ''}</div><div class="tt2-tm" id="tm${seat}" style="display:none"></div><div class="sc" id="sc${seat}">5</div>`; };
     const elMods = (card, cell, s)=>{ const el = s.squares[cell]; if(!s.rules.elemental || !el) return [0, 0, 0, 0]; const d = card.e === el ? 1 : -1; return [d, d, d, d]; };
-    const hidden = seat=> opt.hidden ? opt.hidden(seat, st) : false;
-    function handHtml(seat){ const hide = hidden(seat); return sim.hands[seat].map((c, hi)=> `<div class="sl${hide ? ' back' : ''}" data-hi="${hi}" data-seat="${seat}">${c ? cardHtml(c.id, {owner: seat}) : '<div class="ttc used"></div>'}</div>`).join(''); }
+    const hidden = seat=> opt.hidden ? opt.hidden(seat, st) : false, fo = c=> !!(opt.foil && c && opt.foil(c.u));
+    function handHtml(seat){ const hide = hidden(seat); return sim.hands[seat].map((c, hi)=> `<div class="sl${hide ? ' back' : ''}" data-hi="${hi}" data-seat="${seat}">${c ? cardHtml(c.id, {owner: seat, foil: fo(c)}) : '<div class="ttc used"></div>'}</div>`).join(''); }
     function cellHtml(i){
       const el = sim.squares[i], b = sim.board[i];
-      return `<div class="tt2-cell" data-cell="${i}">${sim.rules.elemental && el ? `<div class="sq">${TT.ELEM[el][1]}</div>` : ''}${b ? cardHtml(b.card.id, {owner: b.owner, mods: elMods(b.card, i, sim)}) : ''}</div>`;
+      return `<div class="tt2-cell" data-cell="${i}">${sim.rules.elemental && el ? `<div class="sq">${TT.ELEM[el][1]}</div>` : ''}${b ? cardHtml(b.card.id, {owner: b.owner, mods: elMods(b.card, i, sim), foil: fo(b.card)}) : ''}</div>`;
     }
     function renderAll(){
       seatPanel(top, '#plTop'); seatPanel(me, '#plBot');
@@ -123,7 +123,7 @@
           const card = ev.card, cellEl = $(`.tt2-cell[data-cell="${ev.cell}"]`, R);
           sim.hands[ev.p][ev.hi] = null; sim.board[ev.cell] = {card, owner: ev.p};
           const slot = $(`.sl[data-seat="${ev.p}"][data-hi="${ev.hi}"]`, R); if(slot){ slot.classList.remove('back'); slot.innerHTML = '<div class="ttc used"></div>'; }
-          if(cellEl){ $$('.ttc', cellEl).forEach(x=> x.remove()); cellEl.insertAdjacentHTML('beforeend', cardHtml(card.id, {owner: ev.p, cls: 'drop', mods: elMods(card, ev.cell, sim)})); }
+          if(cellEl){ $$('.ttc', cellEl).forEach(x=> x.remove()); cellEl.insertAdjacentHTML('beforeend', cardHtml(card.id, {owner: ev.p, cls: 'drop', mods: elMods(card, ev.cell, sim), foil: fo(card)})); }
           TT.snd('place'); scores(true);
           const el = sim.squares[ev.cell]; if(sim.rules.elemental && el) setTimeout(()=> pop(ev.cell, card.e === el ? '+1' : '−1', card.e === el ? 'up' : 'dn'), 120);
           await sleep(D(430));
@@ -301,4 +301,112 @@
     return {board: ()=> board};
   }
   TT.startLocal = startLocal;
+
+  // =====================================================================================================
+  // LA TORRE INFINITA (offline): sali piano dopo piano con 5 carte che si potenziano; ogni piano è più duro. Se perdi, i piani superati ti fruttano carte.
+  // =====================================================================================================
+  const TKEY = 'jrpg_triad_tower', SIDEN = ['in alto', 'a destra', 'in basso', 'a sinistra'], ELN = ['fuoco', 'ghiaccio', 'tuono', 'terra', 'veleno', 'vento', 'acqua', 'sacro'];
+  const tload = ()=> Object.assign({best: 0, runs: 0, run: null}, TT.LS.get(TKEY, {}) || {}), tsave = T=> TT.LS.set(TKEY, T);
+  const pickOf = arr=> arr[Math.floor(Math.random() * arr.length)];
+  function towerOpp(f){
+    const boss = f % 10 === 0, avg = Math.min(9.6, 1 + f * .42), deck = [];
+    const rules = f < 3 ? {} : f < 6 ? {elemental: true} : f < 10 ? {elemental: true, same: true} : (f < 15 && !boss) ? {elemental: true, same: true, plus: true, combo: true} : {elemental: true, same: true, sameWall: true, plus: true, combo: true};
+    let guard = 0;
+    while(deck.length < 5 && guard++ < 80){ const lv = Math.max(1, Math.min(10, Math.round(avg + (boss ? 1 : 0) + (Math.random() * 2.4 - 1.2)))), c = pickOf(TT.LIST.filter(x=> x.lv === lv)); if(!deck.includes(c.id)) deck.push(c.id); }
+    return {deck, rules, ai: f < 4 ? 1 : f < 8 ? 2 : f < 13 ? 3 : f < 20 ? 4 : 5, boss, avg: Math.round(avg * 10) / 10, name: boss ? 'Guardiano del piano ' + f : 'Sfidante del piano ' + f, face: boss ? '👹' : pickOf(['🧙', '🥷', '🤖', '👽', '🦹', '🧛', '🐉', '🦂'])};
+  }
+  const tv = (run, i)=> TT.CARD[run.deck[i]].v.map((x, k)=> Math.min(10, x + run.buff[i][k]));
+  const tcard = (run, i)=> ({id: run.deck[i], v: tv(run, i), e: run.elem[i] || TT.CARD[run.deck[i]].e});
+  const towerMini = (run, i)=> { const c = tcard(run, i), b = run.buff[i]; return `<div class="cw">${cardHtml(c.id, {mods: b.map(x=> x)})}<div class="mut" style="text-align:center;font-size:.62rem">${b.some(x=> x) ? '💪 +' + b.reduce((a, x)=> a + x, 0) : ''}${run.elem[i] ? ' ' + TT.ELEM[run.elem[i]][1] : ''}</div></div>`; };
+  TT.tower = function(){
+    const T = tload(), run = T.run;
+    if(!run){
+      TT.screen('Torre infinita', `<div class="tt2-tower-hd"><div style="font-size:2.6rem">🗼</div><div class="fl">${T.best}</div><div class="mut">piano record · ${T.runs} scalate</div></div>
+        <p>Scegli <b>5 carte</b> del tuo album e sali il più in alto possibile. Dopo ogni vittoria scegli un <b>potenziamento</b> (+1 ai lati, un elemento, una carta più forte…). Ogni piano è più difficile e ogni 10 piani c'è un <b>Guardiano</b>. Se perdi, i piani superati ti fruttano <b>carte nuove</b> per l'album.</p>
+        <button class="tt2-btn pri w" id="twGo">Inizia la scalata</button>`);
+      $('#twGo').addEventListener('click', ()=>{
+        TT.refill();
+        const items = []; const S = TT.save(); Object.keys(S.owned).forEach(cid=>{ if(TT.CARD[cid]) for(let i = 0; i < S.owned[cid]; i++) items.push({key: cid + '#' + i, cid}); });
+        TT.pickDeck({title: 'Le tue 5 carte per la Torre', sub: 'Durante la scalata le potenzierai. Scegli con cura!', items, ok: 'Sali!', back: TT.tower, onDone: keys=>{
+          T.run = {floor: 1, deck: keys.map(k=> k.split('#')[0]), buff: keys.map(()=> [0, 0, 0, 0]), elem: keys.map(()=> null), first: false}; tsave(T); towerHub();
+        }});
+      });
+      return;
+    }
+    towerHub();
+  };
+  function towerHub(){
+    const T = tload(), run = T.run, f = run.floor, o = towerOpp(f);
+    TT.screen('Torre infinita', `<div class="tt2-tower-hd"><div class="mut">Piano</div><div class="fl">${f}</div><div class="mut">record ${T.best}${o.boss ? ' · ⚠️ GUARDIANO' : ''}</div></div>
+      <div class="tt2-box"><b>${o.face} ${esc(o.name)}</b><div class="mut" style="margin:4px 0">IA ${AI_N[o.ai]} · carte di livello medio ${o.avg}</div><div class="tt2-row">${ruleChips(Object.assign({sudden: true}, o.rules), '')}</div></div>
+      <h3>La tua squadra ${run.first ? '<small>· 🥇 parti per primo!</small>' : ''}</h3><div class="tt2-grid s">${run.deck.map((_, i)=> towerMini(run, i)).join('')}</div>
+      <button class="tt2-btn pri w" id="twFight" style="margin-top:14px">⚔️ Sfida il piano ${f}</button><div class="tt2-row c" style="margin-top:8px"><button class="tt2-btn sm red" id="twQuit">Concludi la scalata</button></div>`);
+    $('#twFight').addEventListener('click', ()=> towerFight(o));
+    $('#twQuit').addEventListener('click', async ()=>{ if(await TT.ask('Concludere la scalata? Riceverai le carte dei piani superati (' + (f - 1) + ').', 'Concludi', 'Continua')) towerEnd(T, f - 1, true); });
+  }
+  function towerRewards(cleared){
+    const n = cleared >= 2 ? Math.floor(cleared / 2) : 0, out = [];
+    for(let j = 1; j <= n; j++){ const lv = Math.max(1, Math.min(10, Math.round(1 + j * .8 + (Math.random() < .3 ? 1 : 0)))); out.push(pickOf(TT.BASE.filter(c=> c.lv === lv)).id); }
+    return out;
+  }
+  function towerEnd(T, cleared, quit){
+    const rw = towerRewards(cleared), S = TT.save(); rw.forEach(id=>{ S.owned[id] = (S.owned[id] || 0) + 1; }); TT.saveS();
+    T.best = Math.max(T.best, cleared); T.runs++; T.run = null; tsave(T);
+    const R = TT.root();
+    R.innerHTML = ''; TT.screen('Torre infinita', `<div class="tt2-tower-hd"><div style="font-size:2.4rem">${cleared >= T.best && cleared > 0 ? '🏆' : '🗼'}</div><div class="fl">${cleared}</div><div class="mut">piani superati${cleared >= T.best && cleared > 0 ? ' · NUOVO RECORD!' : ' · record ' + T.best}</div></div>
+      ${rw.length ? `<h3>Carte guadagnate</h3><div class="tt2-grid s">${rw.map(id=> `<div class="cw">${cardHtml(id, {})}</div>`).join('')}</div>` : '<p class="mut" style="text-align:center">Supera almeno 2 piani per vincere carte.</p>'}
+      <button class="tt2-btn pri w" id="twAgain" style="margin-top:14px">Nuova scalata</button>`);
+    if(rw.length){ TT.snd('win'); }
+    $('#twAgain').addEventListener('click', ()=> TT.replaceTop(TT.tower));
+  }
+  function towerBoons(T){
+    const run = T.run, opts = [], idx = ()=> Math.floor(Math.random() * 5);
+    const nm = i=> esc(TT.CARD[run.deck[i]].name);
+    for(let k = 0; k < 2; k++){ const i = idx(), sd = [0, 1, 2, 3].sort(()=> Math.random() - .5).slice(0, 2); opts.push({t: 'buff', i, sd, ic: '💪', ti: 'Rinforza', tx: `${nm(i)}: +1 ${SIDEN[sd[0]]} e +1 ${SIDEN[sd[1]]}`}); }
+    { const i = run.deck.map((c, k)=> [TT.CARD[c].lv, k]).sort((a, b)=> a[0] - b[0])[0][1], lv = Math.min(10, TT.CARD[run.deck[i]].lv + 2), c = pickOf(TT.BASE.filter(x=> x.lv === lv && !run.deck.includes(x.id))); if(c) opts.push({t: 'swap', i, id: c.id, ic: '🔄', ti: 'Carta più forte', tx: `Al posto di ${nm(i)} entra ${esc(c.name)} (livello ${c.lv})`}); }
+    { const i = idx(), e = pickOf(ELN); opts.push({t: 'elem', i, e, ic: TT.ELEM[e][1], ti: 'Elemento', tx: `${nm(i)} diventa ${TT.ELEM[e][0]}`}); }
+    opts.push({t: 'first', ic: '🥇', ti: 'Prima mossa', tx: 'Nel prossimo piano giochi per primo'});
+    opts.push({t: 'all', ic: '⭐', ti: 'Benedizione', tx: 'Una carta a caso prende +1 a tutti i lati', i: idx()});
+    return opts.sort(()=> Math.random() - .5).slice(0, 3);
+  }
+  function towerBoonScreen(){
+    const T = tload(), opts = towerBoons(T);
+    TT.screen('Potenziamento', `<p style="text-align:center"><b>Piano ${T.run.floor - 1} superato!</b><br>Scegli un potenziamento:</p><div class="tt2-list">${opts.map((o, i)=> `<button class="tt2-item" data-o="${i}"><div class="av" style="font-size:1.6rem">${o.ic}</div><div class="tx"><b>${o.ti}</b><small>${o.tx}</small></div></button>`).join('')}</div>`, {back: false});
+    $$('[data-o]').forEach(b=> b.addEventListener('click', ()=>{
+      const o = opts[+b.dataset.o], run = T.run; TT.snd('coin');
+      if(o.t === 'buff') o.sd.forEach(k=>{ run.buff[o.i][k]++; }); else if(o.t === 'swap'){ run.deck[o.i] = o.id; run.buff[o.i] = [0, 0, 0, 0]; run.elem[o.i] = null; } else if(o.t === 'elem') run.elem[o.i] = o.e; else if(o.t === 'first') run.first = true; else if(o.t === 'all') run.buff[o.i] = run.buff[o.i].map(x=> x + 1);
+      tsave(T); towerHub();
+    }));
+  }
+  function towerFight(o){
+    const T = tload(), run = T.run, rules = Core.normRules(Object.assign({sudden: true, trade: 'one'}, o.rules));
+    let st = Core.newGame({rules, seed: Math.floor(Math.random() * 4294967296), first: run.first ? 0 : (Math.random() < .5 ? 1 : 0), hands: [run.deck.map((_, i)=> tcard(run, i)), o.deck.map(TT.cobj)]});
+    run.first = false; tsave(T);
+    let board = null, over = false;
+    board = TT.mountBoard({
+      state: st, me: 0, names: [{nick: 'Tu', av: '🦝', sub: 'Piano ' + run.floor}, {nick: o.name, av: o.face, sub: 'IA ' + AI_N[o.ai]}], title: '🗼 Piano ' + run.floor,
+      canPlay: (seat, s)=> !s.over && seat === 0,
+      onPlay: async (hi, cell)=>{ const r = Core.play(st, {hi, cell}); if(!r.ok) throw new Error(r.error); st = r.state; setTimeout(after, 0); return r; },
+      quit: async ()=>{ if(over || await TT.ask('Uscire dal piano? La scalata finisce e ricevi le carte dei piani superati.', 'Esci', 'Continua')){ board.destroy(); towerEnd(tload(), run.floor - 1, true); } }
+    });
+    st = board.state || st;
+    if(st.turn === 1) aiTurn();
+    async function after(){ await sleep(30); let n = 0; while(board.busy && n++ < 200) await sleep(60); if(st.over) return finish(); if(st.turn === 1) aiTurn(); }
+    async function aiTurn(){
+      board.setThinking(true); await sleep(P.fast ? 150 : 650); await sleep(20);
+      const mv = Core.ai(st, o.ai), r = Core.play(st, mv); if(!r.ok){ board.setThinking(false); return; }
+      st = r.state; board.setThinking(false); await board.apply(st, r.events); if(st.over) finish();
+    }
+    async function finish(){
+      if(over) return; over = true; await sleep(P.fast ? 200 : 700);
+      const won = st.result.winner === 0, T2 = tload(), sc = st.result.score;
+      if(won){
+        T2.run.floor++; T2.best = Math.max(T2.best, T2.run.floor - 1); tsave(T2);
+        board.showEnd({kind: 'win', title: 'PIANO ' + (T2.run.floor - 1) + ' SUPERATO!', sub: `${sc[0]} a ${sc[1]}`, buttons: [{label: 'Scegli il potenziamento', cls: 'pri', fn: ()=>{ board.destroy(); towerBoonScreen(); }}]});
+      } else {
+        const cleared = run.floor - 1;
+        board.showEnd({kind: st.result.winner == null ? 'draw' : 'lose', title: 'FINE DELLA SCALATA', sub: `${sc[0]} a ${sc[1]} · hai superato ${cleared} ${cleared === 1 ? 'piano' : 'piani'}`, buttons: [{label: 'Ritira le carte', cls: 'pri', fn: ()=>{ board.destroy(); towerEnd(tload(), cleared, false); }}]});
+      }
+    }
+  }
 })();

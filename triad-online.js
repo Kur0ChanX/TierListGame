@@ -56,7 +56,7 @@
   }
   function newsToast(it){
     const c = it.data && it.data.cid && TT.CARD[it.data.cid] ? TT.CARD[it.data.cid].name : '';
-    const map = {friend_req: `👋 ${it.data.nick} ti ha chiesto l'amicizia`, friend_ok: `🤝 ${it.data.nick} è ora tuo amico`, challenge: `🎴 ${it.data.from} ti sfida!`, stolen: `⚠️ ${it.data.by} ti ha rubato ${c}!`, won: `🏆 Hai preso ${c} a ${it.data.from}`, boss: `👑 Ricompensa del Custode: ${c}`, refill: '🎁 Ti ho dato carte comuni per poter giocare'};
+    const map = {friend_req: `👋 ${it.data.nick} ti ha chiesto l'amicizia`, friend_ok: `🤝 ${it.data.nick} è ora tuo amico`, challenge: `🎴 ${it.data.from} ti sfida!`, stolen: `⚠️ ${it.data.by} ti ha rubato ${c}!`, won: `🏆 Hai preso ${c} a ${it.data.from}`, boss: `👑 Ricompensa del Custode: ${c}`, refill: '🎁 Ti ho dato carte comuni per poter giocare', level: `⭐ Livello ${it.data.lvl}! +${it.data.coins} 🪙${it.data.ticket ? ' e una busta in regalo' : ''}`, ach: `🏅 Traguardo: ${it.data.name} (+${it.data.coins} 🪙)`, set: `🗂️ Collezione completata: ${it.data.name}`};
     if(map[it.kind]){ TT.toast(map[it.kind], 3500); if(it.kind === 'stolen'){ TT.snd('steal'); TT.vib([80, 60, 80]); } else if(it.kind === 'won' || it.kind === 'boss') TT.snd('coin'); }
   }
   function badges(){ const b = $('#ttOnBd'); if(b && me){ const n = (me.news || 0) + (me.requests || 0); b.style.display = n ? '' : 'none'; b.textContent = n; } const l = $('#lbNews'); if(l && me){ l.style.display = me.news ? '' : 'none'; l.textContent = me.news; } const f = $('#lbFr'); if(f && me){ f.style.display = me.requests ? '' : 'none'; f.textContent = me.requests; } }
@@ -127,31 +127,159 @@
 
   // ---------------------------------------------------------------- sala online
   function rankChip(r){ return `<span class="tt2-chip t">${RANK_EM[r] || ''} ${esc(r)}</span>`; }
+  const lvRw = L=> ({coins: 40 + 6 * L, ticket: L % 25 === 0 ? 'leg' : L % 10 === 0 ? 'epica' : L % 5 === 0 ? 'rara' : null});
+  const TK = {base: 'Busta Base', rara: 'Busta Rara', epica: 'Busta Epica', leg: 'Busta Leggendaria'};
+  const tkName = k=> TK[k] || (String(k).startsWith('exp:') ? 'Busta ' + ((TT.SETS.find(x=> 'exp:' + x.id === k) || {}).name || 'Espansione') : k);
+  const tkChips = t=> Object.keys(t || {}).filter(k=> t[k] > 0).map(k=> `<span class="c">🎟️ ${esc(tkName(k))} ×${t[k]}</span>`).join('');
+  function curHtml(m){ return `<div class="tt2-cur"><span class="c">🪙 ${m.coins}</span><span class="c">✨ ${m.dust} polvere</span>${tkChips(m.tickets)}</div>`; }
+  function lvHtml(m){ const x = m.xp || {cur: 0, need: 100}; return `<div class="tt2-lv" id="lbLv"><b>Lv ${m.level}</b><div class="tt2-bar"><i style="width:${Math.round(x.cur / x.need * 100)}%"></i></div><small>${x.cur}/${x.need} XP</small></div>`; }
+  function levelModal(){
+    const L = me.level, rows = []; for(let l = L + 1; l <= L + 8; l++){ const r = lvRw(l); rows.push(`<div class="tt2-item" style="cursor:default"><div class="av" style="font-size:1rem;font-weight:900">${l}</div><div class="tx"><b>Livello ${l}</b><small>🪙 ${r.coins}${r.ticket ? ' · 🎟️ ' + esc(TK[r.ticket]) : ''}</small></div></div>`); }
+    TT.modal(`<h3 style="margin-top:0">Livello ${L}</h3><p class="mut">Ogni partita, missione e busta dà XP. Ad ogni livello ricevi monete, e ogni 5, 10 e 25 livelli una busta in regalo!</p><div class="tt2-list">${rows.join('')}</div><div class="tt2-row c" style="margin-top:10px"><button class="tt2-btn pri" data-mclose>Ok</button></div>`);
+  }
   function lobby(){
     if(!me) return;
-    const dailyBtn = me.daily && me.daily.ready ? `<button class="tt2-btn gold w" id="lbDaily">🎁 Ritira la ricompensa di oggi</button>` : `<div class="mut" style="text-align:center">Prossima ricompensa tra ${Math.max(1, Math.ceil(((me.daily ? me.daily.nextAt : 0) - Date.now()) / 3600000))} ore</div>`;
+    const dailyBtn = me.daily && me.daily.ready ? `<button class="tt2-btn gold w" id="lbDaily">🎁 Ritira la ricompensa di oggi</button>` : `<div class="mut" style="text-align:center">Prossima ricompensa tra ${Math.max(1, Math.ceil(((me.daily ? me.daily.nextAt : 0) - Date.now()) / 3600000))} ore · serie ${me.daily ? me.daily.n : 0}</div>`;
     TT.screen('Online', `
-      <div class="tt2-box" style="display:flex;gap:12px;align-items:center"><div class="tt2-item" style="width:auto;padding:0;background:none;border:0"><div class="av" style="width:58px;height:58px;font-size:1.9rem">${avOf(me.id)}</div></div><div style="flex:1;min-width:0"><b style="font-size:1.1rem">${esc(me.nick)}</b><div class="tt2-row" style="margin:4px 0">${rankChip(me.rank)}<span class="tt2-chip r">ELO ${me.elo}</span></div><div class="mut">${me.wins}V ${me.losses}S ${me.draws}P · serie ${me.streak} · ${me.cards} carte · potenza ${me.power}</div></div></div>
+      <div class="tt2-box" style="display:flex;gap:12px;align-items:center"><div class="tt2-item" style="width:auto;padding:0;background:none;border:0"><div class="av" style="width:58px;height:58px;font-size:1.9rem">${avOf(me.id)}</div></div><div style="flex:1;min-width:0"><b style="font-size:1.1rem">${esc(me.nick)}</b><div class="tt2-row" style="margin:4px 0">${rankChip(me.rank)}<span class="tt2-chip r">ELO ${me.elo}</span></div><div class="mut">${me.wins}V ${me.losses}S ${me.draws}P · serie ${me.streak} · ${me.cards} carte</div></div></div>
+      ${me.event && me.event.mul > 1 ? `<div class="tt2-event">🎉 ${esc(me.event.name)}</div>` : ''}${curHtml(me)}${lvHtml(me)}
       ${me.match ? `<button class="tt2-btn red w" id="lbResume" style="margin-bottom:8px">▶ Riprendi la partita in corso</button>` : ''}
       ${dailyBtn}
       <div class="tt2-menu">
         <button class="tt2-tile big" data-a="friends"><span class="ic">👥</span><b>Sfida un amico</b><small>Amici, richieste e stanze con codice o QR</small><span class="bd" id="lbFr" style="display:${me.requests ? '' : 'none'}">${me.requests || 0}</span></button>
+        <button class="tt2-tile" data-a="shop"><span class="ic">🛍️</span><b>Negozio buste</b><small>Apri le buste: carte rare e foil!</small></button>
+        <button class="tt2-tile" data-a="mis"><span class="ic">🎯</span><b>Missioni</b><small>Ogni giorno nuovi premi</small><span class="bd" style="display:${me.missions ? '' : 'none'}">${me.missions || 0}</span></button>
         <button class="tt2-tile" data-a="room"><span class="ic">🚪</span><b>Crea stanza</b><small>Codice e QR da far leggere</small></button>
         <button class="tt2-tile" data-a="join"><span class="ic">🔑</span><b>Entra con codice</b><small>Hai un codice stanza?</small></button>
-        <button class="tt2-tile" data-a="boss"><span class="ic">👑</span><b>Custodi</b><small>10 sfide per guadagnare carte forti</small></button>
-        <button class="tt2-tile" data-a="cards"><span class="ic">📚</span><b>Le mie carte</b><small>${me.cards} carte online</small></button>
+        <button class="tt2-tile" data-a="boss"><span class="ic">👑</span><b>Custodi</b><small>10 sfide per carte forti</small></button>
+        <button class="tt2-tile" data-a="cards"><span class="ic">📚</span><b>Le mie carte</b><small>${me.cards} carte · con le espansioni</small></button>
+        <button class="tt2-tile" data-a="sets"><span class="ic">🗂️</span><b>Collezioni</b><small>Completa i set e vinci</small></button>
+        <button class="tt2-tile" data-a="work"><span class="ic">⚗️</span><b>Officina</b><small>Smonta le doppie, crea le mancanti</small></button>
+        <button class="tt2-tile" data-a="ach"><span class="ic">🏅</span><b>Traguardi</b><small>Medaglie e premi</small></button>
         <button class="tt2-tile" data-a="top"><span class="ic">🏆</span><b>Classifica</b><small>ELO e collezioni</small></button>
         <button class="tt2-tile" data-a="news"><span class="ic">📰</span><b>Novità</b><small>Furti, vittorie, sfide</small><span class="bd" id="lbNews" style="display:${me.news ? '' : 'none'}">${me.news || 0}</span></button>
         <button class="tt2-tile" data-a="acct"><span class="ic">⚙️</span><b>Account</b><small>Codice amico e recupero</small></button>
       </div>`);
-    $$('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const a = b.dataset.a; a === 'friends' ? TT.go(friendsPage) : a === 'room' ? TT.go(()=> challengeSetup({})) : a === 'join' ? TT.go(joinPage) : a === 'boss' ? TT.go(bossPage) : a === 'cards' ? TT.go(cardsPage) : a === 'top' ? TT.go(topPage) : a === 'news' ? TT.go(newsPage) : TT.go(acctPage); }));
-    const d = $('#lbDaily'); if(d) d.addEventListener('click', async ()=>{ d.disabled = true; try{ const r = await api('POST', '/api/daily'); TT.snd('coin'); me.daily = {ready: false, nextAt: Date.now() + 20 * 3600000}; me.cards++; lobby(); showNewCard(r.card, 'Ricompensa di oggi', 'Serie: ' + r.streak + (r.streak % 7 === 0 ? ' 🔥 (bonus!)' : '')); }catch(e){ errToast(e); d.disabled = false; } });
+    const GO = {friends: friendsPage, shop: shopPage, mis: missionsPage, join: joinPage, boss: bossPage, cards: cardsPage, sets: setsPage, work: workshopPage, ach: achPage, top: topPage, news: newsPage, acct: acctPage};
+    $$('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); const a = b.dataset.a; if(a === 'room') TT.go(()=> challengeSetup({})); else TT.go(GO[a]); }));
+    const lv = $('#lbLv'); if(lv) lv.addEventListener('click', levelModal);
+    const d = $('#lbDaily'); if(d) d.addEventListener('click', async ()=>{ d.disabled = true; try{ const r = await api('POST', '/api/daily'); TT.snd('coin'); me.daily = {ready: false, nextAt: Date.now() + 20 * 3600000, n: r.streak}; me = await api('GET', '/api/me'); lobby(); showNewCard(r.card, 'Ricompensa di oggi', 'Serie: ' + r.streak + (r.streak % 7 === 0 ? ' 🔥 giorno 7: busta in regalo!' : '') + (r.gain ? ' · +' + r.gain.coins + ' 🪙' : '')); }catch(e){ errToast(e); d.disabled = false; } });
     const r = $('#lbResume'); if(r) r.addEventListener('click', ()=> resumeMatch(me.match));
   }
   function showNewCard(c, title, sub){
     if(!c){ TT.toast('Nessuna carta disponibile ora'); return; }
-    const m = TT.modal(`<div style="text-align:center"><h3 style="margin-top:0">${esc(title)}</h3><div class="tt2-big">${cardHtml(c.cid, {})}</div><b>${esc(TT.CARD[c.cid].name)}</b><div class="mut">${TT.RARN[TT.rarKey(TT.CARD[c.cid].lv)]} · livello ${TT.CARD[c.cid].lv}</div>${sub ? `<p class="mut">${esc(sub)}</p>` : ''}<button class="tt2-btn pri" data-mclose>Fantastico!</button></div>`, {center: true});
+    const m = TT.modal(`<div style="text-align:center"><h3 style="margin-top:0">${esc(title)}</h3><div class="tt2-big">${cardHtml(c.cid, {foil: c.foil})}</div><b>${esc(TT.CARD[c.cid].name)}</b><div class="mut">${TT.RARN[TT.rarKey(TT.CARD[c.cid].lv)]} · livello ${TT.CARD[c.cid].lv}</div>${sub ? `<p class="mut">${esc(sub)}</p>` : ''}<button class="tt2-btn pri" data-mclose>Fantastico!</button></div>`, {center: true});
     return m;
+  }
+
+  // ---------------------------------------------------------------- premi, negozio, buste, missioni, collezioni, traguardi, officina
+  const RCOL = {c: '#a3a8ba', u: '#4ade80', r: '#60a5fa', e: '#c084fc', l: '#fbbf24', m: '#ff6bd0'};
+  function gainText(g){ if(!g) return ''; const p = []; if(g.coins) p.push('+' + g.coins + ' 🪙'); if(g.xp) p.push('+' + g.xp + ' XP'); if(g.dust) p.push('+' + g.dust + ' ✨'); if(g.ticket) p.push('🎟️ ' + tkName(g.ticket)); (g.levels || []).forEach(l=> p.push('⭐ Livello ' + l.lvl + '!' + (l.ticket ? ' 🎟️ ' + tkName(l.ticket) : ''))); return p.join(' · '); }
+  function gainModal(title, g){
+    TT.snd('coin'); const lv = g && g.levels && g.levels.length;
+    TT.modal(`<div style="text-align:center"><div style="font-size:2.4rem">${lv ? '⭐' : '🎁'}</div><h3 style="margin:2px 0">${esc(title)}</h3><p style="font-size:1.1rem;font-weight:800;line-height:1.7">${gainText(g) || 'Fatto!'}</p><button class="tt2-btn pri" data-mclose>Grande!</button></div>`, {center: true});
+  }
+  const packEmoji = t=> ({base: '🎴', rara: '💎', epica: '🔮', leg: '👑'})[t] || ((TT.SETS.find(x=> 'exp:' + x.id === t) || {}).emoji || '🎁');
+  async function shopPage(){
+    TT.loading('Apro il negozio…');
+    let sh; try{ sh = await api('GET', '/api/shop'); }catch(e){ errToast(e); return TT.back(); }
+    me.coins = sh.coins; me.dust = sh.dust; me.tickets = sh.tickets;
+    const pk = p=> `<div class="tt2-pk-item"><div class="tt2-pack ${p.type.startsWith('exp') ? 'exp' : p.type}" data-b="${p.type}"><span>${packEmoji(p.type)}</span><b>${esc(p.name)}</b>${p.ticket ? `<i class="tk">${p.ticket}</i>` : ''}</div><div class="mut" style="font-size:.7rem">${p.n} carte · almeno livello ${p.guar}</div><div class="tt2-pity"><i style="width:${Math.round(p.pity / p.pityMax * 100)}%"></i></div><div class="mut" style="font-size:.64rem;margin-top:-3px">Fortuna garantita: ${p.pity}/${p.pityMax}</div>
+      <button class="tt2-btn sm ${p.ticket ? 'gold' : 'pri'}" data-buy="${p.type}" style="margin-top:6px">${p.ticket ? '🎟️ Usa biglietto' : '🪙 ' + p.cost}</button>${p.ticket ? `<button class="tt2-btn sm" data-buy="${p.type}" data-coins="1" style="margin:6px 0 0 4px">🪙 ${p.cost}</button>` : ''}</div>`;
+    TT.screen('Negozio', `${sh.event.mul > 1 ? `<div class="tt2-event">🎉 ${esc(sh.event.name)}</div>` : ''}${curHtml(sh)}
+      <p class="mut" style="text-align:center">Vinci monete giocando, con le missioni e i traguardi. Nelle buste può uscire di tutto, anche carte <b>foil</b> ✨. Ogni busta ha una <b>fortuna garantita</b>: più ne apri senza una carta forte, più diventa sicura!</p>
+      <h3>Buste</h3><div class="tt2-packs">${sh.packs.map(p=> pk({...p, name: p.name})).join('')}</div>
+      <h3>Espansioni <small>(nuove carte da collezionare)</small></h3>${sh.expansions.map(x=> `<div class="tt2-exp${x.locked ? ' lock' : ''}"><div class="ic">${x.emoji}</div><div class="tx"><b>${esc(x.name)}</b><small>${esc(x.desc)}</small><div class="tt2-bar" style="margin-top:5px;height:6px"><i style="width:${Math.round(x.owned / x.total * 100)}%"></i></div><small>${x.owned}/${x.total} carte · Fortuna ${x.pity}/${x.pityMax}</small></div>${x.locked ? `<span class="tt2-chip r">🔒 Livello ${x.level}</span>` : `<button class="tt2-btn sm ${x.ticket ? 'gold' : 'pri'}" data-buy="exp:${x.id}">${x.ticket ? '🎟️ ×' + x.ticket : '🪙 ' + x.cost}</button>`}</div>`).join('')}`);
+    const buy = async (type, coins)=>{ try{ const r = await api('POST', '/api/packs/open', coins ? {type, coins: true} : {type}); me.coins = r.coins; const again = await packFx(r, type); if(again) return buy(type, coins); shopPage(); }catch(e){ errToast(e); shopPage(); } };
+    $$('[data-buy]').forEach(b=> b.addEventListener('click', ()=>{ TT.snd('click'); buy(b.dataset.buy, !!b.dataset.coins); }));
+    $$('[data-b]').forEach(b=> b.addEventListener('click', ()=>{ const t = b.dataset.b, p = sh.packs.find(x=> x.type === t); if(p) TT.modal(`<div style="text-align:center"><h3 style="margin-top:0">${esc(p.name)}</h3><p>${p.n} carte per busta. L'ultima è almeno di <b>livello ${p.guar}</b>. Ogni carta ha una piccola probabilità di essere <b>foil</b> ✨ (più brillante e più preziosa). Dopo ${p.pityMax} buste senza una carta forte, la prossima la garantisce.</p><button class="tt2-btn pri" data-mclose>Ok</button></div>`, {center: true}); }));
+  }
+  // apertura animata di una busta: tocca la busta, poi ogni carta per girarla
+  function packFx(r, type){
+    return new Promise(res=>{
+      const R = TT.root(), el = document.createElement('div'), best = r.cards.reduce((m, c)=> Math.max(m, c.lv), 0), rk = TT.rarKey(best);
+      el.className = 'tt2-pk'; el.dataset.r = rk;
+      el.innerHTML = `<div class="pk-glow"></div><div class="pk-flash"></div><div class="pk-stage"><div class="tt2-pack ${type.startsWith('exp') ? 'exp' : type}"><span>${packEmoji(type)}</span><b>${esc(r.name)}</b></div><div class="pk-hint">Tocca la busta per aprirla!</div></div>`;
+      R.appendChild(el);
+      const stage = $('.pk-stage', el), flash = $('.pk-flash', el); let started = false, flipped = 0;
+      const burst = (host, col, n)=>{ const b = document.createElement('div'); b.className = 'pk-burst'; b.style.setProperty('--pc', col); for(let i = 0; i < n; i++){ const a = Math.random() * 6.28, d = 60 + Math.random() * 130, p = document.createElement('i'); p.style.setProperty('--dx', Math.cos(a) * d + 'px'); p.style.setProperty('--dy', Math.sin(a) * d + 'px'); b.appendChild(p); } host.appendChild(b); setTimeout(()=> b.remove(), 1000); };
+      const finish = ()=>{
+        const foot = document.createElement('div'); foot.className = 'pk-foot'; const nw = r.cards.filter(c=> c.isNew).length, fo = r.cards.filter(c=> c.foil).length;
+        foot.innerHTML = `<b>${nw ? '🆕 ' + nw + (nw === 1 ? ' carta nuova' : ' carte nuove') : 'Tutte doppie: smontale in Officina ✨'}${fo ? ' · ✨ ' + fo + ' foil!' : ''}</b><div class="mut">Fortuna garantita ${r.pity}/${r.pityMax} · 🪙 ${r.coins}</div><div class="tt2-row c"><button class="tt2-btn" id="pkDone">Fatto</button><button class="tt2-btn pri" id="pkAgain">Apri un'altra</button></div>`;
+        stage.appendChild(foot); TT.snd('coin');
+        $('#pkDone', el).addEventListener('click', ()=>{ el.remove(); res(false); });
+        $('#pkAgain', el).addEventListener('click', ()=>{ el.remove(); res(true); });
+      };
+      const flip = (c, card)=>{
+        if(card.classList.contains('on')) return; card.classList.add('on'); flipped++;
+        const k = TT.rarKey(c.lv), col = RCOL[k];
+        TT.snd(({c: 'flip', u: 'coin', r: 'same', e: 'plus', l: 'combo', m: 'win'})[k]); TT.vib(c.lv >= 8 ? [60, 40, 60] : 20);
+        burst(card, col, c.lv >= 8 ? 46 : c.lv >= 5 ? 26 : 12);
+        if(c.lv >= 8){ el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); flash.style.background = col; flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go'); }
+        if(flipped === r.cards.length) setTimeout(finish, 700);
+      };
+      const open = ()=>{
+        if(started) return; started = true; TT.snd('combo'); TT.vib(30); stage.classList.add('tear'); $('.pk-hint', el).textContent = '';
+        setTimeout(()=>{
+          flash.classList.add('go'); stage.classList.remove('tear'); stage.innerHTML = `<div class="pk-cards">${r.cards.map((c, i)=> `<div class="pk-c" data-i="${i}" data-r="${TT.rarKey(c.lv)}"><div class="pk-b">★</div><div class="pk-f">${c.isNew ? '<div class="pk-new">NUOVA!</div>' : ''}${cardHtml(c.cid, {foil: c.foil})}<div class="pk-nm">${esc(TT.CARD[c.cid].name)}</div></div></div>`).join('')}</div><div class="pk-hint" id="pkH">Tocca le carte per scoprirle</div><div class="tt2-row c" style="margin-top:14px"><button class="tt2-btn sm" id="pkAll">Rivela tutte</button></div>`;
+          $$('.pk-c', el).forEach(cd=> cd.addEventListener('click', ()=> flip(r.cards[+cd.dataset.i], cd)));
+          $('#pkAll', el).addEventListener('click', ()=>{ $('#pkAll', el).remove(); $('#pkH', el).textContent = ''; $$('.pk-c', el).forEach((cd, i)=> setTimeout(()=> flip(r.cards[i], cd), i * 420)); });
+        }, 560);
+      };
+      $('.tt2-pack', el).addEventListener('click', open); setTimeout(open, 6000);
+      TT.snd('turn');
+    });
+  }
+  async function missionsPage(){
+    TT.loading('Carico le missioni…');
+    let d; try{ d = await api('GET', '/api/missions'); me = await api('GET', '/api/me'); }catch(e){ errToast(e); return TT.back(); }
+    const hrs = t=> { const h = Math.max(1, Math.ceil((t - Date.now()) / 3600000)); return h >= 48 ? Math.round(h / 24) + ' giorni' : h + ' ore'; };
+    const card = (m, sc)=> `<div class="tt2-mis${m.prog >= m.t ? (m.claimed ? ' got' : ' done') : ''}"><div class="t"><span>${esc(m.txt)}</span><span>${m.prog}/${m.t}</span></div><div class="tt2-bar"><i style="width:${Math.round(m.prog / m.t * 100)}%"></i></div><div class="tt2-row sb"><span class="rw">🪙 ${m.c} · ${m.xp} XP${m.ticket ? ' · 🎟️ ' + esc(TK[m.ticket]) : ''}</span>${m.claimed ? '<span class="tt2-chip r">✅ Ritirato</span>' : m.prog >= m.t ? `<button class="tt2-btn sm gold" data-c="${sc}:${m.k}">Ritira!</button>` : ''}</div></div>`;
+    TT.screen('Missioni', `${curHtml(me)}<h3>Di oggi <small>(nuove tra ${hrs(d.nextDay)})</small></h3>${d.daily.map(m=> card(m, 'daily')).join('')}<h3>Della settimana <small>(nuove tra ${hrs(d.nextWeek)})</small></h3>${d.weekly.map(m=> card(m, 'weekly')).join('')}<p class="mut" style="text-align:center">Le missioni si completano giocando: partite, Custodi, regole speciali, carte prese…</p>`);
+    $$('[data-c]').forEach(b=> b.addEventListener('click', async ()=>{ const [sc, k] = b.dataset.c.split(':'); b.disabled = true; try{ const r = await api('POST', '/api/missions/claim', {scope: sc, key: k}); gainModal('Missione completata!', r.gain); missionsPage(); }catch(e){ errToast(e); b.disabled = false; } }));
+  }
+  const setCards = id=>{ const [k, v] = String(id).split(':'); return k === 'all' ? TT.BASE : k === 'g' ? TT.BASE.filter(c=> c.g === v) : k === 'l' ? TT.BASE.filter(c=> c.lv === +v) : TT.LIST.filter(c=> c.set === v); };
+  async function setsPage(){
+    TT.loading('Carico le collezioni…');
+    let d, col; try{ [d, col] = await Promise.all([api('GET', '/api/sets'), api('GET', '/api/collection')]); }catch(e){ errToast(e); return TT.back(); }
+    const own = new Set(col.cards.map(c=> c.cid)), grp = [['l', 'Per livello'], ['g', 'Per genere'], ['x', 'Espansioni'], ['all', 'Album']];
+    const item = s=> `<button class="tt2-set${s.ready ? ' ready' : ''}" data-s="${s.id}"><div class="tx"><b>${esc(s.name)}</b><small>${s.n}/${s.total} · 🪙 ${s.reward.coins}${s.reward.ticket ? ' · 🎟️ ' + esc(TK[s.reward.ticket]) : ''}${s.reward.dust ? ' · ✨ ' + s.reward.dust : ''}</small><div class="tt2-bar"><i style="width:${Math.round(s.n / s.total * 100)}%"></i></div></div>${s.claimed ? '<span class="tt2-chip r">✅</span>' : s.ready ? '<span class="tt2-chip on">Ritira!</span>' : ''}</button>`;
+    TT.screen('Collezioni', `<p class="mut" style="text-align:center">Completa un set avendo almeno una copia di ogni carta: ricevi un premio (una volta sola).</p>${grp.map(([k, t])=>{ const l = d.sets.filter(s=> k === 'all' ? s.id === 'all' : s.id.startsWith(k + ':')); return l.length ? `<h3>${t}</h3>${l.map(item).join('')}` : ''; }).join('')}`);
+    $$('[data-s]').forEach(b=> b.addEventListener('click', ()=>{
+      const s = d.sets.find(x=> x.id === b.dataset.s), cs = setCards(s.id).slice().sort((x, y)=> y.lv - x.lv);
+      const m = TT.modal(`<h3 style="margin-top:0">${esc(s.name)}</h3><div class="mut">${s.n}/${s.total} · ${s.claimed ? '✅ premio ritirato' : 'premio: 🪙 ' + s.reward.coins + (s.reward.ticket ? ' + 🎟️ ' + esc(TK[s.reward.ticket]) : '')}</div>${s.ready ? '<button class="tt2-btn gold w" id="stClaim" style="margin:8px 0">🎁 Ritira il premio</button>' : ''}<div class="tt2-grid s" style="margin-top:10px">${cs.map(c=> `<div class="cw">${cardHtml(c.id, {lock: own.has(c.id) ? '' : 'x'})}</div>`).join('')}</div><div class="tt2-row c" style="margin-top:10px"><button class="tt2-btn" data-mclose>Chiudi</button></div>`);
+      const cl = $('#stClaim', m); if(cl) cl.addEventListener('click', async ()=>{ cl.disabled = true; try{ const r = await api('POST', '/api/sets/claim', {id: s.id}); m.remove(); gainModal('Collezione completata!', r.gain); TT.snd('win'); setsPage(); }catch(e){ errToast(e); cl.disabled = false; } });
+    }));
+  }
+  async function achPage(){
+    TT.loading('Carico i traguardi…');
+    let d; try{ d = await api('GET', '/api/achievements'); }catch(e){ errToast(e); return TT.back(); }
+    const n = d.ach.filter(a=> a.done).length;
+    TT.screen('Traguardi', `<div class="tt2-row sb"><span class="mut">${n} di ${d.ach.length} ottenuti</span></div><div class="tt2-bar" style="margin:6px 0 10px"><i style="width:${Math.round(n / d.ach.length * 100)}%"></i></div>${d.ach.slice().sort((a, b)=> (b.done - a.done) || (b.prog / b.target - a.prog / a.target)).map(a=> `<div class="tt2-ach${a.done ? ' done' : ''}"><div class="ic">${a.done ? '🏅' : '🎖️'}</div><div class="tx"><b>${esc(a.name)}</b><small>${esc(a.desc)}</small><div class="tt2-bar"><i style="width:${Math.round(a.prog / a.target * 100)}%"></i></div></div><div class="mut" style="font-size:.7rem;text-align:right">${a.done ? '✅' : a.prog + '/' + a.target}<br>🪙 ${a.coins}${a.ticket ? '<br>🎟️' : ''}</div></div>`).join('')}`);
+  }
+  async function workshopPage(tab){
+    tab = tab === 'craft' ? 'craft' : 'dup'; TT.loading('Apro l\'officina…');
+    let col, cf, sh; try{ [col, cf, sh] = await Promise.all([api('GET', '/api/collection'), loadCfg(), api('GET', '/api/shop')]); }catch(e){ errToast(e); return TT.back(); }
+    me.dust = sh.dust; const DU = (cf && cf.dust) ? cf.dust.dust : [0, 5, 8, 12, 20, 35, 60, 110, 200, 380, 750], MAXC = cf && cf.dust ? cf.dust.craftMax : 8;
+    const by = {}; col.cards.forEach(c=>{ (by[c.cid] = by[c.cid] || []).push(c); });
+    const dups = Object.keys(by).filter(k=> by[k].length > 1 && TT.CARD[k]).sort((a, b)=> TT.CARD[b].lv - TT.CARD[a].lv);
+    const extra = k=> by[k].filter(c=> !c.lock).sort((a, b)=> (a.foil - b.foil))                 // prima si smontano le non-foil
+    const st = TT.workState = TT.workState || {lv: 0};
+    let body = `<div class="tt2-cur"><span class="c">✨ ${sh.dust} polvere</span><span class="c">🪙 ${sh.coins}</span></div><div class="tt2-row c" style="margin-bottom:8px"><button class="tt2-chip${tab === 'dup' ? ' on' : ''}" data-t="dup">♻️ Copie doppie (${dups.length})</button><button class="tt2-chip${tab === 'craft' ? ' on' : ''}" data-t="craft">🔨 Crea carte</button></div>`;
+    if(tab === 'dup'){
+      body += `<p class="mut">Le copie in più si smontano in <b>polvere</b> (le foil valgono il triplo). Ne tieni sempre una. Con la polvere crei le carte che ti mancano, fino al livello ${MAXC}.</p>${dups.length ? `<button class="tt2-btn pri w" id="wkAll">Smonta tutte le doppie (${dups.reduce((n, k)=> n + Math.min(extra(k).length, by[k].length - 1), 0)})</button>` : ''}`;
+      body += dups.map(k=>{ const c = TT.CARD[k], ex = Math.min(extra(k).length, by[k].length - 1); return `<div class="tt2-dup"><div class="ttc-w">${cardHtml(k, {})}</div><div class="tx"><b>${esc(c.name)}</b><small>${by[k].length} copie · livello ${c.lv}</small><small>Ogni copia extra: ✨ ${DU[c.lv]}</small></div><button class="tt2-btn sm" data-d="${k}" ${ex ? '' : 'disabled'}>Smonta 1</button></div>`; }).join('') || '<p class="mut" style="text-align:center;margin-top:24px">Non hai copie doppie. Apri qualche busta!</p>';
+    } else {
+      const have = new Set(Object.keys(by)), miss = TT.BASE.filter(c=> !have.has(c.id) && c.lv <= MAXC && (!st.lv || c.lv === st.lv)).sort((a, b)=> b.lv - a.lv);
+      body += `<p class="mut">Tocca una carta che ti manca per crearla con la polvere. Verdi = puoi permettertela.</p><div class="tt2-strip">${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(l=> `<button class="tt2-chip${st.lv === l ? ' on' : ''}" data-l="${l}">${l ? 'Liv. ' + l : 'Tutte'}</button>`).join('')}</div><div class="tt2-craft">${miss.slice(0, 60).map(c=> `<div class="cw${sh.dust >= DU[c.lv] * 5 ? ' can' : ''}" data-m="${c.id}">${cardHtml(c.id, {lock: 'x'})}<small>✨ ${DU[c.lv] * 5}</small></div>`).join('') || '<p class="mut" style="grid-column:1/-1;text-align:center">Niente da creare qui: ti mancano solo carte di livello 9-10, che si vincono o si rubano.</p>'}</div>`;
+    }
+    TT.screen('Officina', body);
+    $$('[data-t]').forEach(b=> b.addEventListener('click', ()=> workshopPage(b.dataset.t)));
+    $$('[data-l]').forEach(b=> { b.addEventListener('click', ()=>{ st.lv = +b.dataset.l; workshopPage('craft'); }); });
+    const dism = async uids=>{ try{ const r = await api('POST', '/api/dust/dismantle', {uids}); TT.snd('coin'); TT.toast('+' + r.dust + ' ✨ polvere (' + r.n + (r.n === 1 ? ' carta' : ' carte') + ')', 2500); workshopPage('dup'); }catch(e){ errToast(e); } };
+    $$('[data-d]').forEach(b=> b.addEventListener('click', ()=>{ const k = b.dataset.d, e = extra(k)[0]; if(e) dism([e.uid]); }));
+    const all = $('#wkAll'); if(all) all.addEventListener('click', async ()=>{ if(await TT.ask('Smontare tutte le copie doppie in polvere? Di ogni carta ne resta una.', 'Smonta', 'No')){ const u = []; dups.forEach(k=> extra(k).slice(0, by[k].length - 1).forEach(c=> u.push(c.uid))); for(let i = 0; i < u.length; i += 40) await dism(u.slice(i, i + 40)); } });
+    $$('[data-m]').forEach(b=> b.addEventListener('click', async ()=>{ const id = b.dataset.m, c = TT.CARD[id], cost = DU[c.lv] * 5; if(sh.dust < cost) return TT.toast('Servono ' + cost + ' ✨ di polvere (ne hai ' + sh.dust + ')'); if(!await TT.ask('Creare <b>' + esc(c.name) + '</b> per ✨ ' + cost + '?', 'Crea', 'No')) return; try{ const r = await api('POST', '/api/dust/craft', {cid: id}); TT.snd('win'); showNewCard(r.card, 'Carta creata!', ''); workshopPage('craft'); }catch(e){ errToast(e); } }));
   }
 
   // ---------------------------------------------------------------- amici
@@ -199,7 +327,7 @@
   // ---------------------------------------------------------------- sfide e stanze
   async function myItems(){
     const c = (await api('GET', '/api/collection')).cards; if(me) me.cards = c.length;
-    return c.map(x=> ({key: x.uid, cid: x.cid, lock: x.lock}));
+    return c.map(x=> ({key: x.uid, cid: x.cid, lock: x.lock, foil: x.foil}));
   }
   function challengeSetup(o){
     const R = Object.assign({elemental: true, same: true, plus: true, sameWall: false, combo: true, sudden: true, trade: 'one'}, o.rules || {}), st = {mode: o.mode || 'ranked'};
@@ -290,8 +418,8 @@
     TT.loading('Carico le tue carte…');
     try{
       const [col, sup] = await Promise.all([api('GET', '/api/collection'), api('GET', '/api/supply')]);
-      const counts = {}, locks = {}; col.cards.forEach(c=>{ counts[c.cid] = (counts[c.cid] || 0) + 1; if(c.lock) locks[c.cid] = (locks[c.cid] || 0) + 1; });
-      TT.albumPage({title: 'Le mie carte online', counts, locks, supply: sup.supply, mode: 'online'});
+      const counts = {}, locks = {}, foils = {}; col.cards.forEach(c=>{ counts[c.cid] = (counts[c.cid] || 0) + 1; if(c.lock) locks[c.cid] = (locks[c.cid] || 0) + 1; if(c.foil) foils[c.cid] = 1; });
+      TT.albumPage({title: 'Le mie carte online', counts, locks, foils, supply: sup.supply, mode: 'online'});
     }catch(e){ errToast(e); TT.back(); }
   }
   async function topPage(by){
@@ -309,8 +437,8 @@
     try{
       const d = await api('GET', '/api/news'); if(me){ me.news = 0; }
       const txt = it=>{ const c = it.data.cid && TT.CARD[it.data.cid] ? TT.CARD[it.data.cid].name : '';
-        return {friend_req: ['👋', `<b>${esc(it.data.nick)}</b> ti ha chiesto l'amicizia`], friend_ok: ['🤝', `<b>${esc(it.data.nick)}</b> è ora tuo amico`], challenge: ['🎴', `<b>${esc(it.data.from)}</b> ti ha sfidato`], stolen: ['⚠️', `<b>${esc(it.data.by)}</b> ti ha rubato <b>${esc(c)}</b>`], won: ['🏆', `Hai preso <b>${esc(c)}</b> a ${esc(it.data.from)}`], boss: ['👑', `Custode ${it.data.boss} (${esc(it.data.name)}) battuto${it.data.first ? ' per la prima volta' : ''}: <b>${esc(c)}</b>`], refill: ['🎁', 'Ti ho dato ' + it.data.n + ' carte comuni per poter giocare']}[it.kind] || ['•', esc(it.kind)]; };
-      TT.screen('Novità', `${d.news.length ? d.news.map(it=>{ const [ic, t] = txt(it); const cls = it.kind === 'stolen' ? 'bad' : (it.kind === 'won' || it.kind === 'boss') ? 'good' : ''; return `<div class="tt2-news ${cls}"><span style="font-size:1.4rem">${ic}</span><div style="flex:1">${t}<small>${new Date(it.ts).toLocaleString('it-IT', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</small>${it.kind === 'stolen' && it.data.byId ? `<button class="tt2-btn sm red" data-rev="${it.data.byId}" data-n="${esc(it.data.by)}" style="margin-top:6px">⚔️ Riprendila!</button>` : ''}</div>${it.data.cid ? cardHtml(it.data.cid, {}) : ''}</div>`; }).join('') : '<p class="mut" style="text-align:center;margin-top:30px">Nessuna novità.</p>'}`);
+        return {friend_req: ['👋', `<b>${esc(it.data.nick)}</b> ti ha chiesto l'amicizia`], friend_ok: ['🤝', `<b>${esc(it.data.nick)}</b> è ora tuo amico`], challenge: ['🎴', `<b>${esc(it.data.from)}</b> ti ha sfidato`], stolen: ['⚠️', `<b>${esc(it.data.by)}</b> ti ha rubato <b>${esc(c)}</b>`], won: ['🏆', `Hai preso <b>${esc(c)}</b> a ${esc(it.data.from)}`], boss: ['👑', `Custode ${it.data.boss} (${esc(it.data.name)}) battuto${it.data.first ? ' per la prima volta' : ''}: <b>${esc(c)}</b>`], refill: ['🎁', 'Ti ho dato ' + it.data.n + ' carte comuni per poter giocare'], level: ['⭐', `Sei al <b>livello ${it.data.lvl}</b>: +${it.data.coins} 🪙${it.data.ticket ? ' e una busta in regalo' : ''}`], ach: ['🏅', `Traguardo <b>${esc(it.data.name)}</b>: +${it.data.coins} 🪙${it.data.ticket ? ' + busta' : ''}`], set: ['🗂️', `Collezione completata: <b>${esc(it.data.name)}</b>`]}[it.kind] || ['•', esc(it.kind)]; };
+      TT.screen('Novità', `${d.news.length ? d.news.map(it=>{ const [ic, t] = txt(it); const cls = it.kind === 'stolen' ? 'bad' : (['won', 'boss', 'level', 'ach', 'set'].includes(it.kind)) ? 'good' : ''; return `<div class="tt2-news ${cls}"><span style="font-size:1.4rem">${ic}</span><div style="flex:1">${t}<small>${new Date(it.ts).toLocaleString('it-IT', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</small>${it.kind === 'stolen' && it.data.byId ? `<button class="tt2-btn sm red" data-rev="${it.data.byId}" data-n="${esc(it.data.by)}" style="margin-top:6px">⚔️ Riprendila!</button>` : ''}</div>${it.data.cid ? cardHtml(it.data.cid, {}) : ''}</div>`; }).join('') : '<p class="mut" style="text-align:center;margin-top:30px">Nessuna novità.</p>'}`);
       $$('[data-rev]').forEach(b=> b.addEventListener('click', ()=> TT.go(()=> challengeSetup({to: b.dataset.rev, toNick: b.dataset.n}))));
     }catch(e){ errToast(e); TT.back(); }
   }
@@ -333,7 +461,7 @@
     const you = view.you;
     board = TT.mountBoard({
       state: view.state, me: you, names: namesOf(view), title: view.boss ? 'Custode: ' + view.players[1].nick : (view.mode === 'ranked' ? 'Sfida vera' : 'Amichevole'),
-      hidden: ()=> false, emotes: !view.boss,
+      hidden: ()=> false, emotes: !view.boss, foil: u=> !!(view.foil && view.foil[Math.floor(u / 5)] && view.foil[Math.floor(u / 5)][u % 5]),
       canPlay: (seat, st)=> !st.over && seat === you && cur && cur.status === 'active',
       onPlay: async (hi, cell)=>{ const r = await api('POST', '/api/match/' + cur.id + '/move', {hi, cell}); cur = r.match; settle(r.match); return {state: r.match.state, events: r.events}; },
       onEmote: e=> { api('POST', '/api/match/' + cur.id + '/emote', {e}).catch(()=>{}); },
@@ -388,7 +516,8 @@
     if(res.reward && res.reward.cid) cards.push({cid: res.reward.cid, label: res.first ? 'Premio del Custode!' : 'Premio giornaliero!'});
     const lost = cards.filter(c=> c.cls === 'bad').length, gained = cards.length - lost;
     const elo = res.elo && res.elo[you] != null ? res.elo[you] : null;
-    const sub = `${res.score[you]} a ${res.score[1 - you]}${res.forfeit ? (won ? ' · avversario ritirato' : ' · abbandono o tempo scaduto') : ''}${res.round > 1 ? ' · dopo la morte improvvisa' : ''}${elo != null ? `<br>ELO ${elo >= 0 ? '+' : ''}${elo}` : ''}${v.boss && won && !res.reward ? '<br><small>Il premio di oggi l\'hai già ritirato: torna domani!</small>' : ''}${v.boss && !won && !draw ? '<br><small>Contro il Custode non perdi carte. Riprova!</small>' : ''}`;
+    const gn = res.gain && res.gain[you], gnT = gn ? `<br><b style="color:#ffe27a">${gainText(gn)}</b>` : '';
+    const sub = `${res.score[you]} a ${res.score[1 - you]}${gnT}${res.forfeit ? (won ? ' · avversario ritirato' : ' · abbandono o tempo scaduto') : ''}${res.round > 1 ? ' · dopo la morte improvvisa' : ''}${elo != null ? `<br>ELO ${elo >= 0 ? '+' : ''}${elo}` : ''}${v.boss && won && !res.reward ? '<br><small>Il premio di oggi l\'hai già ritirato: torna domani!</small>' : ''}${v.boss && !won && !draw ? '<br><small>Contro il Custode non perdi carte. Riprova!</small>' : ''}`;
     if(lost) { TT.snd('steal'); }
     btns.push({label: v.boss ? 'Sfida ancora' : 'Rivincita', cls: 'pri', fn: ()=> rematch(v)}, {label: 'Esci', fn: ()=> leave()});
     board.showEnd({kind: draw ? 'draw' : won ? 'win' : 'lose', title: draw ? 'PAREGGIO' : won ? 'HAI VINTO!' : 'HAI PERSO', sub, cards, buttons: btns});
