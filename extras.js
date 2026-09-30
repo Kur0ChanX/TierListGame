@@ -11,7 +11,7 @@
   const byId = id=> GAMES.find(g=> String(g.id) === String(id));
   const coverOf = g=>{ try{ return effectiveCover(g); }catch(e){ return null; } };
   const hoursOf = g=> (g.label && g.label.h) || (g.enrich && g.enrich.hoursMain) || null;
-  const TIER_COL = {'S+':'#f5b82e','S':'#a855f7','A':'#3b82f6','B':'#10b981','C':'#eab308','D':'#f97316','E':'#ef4444','F':'#8b8b8b'};
+  const TIER_COL = {'S+':'#f5b82e','S':'#a855f7','A':'#3b82f6','B':'#10b981','C':'#eab308','D':'#f97316','E':'#ef4444','F':'#8b8b8b','ND':'#5b6070'};
 
   // piccolo pannello riutilizzabile
   function sheet(id, title, bodyHtml){

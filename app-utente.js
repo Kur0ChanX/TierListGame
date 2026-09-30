@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v153', date:'2026-10-21', items:[
+    'Nuovo rank «ND» (voto non disponibile), sotto tutti gli altri: i giochi aggiunti dalla ricerca o da Chiedi il cui voto NON è verificato da Metacritic o OpenCritic ci finiscono da soli, invece di un S+ inventato dall\'AI. Quando Update V+ trova un voto vero, il gioco passa al rank giusto. I giochi della tua classifica curata a mano non cambiano.'
+  ]},
   {version:'v152', date:'2026-10-21', items:[
     'Update+ e «Aggiorna info» sono un solo pulsante: «Update V+». Le modifiche dubbie (voto molto diverso) restano da approvare col pulsante 📝.',
     'Ogni voto dice da dove viene: «Voto preso da Metacritic (da Wikipedia/Steam/RAWG)». Se non c\'è Metacritic lo segnala («Nessun Metacritic trovato»: OpenCritic oppure stima). Il Metacritic ora sostituisce da solo il voto anche nei giochi già verificati, se la differenza è fino a 6 punti (oltre, chiede conferma). Nei prossimi giorni i 765 giochi vengono ricontrollati 40 alla volta.',

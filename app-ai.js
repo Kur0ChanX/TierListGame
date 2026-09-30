@@ -220,7 +220,7 @@ const ASK_TOOLS = [
         name: {type:'string', description:'titolo esatto del gioco'},
         plat: {type:'string', description:'piattaforme, es. "PS5 / PC"'},
         year: {type:'string', description:'anno di uscita'},
-        tier: {type:'string', enum:['S+','S','A','B','C','D','E','F'], description:'la tua stima onesta di quanto sia un buon RPG/JRPG'},
+        tier: {type:'string', enum:['S+','S','A','B','C','D','E','F','ND'], description:'la tua stima onesta di quanto sia un buon RPG/JRPG (ND se non hai un voto Metacritic/OpenCritic verificato)'},
         score: {type:'number', description:'voto stimato 0-100, coerente con il tier'},
         tags: {type:'array', items:{type:'string', enum:['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG']}, description:'generi: TAC=tattico a griglia, ACT=action-RPG, DUN=dungeon crawler, TUR=a turni classico, MON=cattura mostri, CARD=carte, WAR=guerra su larga scala, CROSS=crossover, VN=visual novel ibrido, MECH=mecha, METR=metroidvania, SOUL=soulslike, HOR=horror, REMAKE=remake/remaster, LIFE=vita/crafting, ROG=roguelike'},
         story: {type:'string', description:'1-2 frasi di trama senza spoiler pesanti, nello stesso stile narrativo degli altri giochi del database'},
@@ -528,7 +528,7 @@ function novitaExcludeListText(excludeNames){
   return namesList || '(nessuno)';
 }
 // Controllo dei voti PRIMA di proporre i giochi: il voto dato dall'AI è una stima e nelle ricerche finiva spesso troppo alto (S+/A per giochi sconosciuti).
-// Se Metacritic/OpenCritic hanno il gioco, vale il loro voto (verificato); se nessuna fonte lo conferma, il voto resta una stima e non supera il tier C (79).
+// Se Metacritic/OpenCritic hanno il gioco, vale il loro voto (verificato); se nessuna fonte lo conferma il rank è ND (sotto tutti i rank) e il voto non supera 79.
 const NOVITA_UNVERIFIED_MAX = 79;
 async function novitaVerifyScores(list, say, isStopped){
   if(typeof rtScoreCheck !== 'function' || !list.length) return;
@@ -540,7 +540,7 @@ async function novitaVerifyScores(list, say, isStopped){
       let r = null;
       try{ r = await Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 15000))]); }catch(e){}
       if(r && r.score != null){ c.aiScore = c.score; c.score = r.score; c.tier = novitaTierOf(r.score); c.m = 'V'; c.vs = r.vs; }
-      else { c.m = 'S'; c.vs = ''; c.aiScore = c.score; if(c.score == null || c.score > NOVITA_UNVERIFIED_MAX){ c.score = NOVITA_UNVERIFIED_MAX; c.tier = novitaTierOf(c.score); } }
+      else { c.m = 'S'; c.vs = ''; c.aiScore = c.score; c.score = Math.min(c.score == null ? NOVITA_UNVERIFIED_MAX : c.score, NOVITA_UNVERIFIED_MAX); c.tier = 'ND'; }
     }
   };
   await Promise.all([one(), one(), one(), one()]);
@@ -1052,7 +1052,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-21';
-const DATA_BUILD_VERSION = 'v152';
+const DATA_BUILD_VERSION = 'v153';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

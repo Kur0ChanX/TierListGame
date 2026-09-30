@@ -79,6 +79,7 @@ h1{font-size:1.05rem; margin:0; flex:1; display:flex; align-items:center; gap:6p
 .badge.D{background:var(--dTier);}
 .badge.E{background:var(--eTier);}
 .badge.F{background:var(--fTier);}
+.badge.ND{background:#3a3f4d; color:#cfd3de}
 .badge.big{font-size:0.95rem; padding:4px 14px;}
 .badge.outline{background:transparent; border:1px solid var(--border); color:var(--text);}
 

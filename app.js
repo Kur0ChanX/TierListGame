@@ -1,7 +1,9 @@
 // Nucleo: dati, profili, liste per genere, classifica, filtri, La mia Tier List, scheda gioco. Seguono app-schede.js, app-utente.js, app-ai.js (stesso ambiente globale).
-const TIER_ORDER = {'S+':0,'S':1,'A':2,'B':3,'C':4,'D':5,'E':6,'F':7};
-const TIER_LABEL = {'S+':'Splus','S':'S','A':'A','B':'B','C':'C','D':'D','E':'E','F':'F'};
-const TIERS_LIST = ['S+','S','A','B','C','D','E','F'];
+const TIER_ORDER = {'S+':0,'S':1,'A':2,'B':3,'C':4,'D':5,'E':6,'F':7,'ND':8};
+const TIER_LABEL = {'S+':'Splus','S':'S','A':'A','B':'B','C':'C','D':'D','E':'E','F':'F','ND':'ND'};
+const TIERS_LIST = ['S+','S','A','B','C','D','E','F','ND'];      // ND = voto non verificato (né Metacritic né OpenCritic): sta sotto tutti i rank
+// testo del voto: «ND» quando il gioco non ha un voto verificato
+function scoreTxt(g){ return g.tier === 'ND' ? 'ND' : g.score; }
 
 const TAG_INFO = {
   TAC:{icon:'♟️', label:'Tattico a griglia'},
@@ -1075,7 +1077,7 @@ function render(){
       <td class="plat mobhide">${g.plat}</td>
       <td class="year">${g.year || g.ysort || ''}</td>
       <td><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span></td>
-      <td class="score">${g.score}</td>
+      <td class="score">${scoreTxt(g)}</td>
       <td class="method" title="${methodLabel(g.m)}${g.m==='V' && freshInfo(g) && !freshInfo(g).m ? ' · aggiornato con Update+' : ''}">${methodIcon(g.m, g)}</td>
       <td class="storyicon">${itBadge(g)}</td>
     `;
@@ -1315,7 +1317,7 @@ function renderMyTier(){
       const chip = document.createElement('div');
       chip.className = 'mytier-chip';
       chip.draggable = true;
-      chip.innerHTML = `<span class="nm" title="${g.name}">${g.name}</span><span class="sc">${g.score}</span><button class="movebtn" aria-label="Sposta">⇅</button>`;
+      chip.innerHTML = `<span class="nm" title="${g.name}">${g.name}</span><span class="sc">${scoreTxt(g)}</span><button class="movebtn" aria-label="Sposta">⇅</button>`;
       chip.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', String(g.id)); });
       chip.querySelector('.nm').addEventListener('click', ()=> openModal(g));
       chip.querySelector('.movebtn').addEventListener('click', (e)=>{ e.stopPropagation(); openTierPicker(e.currentTarget, g.id); });
