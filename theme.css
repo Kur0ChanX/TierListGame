@@ -75,6 +75,7 @@ h1{background:var(--grad); -webkit-background-clip:text; background-clip:text; -
 .badge.D{background:linear-gradient(135deg,#f0782a,#ffa15a)}
 .badge.E{background:linear-gradient(135deg,#e0393e,#ff6b70)}
 .badge.F{background:linear-gradient(135deg,#7a7f8c,#a3a8b5)}
+.badge.ND{background:linear-gradient(135deg,#3a3f4d,#565c6e); color:#e3e6ee}
 
 /* tabella */
 .table-wrap{background:var(--glass); border:1px solid var(--glass-line); border-radius:22px; box-shadow:var(--shadow); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px)}

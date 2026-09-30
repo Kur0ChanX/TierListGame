@@ -278,8 +278,9 @@ function syncCustomGames(snap){
       plat: v.plat ? String(v.plat) : '—',
       year: v.year ? String(v.year) : '',
       ysort: parseInt(v.year, 10) || 0,
-      tier: TIERS_LIST.includes(v.tier) ? v.tier : 'B',
-      score: clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70,
+      // ND: un gioco aggiunto con voto NON verificato (né Metacritic né OpenCritic) sta sotto tutti i rank; diventa un rank vero solo quando il voto è verificato
+      tier: v.m === 'V' ? ((TIERS_LIST.includes(v.tier) && v.tier !== 'ND') ? v.tier : (sc0=> sc0 >= 95 ? 'S+' : sc0 >= 90 ? 'S' : sc0 >= 85 ? 'A' : sc0 >= 80 ? 'B' : sc0 >= 70 ? 'C' : sc0 >= 60 ? 'D' : sc0 >= 40 ? 'E' : 'F')(clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70)) : 'ND',
+      score: v.m === 'V' ? (clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70) : Math.min(79, clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70),
       vs: v.vs ? String(v.vs) : undefined,
       m: v.m === 'V' ? 'V' : 'S',          // V = voto verificato da Metacritic/OpenCritic (lo scrive Update+ / «Aggiorna info»)
       note: v.note ? String(v.note) : 'Aggiunto da te tramite "Chiedi" — non è nella classifica ufficiale, il voto è una stima.',
@@ -746,7 +747,7 @@ function openModal(g){
     <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
     <div class="modal-badges">
       <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
-      <span class="badge big outline">${g.score}/100</span>
+      <span class="badge big outline">${g.tier === 'ND' ? 'voto ND' : g.score + '/100'}</span>
       <span class="badge big outline">${methodIcon(g.m, g)} ${g.m==='V' ? 'Verificato' : 'Stima'}</span>
       ${(()=>{ const f = freshInfo(g); return f ? `<span class="badge big outline fresh-badge" title="${escHtml(freshWhy(f))}">${giIcon(f.m ? 'upmanual' : 'upplus')} ${f.m ? 'Controllato a mano' : 'Update V+'}</span>` : ''; })()}
     </div>
@@ -891,7 +892,7 @@ function openCompareModal(id1, id2){
         <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
         <div class="modal-badges">
           <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
-          <span class="badge big outline">${g.score}/100</span>
+          <span class="badge big outline">${g.tier === 'ND' ? 'voto ND' : g.score + '/100'}</span>
         </div>
         <div class="modal-tags">${tagsHtml}</div>
         <div class="compare-story">${storyHtml}</div>
@@ -1165,7 +1166,7 @@ function discoverCardHtml(g){
       <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
       <div class="modal-badges">
         <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
-        <span class="badge big outline">${g.score}/100</span>
+        <span class="badge big outline">${g.tier === 'ND' ? 'voto ND' : g.score + '/100'}</span>
         ${dna ? `<span class="badge big outline" style="color:${dnaColor(dna.pct)};">🧬 ${dna.pct}%</span>` : ''}
       </div>
       <div class="modal-tags">${g.tags.slice(0,4).map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
