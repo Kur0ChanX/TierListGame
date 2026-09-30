@@ -568,9 +568,10 @@
     body.querySelectorAll('[data-qr]').forEach(b=> b.addEventListener('click', ()=>{ const g = GAMES.find(x=> x.id == b.dataset.qr); if(g){ document.getElementById('xQual').classList.remove('show'); openModal(g); } }));
   }
   menu(gi('pulse') + ' Rapporto qualità notturno', openQuality);
-  // Triple Triad: il gioco (grande) si carica solo quando lo apri
-  function openTT(){ if(window.openTriad) return openTriad(); toast('Mescolo le carte…', 1500); loadScript('triad.js').then(()=> window.openTriad && openTriad()).catch(()=> toast('Non riesco a caricare il gioco di carte: controlla la connessione', 3500)); }
+  // Triple Triad: ora è un gioco a parte (repository raccoon-triad); qui resta solo il collegamento
+  const TT_URL = 'https://kur0chanx.github.io/raccoon-triad/';
+  function openTT(){ toast('Apro Raccoon Triad…', 1500); location.href = TT_URL; }
   window.openTT = openTT;
-  menu(gi('cards') + ' Triple Triad (gioco di carte)', openTT);
+  menu(gi('cards') + ' Raccoon Triad (gioco di carte)', openTT);
   menu(gi('orb') + ' Tema dalla copertina: ' + (TINT_ON() ? 'acceso' : 'spento'), ()=>{ LS.set('jrpg_app_tint', !TINT_ON()); toast('Tema dalla copertina ' + (TINT_ON() ? 'acceso' : 'spento'), 2500); });
 })();
