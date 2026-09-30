@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v168', date:'2026-09-30', time:'00:23', items:[
+    'Niente più lampeggi: quando un gioco si aggiorna in background la riga non rifà l\'animazione d\'ingresso e, se nulla cambia, non viene nemmeno toccata.',
+    'Il pulsante in alto «Novità» (aggiornamenti del programma) ora si chiama «News» e dentro ha «🔄 Riavvia e aggiorna»: ricarica subito il programma con l\'ultima versione, senza filmato iniziale e senza chiudere e riaprire l\'app.',
+    'Gesto o tasto «indietro» del telefono: dentro una scheda (o news, chiedi, profilo…) torna indietro di una pagina invece di uscire dal programma.',
+    'Tieni premuto il titolo di un gioco nella classifica: si apre un\'anteprima veloce con copertina, voto, fonte, trama breve e «fa per te se / lascia stare se», con «Apri la scheda» per entrare.'
+  ]},
   {version:'v167', date:'2026-09-30', time:'00:08', items:[
     'Nuova «🧭 Mappa fonti» (in Diagnostica fonti: 5 tocchi sulla riga «Database aggiornato…»): per ogni dato mostra l\'ordine delle fonti (voto, anno, generi, lingua, storia, pro e contro, a colpo d\'occhio, ore, prezzo) e con «Verifica ora» controlla se ogni fonte funziona adesso (✅ funziona, ⚠️ problema con il motivo, ➖ chiave mancante).'
   ]},
@@ -473,9 +479,10 @@ const changelogCard = document.getElementById('changelogCard');
 function openChangelog(){
   changelogCard.innerHTML = `
     <div class="modal-head">
-      <div class="modal-title">🆕 Novità del programma</div>
+      <div class="modal-title">🆕 News del programma</div>
       <button class="modal-close" id="changelogCloseBtn" aria-label="Chiudi">✕</button>
     </div>
+    <div class="lp-tools" style="margin:8px 0"><button class="btn primary" id="rtRestartBtn" title="Ricarica subito il programma con l'ultima versione, senza filmato iniziale">🔄 Riavvia e aggiorna</button></div>
     <div class="modal-note">Cronologia degli ultimi aggiornamenti, dal più recente.</div>
     <div class="changelog-list">${CHANGELOG.map(e=> `
       <div class="changelog-entry">
@@ -484,6 +491,14 @@ function openChangelog(){
       </div>`).join('')}</div>
   `;
   document.getElementById('changelogCloseBtn').addEventListener('click', closeChangelog);
+  document.getElementById('rtRestartBtn').addEventListener('click', async ()=>{
+    // riavvio veloce: niente filmato iniziale e cache dell'app svuotata, così si aggancia subito l'ultimo aggiornamento
+    try{ sessionStorage.setItem('jrpg_intro_seen', '1'); }catch(e){}
+    try{ showToast('Riavvio…', 1500); }catch(e){}
+    try{ const regs = navigator.serviceWorker && await navigator.serviceWorker.getRegistrations(); if(regs) await Promise.all(regs.map(r=> r.update().catch(()=>{}))); }catch(e){}
+    try{ const ks = window.caches && await caches.keys(); if(ks) await Promise.all(ks.filter(k=> /^raccoon-tier/.test(k)).map(k=> caches.delete(k))); }catch(e){}
+    location.reload();
+  });
   changelogBackdrop.classList.add('show');
 }
 function closeChangelog(){ changelogBackdrop.classList.remove('show'); }
