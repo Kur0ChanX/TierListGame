@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v155', date:'2026-09-30', time:'21:55', items:[
+    'Ricerca del voto con priorità fissa: 1) Metacritic (Wikipedia, Steam, CheapShark) → 2) OpenCritic → 3) RAWG. Una fonte meno affidabile non sostituisce mai una più affidabile; se un voto veniva già da Metacritic resta quello.',
+    'Se una fonte non arriva al sito lo dice chiaramente: nella scheda compare «Ricerca del voto» con un simbolo per ogni fonte (✅ trovato, ➖ non trovato, ⚠️ problema) e il motivo: chiave non impostata, accesso negato o permessi mancanti, quota finita, sito che blocca, non raggiungibile. Gli stessi avvisi compaiono a fine Update V+, nella ricerca di nuovi giochi e in Diagnostica fonti.'
+  ]},
   {version:'v154', date:'2026-09-30', time:'21:31', items:[
     'Risolto il problema serio per cui Update V+ sembrava non servire a nulla: nei giochi aggiunti (es. Bayonetta) il completamento automatico dell\'AI, partito prima, scriveva alla fine una copia vecchia della scheda e cancellava il voto verificato, i generi e i testi appena aggiornati (e viceversa). Ora ogni salvataggio parte sempre dall\'ultima versione della scheda.',
     'Nei giochi aggiunti i generi sono al massimo 3 (prima le fonti potevano aggiungerne 5-6 sbagliati, come Soulslike o Looter Shooter su Bayonetta).',
