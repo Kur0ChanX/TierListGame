@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v173', date:'2026-10-01', time:'01:50', items:[
+    'Nuova «🚀 Come iniziare al meglio» in ogni scheda: una guida breve e senza spoiler, preparata dalle fonti e dalla ricerca web (Gemini) una volta sola per gioco: impostazioni da scegliere prima di cominciare, scelte iniziali, errori da evitare, «quando ingrana» (con una barra che mostra dopo quante ore) e quanto provarlo prima di decidere. Resta salvata e si condivide con gli altri dispositivi.',
+    'Nuovo «🦝 Compagno di gioco» per i giochi «In corso»: scrivi a che punto sei e cosa ti blocca, scegli quanto aiuto vuoi (💡 un indizio, 🧭 una strategia, 📖 la soluzione) e la risposta resta sfocata finché non la tocchi, per non rovinarti la sorpresa. Tiene un diario delle ultime domande.',
+    'Il «palloncino misterioso» all\'avvio era l\'avviso del Radar delle uscite (nuovi giochi adatti a te): ora toccandolo si apre davvero il Radar. Lo stesso per l\'avviso dei prezzi/uscite della wishlist e per quelli del backup e dello spazio.'
+  ]},
   {version:'v172', date:'2026-10-01', time:'01:46', items:[
     'Scheda cinematografica: aprendo un gioco la copertina resta ferma in alto per qualche secondo, poi passa con dissolvenze alle schermate ufficiali di gioco (store Steam, scaricate dai server ogni settimana per 292 giochi; per gli altri, da RAWG se hai la chiave), con barra di avanzamento e musica che continua. Nessun filmato: pochi dati e pochi spoiler.',
     'Si regola da ✨ → «Anteprima cinematografica»: interruttore, secondi di copertina ferma (3, 5, 8, 12). Si spegne da sola con il risparmio dati o «riduci animazioni».'

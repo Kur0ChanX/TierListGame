@@ -46,7 +46,7 @@
     const wishHits = it.filter(x=> x.inWish), mine = it.filter(x=> x.fit > 0).slice(0, 3);
     if(!wishHits.length && !mine.length) return;
     LS.set('rt_radar_seen', today);
-    setTimeout(()=> toast(wishHits.length ? '📡 Radar: è uscito «' + wishHits[0].name + '» dalla tua wishlist!' : '📡 Radar: ' + mine.length + ' uscite nuove adatte a te (✨ → Radar delle uscite)', 6000), 3000);
+    setTimeout(()=> showToast(wishHits.length ? '📡 Radar: è uscito «' + wishHits[0].name + '» dalla tua wishlist! Tocca per vederlo' : '📡 Radar: ' + mine.length + ' uscite nuove adatte a te. Tocca per vederle', 7000, openRadar), 3000);
   }
   function openRadar(){
     const it = radarItems();

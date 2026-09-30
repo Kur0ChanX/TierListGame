@@ -63,13 +63,13 @@
     body.querySelector('#bkPersist').addEventListener('click', async ()=>{ try{ const ok = navigator.storage && navigator.storage.persist ? await navigator.storage.persist() : false; toast(ok ? '🛡️ Dati protetti dal browser' : 'Il browser non ha concesso la protezione (succede se l\'app è usata poco: installala dalla home)', 4000); }catch(e){} openBackup(); });
   }
   menu(gi('gem') + ' Backup e spazio del browser', openBackup);
-  window.addEventListener('storage-full', ()=>{ const t = Date.now(); if(t - (window.__sfAt || 0) < 20000) return; window.__sfAt = t; toast('⚠️ Spazio del browser esaurito: una modifica non è stata salvata. Apri ✨ → Backup e libera spazio.', 7000); });
+  window.addEventListener('storage-full', ()=>{ const t = Date.now(); if(t - (window.__sfAt || 0) < 20000) return; window.__sfAt = t; showToast('⚠️ Spazio del browser esaurito: una modifica non è stata salvata. Tocca per liberare spazio', 8000, openBackup); });
   // promemoria mensile + richiesta di protezione dei dati (una volta, in silenzio)
   setTimeout(()=>{
     try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
     const last = LS.get('rt_last_backup', 0), nag = LS.get('rt_backup_nag', 0), hasData = (typeof FAVS !== 'undefined' && FAVS.size > 0) || (typeof STATUSES !== 'undefined' && Object.keys(STATUSES).length > 0) || GAMES.some(g=> g.custom);
-    if(hasData && Date.now() - last > 30 * 864e5 && Date.now() - nag > 7 * 864e5){ LS.set('rt_backup_nag', Date.now()); toast('💾 Non fai un backup da più di 30 giorni: ✨ → Backup e spazio', 7000); }
-    const st = storageStats(); if(st.total / st.limit > 0.8) toast('⚠️ Lo spazio del browser è quasi pieno (' + Math.round(st.total / st.limit * 100) + '%): ✨ → Backup e spazio', 7000);
+    if(hasData && Date.now() - last > 30 * 864e5 && Date.now() - nag > 7 * 864e5){ LS.set('rt_backup_nag', Date.now()); showToast('💾 Non fai un backup da più di 30 giorni. Tocca per farlo ora', 7500, openBackup); }
+    const st = storageStats(); if(st.total / st.limit > 0.8) showToast('⚠️ Lo spazio del browser è quasi pieno (' + Math.round(st.total / st.limit * 100) + '%). Tocca per liberarlo', 7500, openBackup);
   }, 7000);
 
   // =====================================================================

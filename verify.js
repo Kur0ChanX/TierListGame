@@ -400,6 +400,19 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
 
   window.rtApplyPatch = applyPatch;
+  // estratto delle fonti aperte per la guida e il compagno: sezione «Gameplay» di Wikipedia (o introduzione) + descrizione RAWG
+  window.rtSourceDigest = async function(g){
+    const out = {names: [], text: ''};
+    try{
+      const src = await gather(g, true);
+      if(src.wiki && src.wiki.text){
+        const t = src.wiki.text, i = t.search(/\n\s*(Gameplay|Game ?play and (synopsis|story|plot)|Gameplay and plot|Combat|Battle system)[^\n]{0,30}\n/i);
+        out.names.push('Wikipedia'); out.text += 'FONTE — Wikipedia (' + src.wiki.title + '):\n' + (i >= 0 ? t.slice(i, i + 3400) : digest(t).slice(0, 3400)) + '\n';
+      }
+      if(src.rawg && src.rawg.desc){ out.names.push('RAWG'); out.text += '\nFONTE — RAWG:\n' + String(src.rawg.desc).slice(0, 1800) + '\n'; }
+    }catch(e){}
+    return out;
+  };
   // regola unica delle approvazioni automatiche: voto da fonte in ordine di priorità, lingua, giochi affini, e QUALSIASI dato che riempie un campo vuoto (non può peggiorare nulla)
   const isFill = c=>{ const f = String(c.from == null ? '' : c.from).trim(); return f === '' || /^—/.test(f); };
   function canAuto(c, g){

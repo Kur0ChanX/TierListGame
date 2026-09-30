@@ -450,7 +450,7 @@
       if(out){
         it.notified = true; changed = true;
         const msg = `🎉 ${it.name} è uscito! È nella tua wishlist.`;
-        toast(msg, 6000);
+        showToast(msg + ' Tocca per aprire la wishlist', 7000, openWishlist);
         try{ if('Notification' in window && Notification.permission === 'granted') new Notification('Raccoon Tier', {body: msg, icon: 'icons/icon-192.png'}); }catch(e){}
       }
     });

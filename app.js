@@ -1055,9 +1055,10 @@ function srcIcon(g){
 }
 function methodLabel(m){ return m==='V' ? 'Metacritic / aggregato verificato' : 'Stima community / recensori specializzate'; }
 
-function showToast(msg, ms){
+function showToast(msg, ms, onTap){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
+  t._tap = typeof onTap === 'function' ? onTap : null; t.classList.toggle('tappable', !!t._tap);          // palloncino con azione: toccandolo si apre la cosa di cui parla
   clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms || 1800);
 }
 

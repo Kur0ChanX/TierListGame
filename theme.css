@@ -920,3 +920,32 @@ html.rt-notrans{transition:none !important}
 
 .hero-bar{opacity:0; transition:opacity .5s ease}
 .cover-frame.hero-play .hero-bar{opacity:1}
+
+/* ===== v173: guida «Come iniziare al meglio» e compagno di gioco ===== */
+.gd-card{margin:14px 0; padding:12px 14px; border-radius:18px; border:1px solid var(--glass-line,rgba(128,128,160,.3)); background:linear-gradient(160deg,rgba(var(--a1rgb),.10),rgba(var(--a3rgb),.05))}
+.gd-card .gd-title{margin:0 0 8px}
+.gd-empty{font-size:.9rem; opacity:.9; line-height:1.4}
+.gd-gold{margin:6px 0 10px; padding:9px 11px; border-radius:12px; font-size:.92rem; font-weight:600; background:rgba(245,184,46,.16); border:1px solid rgba(245,184,46,.5)}
+.gd-blk{margin:10px 0} .gd-blk h4{margin:0 0 4px; font-size:.86rem; letter-spacing:.02em}
+.gd-blk ul{margin:0; padding-left:18px; display:grid; gap:4px} .gd-blk li{font-size:.86rem; line-height:1.35} .gd-blk p{margin:4px 0 0; font-size:.86rem; line-height:1.35}
+.gd-ecg{position:relative; height:26px; margin:6px 0 2px; border-radius:13px; background:linear-gradient(90deg,rgba(var(--a1rgb),.18),rgba(var(--a3rgb),.35)); display:flex; align-items:center; justify-content:space-between; padding:0 10px; font-size:.72rem}
+.gd-ecg i{position:absolute; top:-3px; bottom:-3px; width:4px; border-radius:2px; background:#f5b82e; box-shadow:0 0 12px #f5b82e}
+.gd-ecg b{margin-left:2px; opacity:.0} .gd-ecg span{opacity:.7}
+.gd-hrs{font-size:.9rem}
+.gd-foot{margin-top:10px; font-size:.72rem; opacity:.7}
+.gd-lnk{background:none; border:0; color:var(--accent,#7c5cff); text-decoration:underline; padding:0; font:inherit; cursor:pointer}
+.cp-card{margin:12px 0; border-radius:18px; border:1px solid var(--glass-line,rgba(128,128,160,.3)); background:rgba(var(--a2rgb),.08); overflow:hidden}
+.cp-card>summary{cursor:pointer; list-style:none; padding:11px 14px; font-weight:700} .cp-card>summary::-webkit-details-marker{display:none} .cp-card>summary small{font-weight:400; opacity:.7; margin-left:6px}
+.cp-body{padding:0 14px 14px; display:grid; gap:9px}
+.cp-l{display:grid; gap:4px; font-size:.82rem}
+.cp-l input,.cp-l textarea{width:100%; box-sizing:border-box; padding:9px 10px; border-radius:10px; border:1px solid var(--glass-line,rgba(128,128,160,.4)); background:var(--card); color:inherit; font:inherit; font-size:.92rem}
+.cp-lv{display:flex; flex-wrap:wrap; gap:6px}
+.cp-shield{position:relative; border-radius:14px; padding:10px 12px; background:var(--card); border:1px solid var(--glass-line,rgba(128,128,160,.3)); cursor:pointer; overflow:hidden}
+.cp-ans{font-size:.9rem; line-height:1.4} .cp-ans.blur{filter:blur(9px); transition:filter .35s ease; user-select:none}
+.cp-shield.open .cp-ans.blur{filter:none; user-select:text} .cp-shield .cp-tap{position:absolute; inset:0; display:grid; place-items:center; font-weight:700; background:rgba(0,0,0,.18); transition:opacity .3s} .cp-shield.open .cp-tap{opacity:0; pointer-events:none}
+.cp-hist{display:grid; gap:4px} .cp-old summary{cursor:pointer; font-size:.82rem} .cp-old summary small{opacity:.6} .cp-old .cp-ans{padding:6px 2px 2px}
+
+.gd-ecg{margin-top:24px !important}
+.gd-ecg b{position:absolute; top:-19px; transform:translateX(-50%); font-size:.72rem; font-weight:700; opacity:1 !important; white-space:nowrap}
+
+.toast.tappable{box-shadow:0 10px 30px rgba(var(--a1rgb),.5), 0 0 0 2px rgba(255,255,255,.55) inset}

@@ -196,5 +196,5 @@ document.addEventListener('pointerdown', e=>{
 window.__rtHoldPreview = true;
 document.addEventListener('click', e=>{
   const t = e.target && e.target.closest && e.target.closest('#toast.show, #addedBanner.show');
-  if(t){ t.classList.remove('show'); e.stopPropagation(); e.preventDefault(); }
+  if(t){ const fn = t._tap; t._tap = null; t.classList.remove('show', 'tappable'); e.stopPropagation(); e.preventDefault(); if(fn){ try{ fn(); }catch(x){} } }
 }, true);
