@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v149', date:'2026-10-20', items:[
+    'Update+ ricontrolla i giochi aggiornati in passato il cui voto è ancora una stima (prima li considerava finiti e non li toccava più): ora sono di nuovo in coda, i più deboli per primi. Puoi anche premere Update+ nella scheda per farlo subito.',
+    'Il voto Metacritic (o OpenCritic) di un gioco ancora «stima» si applica da solo anche ai giochi di base, senza chiedere conferma, e diventa V+. Prima finiva nell\'elenco «da approvare», dove nessuno lo vedeva.'
+  ]},
   {version:'v148', date:'2026-10-19', items:[
     'OpenCritic come seconda fonte dei voti: se hai una chiave gratuita (rapidapi.com → «OpenCritic API») incollala in ⚙️ Chiedi a Claude. Update+ e «Aggiorna info» la usano quando Metacritic non ha il gioco: una stima diventa verificata con la media dei critici. La chiave resta solo sul tuo dispositivo, non finisce nei backup né nella sincronizzazione.'
   ]},
