@@ -1410,7 +1410,7 @@ function renderWhenIdle(parts){
 function freshInfo(g){ try{ const f = (JSON.parse(localStorage.getItem('jrpg_fresh') || '{}') || {})[g.id]; return f && f.gold ? f : null; }catch(e){ return null; } }
 function freshWhy(f){
   let d = ''; try{ d = new Date(f.t).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}); }catch(e){}
-  return (f.m ? 'Controllato a mano da te il ' : 'Update+ il ') + d + ' · fonti: ' + ((f.src && f.src.length) ? f.src.join(', ') : 'ricerca manuale') + (f.pe ? ' · ' + f.pe + ' modifiche da approvare' : '') + '. Non lo aggiorno più (tranne i prezzi).';
+  return (f.m ? 'Controllato a mano da te il ' : 'Update V+ il ') + d + ' · fonti: ' + ((f.src && f.src.length) ? f.src.join(', ') : 'ricerca manuale') + (f.pe ? ' · ' + f.pe + ' modifiche da approvare' : '') + '. Non lo aggiorno più (tranne i prezzi).';
 }
 // aggiorna SOLO la riga di un gioco (la V+ dorata nella colonna voto; il simbolo Update+ sta solo nella scheda) senza ridisegnare la lista: niente sfarfallio negli aggiornamenti in background
 function refreshRowFresh(g){

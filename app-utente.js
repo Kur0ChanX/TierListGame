@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v152', date:'2026-10-21', items:[
+    'Update+ e «Aggiorna info» sono un solo pulsante: «Update V+». Le modifiche dubbie (voto molto diverso) restano da approvare col pulsante 📝.',
+    'Ogni voto dice da dove viene: «Voto preso da Metacritic (da Wikipedia/Steam/RAWG)». Se non c\'è Metacritic lo segnala («Nessun Metacritic trovato»: OpenCritic oppure stima). Il Metacritic ora sostituisce da solo il voto anche nei giochi già verificati, se la differenza è fino a 6 punti (oltre, chiede conferma). Nei prossimi giorni i 765 giochi vengono ricontrollati 40 alla volta.',
+    'Ricerca nuovi giochi più severa: prima di proporre un titolo ne controllo il voto reale (Metacritic/OpenCritic). Se non lo trovo, il voto è segnato «stima» e non può superare 79 (tier C): basta titoli sconosciuti con S+ inventato dall\'AI. Sotto 50 di voto reale viene scartato.',
+    'Affidabilità dei dati: corretto il motivo per cui restava al 90% («manca: analisi»). Bastava che l\'AI lasciasse vuoto un solo campo (es. lingua o ore) per perdere tutta l\'analisi; ora basta il nucleo (voto nel tempo, come regge oggi, gameplay) e ore/riedizioni/lingua sono facoltativi. Update V+ completa l\'analisi se manca.'
+  ]},
   {version:'v151', date:'2026-10-21', items:[
     'Quando un voto diventa verificato (V), la nota «voto e dettagli sono una stima» viene sostituita da «voto verificato», sia nei giochi nuovi sia in quelli già aggiunti (es. Dark Souls).'
   ]},
