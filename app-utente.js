@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v138', date:'2026-10-11', items:[
+    'Scorrimento della classifica di nuovo fluido: quando un gioco aggiunto da te veniva aggiornato in background (Update+ o completamento delle schede) l\'app ridisegnava tutta la lista e si bloccava per quasi mezzo secondo ogni volta. Ora cambia solo la riga di quel gioco, e i ridisegni completi aspettano che tu smetta di toccare lo schermo.'
+  ]},
   {version:'v137', date:'2026-10-10', items:[
     'Update+ sceglie per ogni dato la fonte più attendibile: voto = Metacritic (Wikipedia) → Steam dal vivo → dati settimanali → CheapShark; anno = Wikidata → Steam → CheapShark → RAWG; lingua = Steam → PCGamingWiki → it.wikipedia; storia = Wikipedia → RAWG → Steam (riscritta dall\'AI solo dalle fonti, con Gemini). Da Steam dal vivo ora prende anche Metascore, anno, generi e prezzo.',
     'Niente più sfarfallio: l\'aggiornamento in background cambia solo il simbolo del gioco interessato, senza ridisegnare la lista.',

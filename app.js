@@ -1089,6 +1089,7 @@ function render(){
     tr.addEventListener('click', ev=>{ const mi = ev.target.closest && ev.target.closest('.mini-icon'); if(mi && mi.dataset.why){ ev.stopPropagation(); showToast(mi.dataset.why, 5200); return; } openModal(g); });
     return tr;
   }
+  window.__rtBuildRow = buildRow;         // usata per aggiornare una sola riga senza ridisegnare la lista
   // Righe a blocchi: ne disegniamo ROW_PAGE subito e le altre solo quando ci si avvicina in fondo alla lista (molto più leggero sul telefono)
   // se cambia solo un dato di una riga (preferito, stato...) manteniamo le righe già scese, così la posizione nella lista non salta
   const viewKey = JSON.stringify([state.search, [...state.tiers], state.method, state.decade, state.minScore, state.onlyFavs, state.onlyStory, [...state.tags], state.status, state.sortKey, state.sortDir, state.mood, typeof ACTIVE_LIST !== 'undefined' ? ACTIVE_LIST : '']);
@@ -1384,6 +1385,28 @@ const STORY_TAG_INFO = {
   wow:{icon:'✨', label:'Storia sorprendente'}
 };
 // ---- Update+ : simbolo «super aggiornato» (dorato = tutte le fonti in automatico, viola = controllato a mano da te) ----
+// ---- Aggiornamenti in background senza bloccare lo scorrimento ----
+// Un dato cambiato (trama, simboli, lingua…) aggiorna SOLO la riga di quel gioco; i ridisegni completi (nuovi giochi, voto/tier cambiati)
+// si fanno quando non stai toccando lo schermo da almeno un secondo. Prima ogni aggiornamento ridisegnava tutto (~0,4 s bloccati sul telefono).
+let rtLastInput = 0, rtPendingParts = null, rtIdleTimer = 0;
+['touchstart', 'touchmove', 'wheel', 'scroll', 'pointerdown'].forEach(ev=> document.addEventListener(ev, ()=>{ rtLastInput = Date.now(); }, {passive: true, capture: true}));
+function refreshGameRow(g){
+  try{
+    const tr = document.querySelector('#tbody tr[data-gid="' + g.id + '"]');
+    if(tr && typeof window.__rtBuildRow === 'function') tr.replaceWith(window.__rtBuildRow(g));
+  }catch(e){}
+}
+function renderWhenIdle(parts){
+  rtPendingParts = Object.assign(rtPendingParts || {}, parts || {list: true});
+  clearTimeout(rtIdleTimer);
+  const tick = ()=>{
+    const quiet = Date.now() - rtLastInput;
+    if(quiet < 1000){ rtIdleTimer = setTimeout(tick, 1050 - quiet); return; }
+    const p = rtPendingParts; rtPendingParts = null;
+    try{ if(p.metrics) renderMetrics(); if(p.stats) renderStats(); if(p.list) render(); if(p.bar) renderListBar(); }catch(e){}
+  };
+  rtIdleTimer = setTimeout(tick, 600);
+}
 function freshInfo(g){ try{ const f = (JSON.parse(localStorage.getItem('jrpg_fresh') || '{}') || {})[g.id]; return f && f.gold ? f : null; }catch(e){ return null; } }
 function freshWhy(f){
   let d = ''; try{ d = new Date(f.t).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}); }catch(e){}
