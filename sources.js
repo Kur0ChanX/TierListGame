@@ -352,6 +352,32 @@
     const name = pickOne(seeds), info = await H.rawg.info(name); if(!info) return [];
     return (await H.rawg.similarItems(info)).map(c=> Object.assign(c, {because: 'Stessi tag su RAWG di «' + name + '»: ' + (info.tagNames || []).slice(0, 3).join(', ')}));
   };
+  // ---------- OpenCritic (chiave RapidAPI gratuita dell'utente, ~200 richieste al giorno): seconda fonte del voto quando Metacritic non basta ----------
+  const ocKey = ()=>{ try{ return (localStorage.getItem('jrpg_opencritic_key') || '').trim(); }catch(e){ return ''; } };
+  const OCK = 'rt_oc_usage', OC_LIMIT = 180;
+  const ocUsage = ()=>{ const d = new Date().toISOString().slice(0, 10), u = ls.get(OCK, {}); return u.d === d ? u : {d, n: 0}; };
+  async function ocGet(path){
+    if(!ocKey()) throw skipErr('chiave OpenCritic non impostata');
+    const u = ocUsage(); if(u.n >= OC_LIMIT) throw skipErr('limite giornaliero OpenCritic quasi raggiunto (' + u.n + ')');
+    u.n++; ls.set(OCK, u);
+    // la chiave viaggia in un'intestazione: solo accesso diretto, mai dai ponti pubblici
+    return H.json('https://opencritic-api.p.rapidapi.com/' + path, {timeout: 12000, relays: false, retries: 1, headers: {'x-rapidapi-key': ocKey(), 'x-rapidapi-host': 'opencritic-api.p.rapidapi.com'}});
+  }
+  H.opencritic = {
+    has: ()=> !!ocKey(),
+    usage: ()=> ocUsage().n,
+    async ping(){ const j = await ocGet('game/search?criteria=' + encodeURIComponent('Dark Souls')); return Array.isArray(j); },
+    // cerca il gioco per nome (titolo praticamente uguale) e ne legge il voto medio dei critici
+    async info(name){
+      const clean = t=> String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const list = await ocGet('game/search?criteria=' + encodeURIComponent(name)); if(!Array.isArray(list) || !list.length) return null;
+      const t = clean(name), hit = list.find(x=> clean(x.name) === t) || list.find(x=> (x.dist == null || x.dist <= 0.15) && clean(x.name) === t.replace(/ (remastered|remake|definitive edition)$/, ''));
+      if(!hit) return null;
+      const d = await ocGet('game/' + hit.id); if(!d) return null;
+      const sc = Math.round(d.topCriticScore >= 0 ? d.topCriticScore : (d.medianScore >= 0 ? d.medianScore : -1));
+      return sc >= 20 ? {id: hit.id, name: d.name || hit.name, score: sc, reviews: d.numReviews || d.numTopCriticReviews || null, tier: d.tier || '', url: 'https://opencritic.com/game/' + hit.id + '/' + String(d.name || hit.name).toLowerCase().replace(/[^a-z0-9]+/g, '-')} : null;
+    }
+  };
   H.rawg = {
     has: ()=> !!rawgKey(),
     usage: ()=> rawgUsage().n,
@@ -456,7 +482,7 @@
     // dove prendere i DATI di un gioco (il primo che li ha vince; gli altri servono da conferma): dal più sicuro al meno
     info: {
       lingua: ['facts.js (Steam ufficiale)', 'Steam', 'PCGamingWiki', 'it.wikipedia'],
-      voto: ['Metacritic via Wikipedia', 'facts.js (Metascore Steam/CheapShark)', 'RAWG (Metacritic)', '% recensioni Steam'],
+      voto: ['Metacritic via Wikipedia', 'facts.js (Metascore Steam/CheapShark)', 'RAWG (Metacritic)', 'OpenCritic (chiave facoltativa)', '% recensioni Steam'],
       anno: ['Wikidata', 'facts.js (Steam)', 'RAWG', 'Wikipedia'],
       generi: ['Wikidata', 'RAWG', 'Wikipedia'],
       prezzo: ['facts.js (Steam in euro)', 'CheapShark dal vivo'],

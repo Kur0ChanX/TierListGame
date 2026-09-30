@@ -188,6 +188,14 @@ async function askLLM(input, opts, extra){
     try{ await window.SearchHub.rawg.ping(); say('✅ RAWG funziona: la uso per scoprire giochi, uscite, affini, saghe, voti, anni e copertine (richieste questo mese: ' + window.SearchHub.rawg.usage() + ' su 20.000).', true); }
     catch(e){ say('❌ RAWG non risponde con questa chiave: ' + String(e && e.message || e).slice(0, 120), false); }
   }); }
+  const ocEl = document.getElementById('ocKeyInput');
+  if(ocEl){ try{ ocEl.value = localStorage.getItem('jrpg_opencritic_key') || ''; }catch(e){} ocEl.addEventListener('change', async ()=>{
+    const v = ocEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_opencritic_key', v); else localStorage.removeItem('jrpg_opencritic_key'); }catch(e){}
+    if(!v){ say('Chiave OpenCritic rimossa.'); return; }
+    say('Verifico la chiave OpenCritic…');
+    try{ await window.SearchHub.opencritic.ping(); say('✅ OpenCritic funziona: la uso come seconda fonte dei voti (richieste oggi: ' + window.SearchHub.opencritic.usage() + ' su circa 200).', true); }
+    catch(e){ say('❌ OpenCritic non risponde con questa chiave: ' + String(e && e.message || e).slice(0, 120), false); }
+  }); }
   const relEl = document.getElementById('relayUrlInput');
   if(relEl){ try{ relEl.value = localStorage.getItem('jrpg_relay_url') || ''; }catch(e){}
     relEl.addEventListener('change', async ()=>{

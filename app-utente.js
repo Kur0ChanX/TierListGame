@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v148', date:'2026-10-19', items:[
+    'OpenCritic come seconda fonte dei voti: se hai una chiave gratuita (rapidapi.com → «OpenCritic API») incollala in ⚙️ Chiedi a Claude. Update+ e «Aggiorna info» la usano quando Metacritic non ha il gioco: una stima diventa verificata con la media dei critici. La chiave resta solo sul tuo dispositivo, non finisce nei backup né nella sincronizzazione.'
+  ]},
   {version:'v147', date:'2026-10-18', items:[
     'Update+ si fida di tutte le fonti del Metacritic: Wikipedia, Steam, CheapShark e anche RAWG. Un voto ancora «stima» viene sostituito da solo con il Metascore e diventa verificato (V+). Prima il Metascore di RAWG veniva ignorato dal giro automatico.'
   ]},
