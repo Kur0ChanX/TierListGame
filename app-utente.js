@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v162', date:'2026-09-30', time:'22:52', items:[
+    '«🔐 Cifra le chiavi»: il codice cifrato ora compare sempre a schermo in una finestra (prima, se la copia negli appunti riusciva, non si vedeva nulla).'
+  ]},
   {version:'v161', date:'2026-09-30', time:'22:44', items:[
     'Chiavi dentro il programma, cifrate: in ⚙️ Chiedi a Claude, «🔐 Cifra le chiavi» crea un codice protetto da una tua password (profilo + password, almeno 12 caratteri); una volta inserito nel programma, su qualsiasi dispositivo basta «🔓 Recupera chiavi»: scegli il profilo, scrivi la password e le chiavi mancanti vengono aggiunte e quelle diverse sostituite. Nel codice non c\'è mai nessuna chiave in chiaro né la password. Restano anche Copia e Incolla.'
   ]},

@@ -252,8 +252,10 @@ async function askLLM(input, opts, extra){
     say('Cifro…');
     try{
       const box = await kbEncrypt(o, pw), code = 'RTKB1:' + prof + ':' + btoa(JSON.stringify(box));
-      try{ await navigator.clipboard.writeText(code); say('✅ Codice cifrato copiato (profilo «' + prof + '»). Incollalo a Claude in chat: lo inserisce nel programma. Senza la password non serve a nessuno.', true); }
-      catch(e){ window.prompt('Copia questo codice cifrato e mandalo a Claude:', code); say('✅ Codice cifrato pronto.', true); }
+      let copied = false; try{ await navigator.clipboard.writeText(code); copied = true; }catch(e){}
+      say('✅ Codice cifrato pronto (profilo «' + prof + '»). Mandalo a Claude in chat. Senza la password non serve a nessuno.', true);
+      // lo mostro sempre a schermo: il messaggio di stato sta in fondo al menu e si può non vedere
+      window.prompt((copied ? 'Codice GIÀ COPIATO negli appunti: incollalo a Claude in chat. ' : 'Tieni premuto nella casella, Seleziona tutto, Copia, poi incollalo a Claude in chat. ') + 'È cifrato: senza la tua password non serve a nessuno.', code);
     }catch(e){ say('❌ Non sono riuscito a cifrare.', false); }
   });
   if(krec) krec.addEventListener('click', async ()=>{
