@@ -841,3 +841,11 @@ html{overscroll-behavior-y:contain}
 
 .srcico{display:inline-block; vertical-align:middle; width:24px; height:24px; border-radius:50%; object-fit:cover}
 .srcico[alt^=Stima]{border-radius:6px}
+
+/* aggiornamenti in background: la riga cambiata non rifà l'animazione d'ingresso e i badge non ripartono (niente lampeggio) */
+tr.rt-noanim, tr.rt-noanim *{animation:none !important}
+#tbody td:nth-child(3){-webkit-touch-callout:none; -webkit-user-select:none; user-select:none}
+.pv-card{max-width:420px}
+.pv-cover{width:100%; max-height:46vh; object-fit:contain; border-radius:14px; display:block; margin:0 auto 10px; background:rgba(255,255,255,.04)}
+.pv-badges{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0}
+.pv-line{font-size:.9rem; margin:6px 0; opacity:.92}

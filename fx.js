@@ -133,3 +133,56 @@
   document.addEventListener('change', syncQuick);
   syncQuick();
 })();
+
+// ---- v168: «indietro» del telefono chiude la scheda (non esce dal programma) + anteprima veloce con pressione lunga sul titolo ----
+(function(){
+  // 1) gesto/tasto indietro: ogni finestra aperta (scheda, news, chiedi, profilo…) mette un segno nella cronologia; «indietro» la chiude
+  const ovs = ()=> Array.from(document.querySelectorAll('[id$="Backdrop"].show, .dup-backdrop.show'));
+  let pushed = 0, ignore = 0;
+  const top = ()=>{ const l = ovs(); return l.sort((a, b)=> (parseInt(getComputedStyle(b).zIndex, 10) || 0) - (parseInt(getComputedStyle(a).zIndex, 10) || 0))[0]; };
+  const sync = ()=>{
+    const n = ovs().length;
+    while(pushed < n){ try{ history.pushState({rtov: pushed + 1}, ''); }catch(e){} pushed++; }
+    if(pushed > n){ const d = pushed - n; pushed = n; ignore += d; try{ history.go(-d); }catch(e){} }        // chiusa dal pulsante: tolgo i segni in più
+  };
+  new MutationObserver(sync).observe(document.body, {subtree: true, attributes: true, attributeFilter: ['class']});
+  window.addEventListener('popstate', ()=>{
+    if(ignore > 0){ ignore--; return; }
+    const el = top(); if(!el) return;
+    pushed = Math.max(0, pushed - 1);
+    const b = el.querySelector('[data-ui-close], .modal-close, button[id$="CloseBtn"]');
+    if(b) b.click(); else el.classList.remove('show');
+    setTimeout(sync, 50);
+  });
+  // 2) tieni premuto il titolo di un gioco: anteprima veloce (copertina, voto, trama breve) senza aprire la scheda
+  let timer = 0, sx = 0, sy = 0, fired = 0;
+  const cell = t=> t && t.closest && t.closest('#tbody tr td:nth-child(3)');
+  const start = (t, x, y)=>{
+    const c = cell(t); if(!c) return; const tr = c.closest('tr'), g = (typeof GAMES !== 'undefined' ? GAMES : []).find(v=> String(v.id) === tr.dataset.gid); if(!g) return;
+    sx = x; sy = y; clearTimeout(timer);
+    timer = setTimeout(()=>{ fired = Date.now(); try{ navigator.vibrate && navigator.vibrate(18); }catch(e){} preview(g); }, 450);
+  };
+  const cancel = ()=> clearTimeout(timer);
+  document.addEventListener('touchstart', e=>{ const t = e.touches[0]; start(e.target, t.clientX, t.clientY); }, {passive: true});
+  document.addEventListener('touchmove', e=>{ const t = e.touches[0]; if(Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) cancel(); }, {passive: true});
+  ['touchend', 'touchcancel'].forEach(n=> document.addEventListener(n, cancel, {passive: true}));
+  document.addEventListener('mousedown', e=>{ if(e.button === 0) start(e.target, e.clientX, e.clientY); });
+  ['mouseup', 'mouseleave'].forEach(n=> document.addEventListener(n, cancel));
+  document.addEventListener('contextmenu', e=>{ if(cell(e.target)) e.preventDefault(); });
+  document.addEventListener('click', e=>{ if(Date.now() - fired < 700 && cell(e.target)){ e.stopPropagation(); e.preventDefault(); } }, true);       // il rilascio dopo la pressione lunga non apre la scheda
+  function preview(g){
+    let el = document.getElementById('pvBackdrop');
+    if(!el){ el = document.createElement('div'); el.id = 'pvBackdrop'; el.className = 'dup-backdrop'; el.style.zIndex = 100800; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
+    const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+    const cov = typeof effectiveCover === 'function' ? effectiveCover(g) : null, l = g.label || {};
+    const story = String(g.story || '').replace(/\s+/g, ' ').trim();
+    el.innerHTML = `<div class="lp-card pv-card"><div class="lp-head"><b>${esc(g.name)}</b><button class="btn" data-ui-close>Chiudi</button></div>
+      ${cov ? `<img class="pv-cover" src="${esc(cov)}" alt="">` : (typeof coverPlaceholderHtml === 'function' ? coverPlaceholderHtml(g) : '')}
+      <div class="pv-badges"><span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span><span class="badge big outline">${typeof scoreTxt === 'function' ? scoreTxt(g) : g.score}${g.tier === 'ND' ? '' : '/100'}</span><span class="badge big outline">${typeof srcIcon === 'function' ? srcIcon(g) : ''}</span><span style="opacity:.8">${esc(g.plat)}${g.year ? ' · ' + esc(g.year) : ''}</span></div>
+      ${story ? `<div class="pv-line">${esc(story.slice(0, 230))}${story.length > 230 ? '…' : ''}</div>` : ''}
+      ${l.ok ? `<div class="pv-line">🟢 <b>Fa per te se</b> ${esc(l.ok)}</div>` : ''}${l.ko ? `<div class="pv-line">🔴 <b>Lascia stare se</b> ${esc(l.ko)}</div>` : ''}
+      <div class="lp-tools"><button class="btn primary" id="pvOpen">Apri la scheda</button></div></div>`;
+    el.classList.add('show');
+    el.querySelector('#pvOpen').addEventListener('click', ()=>{ el.classList.remove('show'); try{ openModal(g); }catch(e){} });
+  }
+})();

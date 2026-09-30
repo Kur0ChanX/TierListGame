@@ -1406,7 +1406,16 @@ let rtLastInput = 0, rtPendingParts = null, rtIdleTimer = 0;
 function refreshGameRow(g){
   try{
     const tr = document.querySelector('#tbody tr[data-gid="' + g.id + '"]');
-    if(tr && typeof window.__rtBuildRow === 'function') tr.replaceWith(window.__rtBuildRow(g));
+    if(tr && typeof window.__rtBuildRow === 'function'){
+      const nt = window.__rtBuildRow(g), oc = tr.children, nc = nt.children;
+      if(oc.length !== nc.length){ nt.classList.add('rt-noanim'); tr.replaceWith(nt); return; }
+      // aggiorno SOLO le celle cambiate, tenendo la riga com'è (niente ridisegno, niente animazione d'ingresso, niente lampeggio)
+      for(let i = 0; i < oc.length; i++){
+        if(oc[i].innerHTML !== nc[i].innerHTML) oc[i].innerHTML = nc[i].innerHTML;
+        if(oc[i].title !== nc[i].title) oc[i].title = nc[i].title;
+        if(oc[i].classList.contains('score') && oc[i].style.getPropertyValue('--sc')) oc[i].style.setProperty('--sc', g.score);
+      }
+    }
   }catch(e){}
 }
 function renderWhenIdle(parts){
@@ -1429,7 +1438,7 @@ function freshWhy(f){
 function refreshRowFresh(g){
   try{
     const tr = document.querySelector('#tbody tr[data-gid="' + g.id + '"]'); if(!tr) return;
-    const m = tr.querySelector('td.method'); if(m) m.innerHTML = srcIcon(g);
+    const m = tr.querySelector('td.method'); if(m){ const h = srcIcon(g); if(m.innerHTML !== h) m.innerHTML = h; }
   }catch(e){}
 }
 function freshIcon(g){
