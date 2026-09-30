@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v163', date:'2026-09-30', time:'23:00', items:[
+    'Chiavi in due tocchi: «☁️ Salva chiavi» (sul dispositivo che le ha) e «☁️ Recupera chiavi» (sul nuovo): chiedono solo utente (Mario) e password. Le chiavi, cifrate con la password, stanno in un gist del tuo GitHub; niente codici da copiare a mano.'
+  ]},
   {version:'v162', date:'2026-09-30', time:'22:52', items:[
     '«🔐 Cifra le chiavi»: il codice cifrato ora compare sempre a schermo in una finestra (prima, se la copia negli appunti riusciva, non si vedeva nulla).'
   ]},
