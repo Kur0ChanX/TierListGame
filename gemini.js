@@ -205,6 +205,28 @@ async function askLLM(input, opts, extra){
       try{ const n = await window.SearchHub.testCustomRelay(); say('✅ Il tuo ponte funziona (' + n + ' negozi letti da CheapShark). Ora Steam, GOG e Reddit hanno una via di accesso.', true); }
       catch(e){ say('❌ Il ponte non risponde: ' + String(e && e.message || e).slice(0, 100), false); }
     }); }
+  // trasferimento delle chiavi tra dispositivi: si copia un codice e lo si incolla sull'altro (le chiavi non passano mai da file, backup o sincronizzazione)
+  const KEYS_T = [['jrpg_gemini_key', 'g'], ['jrpg_rawg_key', 'r'], ['jrpg_opencritic_key', 'o'], ['jrpg_relay_url', 'p']];
+  const kc = document.getElementById('keysCopyBtn'), kp = document.getElementById('keysPasteBtn');
+  if(kc) kc.addEventListener('click', async ()=>{
+    const o = {}; KEYS_T.forEach(([k, s])=>{ try{ const v = (localStorage.getItem(k) || '').trim(); if(v) o[s] = v; }catch(e){} });
+    if(!Object.keys(o).length){ say('Non ci sono chiavi da copiare su questo dispositivo.', false); return; }
+    const code = 'RTK1:' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+    try{ await navigator.clipboard.writeText(code); say('✅ Copiate (' + Object.keys(o).length + ' chiavi). Sull\'altro dispositivo tocca «Incolla le chiavi». Poi cancella il codice dagli appunti.', true); }
+    catch(e){ window.prompt('Copia questo codice (tieni premuto, Seleziona tutto, Copia):', code); }
+  });
+  if(kp) kp.addEventListener('click', ()=>{
+    const code = (window.prompt('Incolla qui il codice copiato dall\'altro dispositivo:', '') || '').trim();
+    if(!code) return;
+    try{
+      if(!/^RTK1:/.test(code)) throw new Error('codice non valido');
+      const o = JSON.parse(decodeURIComponent(escape(atob(code.slice(5))))); let n = 0;
+      KEYS_T.forEach(([k, s])=>{ if(typeof o[s] === 'string' && o[s].trim()){ try{ localStorage.setItem(k, o[s].trim()); n++; }catch(e){} } });
+      [['rawgKeyInput', 'jrpg_rawg_key'], ['ocKeyInput', 'jrpg_opencritic_key'], ['relayUrlInput', 'jrpg_relay_url']].forEach(([id, k])=>{ const el = document.getElementById(id); if(el) try{ el.value = localStorage.getItem(k) || ''; }catch(e){} });
+      try{ keyEl.value = geminiKey(); }catch(e){}
+      say('✅ Importate ' + n + ' chiavi. Ricarica la pagina per usarle subito dappertutto.', true); try{ refreshFab(); }catch(e){}
+    }catch(e){ say('❌ Codice non valido: copialo di nuovo dall\'altro dispositivo.', false); }
+  });
   const modEl = document.getElementById('geminiModelInput');
   if(modEl){ modEl.value = geminiCustomModel(); modEl.addEventListener('change', ()=>{ const v = modEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_gemini_model', v); else localStorage.removeItem('jrpg_gemini_model'); }catch(e){} geminiBadModels = new Set(); say(v ? 'Modello impostato: ' + v + ' (se non esiste uso automaticamente ' + GEMINI_MODEL + ').' : 'Modello automatico: ' + GEMINI_MODEL + ' (sempre l\'ultimo Flash).'); }); }
   document.getElementById('geminiClearBtn').addEventListener('click', ()=>{ setGeminiKey(''); keyEl.value = ''; say('Chiave rimossa.'); });
