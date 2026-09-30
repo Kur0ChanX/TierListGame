@@ -45,6 +45,10 @@ jobs:
         if: github.event.schedule != '23 1 * * *'
         run: node tools/build-ost.js
         continue-on-error: true
+      - name: Immagini delle carte Triple Triad (solo giro completo)
+        if: github.event.schedule != '23 1 * * *'
+        run: node tools/build-triad-art.js
+        continue-on-error: true
       - name: Controllo qualità (ogni notte)
         run: node tools/build-quality.js
         continue-on-error: true
@@ -55,7 +59,7 @@ jobs:
         run: |
           git config user.name "raccoon-bot"
           git config user.email "raccoon-bot@users.noreply.github.com"
-          git add facts.js discoveries.js radar.js ost.js quality.js
+          git add facts.js discoveries.js radar.js ost.js quality.js triad-art.js
           if git diff --cached --quiet; then
             echo "Nessuna novità."
           else

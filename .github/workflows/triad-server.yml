@@ -1,0 +1,67 @@
+name: Server Triple Triad (Cloudflare)
+# Pubblica da solo il server online del Triple Triad (tools/triad-server) su Cloudflare Workers, gratis, e scrive il suo indirizzo in triad-config.js.
+# Servono due segreti del repository: CLOUDFLARE_API_TOKEN (modello «Edit Cloudflare Workers») e CLOUDFLARE_ACCOUNT_ID. Senza, il workflow non fa nulla (nessun errore).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/triad-server/**'
+      - 'triad-core.js'
+      - 'triad-cards.js'
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: triad-server
+  cancel-in-progress: false
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prove delle regole (se falliscono non si pubblica)
+        run: node tools/test-triad-core.js
+      - name: Ci sono i segreti di Cloudflare?
+        id: chk
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Mancano i segreti CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID: il server online non viene pubblicato."
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Pubblica il server su Cloudflare
+        if: steps.chk.outputs.skip != '1'
+        working-directory: tools/triad-server
+        run: npx --yes wrangler@4 deploy 2>&1 | tee ../../deploy.log
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Scrivi l'indirizzo del server nell'app e ripubblica il sito
+        if: steps.chk.outputs.skip != '1'
+        run: |
+          URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          if [ -z "$URL" ]; then echo "::warning::Non trovo l'indirizzo del server nel log della pubblicazione."; exit 0; fi
+          echo "Server: $URL"
+          printf "// Indirizzo del server online del Triple Triad. Lo riscrive da solo il workflow «Server Triple Triad» dopo la pubblicazione.\n// Vuoto = il server non è ancora collegato (nel gioco si può incollare a mano l'indirizzo).\nwindow.TRIAD_SERVER = '%s';\n" "$URL" > triad-config.js
+          curl -fsS "$URL/api/ping" || echo "::warning::Il server non risponde ancora (può servire un minuto)"
+          git config user.name "raccoon-bot"
+          git config user.email "raccoon-bot@users.noreply.github.com"
+          git add triad-config.js
+          if git diff --cached --quiet; then
+            echo "Indirizzo già aggiornato."
+          else
+            git commit -m "Triple Triad: indirizzo del server online"
+            git push
+            gh workflow run pages.yml --ref main
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

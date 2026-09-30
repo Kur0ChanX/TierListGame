@@ -25,7 +25,7 @@ jobs:
         run: |
           mkdir _site
           cp "Tier List RPG & JRPG di Mario.html" _site/index.html
-          cp style.css theme.css app.js app-schede.js app-utente.js app-ai.js gemini.js loader.js sources.js facts.js discoveries.js sync.js genres.js verify.js fx.js extras.js extras2.js extras3.js extras4.js qrcode.min.js music.js pet.js triad.js radar.js ost.js quality.js palettes.js intro.js giochi.js giochi-dettagli-1.js giochi-dettagli-2.js giochi-dettagli-3.js giochi-dettagli-4.js manifest.webmanifest sw.js _site/
+          cp style.css theme.css app.js app-schede.js app-utente.js app-ai.js gemini.js loader.js sources.js facts.js discoveries.js sync.js genres.js verify.js fx.js extras.js extras2.js extras3.js extras4.js qrcode.min.js music.js pet.js triad.js triad.css triad-core.js triad-cards.js triad-art.js triad-play.js triad-online.js triad-config.js radar.js ost.js quality.js palettes.js intro.js giochi.js giochi-dettagli-1.js giochi-dettagli-2.js giochi-dettagli-3.js giochi-dettagli-4.js manifest.webmanifest sw.js _site/
           cp -r icons _site/icons
           cp -r backup-aurora _site/backup-aurora
           # la copia congelata si aspetta enrich/dopa dentro giochi.js: le riunisco al volo nella versione pubblicata (i suoi file nel repo restano intatti)
