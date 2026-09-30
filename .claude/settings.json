@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(giochi.js)",
+      "Read(giochi-dettagli-*.js)",
+      "Read(ost.js)",
+      "Read(discoveries.js)",
+      "Read(facts.js)",
+      "Read(radar.js)",
+      "Read(quality.js)",
+      "Read(qrcode.min.js)",
+      "Read(backup-aurora/**)"
+    ]
+  }
+}
