@@ -1,0 +1,101 @@
+/* Componenti propri dell'app Anime & Manga (si carica dopo style.css e theme.css: qui solo aggiunte, mai modifiche al resto). */
+
+/* ---- riga della classifica: miniatura + titolo + sottotitolo ---- */
+td.ttl{min-width:0}
+.row-th{display:inline-block; width:30px; height:42px; vertical-align:middle; margin-right:9px; border-radius:6px; overflow:hidden; flex:0 0 auto; position:relative;
+  background:linear-gradient(160deg, color-mix(in srgb,var(--tc,#7c5cff) 60%,#1a1033), #1a1033); box-shadow:0 2px 7px rgba(0,0,0,.28)}
+.row-th img{display:block; width:100%; height:100%; object-fit:cover}
+.ttl-tx{display:inline-block; vertical-align:middle; max-width:calc(100% - 44px)}
+.ttl-name{font-weight:600}
+.row-sub{display:block; font-size:.72rem; color:var(--sub); font-weight:400; margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+tbody tr:hover .row-sub{color:inherit; opacity:.75}
+td.len{font-size:.78rem; color:var(--sub); text-align:center; white-space:nowrap; width:58px}
+html.no-row-th .row-th{display:none} html.no-row-th .ttl-tx{max-width:100%}
+.itb-e{color:#0e8f5f; border-color:#0e8f5f}
+.badge.outline{background:transparent}
+
+.row-meta-m{display:none}
+@media (max-width:760px){
+  .row-meta-m{display:block; font-size:.7rem; color:var(--sub); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ttl-tx{max-width:calc(100% - 42px)} td.ttl{width:100%}
+  .row-sub{max-width:100%}
+}
+/* ---- barra «non lo trovi? cerca online» ---- */
+.online-hint{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 12px; margin:6px 0 2px; border-radius:14px; background:var(--grad-soft); border:1px solid var(--glass-line); font-size:.88rem}
+.online-hint span{flex:1 1 auto; min-width:0}
+
+/* ---- chip dei generi con intestazione di gruppo ---- */
+.tg-title{flex:0 0 100%; width:100%; font-weight:700; font-size:.78rem; color:var(--sub); margin:8px 0 2px; text-transform:uppercase; letter-spacing:.04em}
+.tagchips .tg-title:first-child{margin-top:0}
+
+/* ---- La mia Tier List: miniature nei chip ---- */
+.mytier-chip .row-th{width:26px; height:36px; margin:0 4px 0 -2px; box-shadow:none}
+.mytier-chip{max-width:260px}
+.mytier-quick{display:flex; gap:6px; flex-wrap:wrap}
+.mytier-quick .btn.mtq{padding:5px 8px}
+.mytier-quick .btn.mtq.on{outline:2px solid var(--accent); outline-offset:1px}
+
+/* ---- scheda titolo: copertina a sinistra, dati a destra ---- */
+.modal-hero{display:flex; gap:14px; align-items:flex-start; margin-bottom:10px}
+.modal-hero .cover-block{flex:0 0 126px; margin:0; width:126px}
+.modal-hero .modal-cover{width:126px; height:180px; object-fit:cover; padding:0; margin:0; border-radius:12px; box-shadow:0 8px 22px rgba(0,0,0,.35)}
+.modal-hero .modal-cover.placeholder-cover{height:180px; min-height:0; padding:10px; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; gap:6px; margin:0;
+  background:linear-gradient(160deg, color-mix(in srgb,var(--tc,#7c5cff) 70%,#1a1033), #1a1033 88%)}
+.modal-cover.placeholder-cover i{font-style:normal; font-size:2rem; line-height:1}
+.modal-cover.placeholder-cover span{color:#fff; font-weight:800; font-size:.82rem; line-height:1.15; text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.modal-hero-info{flex:1 1 auto; min-width:0}
+.modal-sub{font-size:.8rem; color:var(--sub); margin-bottom:4px; font-style:italic}
+.modal-hero-info .modal-plat{margin-bottom:3px}
+.glabel-src{font-size:.72rem; margin-left:4px}
+@media (max-width:420px){ .modal-hero .cover-block{flex-basis:104px; width:104px} .modal-hero .modal-cover, .modal-hero .modal-cover.placeholder-cover{width:104px; height:150px} }
+
+/* ---- stagioni ---- */
+.seasons-list{border:1px solid var(--border); border-radius:12px; overflow:hidden}
+.season-row{display:grid; grid-template-columns:1fr 44px 52px 34px; gap:6px; padding:6px 10px; border-bottom:1px solid var(--border); font-size:.8rem; align-items:center}
+.season-row:last-child{border-bottom:none} .season-row:nth-child(even){background:var(--row-alt)}
+.season-row .s-n{overflow:hidden; text-overflow:ellipsis; white-space:nowrap} .season-row .s-y,.season-row .s-e{color:var(--sub); text-align:right; font-variant-numeric:tabular-nums} .season-row .s-v{text-align:right}
+
+/* ---- dettagli dal vivo (AniList) ---- */
+.live-box{margin-top:8px}
+.live-row{margin:8px 0; font-size:.85rem; line-height:1.4}
+.live-loading{color:var(--sub)}
+.chars{display:flex; gap:10px; overflow-x:auto; padding:4px 0 8px; -webkit-overflow-scrolling:touch}
+.char{flex:0 0 74px; text-align:center; font-size:.72rem; line-height:1.2}
+.char img{display:block; width:64px; height:64px; border-radius:50%; object-fit:cover; margin:0 auto 4px; background:var(--row-alt); border:2px solid var(--border)}
+.char span{display:block; font-weight:600} .char small{color:var(--sub)}
+.similar-chip{max-width:100%}
+.similar-chip.live-add{border-style:dashed}
+
+/* ---- ricerca online e Novità ---- */
+.ol-search{display:flex; gap:8px; margin:8px 0} .ol-search input{flex:1 1 auto; min-width:0}
+.ol-row,.saga-miss.ol{display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); align-items:flex-start}
+.ol-cover,.nv-cover{flex:0 0 56px; width:56px; height:80px; border-radius:8px; overflow:hidden; position:relative; background:linear-gradient(160deg, color-mix(in srgb,var(--tc,#7c5cff) 60%,#1a1033), #1a1033)}
+.ol-cover img,.nv-cover img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+.ol-info{flex:1 1 auto; min-width:0} .ol-name{font-weight:700} .ol-meta{font-size:.76rem; color:var(--sub)} .ol-act{flex:0 0 auto}
+.nv-list{display:flex; flex-direction:column; gap:10px; padding-bottom:20px}
+.nv-card{display:flex; gap:12px; padding:10px; border-radius:16px; background:var(--glass); border:1px solid var(--glass-line); box-shadow:var(--shadow)}
+.nv-cover{flex-basis:86px; width:86px; height:124px; border-radius:12px}
+.nv-body{flex:1 1 auto; min-width:0} .nv-title{font-weight:800; font-size:.98rem; line-height:1.2} .nv-meta{font-size:.76rem; color:var(--sub); margin:2px 0 4px}
+.nv-next{font-size:.76rem; color:var(--accent); font-weight:700} .nv-score{margin:4px 0} .nv-desc{font-size:.78rem; color:var(--sub); line-height:1.35; margin:4px 0}
+.nv-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
+.novita-wrap{padding:4px 2px 20px}
+.wl-row{display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border)}
+.x-body-text p{margin:8px 0; line-height:1.45; font-size:.9rem}
+.vibes-box{margin:14px 6px 24px; padding:10px 12px; border-radius:16px; background:var(--glass); border:1px solid var(--glass-line)}
+.vibes-box summary{cursor:pointer}
+
+/* ---- pulsante microfono nella barra di ricerca ---- */
+.topbar-row2{position:relative}
+.mic-btn{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:50%; border:1px solid var(--glass-line); background:var(--glass); display:flex; align-items:center; justify-content:center; padding:0; cursor:pointer; color:inherit}
+.mic-btn .gi{width:22px; height:22px} .mic-btn.on{background:var(--grad); box-shadow:0 0 0 4px rgba(var(--a1rgb),.25)}
+.topbar-row2 #search{padding-right:50px}
+
+/* ---- segnaposto delle copertine con emoji ---- */
+.x-ph i{position:absolute; top:8px; left:10px; font-style:normal; font-size:1.5rem; line-height:1; opacity:.9}
+.x-thumb .x-ph i{display:none}
+.discover-cover{background:linear-gradient(160deg, #2a1c52, #140f26)}
+
+/* ---- apertura animata ---- */
+.intro-art{position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); width:82%; max-width:440px; text-align:center; animation:introPop 1.1s cubic-bezier(.2,1.4,.4,1) both}
+.intro-art img{width:100%; height:auto; display:block; filter:drop-shadow(0 12px 34px rgba(0,0,0,.55))}
+@keyframes introPop{from{opacity:0; transform:translate(-50%,-46%) scale(.86)}to{opacity:1; transform:translate(-50%,-50%) scale(1)}}

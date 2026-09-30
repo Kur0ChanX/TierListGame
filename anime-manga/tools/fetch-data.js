@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // Scarica da AniList (GraphQL, gratuito, senza chiave) i titoli da mettere nella Tier List Anime & Manga.
-// Uso:   node tools/fetch-anime-data.js [--fresh]      (poi: node tools/build-anime-data.js)
-// Scrive tools/.anime-cache/selection.json (ignorato da git). Le risposte grezze restano in cache: rilanciando
+// Uso:   node anime-manga/tools/fetch-data.js [--fresh]      (poi: node anime-manga/tools/build-data.js)
+// Scrive anime-manga/tools/.cache/selection.json (ignorato da git). Le risposte grezze restano in cache: rilanciando
 // lo script non rifà le richieste già fatte (--fresh le rifà tutte). Dietro un proxy aziendale: NODE_USE_ENV_PROXY=1.
 // Selezione: per ogni lista i titoli più POPOLARI (i più conosciuti, anche quelli mediocri, così i tier bassi non sono vuoti)
 // uniti a quelli col VOTO più alto (i capolavori meno famosi). Niente titoli per adulti (isAdult), niente corti/speciali.
 'use strict';
 const fs = require('fs'), path = require('path');
-const CACHE = process.env.AM_CACHE || path.join(__dirname, '.anime-cache');
+const CACHE = process.env.AM_CACHE || path.join(__dirname, '.cache');
 const FRESH = process.argv.includes('--fresh');
 fs.mkdirSync(CACHE, {recursive: true});
 

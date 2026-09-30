@@ -1,0 +1,3 @@
+# cache delle richieste ad AniList/Wikipedia usata dagli script (si rigenera da sola)
+.cache/
+node_modules/
