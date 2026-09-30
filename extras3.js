@@ -194,7 +194,7 @@
     if(g.ysort) f.push('epoca:' + (Math.floor(g.ysort / 10) * 10));
     return f;
   }
-  const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
+  const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
   let TM = null, TMkey = '';
   function tasteModel(){
     const sig = signals(), key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0);
@@ -566,5 +566,9 @@
     body.querySelectorAll('[data-qr]').forEach(b=> b.addEventListener('click', ()=>{ const g = GAMES.find(x=> x.id == b.dataset.qr); if(g){ document.getElementById('xQual').classList.remove('show'); openModal(g); } }));
   }
   menu(gi('pulse') + ' Rapporto qualità notturno', openQuality);
+  // Triple Triad: il gioco (grande) si carica solo quando lo apri
+  function openTT(){ if(window.openTriad) return openTriad(); toast('Mescolo le carte…', 1500); loadScript('triad.js').then(()=> window.openTriad && openTriad()).catch(()=> toast('Non riesco a caricare il gioco di carte: controlla la connessione', 3500)); }
+  window.openTT = openTT;
+  menu(gi('cards') + ' Triple Triad (gioco di carte)', openTT);
   menu(gi('orb') + ' Tema dalla copertina: ' + (TINT_ON() ? 'acceso' : 'spento'), ()=>{ LS.set('jrpg_app_tint', !TINT_ON()); toast('Tema dalla copertina ' + (TINT_ON() ? 'acceso' : 'spento'), 2500); });
 })();

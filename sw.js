@@ -2,7 +2,7 @@
 // Strategia «prima la rete, poi la copia»: con internet chiede sempre al server «è cambiato?» (cache: 'no-cache', risposta veloce 304 se no),
 // aggiorna la copia nella cache del dispositivo; senza internet (metropolitana, aereo…) usa l'ultima copia salvata.
 // GitHub Pages tiene i file in cache 10 minuti: qui la si salta, così gli aggiornamenti si vedono subito.
-const CACHE = 'raccoon-tier-v1';
+const CACHE = 'raccoon-tier-v2';
 const SHELL = ['./', 'style.css', 'theme.css', 'palettes.js', 'sync.js', 'app.js', 'app-schede.js', 'app-utente.js', 'app-ai.js', 'gemini.js', 'loader.js', 'sources.js', 'genres.js', 'verify.js', 'fx.js', 'extras.js', 'extras2.js', 'extras3.js', 'music.js', 'pet.js', 'triad.js', 'radar.js', 'ost.js', 'quality.js', 'intro.js', 'giochi.js', 'giochi-dettagli-1.js', 'giochi-dettagli-2.js', 'giochi-dettagli-3.js', 'giochi-dettagli-4.js', 'facts.js', 'discoveries.js', 'manifest.webmanifest', 'icons/logo.png', 'icons/icon-192.png', 'icons/frugu-hd.gif'];
 const COVERS = 'raccoon-covers-v1', COVER_MAX = 1600;
 async function coverFetch(r){

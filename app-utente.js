@@ -3,6 +3,15 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v135', date:'2026-10-08', items:[
+    'Update+ ora si vede e si può forzare: pulsante «Update+ adesso» nella scheda, contatore sotto «Database aggiornato», logo dorato anche nella Mia tier; basta che risponda una fonte (sono elencate toccando il simbolo).',
+    'Scheda gioco: prova del nove sul voto (quante fonti sono d\'accordo), termometro Steam (recensioni degli ultimi 30 giorni contro quelle di sempre), rischio introvabile, percorso della saga con ore e prezzi, «Quale versione conviene?», «Segna come posseduto», cronologia delle modifiche con Annulla.',
+    'Nuovo nel menu ✨: Radar delle uscite (ogni notte), I tuoi gusti (imparati: cosa ami, cosa eviti, cosa accetti «nonostante»), Tier list animata (video), Modalità vetrina, Scansiona lo scaffale, Gesti rapidi, Copertine per l\'offline, Rapporto qualità notturno, Tema dalla copertina.',
+    'Colonne sonore: premi ▶ in una scheda e ogni gioco che apri suona la sua; ■ la ferma ovunque. Puoi scegliere un altro brano. 15 temi di suoni per i pulsanti (spenti di default).',
+    'Frugu, il procione da compagnia: fame, sete, sonno, bagnetto, medicine, coccole, minigiochi, negozio di accessori; cresce e da adulto prende la forma del genere che giochi di più.',
+    'Triple Triad di Frugu: 500 carte dai tuoi giochi in 10 livelli, tutte le regole di FF8 (Open, Same, Same Wall, Plus, Combo, Elemental, Random, Sudden Death; scambi One, Diff, Direct, All), 11 avversari con carte rare e 4 livelli di intelligenza.',
+    'Ricerca con le sigle (ff7, ffx, dq11, p5r, xc3), analisi dei giochi in 4 pezzi (aggiornamenti più leggeri), prezzi, radar e controllo qualità ogni notte su GitHub.'
+  ]},
   {version:'v134', date:'2026-10-07', items:[
     'La cornice della locandina si adatta sempre da sola alla forma dell\'immagine e allo spazio della scheda: tolto il pulsante del formato. Resta la lente per cercare un\'altra immagine.'
   ]},
