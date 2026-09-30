@@ -260,8 +260,12 @@ function cleanCustomEnrich(o){
   e.checked = typeof o.checked === 'string' ? o.checked : undefined;
   return (e.storyTag || e.dopamine || e.eraScore != null || e.checked) ? e : null;
 }
+// firma dei dati che cambiano ordine o filtri della lista: se cambiano serve un ridisegno completo, altrimenti basta la riga
+const CUSTOM_SIG = new Map(), CUSTOM_DATA = new Map();
+const customSig = g=> [g.name, g.tier, g.score, g.year, (g.tags || []).join(','), g.plat].join('|');
 function syncCustomGames(snap){
   const seen = new Set();
+  let structural = false; const changed = [];
   (snap.docs || []).forEach(d=>{
     const v = d.data();
     const id = parseInt(d.id, 10);
@@ -288,15 +292,22 @@ function syncCustomGames(snap){
     const idx = GAMES.findIndex(x=>x.id===id);
     if(idx>=0) GAMES[idx] = entry; else GAMES.push(entry);
     CUSTOM_GAME_IDS.add(id);
+    const sig = customSig(entry), old = CUSTOM_SIG.get(id);
+    const dsig = v._u != null ? String(v._u) : JSON.stringify(v), dold = CUSTOM_DATA.get(id);
+    if(old === undefined || old !== sig) structural = true;
+    else if(dold !== dsig) changed.push(entry);
+    CUSTOM_SIG.set(id, sig); CUSTOM_DATA.set(id, dsig);
   });
   Array.from(CUSTOM_GAME_IDS).forEach(id=>{
     if(!seen.has(id)){
       const idx = GAMES.findIndex(x=>x.id===id);
       if(idx>=0) GAMES.splice(idx, 1);
       CUSTOM_GAME_IDS.delete(id);
+      CUSTOM_SIG.delete(id); CUSTOM_DATA.delete(id); structural = true;
     }
   });
-  try{ renderMetrics(); renderStats(); render(); renderListBar(); }catch(e){}
+  if(structural){ try{ renderWhenIdle({metrics: true, stats: true, list: true, bar: true}); }catch(e){ try{ renderMetrics(); renderStats(); render(); renderListBar(); }catch(x){} } }
+  else changed.forEach(g=> refreshGameRow(g));          // cambiati solo testi/simboli: aggiorno le righe, la lista resta ferma dov'è
 }
 async function pasteCover(g){
   coverLog('provo a leggere gli appunti');
