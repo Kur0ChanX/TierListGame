@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v144', date:'2026-10-15', items:[
+    'Update+ ora toglie i generi che nessuna fonte conferma (Wikidata, RAWG, Steam): un gioco narrativo non resta più segnato Soulslike o Action-RPG. Prima Update+ sapeva solo aggiungere generi.',
+    'Se Metacritic (da Wikipedia) conferma il voto che era ancora una stima, il gioco diventa verificato e mostra V+ invece del pacchetto blu. Il pacchetto blu resta solo quando nessuna fonte affidabile conferma il voto, e ora il suggerimento lo spiega.'
+  ]},
   {version:'v143', date:'2026-10-14', items:[
     'Triple Triad: ogni carta ha il suo PERSONAGGIO iconico e la scena da cui è tratto (Cloud, Samus, Link…), non più la copertina del gioco. Le illustrazioni artistiche si aggiungono in triad-img/ (cartella e istruzioni pronte, con i testi per generarle); finché mancano si vedono le immagini di prima.',
     '6 versioni di ogni carta, tutte solo estetiche (i numeri non cambiano): Normale, Holo, Reverse Holo, Full Art, Oro e Segreta, con riflessi in stile carte collezionabili. Le buste possono farle uscire e valgono più polvere.',
