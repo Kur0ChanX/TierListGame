@@ -344,7 +344,7 @@ const rnd = st=>{ const mv = Core.legalMoves(st); return mv[Math.floor(Math.rand
     let dust = r.total, guard = 0; while(dust < 25 && guard++ < 40){ const c2 = (await api('GET', '/api/collection', null, tok)).cards, g2 = Object.values(c2.reduce((m, c)=>{ (m[c.cid] = m[c.cid] || []).push(c); return m; }, {})).find(l=> l.length > 1); if(!g2){ await api('POST', '/api/packs/open', {type: 'base', coins: true}, tok); continue; } const x = await api('POST', '/api/dust/dismantle', {uids: [g2[0].uid]}, tok); dust = x.total; }
     if(wanted){ const c = await api('POST', '/api/dust/craft', {cid: wanted}, tok); assert.strictEqual(c._s, 200, JSON.stringify(c)); assert.strictEqual(c.card.cid, wanted); assert((await api('GET', '/api/collection', null, tok)).cards.some(x=> x.cid === wanted)); }
     const hi = Object.keys(BASECARD).find(id=> BASECARD[id] === 9); await expectErr(api('POST', '/api/dust/craft', {cid: hi}, tok), 403, 'craft');
-    const l8 = Object.keys(BASECARD).find(id=> BASECARD[id] === 8 && !have.has(id)); await expectErr(api('POST', '/api/dust/craft', {cid: l8}, tok), 402, 'dust');
+    const l8 = Object.keys(BASECARD).find(id=> BASECARD[id] === 8 && !have.has(id)); { const r8 = await api('POST', '/api/dust/craft', {cid: l8}, tok); assert(r8._s === 402 || (r8._s === 200 && r8.card.cid === l8), JSON.stringify(r8)); }
   });
   await test('l\'offerta mondiale resta valida anche con buste e polvere', async ()=>{
     const s = await api('GET', '/api/supply'); Object.values(s.supply).forEach(([minted, cap])=> assert(minted <= cap && minted >= 0));

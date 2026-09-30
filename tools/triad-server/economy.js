@@ -12,7 +12,10 @@ export const PACKS = {
   leg: {name: 'Busta Leggendaria', cost: 1300, n: 2, w: [0, 0, 0, 0, 0, 0, 0, 52, 38, 10], guar: 9, pity: 4}
 };
 const W_EXP = [10, 14, 17, 16, 14, 11, 8, 5.5, 3.5, 1];
-const DUST = [0, 5, 8, 12, 20, 35, 60, 110, 200, 380, 750];      // polvere ottenuta smontando una copia extra, per livello
+const DUST = [0, 5, 8, 12, 20, 35, 60, 110, 200, 380, 750];
+export const VARIANTS = ['Normale', 'Holo', 'Reverse Holo', 'Full Art', 'Oro', 'Segreta'];   // stesse cifre, aspetto diverso: si collezionano, non si «potenziano»
+const VMUL = [1, 3, 3, 5, 8, 15];                                // valore in polvere delle versioni
+const VW = {base: [880, 60, 35, 18, 6, 1], rara: [820, 90, 55, 25, 9, 1], epica: [740, 120, 75, 40, 20, 5], leg: [600, 170, 110, 70, 40, 10], exp: [860, 70, 40, 20, 9, 1]};   // probabilità per mille      // polvere ottenuta smontando una copia extra, per livello
 const CRAFT_MAX = 8;                                              // dal livello 9 in su le carte non si possono creare
 const MIS_D = [
   {k: 'play3', kind: 'play', t: 3, txt: 'Gioca 3 partite', c: 40, xp: 30}, {k: 'win2', kind: 'win', t: 2, txt: 'Vinci 2 partite', c: 60, xp: 50},
@@ -36,7 +39,7 @@ const ACH = [
   ['e12', 'SeeD', 'Raggiungi 1200 ELO', 'elo', 1200, 150], ['e14', 'Comandante', 'Raggiungi 1400 ELO', 'elo', 1400, 350, 'rara'], ['e16', 'Maestro Triad', 'Raggiungi 1600 ELO', 'elo', 1600, 800, 'epica'],
   ['v5', 'Livello 5', 'Raggiungi il livello 5', 'lvl', 5, 50], ['v10', 'Livello 10', 'Raggiungi il livello 10', 'lvl', 10, 150, 'rara'], ['v25', 'Livello 25', 'Raggiungi il livello 25', 'lvl', 25, 500, 'epica'], ['v50', 'Livello 50', 'Raggiungi il livello 50', 'lvl', 50, 1500, 'leg'],
   ['p10', 'Apri-buste', 'Apri 10 buste', 'packs', 10, 100], ['p50', 'Pacchi a go-go', 'Apri 50 buste', 'packs', 50, 300, 'rara'], ['p200', 'Re delle buste', 'Apri 200 buste', 'packs', 200, 1000, 'epica'],
-  ['f1', 'Brillantezza', 'Ottieni una carta foil', 'foil', 1, 150], ['f5', 'Collezione scintillante', 'Ottieni 5 carte foil', 'foil', 5, 500, 'rara'],
+  ['f1', 'Brillantezza', 'Ottieni una carta foil', 'foil', 1, 150], ['f5', 'Collezione scintillante', 'Ottieni 5 carte foil', 'foil', 5, 500, 'rara'], ['f20', 'Tesoro luccicante', 'Ottieni 20 carte foil diverse', 'variants', 20, 900, 'epica'], ['gold1', 'Oro colato', 'Ottieni una carta in versione Oro', 'gold', 1, 600, 'epica'], ['sec1', 'Segreta!', 'Ottieni una carta Segreta', 'secret', 1, 1500, 'leg'],
   ['c1', 'Set completo', 'Completa una collezione', 'sets', 1, 200, 'rara'], ['c5', 'Maestro dei set', 'Completa 5 collezioni', 'sets', 5, 600, 'epica'], ['c10', 'Signore dei set', 'Completa 10 collezioni', 'sets', 10, 1500, 'leg']
 ].map(a=> ({id: a[0], name: a[1], desc: a[2], stat: a[3], target: a[4], coins: a[5], ticket: a[6] || null}));
 const hash = s=>{ let h = 2166136261; for(const c of String(s)){ h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -118,6 +121,7 @@ export function makeEconomy(D){
     const m = String(type).match(/^exp:([a-z0-9]+)$/), s = m && EXPSETS.find(x=> x.id === m[1]);
     return s ? {type, name: 'Busta ' + s.name, cost: 220, n: 3, w: W_EXP, guar: 4, pity: 8, set: s.id, level: s.level} : null;
   };
+  const rollVar = (key, lv)=>{ const w = (VW[key] || VW.exp).slice(); if(lv >= 7){ w[0] = Math.max(300, w[0] - 120); w[1] += 60; w[2] += 30; w[3] += 20; w[4] += 8; w[5] += 2; } const tot = w.reduce((a, b)=> a + b, 0), r = rint(tot); let acc = 0; for(let i = 0; i < w.length; i++){ acc += w[i]; if(r < acc) return i; } return 0; };
   const rollW = w=>{ const tot = w.reduce((x, y)=> x + y, 0), r = rint(100000) / 100000 * tot; let acc = 0; for(let i = 0; i < w.length; i++){ acc += w[i]; if(r < acc) return i + 1; } return w.findIndex(x=> x > 0) + 1; };
   M.shop = function(a){
     const row = this.row('SELECT * FROM accounts WHERE id=?', a.id), lv = lvOf(row.xp).lvl, inv = this.inv(a.id), pity = (()=>{ try{ return JSON.parse(row.pity || '{}'); }catch(e){ return {}; } })();
@@ -144,8 +148,8 @@ export function makeEconomy(D){
     if(Math.max(...lvls) >= boostTo) pity[tk] = 0;
     const owned = new Set(this.rows('SELECT DISTINCT cid FROM cards WHERE owner=?', a.id).map(r=> r.cid)), out = [];
     lvls.sort((x, y)=> x - y).forEach(L=>{
-      const foil = rint(100) < (L >= 6 ? 12 : 6) ? 1 : 0, c = this.mint(a.id, L, 'pack', def.set || 'base', foil);
-      if(c){ out.push({uid: c.uid, cid: c.cid, lv: c.lv, foil: !!foil, isNew: !owned.has(c.cid)}); owned.add(c.cid); }
+      const vr = rollVar(def.set ? 'exp' : def.type, L), c = this.mint(a.id, L, 'pack', def.set || 'base', vr);
+      if(c){ out.push({uid: c.uid, cid: c.cid, lv: c.lv, v: vr, foil: vr > 0, isNew: !owned.has(c.cid)}); owned.add(c.cid); }
     });
     this.run('UPDATE accounts SET pity=?, packs_n=packs_n+1 WHERE id=?', JSON.stringify(pity), a.id);
     const gain = this.award(a.id, {xp: 8, noEvent: true}); this.checkAch(a.id);
@@ -163,7 +167,7 @@ export function makeEconomy(D){
       if(seen.has(u)) return; seen.add(u);
       const c = this.row('SELECT * FROM cards WHERE uid=? AND owner=?', u, a.id);
       if(!c || c.lock || !(have[c.cid] > 1)) return;
-      have[c.cid]--; dust += DUST[CARD[c.cid].lv] * (c.foil ? 3 : 1); n++;
+      have[c.cid]--; dust += DUST[CARD[c.cid].lv] * (VMUL[c.foil] || 1); n++;
       this.run('DELETE FROM cards WHERE uid=?', u);
       this.run('UPDATE supply SET minted=MAX(0,minted-1) WHERE cid=?', c.cid);          // la copia torna disponibile nel mondo
     });
@@ -214,7 +218,7 @@ export function makeEconomy(D){
   M.statsOf = function(acc){
     const a = this.row('SELECT * FROM accounts WHERE id=?', acc), cs = this.rows('SELECT cid,foil FROM cards WHERE owner=?', acc), own = new Set(cs.map(c=> c.cid));
     return {wins: a.wins, streak: a.best, games: a.wins + a.losses + a.draws, uniq: own.size, legend: cs.some(c=> CARD[c.cid].lv >= 9) ? 1 : 0, mythic: cs.some(c=> CARD[c.cid].lv === 10) ? 1 : 0,
-      boss: this.row('SELECT COUNT(*) n FROM boss WHERE acc=? AND wins>0', acc).n, steals: a.steals, elo: a.elo, lvl: lvOf(a.xp).lvl, packs: a.packs_n, foil: cs.filter(c=> c.foil).length,
+      boss: this.row('SELECT COUNT(*) n FROM boss WHERE acc=? AND wins>0', acc).n, steals: a.steals, elo: a.elo, lvl: lvOf(a.xp).lvl, packs: a.packs_n, foil: cs.filter(c=> c.foil > 0).length, gold: cs.filter(c=> c.foil === 4).length, secret: cs.filter(c=> c.foil === 5).length, variants: new Set(cs.filter(c=> c.foil > 0).map(c=> c.cid + ':' + c.foil)).size,
       sets: this.row(`SELECT COUNT(*) n FROM claims WHERE acc=? AND key LIKE 'set:%'`, acc).n};
   };
   M.checkAch = function(acc){

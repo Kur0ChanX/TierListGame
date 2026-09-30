@@ -221,7 +221,7 @@
       const open = ()=>{
         if(started) return; started = true; TT.snd('combo'); TT.vib(30); stage.classList.add('tear'); $('.pk-hint', el).textContent = '';
         setTimeout(()=>{
-          flash.classList.add('go'); stage.classList.remove('tear'); stage.innerHTML = `<div class="pk-cards">${r.cards.map((c, i)=> `<div class="pk-c" data-i="${i}" data-r="${TT.rarKey(c.lv)}"><div class="pk-b">★</div><div class="pk-f">${c.isNew ? '<div class="pk-new">NUOVA!</div>' : ''}${cardHtml(c.cid, {foil: c.foil})}<div class="pk-nm">${esc(TT.CARD[c.cid].name)}</div></div></div>`).join('')}</div><div class="pk-hint" id="pkH">Tocca le carte per scoprirle</div><div class="tt2-row c" style="margin-top:14px"><button class="tt2-btn sm" id="pkAll">Rivela tutte</button></div>`;
+          flash.classList.add('go'); stage.classList.remove('tear'); stage.innerHTML = `<div class="pk-cards">${r.cards.map((c, i)=> `<div class="pk-c" data-i="${i}" data-r="${TT.rarKey(c.lv)}"><div class="pk-b">★</div><div class="pk-f">${c.isNew ? '<div class="pk-new">NUOVA!</div>' : ''}${cardHtml(c.cid, {foil: c.v})}<div class="pk-nm">${esc(TT.chr(c.cid))}${c.v ? ' · ' + TT.VARIANTS[c.v] : ''}</div></div></div>`).join('')}</div><div class="pk-hint" id="pkH">Tocca le carte per scoprirle</div><div class="tt2-row c" style="margin-top:14px"><button class="tt2-btn sm" id="pkAll">Rivela tutte</button></div>`;
           $$('.pk-c', el).forEach(cd=> cd.addEventListener('click', ()=> flip(r.cards[+cd.dataset.i], cd)));
           $('#pkAll', el).addEventListener('click', ()=>{ $('#pkAll', el).remove(); $('#pkH', el).textContent = ''; $$('.pk-c', el).forEach((cd, i)=> setTimeout(()=> flip(r.cards[i], cd), i * 420)); });
         }, 560);
@@ -418,7 +418,7 @@
     TT.loading('Carico le tue carte…');
     try{
       const [col, sup] = await Promise.all([api('GET', '/api/collection'), api('GET', '/api/supply')]);
-      const counts = {}, locks = {}, foils = {}; col.cards.forEach(c=>{ counts[c.cid] = (counts[c.cid] || 0) + 1; if(c.lock) locks[c.cid] = (locks[c.cid] || 0) + 1; if(c.foil) foils[c.cid] = 1; });
+      const counts = {}, locks = {}, foils = {}; col.cards.forEach(c=>{ counts[c.cid] = (counts[c.cid] || 0) + 1; if(c.lock) locks[c.cid] = (locks[c.cid] || 0) + 1; if(c.foil) foils[c.cid] = Math.max(foils[c.cid] || 0, c.foil | 0); });
       TT.albumPage({title: 'Le mie carte online', counts, locks, foils, supply: sup.supply, mode: 'online'});
     }catch(e){ errToast(e); TT.back(); }
   }
@@ -461,7 +461,7 @@
     const you = view.you;
     board = TT.mountBoard({
       state: view.state, me: you, names: namesOf(view), title: view.boss ? 'Custode: ' + view.players[1].nick : (view.mode === 'ranked' ? 'Sfida vera' : 'Amichevole'),
-      hidden: ()=> false, emotes: !view.boss, foil: u=> !!(view.foil && view.foil[Math.floor(u / 5)] && view.foil[Math.floor(u / 5)][u % 5]),
+      hidden: ()=> false, emotes: !view.boss, foil: u=> ((view.foil && view.foil[Math.floor(u / 5)] && view.foil[Math.floor(u / 5)][u % 5]) | 0),
       canPlay: (seat, st)=> !st.over && seat === you && cur && cur.status === 'active',
       onPlay: async (hi, cell)=>{ const r = await api('POST', '/api/match/' + cur.id + '/move', {hi, cell}); cur = r.match; settle(r.match); return {state: r.match.state, events: r.events}; },
       onEmote: e=> { api('POST', '/api/match/' + cur.id + '/emote', {e}).catch(()=>{}); },

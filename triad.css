@@ -115,8 +115,6 @@
 html.tt2-open,html.tt2-open body{overflow:hidden !important}
 
 /* ===== v142: foil, monete, buste, missioni, collezioni ===== */
-.ttc[data-fo] .ttc-in::before{content:''; position:absolute; inset:0; z-index:4; pointer-events:none; background:repeating-linear-gradient(115deg,rgba(255,255,255,.0) 0 2cqw,rgba(255,255,255,.12) 2cqw 3cqw),radial-gradient(circle at 25% 15%,rgba(255,255,255,.45),transparent 38%),conic-gradient(from var(--ang,0deg) at 50% 50%,rgba(255,80,120,.22),rgba(255,220,80,.22),rgba(80,255,160,.22),rgba(80,180,255,.22),rgba(180,80,255,.22),rgba(255,80,120,.22)); mix-blend-mode:screen; animation:ttSpin 6s linear infinite}
-.ttc[data-fo]{box-shadow:0 0 0 .5cqw rgba(0,0,0,.5),0 2cqw 5cqw rgba(0,0,0,.45),0 0 8cqw rgba(255,240,150,.7)} .ttc-fo{position:absolute; right:3cqw; top:19cqw; z-index:5; font:900 5.6cqw/1 system-ui; letter-spacing:.3cqw; padding:1cqw 2cqw; border-radius:2cqw; color:#2a1600; background:linear-gradient(135deg,#fff3a6,#ffb84a)}
 .tt2-cur{display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:8px 0} .tt2-cur .c{display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:99px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.22); font-weight:900; font-size:.85rem}
 .tt2-lv{display:flex; align-items:center; gap:8px; margin:8px 0; cursor:pointer} .tt2-lv b{flex:0 0 auto; min-width:54px; text-align:center; padding:5px 8px; border-radius:12px; background:linear-gradient(135deg,#f9d54a,#e0891a); color:#2a1600; font-size:.85rem} .tt2-lv .tt2-bar{flex:1; height:12px} .tt2-lv small{opacity:.75; font-size:.66rem; white-space:nowrap}
 .tt2-event{margin:8px 0; padding:9px 12px; border-radius:14px; text-align:center; font-weight:900; font-size:.82rem; color:#2a1600; background:linear-gradient(90deg,#ffe28a,#ffb347,#ffe28a); background-size:200% 100%; animation:ttShine 3s linear infinite}
@@ -157,3 +155,47 @@ html.tt2-open,html.tt2-open body{overflow:hidden !important}
 .tt2-dup{display:flex; gap:10px; align-items:center; padding:8px; border-radius:14px; background:rgba(255,255,255,.06); margin-bottom:6px} .tt2-dup .ttc{width:54px; flex:0 0 auto} .tt2-dup .tx{flex:1; min-width:0; font-size:.8rem} .tt2-dup .tx small{display:block; opacity:.7}
 .tt2-craft{display:grid; grid-template-columns:repeat(3,1fr); gap:12px 8px} .tt2-craft .cw{text-align:center; cursor:pointer} .tt2-craft .cw small{display:block; font-weight:900; margin-top:3px; font-size:.7rem} .tt2-craft .cw.can small{color:#7dffa3} .tt2-craft .cw:not(.can) .ttc{filter:grayscale(.6) brightness(.7)}
 .tt2-tower-hd{text-align:center; margin:6px 0} .tt2-tower-hd .fl{font:900 3rem system-ui; background:linear-gradient(180deg,#ffe28a,#ff7a5a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+
+/* ===== v143: versioni (Holo, Reverse Holo, Full Art, Oro, Segreta) e visore 3D ===== */
+.ttc{--mx:50; --my:35}
+.ttc-gl{position:absolute; inset:0; z-index:6; pointer-events:none; border-radius:inherit; display:none}
+.ttc-fo{position:absolute; right:3cqw; top:19cqw; z-index:7; font:900 5cqw/1 system-ui; letter-spacing:.3cqw; padding:1cqw 2cqw; border-radius:2cqw; color:#20120a; background:linear-gradient(135deg,#fff3a6,#ffb84a); box-shadow:0 0 2cqw rgba(255,220,120,.9)}
+.ttc[data-fo]{box-shadow:0 0 0 .5cqw rgba(0,0,0,.5),0 2cqw 5cqw rgba(0,0,0,.45),0 0 8cqw rgba(255,240,150,.55)}
+@keyframes ttHolo{0%{--mx:15; --my:20} 50%{--mx:85; --my:75} 100%{--mx:15; --my:20}}
+.ttc[data-fo]:not(.ghost){animation:ttHoloA 6s ease-in-out infinite} .insp-card .ttc[data-fo]{animation:none}
+@keyframes ttHoloA{0%,100%{--mx:20; --my:25} 50%{--mx:80; --my:70}} @property --mx{syntax:'<number>'; inherits:true; initial-value:50} @property --my{syntax:'<number>'; inherits:true; initial-value:35}
+/* effetto arcobaleno che segue la luce (mx, my) */
+.ttc[data-fo] .ttc-in::before{content:''; position:absolute; inset:0; z-index:5; pointer-events:none; mix-blend-mode:color-dodge; opacity:.55;
+  background:linear-gradient(calc(105deg + var(--mx) * .6deg),transparent 15%,hsla(0,100%,68%,.55) 28%,hsla(50,100%,65%,.55) 38%,hsla(140,100%,62%,.5) 48%,hsla(200,100%,66%,.55) 58%,hsla(280,100%,70%,.55) 68%,transparent 82%); background-size:260% 260%; background-position:calc(var(--mx) * 1%) calc(var(--my) * 1%)}
+.ttc[data-fo] .ttc-in::after{z-index:6}
+.ttc[data-fo] .ttc-gl{display:block; mix-blend-mode:overlay; background:radial-gradient(circle at calc(var(--mx) * 1%) calc(var(--my) * 1%),rgba(255,255,255,.85),rgba(255,255,255,.12) 35%,transparent 55%)}
+/* 1 Holo: arcobaleno sull'illustrazione + brillantini */
+.ttc[data-fo="1"] .ttc-art::after{content:''; position:absolute; inset:0; z-index:4; pointer-events:none; mix-blend-mode:screen; opacity:.5; background-image:radial-gradient(circle,#fff 0 .5px,transparent 1.2px),radial-gradient(circle,#fff 0 .4px,transparent 1px); background-size:9px 9px,14px 14px; background-position:calc(var(--mx) * .3px) calc(var(--my) * .3px),calc(var(--mx) * -.2px) 3px}
+/* 2 Reverse Holo: illustrazione normale, cornice e fondo che brillano */
+.ttc[data-fo="2"] .ttc-in::before{opacity:0} .ttc[data-fo="2"]::after{content:''; position:absolute; inset:0; z-index:8; pointer-events:none; border-radius:inherit; padding:2.4cqw; mix-blend-mode:color-dodge; opacity:.9;
+  background:linear-gradient(calc(105deg + var(--mx) * .6deg),hsla(0,100%,70%,.75),hsla(60,100%,65%,.75),hsla(140,100%,62%,.75),hsla(210,100%,68%,.75),hsla(290,100%,72%,.75),hsla(0,100%,70%,.75)); background-size:300% 300%; background-position:calc(var(--mx) * 1%) calc(var(--my) * 1%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0); mask-composite:exclude}
+.ttc[data-fo="2"] .ttc-nm{background:linear-gradient(90deg,transparent,hsla(var(--mx),90%,70%,.35),transparent)}
+/* 3 Full Art: l'illustrazione riempie tutta la carta, rilievo a righe */
+.ttc[data-fo="3"]{padding:.9cqw; background:linear-gradient(145deg,#fff,#9ad,#fff)} .ttc[data-fo="3"] .ttc-in{border-radius:6cqw}
+.ttc[data-fo="3"] .ttc-art img{object-position:center 10%; transform:scale(1.06)} .ttc[data-fo="3"] .ttc-shade{background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 30%,transparent 55%,rgba(0,0,0,.8))}
+.ttc[data-fo="3"] .ttc-in::before{opacity:.75; background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.14) 0 1cqw,transparent 1cqw 2.4cqw),linear-gradient(calc(105deg + var(--mx) * .6deg),transparent 15%,hsla(0,100%,68%,.55) 28%,hsla(50,100%,65%,.55) 38%,hsla(140,100%,62%,.5) 48%,hsla(200,100%,66%,.55) 58%,hsla(280,100%,70%,.55) 68%,transparent 82%); background-size:auto,260% 260%}
+/* 4 Oro: metallo dorato */
+.ttc[data-fo="4"]{--f1:#fff3b0; --f2:#a86a08; background:linear-gradient(calc(120deg + var(--mx) * .5deg),#7a4a05,#ffe58a 30%,#fff8d0 50%,#e8b23a 70%,#7a4a05)} .ttc[data-fo="4"] .ttc-art img{filter:sepia(.55) saturate(1.5) contrast(1.05)}
+.ttc[data-fo="4"] .ttc-in::before{mix-blend-mode:soft-light; opacity:.9; background:linear-gradient(calc(105deg + var(--mx) * .6deg),transparent 20%,rgba(255,235,150,.9) 45%,transparent 70%); background-size:240% 240%}
+.ttc[data-fo="4"] .ttc-v b{color:#fff6c8; -webkit-text-stroke-color:#4a2a00} .ttc[data-fo="4"] .ttc-nm{color:#fff2b0}
+/* 5 Segreta: prisma continuo, brillantini fitti, numeri dorati */
+.ttc[data-fo="5"]{padding:1.2cqw; background:conic-gradient(from calc(var(--mx) * 3.6deg),#ff5f6d,#ffc371,#fff36b,#6bff9c,#6bd6ff,#a06bff,#ff5f6d)} .ttc[data-fo="5"] .ttc-art img{filter:saturate(1.3) contrast(1.08)}
+.ttc[data-fo="5"] .ttc-in::before{opacity:.85; background-image:radial-gradient(circle,#fff 0 .6px,transparent 1.4px),linear-gradient(calc(105deg + var(--mx) * .6deg),transparent 10%,hsla(0,100%,68%,.6) 25%,hsla(60,100%,65%,.6) 38%,hsla(150,100%,62%,.55) 50%,hsla(210,100%,66%,.6) 62%,hsla(290,100%,70%,.6) 75%,transparent 90%); background-size:7px 7px,260% 260%; background-position:calc(var(--mx) * .4px) calc(var(--my) * .4px),calc(var(--mx) * 1%) calc(var(--my) * 1%)}
+.ttc[data-fo="5"] .ttc-v b{color:#ffe27a; -webkit-text-stroke-color:#2a1600} .ttc[data-fo="5"] .ttc-fo{background:linear-gradient(90deg,#ff5f6d,#ffc371,#6bff9c,#6bd6ff,#a06bff); color:#fff; text-shadow:0 1px 2px #000}
+/* visore */
+.tt2-insp{position:absolute; inset:0; z-index:70; background:radial-gradient(circle at 50% 30%,#2b2260,#05040f 78%); display:flex; flex-direction:column; align-items:center; overflow-y:auto; overflow-x:hidden; animation:ttFade .2s; touch-action:none}
+.tt2-insp.out{opacity:0; transition:opacity .18s} .insp-x{position:absolute; top:calc(10px + env(safe-area-inset-top)); right:12px; z-index:3}
+.insp-stage{perspective:900px; width:100%; display:flex; justify-content:center; padding:calc(56px + env(safe-area-inset-top)) 0 14px; flex:0 0 auto}
+.insp-card{position:relative; width:min(72vw,calc(52vh * 5 / 7),340px); aspect-ratio:5/7; transform-style:preserve-3d; transform:rotateX(var(--rx)) rotateY(var(--ry)) scale(1); transition:transform .45s cubic-bezier(.2,.9,.3,1.2); filter:drop-shadow(0 26px 34px rgba(0,0,0,.7))}
+.insp-card.drag{transition:transform .05s linear} .insp-card.big{transform:rotateX(var(--rx)) rotateY(var(--ry)) scale(1.18)}
+.insp-card .ttc{width:100%; height:100%; box-shadow:0 0 0 .5cqw #000, 0 0 10cqw var(--glow)} .insp-card .ttc{animation:none !important}
+.insp-glare{position:absolute; inset:0; border-radius:7cqw; pointer-events:none; z-index:20; mix-blend-mode:soft-light; background:radial-gradient(circle at calc(var(--mx) * 1%) calc(var(--my) * 1%),rgba(255,255,255,.7),transparent 46%)}
+.insp-info{width:100%; max-width:560px; padding:6px 16px calc(24px + env(safe-area-inset-bottom)); text-align:center; touch-action:pan-y}
+.insp-nm{font:900 1.35rem system-ui; text-shadow:0 2px 12px rgba(160,140,255,.7)} .insp-sc{margin:8px 0 2px; font-style:italic; opacity:.8; font-size:.8rem}
+.ttc[data-fo] .ttc-in::before{mix-blend-mode:color-dodge}

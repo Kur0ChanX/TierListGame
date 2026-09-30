@@ -35,7 +35,7 @@
     const play = $('#ttPlay', R), g3 = $('#g3', R);
     const seatPanel = (seat, id)=>{ const n = opt.names[seat] || {nick: '?', av: '🙂'}; $(id, R).className = 'tt2-pl' + (seat === 1 ? ' o' : '') + (st.turn === seat ? ' turn' : ''); $(id, R).innerHTML = `<div class="av">${n.av || '🙂'}</div><div class="nm">${esc(n.nick)}${n.sub ? `<small>${esc(n.sub)}</small>` : ''}</div><div class="tt2-tm" id="tm${seat}" style="display:none"></div><div class="sc" id="sc${seat}">5</div>`; };
     const elMods = (card, cell, s)=>{ const el = s.squares[cell]; if(!s.rules.elemental || !el) return [0, 0, 0, 0]; const d = card.e === el ? 1 : -1; return [d, d, d, d]; };
-    const hidden = seat=> opt.hidden ? opt.hidden(seat, st) : false, fo = c=> !!(opt.foil && c && opt.foil(c.u));
+    const hidden = seat=> opt.hidden ? opt.hidden(seat, st) : false, fo = c=> (opt.foil && c ? opt.foil(c.u) | 0 : 0);
     function handHtml(seat){ const hide = hidden(seat); return sim.hands[seat].map((c, hi)=> `<div class="sl${hide ? ' back' : ''}" data-hi="${hi}" data-seat="${seat}">${c ? cardHtml(c.id, {owner: seat, foil: fo(c)}) : '<div class="ttc used"></div>'}</div>`).join(''); }
     function cellHtml(i){
       const el = sim.squares[i], b = sim.board[i];

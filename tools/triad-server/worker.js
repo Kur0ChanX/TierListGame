@@ -255,9 +255,9 @@ export class Hub extends DurableObject {
   }
   mintCid(acc, cid, src, foil){
     const uid = 'u' + hex(7);
-    this.run('INSERT INTO cards(uid,owner,cid,got,src,foil) VALUES(?,?,?,?,?,?)', uid, acc, cid, Date.now(), src || '', foil ? 1 : 0);
+    this.run('INSERT INTO cards(uid,owner,cid,got,src,foil) VALUES(?,?,?,?,?,?)', uid, acc, cid, Date.now(), src || '', Math.max(0, Math.min(5, foil | 0)));
     this.run('INSERT INTO supply(cid,minted) VALUES(?,1) ON CONFLICT(cid) DO UPDATE SET minted=minted+1', cid);
-    return {uid, cid, lv: CARD[cid].lv, foil: !!foil};
+    return {uid, cid, lv: CARD[cid].lv, foil: Math.max(0, Math.min(5, foil | 0))};
   }
   ensureMin(acc){
     if(String(acc).startsWith('boss')) return 0;
@@ -269,7 +269,7 @@ export class Hub extends DurableObject {
   }
   collection(a){
     this.ensureMin(a.id);
-    return {cards: this.rows('SELECT uid,cid,lock,got,src,foil FROM cards WHERE owner=? ORDER BY got DESC', a.id).map(c=> ({uid: c.uid, cid: c.cid, lock: !!c.lock, got: c.got, src: c.src, foil: !!c.foil}))};
+    return {cards: this.rows('SELECT uid,cid,lock,got,src,foil FROM cards WHERE owner=? ORDER BY got DESC', a.id).map(c=> ({uid: c.uid, cid: c.cid, lock: !!c.lock, got: c.got, src: c.src, foil: c.foil | 0}))};
   }
   supplyInfo(){
     const m = Object.fromEntries(this.rows('SELECT cid,minted FROM supply').map(r=> [r.cid, r.minted]));
