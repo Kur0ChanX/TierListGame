@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v145', date:'2026-10-16', items:[
+    'Il Triple Triad è diventato un gioco a parte: Raccoon Triad (kur0chanx.github.io/raccoon-triad). Nel menu ✨ trovi «Raccoon Triad» che lo apre; i vecchi link d\'invito portano lì. La collezione già fatta si ritrova perché il sito è sullo stesso dominio. Qui la Tier List è più leggera.'
+  ]},
   {version:'v144', date:'2026-10-15', items:[
     'Update+ ora toglie i generi che nessuna fonte conferma (Wikidata, RAWG, Steam): un gioco narrativo non resta più segnato Soulslike o Action-RPG. Prima Update+ sapeva solo aggiungere generi.',
     'Se Metacritic (da Wikipedia) conferma il voto che era ancora una stima, il gioco diventa verificato e mostra V+ invece del pacchetto blu. Il pacchetto blu resta solo quando nessuna fonte affidabile conferma il voto, e ora il suggerimento lo spiega.'
