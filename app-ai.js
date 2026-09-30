@@ -534,18 +534,20 @@ const NOVITA_UNVERIFIED_MAX = 79;
 async function novitaVerifyScores(list, say, isStopped){
   if(typeof rtScoreCheck !== 'function' || !list.length) return;
   say && say('Controllo i voti reali su Metacritic…');
-  let i = 0;
+  let i = 0; const probs = new Map();          // fonte → motivo (una volta sola)
   const one = async ()=>{
     while(i < list.length && !(isStopped && isStopped())){
       const c = list[i++];
       let r = null;
       try{ r = await Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 15000))]); }catch(e){}
+      try{ if(r && r.st) Object.keys(r.st).forEach(k=>{ const x = r.st[k]; if(x && (x.state === 'err' || x.state === 'off')) probs.set(x.name, x.why); }); }catch(e){}
       if(r && r.score != null){ c.aiScore = c.score; c.score = r.score; c.tier = novitaTierOf(r.score); c.m = 'V'; c.vs = r.vs; }
       else { c.m = 'S'; c.vs = ''; c.aiScore = c.score; c.score = Math.min(c.score == null ? NOVITA_UNVERIFIED_MAX : c.score, NOVITA_UNVERIFIED_MAX); c.tier = 'ND'; }
     }
   };
   await Promise.all([one(), one(), one(), one()]);
-  for(let k = list.length - 1; k >= 0; k--) if(list[k].m === 'V' && list[k].score < 50) list.splice(k, 1);      // il voto vero è sotto il 5/10: spazzatura
+  for(let k = list.length - 1; k >= 0; k--) if(list[k].m === 'V' && list[k].score < 50) list.splice(k, 1);
+  if(probs.size){ try{ showToast('⚠️ Fonti del voto con problemi — ' + Array.from(probs).map(p=> p[0] + ': ' + p[1]).join(' · '), 10000); }catch(e){} }      // il voto vero è sotto il 5/10: spazzatura
 }
 const novitaTierOf = s=> s >= 95 ? 'S+' : s >= 90 ? 'S' : s >= 85 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : s >= 40 ? 'E' : 'F';
 function buildNovitaPrompt(count, excludeNames){
@@ -1053,7 +1055,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-09-30';
-const DATA_BUILD_VERSION = 'v154';
+const DATA_BUILD_VERSION = 'v155';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

@@ -143,6 +143,25 @@
     try{ i.similar = (await SearchHub.rawg.similar(i, 8)).filter(n=> n && n.toLowerCase() !== String(g.name).toLowerCase()).slice(0, 6); }catch(e){ i.similar = []; }
     return i;
   }
+  // perché una fonte non ha risposto, in parole semplici
+  function whyFail(e){
+    const m = String((e && e.message) || e || ''), c = e && e.status;
+    if(e && e.skip) return /chiave/i.test(m) ? 'chiave non impostata' : /limite/i.test(m) ? 'limite giornaliero raggiunto (' + m.replace(/^.*\(|\)$/g, '') + ' richieste)' : m;
+    if(c === 401 || c === 403 || /HTTP (401|403)/.test(m)) return 'accesso negato (chiave non valida, API non attivata o permessi mancanti)';
+    if(c === 429 || /HTTP 429/.test(m)) return 'quota finita o troppe richieste (riprova più tardi)';
+    if(c === 402 || /HTTP 402/.test(m)) return 'piano a pagamento richiesto / quota esaurita';
+    if(c === -1 || /non JSON|blocco/i.test(m)) return 'bloccato dal sito (pagina di blocco)';
+    if(/in pausa/i.test(m)) return 'in pausa dopo troppi errori (riprovo tra qualche minuto)';
+    if(/^HTTP 5|HTTP 5\d\d/.test(m) || (c && c >= 500)) return 'il sito ha un problema (errore ' + (c || '5xx') + ')';
+    if(/timeout|Abort/i.test(m)) return 'non ha risposto in tempo';
+    return 'non raggiungibile (rete o blocco del sito)';
+  }
+  const VDIAG = 'jrpg_vote_diag';
+  const voteLines = st=> ['wiki', 'steam', 'cheap', 'oc', 'rawg'].map(k=> st && st[k]).filter(x=> x && x.state !== 'skip').map(x=> (x.state === 'ok' ? '✅ ' : x.state === 'nd' ? '➖ ' : '⚠️ ') + x.name + ': ' + (x.state === 'ok' ? 'voto ' + x.score : x.why));
+  function saveVoteDiag(id, st){
+    try{ const all = JSON.parse(localStorage.getItem(VDIAG) || '{}') || {}; all[id] = {t: new Date().toISOString(), lines: voteLines(st), prob: ['wiki', 'steam', 'cheap', 'oc', 'rawg'].map(k=> st[k]).filter(x=> x && (x.state === 'err' || x.state === 'off')).map(x=> x.name + ': ' + x.why)}; localStorage.setItem(VDIAG, JSON.stringify(all)); return all[id]; }catch(e){ return null; }
+  }
+  window.voteDiagFor = id=>{ try{ return (JSON.parse(localStorage.getItem(VDIAG) || '{}') || {})[id] || null; }catch(e){ return null; } };
   async function gather(g, lite){
     // lite: solo le fonti leggere (Wikipedia, Wikidata, RAWG); Steam e PCGamingWiki (lingue) restano per «Aggiorna info»
     const none = Promise.resolve(null);
@@ -150,12 +169,39 @@
     const [wiki, wd, itw, steam, pcgw, rawg, cheap, oc] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none, ocInfoFor(g)]);
     const cheapLive = cheap.status === 'fulfilled' ? cheap.value : null;
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
-    return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
+    // stato di ogni fonte del voto (per dire chiaramente se un sito è bloccato, la chiave non va o la quota è finita)
+    const H = window.SearchHub, hasK = f=> { try{ return !!(H && f && f.has()); }catch(e){ return false; } };
+    const mk = (name, r, val, sc, noKey, skipped)=> skipped ? {name, state:'skip'} : noKey ? {name, state:'off', why:'chiave non impostata'} : r.status === 'rejected' ? {name, state:'err', why: whyFail(r.reason)} : sc ? {name, state:'ok', score: sc} : {name, state:'nd', why: val ? 'trovato ma senza voto' : 'gioco non trovato'};
+    const vals = {wiki: ok(wiki), steam: ok(steam), rawg: ok(rawg), oc: ok(oc)};
+    const cf = (H && H.factsFor(g)) || (cheapLive ? {c: cheapLive} : null);
+    const st = {
+      wiki: mk('Wikipedia (Metacritic)', wiki, vals.wiki, vals.wiki && vals.wiki.mc),
+      steam: mk('Steam (Metacritic)', steam, vals.steam, vals.steam && vals.steam.mc, false, lite),
+      cheap: mk('CheapShark (Metacritic)', needCheap ? cheap : {status:'fulfilled'}, cf, (cf && ((cf.s && cf.s.mc) || (cf.c && cf.c.mc))) || 0),
+      oc: mk('OpenCritic', oc, vals.oc, vals.oc && vals.oc.score, !hasK(H && H.opencritic)),
+      rawg: mk('RAWG', rawg, vals.rawg, vals.rawg && vals.rawg.mc, !hasK(H && H.rawg))
+    };
+    return {st, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
   function factChanges(g, src){
     const ch = [];
+    // Il voto si cerca in quest'ordine di priorità: 1) Metacritic (Wikipedia, Steam, CheapShark) → 2) OpenCritic → 3) RAWG. Una fonte meno affidabile non sostituisce mai una più affidabile.
+    const rk = v=> /^Metacritic/.test(v || '') ? 3 : /^OpenCritic/.test(v || '') ? 2 : /^RAWG/.test(v || '') ? 1 : 0;
+    const offerScore = (r, sc, vs, id, label, to)=>{
+      if(!sc || ch.some(c=> /^score|^method|^vsrc/.test(c.id))) return;
+      const v = g.m === 'V';
+      if(v && g.vs && rk(g.vs) > r) return;                                   // voto già preso da una fonte più affidabile
+      if(sc === g.score){                                                      // stesso voto: lo confermo e registro da dove viene
+        if(!v) ch.push({id:'method', label:'Voto confermato (' + to + ')', from:'stima', to:'verificato (V)', patch:{m:'V', vs}});
+        else if(r === 3 && rk(g.vs) < 3) ch.push({id:'vsrc', label:'Fonte del voto', from: g.vs || 'non registrata', to: vs, patch:{vs}});
+        return;
+      }
+      // differenza fino a 6 punti: si applica da sola; oltre, o se un voto verificato di origine ignota contrasta con OpenCritic/RAWG, chiede conferma
+      const off = v && (Math.abs(sc - g.score) > 6 || (!g.vs && r < 3));
+      ch.push({id, label: label + ' (' + to + ')', from: `${g.score} (${v ? 'verificato' : 'stima'})`, to: `${sc} (${to})`, patch:{score: sc, tier: tierOf(sc), m:'V', vs}, off});
+    };
     // lingua italiana da fonti ufficiali (solo prove positive: se un sito non elenca l'italiano non significa che il gioco non lo abbia; l'edizione PC può differire da quella console)
     { const cur = (g.label || {}).it, rank = {N:0, F:0, S:1, D:2};
       const found = [];
@@ -173,16 +219,7 @@
       ch.push({id:'itdub', label:'🎙️ Doppiaggio italiano', from: `italiano: ${(g.label || {}).it || '—'}`, to: `testi e doppiaggio in italiano (prova: la voce di it.wikipedia "${src.itw.title}" elenca i doppiatori italiani) ${src.itw.url}`, patch:{label:{it:'D'}}});
     }
     const nowY = new Date().getFullYear();
-    if(src.wiki && src.wiki.mc && src.wiki.mc !== g.score){
-      ch.push({id:'score', label:'Voto', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${src.wiki.mc} (Metacritic, da Wikipedia)`, patch:{score: src.wiki.mc, tier: tierOf(src.wiki.mc), m:'V', vs:'Metacritic (da Wikipedia)'}, off: g.m === 'V' && Math.abs(src.wiki.mc - g.score) > 6});
-    }
-    // Metacritic (da Wikipedia) uguale al voto in lista ma ancora «stima»: il voto è confermato, quindi passa a verificato (V+)
-    if(src.wiki && src.wiki.mc && src.wiki.mc === g.score && g.m !== 'V'){
-      ch.push({id:'method', label:'Voto confermato da Metacritic', from: 'stima', to: 'verificato (V)', patch:{m:'V', vs:'Metacritic (da Wikipedia)'}});
-    }
-    else if(src.wiki && src.wiki.mc && src.wiki.mc === g.score && g.vs !== 'Metacritic (da Wikipedia)'){
-      ch.push({id:'vsrc', label:'Fonte del voto', from: g.vs || 'non registrata', to: 'Metacritic (da Wikipedia)', patch:{vs:'Metacritic (da Wikipedia)'}});
-    }
+    offerScore(3, src.wiki && src.wiki.mc, 'Metacritic (da Wikipedia)', 'score', 'Voto', 'Metacritic, da Wikipedia');
     if(src.wd && src.wd.codes){
       const add = src.wd.codes.filter(c=> TAG_INFO[c] && !g.tags.includes(c));
       if(add.length){
@@ -214,9 +251,7 @@
       // ordine di attendibilità del Metascore: Wikipedia (già sopra) → Steam dal vivo → Steam nei dati settimanali → CheapShark
       const cands = [[src.steam && src.steam.mc, 'Steam dal vivo'], [src.facts && src.facts.s && src.facts.s.mc, 'Steam, dati settimanali'], [src.facts && src.facts.c && src.facts.c.mc, 'CheapShark']].filter(x=> x[0]);
       const [mc, from] = cands[0] || [];
-      if(mc && (g.m !== 'V' || mc !== g.score || g.vs !== 'Metacritic (da ' + (/CheapShark/.test(from) ? 'CheapShark' : 'Steam') + ')') && !ch.some(c=> /^score|^method|^vsrc/.test(c.id))){          // voto ancora «stima»: il Metascore di Steam/CheapShark lo rende verificato (V)
-        ch.push({id:'score4', label:'Voto (Metascore da ' + from + ')', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${mc} (Metascore riportato da ${from}; recensioni non verificabili)`, patch:{score: mc, tier: tierOf(mc), m:'V', vs:'Metacritic (da ' + (/CheapShark/.test(from) ? 'CheapShark' : 'Steam') + ')'}, off: g.m === 'V' && Math.abs(mc - g.score) > 6});
-      }
+      offerScore(3, mc, 'Metacritic (da ' + (/CheapShark/.test(from || '') ? 'CheapShark' : 'Steam') + ')', 'score4', 'Voto (Metascore da ' + from + ')', 'Metascore riportato da ' + from + '; recensioni non verificabili');
       // anno: Wikidata (già sopra) → Steam dal vivo → Steam nei dati settimanali → CheapShark → RAWG (sotto)
       const ys = [[src.steam && src.steam.year, 'Steam dal vivo'], [src.facts && src.facts.s && src.facts.s.y, 'Steam, dati settimanali'], [src.facts && src.facts.c && src.facts.c.y, 'CheapShark']].filter(x=> x[0]);
       const mine = yearsOf(g);
@@ -225,23 +260,19 @@
         if(!mine.some(m=> Math.abs(m - +y) <= 1)) ch.push({id:'year', label:'Anno', from: g.year, to: y + ' (' + yf + ')', patch:{year: String(y), ysort: +y}});
       }
     }
+    // OpenCritic (2ª fonte, solo se Metacritic non ha il gioco)
+    offerScore(2, src.oc && src.oc.score, 'OpenCritic (nessun Metacritic trovato)', 'score5', 'Voto (OpenCritic)', 'media dei critici su OpenCritic' + (src.oc && src.oc.reviews ? ', ' + src.oc.reviews + ' recensioni' : ''));
     // RAWG: conferma l'anno (se Wikidata non ha già proposto), voto Metacritic (mai attivo di default: le recensioni non sono contabili) e giochi affini
     if(src.rawg){
       const r = src.rawg, mine = yearsOf(g);
       if(r.year && mine.length && !mine.some(y=> Math.abs(y - +r.year) <= 1) && !ch.some(c=> c.id === 'year')){
         ch.push({id:'year', label:'Anno', from: g.year, to: r.year + ' (RAWG ' + r.url + ')', patch:{year: r.year, ysort: +r.year}});
       }
-      if(r.mc && (g.m !== 'V' || r.mc !== g.score || g.vs !== 'Metacritic (da RAWG)') && !ch.some(c=> /^score|^method|^vsrc/.test(c.id))){
-        ch.push({id:'score3', label:'Voto (Metacritic secondo RAWG)', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${r.mc} (Metacritic riportato da RAWG: numero di recensioni non verificabile)`, patch:{score: r.mc, tier: tierOf(r.mc), m:'V', vs:'Metacritic (da RAWG)'}, off: g.m === 'V' && Math.abs(r.mc - g.score) > 6});
-      }
+      offerScore(1, r.mc, 'RAWG (Metacritic riportato da RAWG)', 'score3', 'Voto (RAWG)', 'Metacritic riportato da RAWG: numero di recensioni non verificabile');
       const cur = (g.enrich && g.enrich.similarTo) || [];
       if(r.similar && r.similar.length >= 3 && cur.join('|') !== r.similar.join('|')){
         ch.push({id:'similar', label:'Giochi affini (consigliati da RAWG)', from: cur.join(', ') || '—', to: r.similar.join(', '), patch:{enrich:{similarTo: r.similar.slice(0, 5)}}});
       }
-    }
-    // OpenCritic (seconda fonte, dopo Metacritic): media dei critici; stessa regola, una stima diventa verificata (V)
-    if(src.oc && src.oc.score && (g.m !== 'V' || Math.abs(src.oc.score - g.score) > 6 || (g.vs && !/^Metacritic/.test(g.vs) && src.oc.score !== g.score)) && !ch.some(c=> /^score|^method|^vsrc/.test(c.id))){
-      ch.push({id:'score5', label:'Voto (OpenCritic)', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${src.oc.score} (media dei critici su OpenCritic${src.oc.reviews ? ', ' + src.oc.reviews + ' recensioni' : ''})`, patch:{score: src.oc.score, tier: tierOf(src.oc.score), m:'V', vs:'OpenCritic (nessun Metacritic trovato)'}, off: g.m === 'V' && Math.abs(src.oc.score - g.score) > 6});
     }
     return ch;
   }
@@ -356,10 +387,12 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   // voto reale di un titolo (per la ricerca di nuovi giochi): Metacritic da Wikipedia → Metacritic da RAWG → OpenCritic. null = nessuna fonte lo conferma
   window.rtScoreCheck = async function(c){
     const src = await gather({name: c.name, plat: c.plat || '', year: c.year || '', tags: [], custom: true}, true);
-    if(src.wiki && src.wiki.mc) return {score: src.wiki.mc, vs: 'Metacritic (da Wikipedia)'};
-    if(src.rawg && src.rawg.mc) return {score: src.rawg.mc, vs: 'Metacritic (da RAWG)'};
-    if(src.oc && src.oc.score) return {score: src.oc.score, vs: 'OpenCritic (nessun Metacritic trovato)'};
-    return null;
+    const base = {st: src.st};
+    if(src.wiki && src.wiki.mc) return Object.assign(base, {score: src.wiki.mc, vs: 'Metacritic (da Wikipedia)'});
+    if(src.facts && src.facts.c && src.facts.c.mc) return Object.assign(base, {score: src.facts.c.mc, vs: 'Metacritic (da CheapShark)'});
+    if(src.oc && src.oc.score) return Object.assign(base, {score: src.oc.score, vs: 'OpenCritic (nessun Metacritic trovato)'});
+    if(src.rawg && src.rawg.mc) return Object.assign(base, {score: src.rawg.mc, vs: 'RAWG (Metacritic riportato da RAWG)'});
+    return base;
   };
   // ----- interfaccia -----
   function panel(){
@@ -618,6 +651,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const src = await gather(g, false);
     const names = Object.keys(FP_SRC).filter(k=> src[k]).map(k=> FP_SRC[k]);
     let ch = factChanges(g, src);
+    const vdiag = saveVoteDiag(g.id, src.st);
+    try{ (vdiag && vdiag.prob || []).forEach(p=> window.DebugLog && DebugLog.add && DebugLog.add({kind: 'note', src: 'Voto di ' + g.name, ok: false, note: p})); }catch(e){}
     // storia, pro/contro, «perché piacerti»: riscritti dall'AI SOLO dalle fonti (Wikipedia → RAWG → Steam), se c'è una chiave e la scheda è povera (o l'hai chiesto tu)
     try{
       const poor = g.custom || String(g.story || '').length < 300 || !((g.enrich && g.enrich.pros) || []).length;
@@ -647,7 +682,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{ window.DebugLog && DebugLog.add && DebugLog.add({kind: 'note', src: 'Update+', ok: okN >= 1, note: g.name + ': ' + (names.join(', ') || 'nessuna fonte ha risposto') + (applied ? ' · ' + applied + ' correzioni' : '') + (pending ? ' · ' + pending + ' da approvare' : '')}); }catch(e){}
     try{ if(applied || pending || cover || (window.XCOVER && false)){ /* i dati della riga sono cambiati */ } refreshRowFresh(g); }catch(e){}
     try{ window.dispatchEvent(new CustomEvent('update-plus', {detail: {id: g.id, ok: okN >= 1, names}})); }catch(e){}
-    return {ok: okN >= 1, names, applied, pending, cover};
+    return {ok: okN >= 1, names, applied, pending, cover, vote: vdiag};
   }
   // «Update+» forzato dalla scheda: subito, con la barra di caricamento
   window.updatePlusNow = async function(g){
@@ -660,6 +695,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{ P && P.end && P.end(); }catch(e){}
     if(r && r.ok) showToast('Update V+ completato · fonti: ' + r.names.join(', ') + (r.pending ? ' · ' + r.pending + ' modifiche da approvare' : '') + (r.applied ? ' · ' + r.applied + ' correzioni applicate' : ''), 5500);
     else showToast('Nessuna fonte ha risposto adesso: riprova tra poco (controlla la connessione o il ponte personale)', 5000);
+    try{ if(r && r.vote && r.vote.prob && r.vote.prob.length) setTimeout(()=> showToast('⚠️ Fonti del voto con problemi — ' + r.vote.prob.join(' · '), 9000), 5800); }catch(e){}
     try{ g = latest(g); if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) openModal(g); }catch(e){}
     return r;
   };

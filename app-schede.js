@@ -570,6 +570,13 @@ function voteSourceHtml(g){
   if(g.m === 'V') return `${giIcon('tag')} <span>Voto verificato (Metacritic/OpenCritic): fonte esatta non ancora registrata, premi «Update V+» per vederla.</span>`;
   return `⚠️ <span>Nessun Metacritic trovato: il voto è una <b>stima</b> (non verificata).</span>`;
 }
+// esito dell'ultimo controllo del voto, fonte per fonte (priorità: Metacritic → OpenCritic → RAWG); i ⚠️ dicono se un sito è bloccato, la chiave non va o la quota è finita
+function voteDiagHtml(g){
+  const d = typeof voteDiagFor === 'function' ? voteDiagFor(g.id) : null;
+  if(!d || !d.lines || !d.lines.length) return '';
+  const day = new Date(d.t).toLocaleDateString('it-IT') + ' ' + new Date(d.t).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
+  return `<details class="fresh-line" ${d.prob && d.prob.length ? 'open' : ''}><summary>Ricerca del voto (${day})${d.prob && d.prob.length ? ' · ⚠️ ' + d.prob.length + ' fonte/i con problemi' : ''}</summary><div>${d.lines.map(escHtml).join('<br>')}</div></details>`;
+}
 function labelBar(n, max){
   let out = '<span class="glabel-bar">';
   for(let i=1;i<=max;i++) out += `<i class="${i<=n?'on':''}"></i>`;
@@ -752,6 +759,7 @@ function openModal(g){
       ${(()=>{ const f = freshInfo(g); return f ? `<span class="badge big outline fresh-badge" title="${escHtml(freshWhy(f))}">${giIcon(f.m ? 'upmanual' : 'upplus')} ${f.m ? 'Controllato a mano' : 'Update V+'}</span>` : ''; })()}
     </div>
     <div class="fresh-line ${g.m === 'V' && /^Metacritic/.test(g.vs || '') ? 'ok' : ''}" id="voteSrc">${voteSourceHtml(g)}</div>
+    ${voteDiagHtml(g)}
     ${typeof updatePlusNow === 'function' ? (()=>{ const f = freshInfo(g); return f ? `<div class="fresh-line ok">${giIcon(f.m ? 'upmanual' : 'upplus')} <span>${escHtml(freshWhy(f))}</span></div>` : `<div class="fresh-line">Non ancora aggiornato con Update V+: lo faccio io in automatico (una sola volta) oppure premi «Update V+».</div>`; })() : ''}
     <div class="modal-tags">${g.tags.map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${dnaHtml(g)}
