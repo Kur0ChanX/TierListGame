@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v151', date:'2026-10-21', items:[
+    'Quando un voto diventa verificato (V), la nota «voto e dettagli sono una stima» viene sostituita da «voto verificato», sia nei giochi nuovi sia in quelli già aggiunti (es. Dark Souls).'
+  ]},
   {version:'v150', date:'2026-10-21', items:[
     'Corretto il vero motivo per cui il voto restava «stima»: nei giochi aggiunti da te (es. Dark Souls) l\'app non salvava mai il segno di voto verificato, anche quando Update+ o «Aggiorna info» trovavano il Metacritic. Ora viene salvato e il gioco diventa V+. Basta ripremere Update+ sulla scheda.'
   ]},

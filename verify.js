@@ -323,6 +323,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     return p;
   }
   async function applyPatch(g, p, quiet){
+    // voto diventato verificato: la nota «è una stima» non è più vera, la correggo nei dati (vale anche per i giochi futuri)
+    if((p.m === 'V' || g.m === 'V') && p.note == null && /voto e dettagli sono una stima/.test(g.note || '')) p = Object.assign({}, p, {note: g.note.replace(/ — voto e dettagli sono una stima[^.]*\./, ' — voto verificato (Metacritic/OpenCritic).')});
     // cronologia (idea 29): salvo i valori di prima per poterli ripristinare
     try{
       if(window.rtHistory){

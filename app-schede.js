@@ -554,6 +554,11 @@ function enrichHtml(g){
 const LABEL_PACE = {L:'Lento', M:'Medio', V:'Veloce'};
 const LABEL_IT = {D:'🎙️ Testi e doppiaggio in italiano', S:'✅ Testi/sottotitoli in italiano', F:'🌐 Solo fan-translation', N:'🇬🇧 Solo inglese/altro'};
 const LABEL_STORE = {PS:'PlayStation', XB:'Xbox', NS:'Switch', PC:'PC', MOB:'Mobile'};
+// nota «voto e dettagli sono una stima…»: se il voto è poi diventato verificato (V) la frase non è più vera, la sostituisco
+function noteForVoto(g){
+  const n = String(g.note || '');
+  return g.m === 'V' ? n.replace(/ — voto e dettagli sono una stima[^.]*\./, ' — voto verificato (Metacritic/OpenCritic).') : n;
+}
 function labelBar(n, max){
   let out = '<span class="glabel-bar">';
   for(let i=1;i<=max;i++) out += `<i class="${i<=n?'on':''}"></i>`;
@@ -750,7 +755,7 @@ function openModal(g){
     </div>
     <div class="modal-section-title">${giIcon('book')} La storia (senza spoiler)</div>
     ${storyHtml}
-    ${g.note ? `<div class="modal-section-title">Nota</div><div class="modal-note">${g.note}</div>` : ''}
+    ${g.note ? `<div class="modal-section-title">Nota</div><div class="modal-note">${noteForVoto(g)}</div>` : ''}
     ${castHtml(g)}
     ${enrichHtml(g)}
     ${soundtrackHtml(g)}
