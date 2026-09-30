@@ -63,7 +63,11 @@
   }
   // 7) schermo intero di default: il browser lo consente solo dopo un tocco, quindi al primo tocco (se l'apertura animata non c'era)
   try{
-    const wantFs = localStorage.getItem('jrpg_autofs') !== 'off';
+    // iPad/iPhone: nello schermo intero del browser la tastiera NON si apre (limite di Safari/Chrome su iOS), quindi lì niente schermo intero automatico
+    const apple = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const wantFs = localStorage.getItem('jrpg_autofs') !== 'off' && !apple;
+    // rete di sicurezza: se si tocca un campo di testo mentre si è a schermo intero, ne esco subito così la tastiera può aprirsi
+    document.addEventListener('focusin', e=>{ try{ if(document.fullscreenElement && e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) document.exitFullscreen(); }catch(x){} }, true);
     const isFull = ()=> !!document.fullscreenElement || (window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches));
     if(wantFs && !document.getElementById('intro') && document.documentElement.requestFullscreen && !isFull() && !navigator.webdriver){
       const once = ()=>{ document.removeEventListener('click', once, true); try{ if(!isFull()) document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){} };
