@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v157', date:'2026-09-30', time:'22:08', items:[
+    'iPad e tablet: la barra in basso è più grande (icone e scritte ingrandite) e raccolta al centro, invece di icone minuscole sparse su tutta la larghezza.'
+  ]},
   {version:'v156', date:'2026-09-30', time:'22:04', items:[
     'Su iPad e sugli altri tablet (schermo touch), anche aggiunto alla schermata Home e in orizzontale, ora compare la barra con le icone in basso (Classifica, Scopri, Novità, Chiedi…) come sul telefono.'
   ]},
