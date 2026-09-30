@@ -135,6 +135,10 @@
     return {url: 'https://www.pcgamingwiki.com/wiki/' + encodeURIComponent(row.page.replace(/ /g, '_')), itText: yes(row.Interface) || yes(row.Subtitles), itAudio: yes(row.Audio)};
   }
   // RAWG (chiave gratuita dell'utente): anno, voto Metacritic, descrizione, giochi affini. Se non c'è la chiave o non risponde, viene saltata.
+  async function ocInfoFor(g){
+    if(!(window.SearchHub && SearchHub.opencritic && SearchHub.opencritic.has())) return null;
+    return SearchHub.opencritic.info(g.name);
+  }
   async function rawgInfoFor(g){
     if(!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has())) return null;
     const i = await SearchHub.rawg.info(g.name); if(!i) return null;
@@ -145,10 +149,10 @@
     // lite: solo le fonti leggere (Wikipedia, Wikidata, RAWG); Steam e PCGamingWiki (lingue) restano per «Aggiorna info»
     const none = Promise.resolve(null);
     const needCheap = !(window.SearchHub && SearchHub.factsFor(g)) && window.SearchHub;
-    const [wiki, wd, itw, steam, pcgw, rawg, cheap] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none]);
+    const [wiki, wd, itw, steam, pcgw, rawg, cheap, oc] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none, ocInfoFor(g)]);
     const cheapLive = cheap.status === 'fulfilled' ? cheap.value : null;
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
-    return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
+    return {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
@@ -233,6 +237,10 @@
       if(r.similar && r.similar.length >= 3 && cur.join('|') !== r.similar.join('|')){
         ch.push({id:'similar', label:'Giochi affini (consigliati da RAWG)', from: cur.join(', ') || '—', to: r.similar.join(', '), patch:{enrich:{similarTo: r.similar.slice(0, 5)}}});
       }
+    }
+    // OpenCritic (seconda fonte, dopo Metacritic): media dei critici; stessa regola, una stima diventa verificata (V)
+    if(src.oc && src.oc.score && (g.m !== 'V' || Math.abs(src.oc.score - g.score) > 6) && !ch.some(c=> /^score|^method/.test(c.id))){
+      ch.push({id:'score5', label:'Voto (OpenCritic)', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${src.oc.score} (media dei critici su OpenCritic${src.oc.reviews ? ', ' + src.oc.reviews + ' recensioni' : ''})`, patch:{score: src.oc.score, tier: tierOf(src.oc.score), m:'V'}, off: g.m === 'V'});
     }
     return ch;
   }
@@ -444,9 +452,9 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const g = auNext(); if(!g) return auSchedule(6 * 3600e3);
     auBusy = true;
     try{
-      const [wiki, wd, itw, rawg, cheap] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), rawgInfoFor(g), SearchHub.factsFor(g) ? Promise.resolve(null) : SearchHub.cheapFacts(g.name)]);
+      const [wiki, wd, itw, rawg, cheap, oc] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), rawgInfoFor(g), SearchHub.factsFor(g) ? Promise.resolve(null) : SearchHub.cheapFacts(g.name), ocInfoFor(g)]);
       const ok = x=> x.status === 'fulfilled' ? x.value : null;
-      const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), rawg: ok(rawg), facts: SearchHub.factsFor(g) || (ok(cheap) ? {c: ok(cheap)} : null)};
+      const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), rawg: ok(rawg), oc: ok(oc), facts: SearchHub.factsFor(g) || (ok(cheap) ? {c: ok(cheap)} : null)};
       if(wiki.status === 'rejected' && wd.status === 'rejected' && !useAI()) throw new Error('fonti');   // con Gemini si va avanti lo stesso: le fonti aperte sono solo un di più
       let ch = factChanges(g, src), srcs = [], deep = false;
       if(ai){
@@ -566,7 +574,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   window.updatePlusOn = ()=> localStorage.getItem(FR_ON) !== 'off';
   window.updatePlusSetOn = on=>{ try{ localStorage.setItem(FR_ON, on ? 'on' : 'off'); }catch(e){} if(on) fpKick(3000); };
   window.updatePlusStats = ()=>{ const f = frLoad(); const n = GAMES.filter(g=> f[g.id] && f[g.id].gold).length; return {done: n, total: GAMES.length}; };
-  const FP_SRC = {wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', rawg: 'RAWG', facts: 'Dati settimanali'};
+  const FP_SRC = {wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', rawg: 'RAWG', oc: 'OpenCritic', facts: 'Dati settimanali'};
   const fpQueue = [], fpMiss = {};
   window.updatePlusQueue = id=>{ if(!fpQueue.includes(id)) fpQueue.push(id); fpKick(6000); };
   function frManual(id){                                        // «Aggiorna info» a mano: simbolo viola

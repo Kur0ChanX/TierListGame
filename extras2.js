@@ -13,7 +13,7 @@
   // =====================================================================
   // 1) BACKUP + SPAZIO DEL BROWSER (per non perdere nulla)
   // =====================================================================
-  const SECRET = ['jrpg_gemini_key', 'jrpg_rawg_key', 'jrpg_sync_token', 'jrpg_sync_gist', 'jrpg_sync_meta', 'jrpg_triad_acct', 'jrpg_triad_server', 'jrpg_triad_photos'];      // mai dentro un backup: sono chiavi personali
+  const SECRET = ['jrpg_gemini_key', 'jrpg_rawg_key', 'jrpg_opencritic_key', 'jrpg_sync_token', 'jrpg_sync_gist', 'jrpg_sync_meta', 'jrpg_triad_acct', 'jrpg_triad_server', 'jrpg_triad_photos'];      // mai dentro un backup: sono chiavi personali
   function collect(){ const out = {}; for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if(k && k.indexOf('jrpg_') === 0 && !SECRET.includes(k)) out[k] = localStorage.getItem(k); } return out; }
   function backupObj(){ return {app: 'raccoon-tier', v: 1, created: new Date().toISOString(), build: (document.querySelector('meta[name="build"]') || {}).content || '', keys: collect()}; }
   async function saveBackup(){
