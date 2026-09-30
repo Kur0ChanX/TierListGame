@@ -171,7 +171,7 @@
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
     // stato di ogni fonte del voto (per dire chiaramente se un sito è bloccato, la chiave non va o la quota è finita)
     const H = window.SearchHub, hasK = f=> { try{ return !!(H && f && f.has()); }catch(e){ return false; } };
-    const mk = (name, r, val, sc, noKey, skipped)=> skipped ? {name, state:'skip'} : noKey ? {name, state:'off', why:'chiave non impostata'} : r.status === 'rejected' ? {name, state:'err', why: whyFail(r.reason)} : sc ? {name, state:'ok', score: sc} : {name, state:'nd', why: val ? 'trovato ma senza voto' : 'gioco non trovato'};
+    const mk = (name, r, val, sc, noKey, skipped)=> skipped ? {name, state:'skip'} : noKey ? {name, state:'off', why:'chiave non impostata su questo dispositivo (copiala dall\'altro con «Copia le mie chiavi» in ⚙️ Chiedi a Claude)'} : r.status === 'rejected' ? {name, state:'err', why: whyFail(r.reason)} : sc ? {name, state:'ok', score: sc} : {name, state:'nd', why: val ? 'trovato ma senza voto' : 'gioco non trovato'};
     const vals = {wiki: ok(wiki), steam: ok(steam), rawg: ok(rawg), oc: ok(oc)};
     const cf = (H && H.factsFor(g)) || (cheapLive ? {c: cheapLive} : null);
     const st = {

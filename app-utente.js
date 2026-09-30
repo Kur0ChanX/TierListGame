@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v158', date:'2026-09-30', time:'22:11', items:[
+    'Le chiavi (Gemini, RAWG, OpenCritic) e il ponte restano su ogni dispositivo: ora in ⚙️ Chiedi a Claude ci sono «📤 Copia le mie chiavi» e «📥 Incolla le chiavi» per portarle da un dispositivo all\'altro in un attimo (per esempio sull\'iPad). Non passano da backup, file o sincronizzazione.',
+    'Il messaggio «chiave non impostata» nella ricerca del voto spiega ora che basta copiarla dall\'altro dispositivo.'
+  ]},
   {version:'v157', date:'2026-09-30', time:'22:08', items:[
     'iPad e tablet: la barra in basso è più grande (icone e scritte ingrandite) e raccolta al centro, invece di icone minuscole sparse su tutta la larghezza.'
   ]},
