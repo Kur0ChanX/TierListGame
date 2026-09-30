@@ -88,7 +88,7 @@ function askToolAddCustomGame(input, sourceLabel){
 const ENRICH_TRIED = 'jrpg_enrich_tried';
 let enrichQueueIds = new Set(), enrichTimer = 0, enrichRunning = false;
 function customDocFromGame(g, enrich){
-  return {name: g.name, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
+  return {name: g.name, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, m: g.m === 'V' ? 'V' : undefined, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
     pros: (g.proscons && g.proscons.pros) || [], cons: (g.proscons && g.proscons.cons) || [], enrich: enrich || undefined};
 }
 function buildEnrichPrompt(games){
@@ -1026,8 +1026,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-10-20';
-const DATA_BUILD_VERSION = 'v149';
+const DATA_BUILD_DATE = '2026-10-21';
+const DATA_BUILD_VERSION = 'v150';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
