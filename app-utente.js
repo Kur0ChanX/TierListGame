@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v167', date:'2026-09-30', time:'00:08', items:[
+    'Nuova «🧭 Mappa fonti» (in Diagnostica fonti: 5 tocchi sulla riga «Database aggiornato…»): per ogni dato mostra l\'ordine delle fonti (voto, anno, generi, lingua, storia, pro e contro, a colpo d\'occhio, ore, prezzo) e con «Verifica ora» controlla se ogni fonte funziona adesso (✅ funziona, ⚠️ problema con il motivo, ➖ chiave mancante).'
+  ]},
   {version:'v166', date:'2026-09-30', time:'00:07', items:[
     'Colonna Fonte pulita: una sola icona per significato, niente doppioni. Metacritic (M gialla, anche per i vecchi ✅ e V+), OpenCritic (rosso), RAWG (R) e Stima (il tuo logo, al posto della scatola blu). Lo stesso simbolo compare nella scheda del gioco.',
     'Regola dei voti in background: prima Metacritic, poi OpenCritic, poi RAWG. Se un sito ti blocca o la quota giornaliera è finita, usa la fonte successiva e riprova il giorno dopo; se il gioco semplicemente non c\'è su quella fonte, tiene la successiva e non riprova più. Se nessuna delle tre lo trova resta «Stima». Lo stato viene condiviso con gli altri dispositivi, così non ripetono le stesse richieste.'

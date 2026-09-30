@@ -49,11 +49,12 @@
     const esc = t=> String(t == null ? '' : t).replace(/[&<>]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
     el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🛠️ Diagnostica fonti</b><button class="btn" data-ui-close>Chiudi</button></div>
       <div class="lp-sub">${all.length} eventi · ${bad} errori. Nessuna chiave o token viene registrato. Se una fonte non va, tocca «Copia log» e incollalo a Claude.</div>
-      <div class="lp-tools"><button class="btn primary" id="dbgCopy">📋 Copia log</button><button class="btn" id="dbgClear">🗑️ Svuota</button></div>
+      <div class="lp-tools"><button class="btn primary" id="dbgMap">🧭 Mappa fonti</button><button class="btn" id="dbgCopy">📋 Copia log</button><button class="btn" id="dbgClear">🗑️ Svuota</button></div>
       <div class="dbg-rows">${all.slice(0, 120).map(e=> `<div class="dbg-row${e.ok === false ? ' bad' : ''}"><b>${esc(e.t.slice(11, 19))}</b> ${esc(e.src || e.kind || '')} ${e.status != null ? '<span class="dbg-st">HTTP ' + e.status + '</span>' : ''} ${e.ms != null ? e.ms + ' ms' : ''}<br><small>${esc(e.url || '')}${e.err ? ' — ' + esc(e.err) : ''}${e.note ? ' — ' + esc(e.note) : ''}</small></div>`).join('') || '<div class="lp-sub">Ancora nessun evento.</div>'}</div></div>`;
     el.classList.add('show');
     el.querySelector('#dbgCopy').addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(DebugLog.text()); if(window.showToast) showToast('Log copiato', 1800); }catch(e){ const ta = document.createElement('textarea'); ta.value = DebugLog.text(); document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(x){} ta.remove(); } });
     el.querySelector('#dbgClear').addEventListener('click', ()=>{ DebugLog.clear(); openDebugLog(); });
+    el.querySelector('#dbgMap').addEventListener('click', ()=>{ if(window.openSourceMap) openSourceMap(); else if(window.showToast) showToast('Non disponibile ora', 1800); });
   };
   // apertura nascosta: 5 tocchi sulla riga «Database aggiornato…» oppure ?debug=1
   document.addEventListener('click', e=>{

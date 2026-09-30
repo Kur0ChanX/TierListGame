@@ -399,6 +399,56 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
 
   window.rtApplyPatch = applyPatch;
+  // ---- Mappa delle fonti: per ogni dato, in che ordine si cerca, e se ogni fonte funziona adesso ----
+  const SRC_MAP = [
+    ['Voto', 'Metacritic (Wikipedia → Steam → dati settimanali → CheapShark) → OpenCritic → RAWG → altrimenti Stima', ['wiki', 'steam', 'cheap', 'oc', 'rawg']],
+    ['Anno di uscita', 'Wikidata → Steam → CheapShark → RAWG', ['wd', 'steam', 'cheap', 'rawg']],
+    ['Generi', 'Wikidata + RAWG + Steam (si confermano a vicenda; i generi non confermati si tolgono)', ['wd', 'rawg', 'steam']],
+    ['Lingua italiana', 'Steam → PCGamingWiki → it.wikipedia (solo prove positive)', ['steam', 'pcgw', 'itw']],
+    ['Storia (senza spoiler)', 'Wikipedia → RAWG → Steam, riscritta da Gemini SOLO da questi testi', ['wiki', 'rawg', 'steam', 'gem']],
+    ['Pro e contro · Come regge oggi · Gameplay · Perché piacerti', 'Gli stessi testi (Wikipedia → RAWG → Steam) riscritti da Gemini: emerge solo ciò che dicono le fonti', ['wiki', 'rawg', 'steam', 'gem']],
+    ['A colpo d\'occhio (difficoltà, grinding, peso storia, ritmo, costo)', 'Giochi di base: dati curati a mano. Giochi aggiunti: Gemini con ricerca web (nessuna fonte fissa: è la parte meno verificabile)', ['gem']],
+    ['Ore della storia', 'Giochi di base: dati curati; giochi aggiunti: Gemini / durata media RAWG. Link a HowLongToBeat nella scheda', ['rawg', 'gem']],
+    ['Prezzo e sconto', 'Steam (dati settimanali) → CheapShark', ['steam', 'cheap']]
+  ];
+  async function probe(key){
+    const t0 = Date.now(), ok = ()=> ({s: 'ok', ms: Date.now() - t0});
+    try{
+      const H = window.SearchHub;
+      if(key === 'wiki'){ await wp({action: 'query', meta: 'siteinfo'}); return ok(); }
+      if(key === 'wd'){ await fj('https://www.wikidata.org/w/api.php?action=query&meta=siteinfo&format=json&origin=*'); return ok(); }
+      if(key === 'itw'){ await fj('https://it.wikipedia.org/w/api.php?action=query&meta=siteinfo&format=json&origin=*'); return ok(); }
+      if(key === 'steam'){ const s = await viaProxy('https://store.steampowered.com/api/storesearch/?term=Bayonetta&cc=IT&l=english'); if(!(s && s.items)) throw new Error('risposta vuota'); return ok(); }
+      if(key === 'pcgw'){ await pcgwInfo('Bayonetta'); return ok(); }
+      if(key === 'cheap'){ const r = await H.json('https://www.cheapshark.com/api/1.0/stores', {timeout: 12000}); if(!Array.isArray(r)) throw new Error('risposta vuota'); return ok(); }
+      if(key === 'rawg'){ if(!(H && H.rawg && H.rawg.has())) return {s: 'off', why: 'chiave non impostata'}; await H.rawg.ping(); return ok(); }
+      if(key === 'oc'){ if(!(H && H.opencritic && H.opencritic.has())) return {s: 'off', why: 'chiave non impostata'}; await H.opencritic.ping(); return ok(); }
+      if(key === 'gem'){ if(!(typeof geminiKey === 'function' && geminiKey())) return {s: 'off', why: 'chiave Gemini non impostata'}; await geminiGenerate('Rispondi solo con: ok', {}); return ok(); }
+    }catch(e){ return {s: 'err', why: whyFail(e)}; }
+    return {s: 'off', why: 'non controllabile'};
+  }
+  const SRC_NAMES = {wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', cheap: 'CheapShark', rawg: 'RAWG', oc: 'OpenCritic', gem: 'Gemini'};
+  window.openSourceMap = function(){
+    let el = document.getElementById('srcMapBackdrop');
+    if(!el){ el = document.createElement('div'); el.id = 'srcMapBackdrop'; el.className = 'dup-backdrop'; el.style.zIndex = 100900; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
+    const esc = t=> String(t == null ? '' : t).replace(/[&<>]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+    const keys = Object.keys(SRC_NAMES);
+    el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🧭 Mappa delle fonti</b><button class="btn" data-ui-close>Chiudi</button></div>
+      <div class="lp-sub">Per ogni dato: in che ordine cerco, e se ogni fonte funziona adesso.</div>
+      <div class="lp-tools"><button class="btn primary" id="smRun">🔎 Verifica ora tutte le fonti</button></div>
+      <div id="smState" class="dbg-rows">${keys.map(k=> `<div class="dbg-row" id="sm_${k}"><b>${SRC_NAMES[k]}</b> <span>non ancora verificata</span></div>`).join('')}</div>
+      <div class="dbg-rows">${SRC_MAP.map(r=> `<div class="dbg-row"><b>${esc(r[0])}</b><br>${esc(r[1])}<br><span>${r[2].map(k=> '<span class="sm_ic_' + k + '">' + SRC_NAMES[k] + ' ·</span>').join(' ')}</span></div>`).join('')}</div></div>`;
+    el.classList.add('show');
+    el.querySelector('#smRun').addEventListener('click', async ()=>{
+      const b = el.querySelector('#smRun'); b.disabled = true; b.textContent = 'Verifico…';
+      await Promise.all(keys.map(async k=>{
+        const row = el.querySelector('#sm_' + k); row.querySelector('span').textContent = '… provo'; const r = await probe(k);
+        row.querySelector('span').textContent = r.s === 'ok' ? '✅ funziona (' + r.ms + ' ms)' : r.s === 'off' ? '➖ ' + r.why : '⚠️ ' + r.why;
+        el.querySelectorAll('.sm_ic_' + k).forEach(n=>{ n.textContent = (r.s === 'ok' ? '✅ ' : r.s === 'off' ? '➖ ' : '⚠️ ') + SRC_NAMES[k] + ' ·'; });
+      }));
+      b.disabled = false; b.textContent = '🔎 Verifica di nuovo';
+    });
+  };
   // voto reale di un titolo (per la ricerca di nuovi giochi): Metacritic da Wikipedia → Metacritic da RAWG → OpenCritic. null = nessuna fonte lo conferma
   window.rtScoreCheck = async function(c){
     const src = await gather({name: c.name, plat: c.plat || '', year: c.year || '', tags: [], custom: true}, true);
