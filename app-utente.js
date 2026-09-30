@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v160', date:'2026-09-30', time:'22:34', items:[
+    'iPad, tastiera: l\'app installata sulla schermata Home era impostata a «schermo intero», che su iOS impedisce alla tastiera di aprirsi. Ora è una normale app (standalone) e funziona anche in orizzontale. Per applicare la modifica: elimina l\'icona dalla Home e rifai «Aggiungi alla schermata Home».'
+  ]},
   {version:'v159', date:'2026-09-30', time:'22:16', items:[
     'iPad: la tastiera non si apriva perché l\'app entrava a schermo intero al primo tocco (su iOS lì la tastiera è bloccata). Ora su iPad/iPhone non entra più a schermo intero da sola, e se si tocca un campo di testo in schermo intero ne esce subito.',
     'Microfono di «Chiedi» su iPad/iPhone: apre la tastiera e ti ricorda di usare il microfono di sistema, perché la dettatura del sito non parte in modo affidabile su iOS.'
