@@ -1299,7 +1299,7 @@ function renderMyTier(){
       const chip = document.createElement('div');
       chip.className = 'mytier-chip';
       chip.draggable = true;
-      chip.innerHTML = `<span class="nm" title="${g.name}">${g.name}</span><span class="sc">${g.score}</span><button class="movebtn" aria-label="Sposta">⇅</button>`;
+      chip.innerHTML = `<span class="nm" title="${g.name}">${typeof freshIcon === 'function' ? freshIcon(g) : ''}${g.name}</span><span class="sc">${g.score}</span><button class="movebtn" aria-label="Sposta">⇅</button>`;
       chip.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', String(g.id)); });
       chip.querySelector('.nm').addEventListener('click', ()=> openModal(g));
       chip.querySelector('.movebtn').addEventListener('click', (e)=>{ e.stopPropagation(); openTierPicker(e.currentTarget, g.id); });
