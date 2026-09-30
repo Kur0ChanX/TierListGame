@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v171', date:'2026-10-01', time:'01:35', items:[
+    'Nuovo «Verdetto d\'acquisto» in ogni scheda (pillola sotto il titolo e riquadro completo): Compralo, Aspetta uno sconto, Giocalo senza spendere, Lascialo stare, Mancano i dati oppure Ce l\'hai già. È calcolato sul tuo dispositivo (nessuna AI) da voto e fonte, compatibilità coi tuoi gusti, prezzo su Steam, abbonamenti, andamento delle recensioni recenti, lingua, ore e quanti giochi hai già in coda, e spiega sempre i motivi.',
+    'Anche «Chiedi» usa lo stesso verdetto: se gli fotografi una copertina o gli chiedi «lo prendo?», ti risponde con lo stesso esito e gli stessi motivi della scheda.'
+  ]},
   {version:'v170', date:'2026-10-01', time:'01:30', items:[
     'Scheda del gioco stabile: il vero motivo dello sfarfallio era la cornice della copertina, che cambiava forma quando l\'immagine finiva di caricarsi (da 8 scatti misurati a zero). Ora la cornice è fissa e la copertina appare in dissolvenza; il tema colorato della copertina si ricorda e si applica subito, e passa dolcemente invece di scattare.',
     'Palloncini (notifiche): il tocco non passa più alla riga sotto. Era questo il «palloncino misterioso» che apriva un gioco a caso: toccandolo, il tocco arrivava alla lista dietro. Ora toccare un palloncino lo chiude e basta.',
