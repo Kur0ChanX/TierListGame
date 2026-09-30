@@ -245,4 +245,11 @@
     const err = ids.map(id=> Math.abs(mv[id] - pr[id]));
     return {n: ids.length, avg: err.reduce((a, b)=> a + b, 0) / ids.length, hit: Math.round(100 * err.filter(e=> e <= 1).length / ids.length)};
   };
+  // link d'invito al Triple Triad (#tt=room:CODICE o #tt=friend:CODICE): apre il gioco e collega l'amico alla stanza
+  (function(){
+    const m = location.hash.match(/#tt=([^&]+)/); if(!m) return;
+    try{ sessionStorage.setItem('rt_tt_invite', decodeURIComponent(m[1])); }catch(e){}
+    try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+    setTimeout(()=>{ try{ window.openTT && window.openTT(); }catch(e){} }, 1800);
+  })();
 })();
