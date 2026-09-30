@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v137', date:'2026-10-10', items:[
+    'Update+ sceglie per ogni dato la fonte più attendibile: voto = Metacritic (Wikipedia) → Steam dal vivo → dati settimanali → CheapShark; anno = Wikidata → Steam → CheapShark → RAWG; lingua = Steam → PCGamingWiki → it.wikipedia; storia = Wikipedia → RAWG → Steam (riscritta dall\'AI solo dalle fonti, con Gemini). Da Steam dal vivo ora prende anche Metascore, anno, generi e prezzo.',
+    'Niente più sfarfallio: l\'aggiornamento in background cambia solo il simbolo del gioco interessato, senza ridisegnare la lista.',
+    'Frugu vive solo nel menu ✨ (tolta l\'icona sospesa).',
+    'Il player della musica si sposta dove vuoi: tienilo premuto e trascinalo; la posizione resta salvata («Rimetti il player al suo posto» in ✨ → Suoni e musica).',
+    'Colonne sonore disponibili per 699 giochi.'
+  ]},
   {version:'v136', date:'2026-10-09', items:[
     'Riparata la pubblicazione: la v135 non era arrivata sul sito (per questo non vedevi Update+ e la V dorata). Ora la V+ dorata è un\'etichetta ben visibile nella colonna del voto e nella scheda.',
     'La lente sulla locandina cerca molte più immagini del gioco (locandine Steam HD, box art, copertine di Wikipedia in 6 lingue, immagini di Wikidata, banner, schermate) e ogni tocco ne mostra una nuova diversa da quella attuale, partendo dalla migliore.',

@@ -863,3 +863,6 @@ html .tt-app .btn{color:#fff !important; background:rgba(255,255,255,.12) !impor
 .pv-votes{display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:6px} .pv-v{width:30px; height:30px; border-radius:50%; border:1px solid rgba(128,128,160,.4); background:var(--card,#fff); color:inherit; font-weight:800} .pv-v.on{background:linear-gradient(180deg,#ffd97a,#e07b00); color:#3b2200; border-color:#e07b00}
 .rv-box{padding:8px 10px; border-radius:12px; background:rgba(128,128,160,.07); font-size:.85rem} .rv-text{white-space:pre-wrap; line-height:1.45} .rv-d{opacity:.7} .rv-live{padding:8px; font-style:italic} .rv-cmp{margin-top:6px} .rv-cmp>div{padding:6px 8px; margin:3px 0 6px; border-radius:10px; background:var(--card,#fff)} .rv-listen{margin:8px 0 4px}
 body:has(#modalBackdrop.show) .pet-av, body:has(.x-sheet.show) .pet-av, body:has(.tt-app.show) .pet-av{display:none}
+/* v137: player musicale spostabile con pressione lunga */
+.rt-music{touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
+.rt-music.moving{outline:2px dashed #ffd24a; outline-offset:3px; scale:1.05; box-shadow:0 14px 34px rgba(0,0,0,.5)}
