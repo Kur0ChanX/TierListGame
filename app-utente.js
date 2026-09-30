@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v150', date:'2026-10-21', items:[
+    'Corretto il vero motivo per cui il voto restava «stima»: nei giochi aggiunti da te (es. Dark Souls) l\'app non salvava mai il segno di voto verificato, anche quando Update+ o «Aggiorna info» trovavano il Metacritic. Ora viene salvato e il gioco diventa V+. Basta ripremere Update+ sulla scheda.'
+  ]},
   {version:'v149', date:'2026-10-20', items:[
     'Update+ ricontrolla i giochi aggiornati in passato il cui voto è ancora una stima (prima li considerava finiti e non li toccava più): ora sono di nuovo in coda, i più deboli per primi. Puoi anche premere Update+ nella scheda per farlo subito.',
     'Il voto Metacritic (o OpenCritic) di un gioco ancora «stima» si applica da solo anche ai giochi di base, senza chiedere conferma, e diventa V+. Prima finiva nell\'elenco «da approvare», dove nessuno lo vedeva.'

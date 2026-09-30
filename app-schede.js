@@ -262,7 +262,7 @@ function cleanCustomEnrich(o){
 }
 // firma dei dati che cambiano ordine o filtri della lista: se cambiano serve un ridisegno completo, altrimenti basta la riga
 const CUSTOM_SIG = new Map(), CUSTOM_DATA = new Map();
-const customSig = g=> [g.name, g.tier, g.score, g.year, (g.tags || []).join(','), g.plat].join('|');
+const customSig = g=> [g.name, g.tier, g.score, g.year, (g.tags || []).join(','), g.plat, g.m].join('|');
 function syncCustomGames(snap){
   const seen = new Set();
   let structural = false; const changed = [];
@@ -279,7 +279,7 @@ function syncCustomGames(snap){
       ysort: parseInt(v.year, 10) || 0,
       tier: TIERS_LIST.includes(v.tier) ? v.tier : 'B',
       score: clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70,
-      m: 'S',
+      m: v.m === 'V' ? 'V' : 'S',          // V = voto verificato da Metacritic/OpenCritic (lo scrive Update+ / «Aggiorna info»)
       note: v.note ? String(v.note) : 'Aggiunto da te tramite "Chiedi" — non è nella classifica ufficiale, il voto è una stima.',
       story: v.story ? String(v.story) : '',
       tags: Array.isArray(v.tags) ? v.tags.filter(t=> TAG_INFO[t]) : [],
