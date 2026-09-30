@@ -43,6 +43,15 @@
   async function wp(params){
     return fj('https://en.wikipedia.org/w/api.php?' + new URLSearchParams(Object.assign({format:'json', origin:'*'}, params)));
   }
+  // Metascore dal wikitext. Accetta «| MC = 89», «| MC = 89/100» e i giochi su più piattaforme («| MC = PC: 84/100<br>PS3: 89/100»): in quel caso vale il più alto
+  function mcFromWikitext(t){
+    const f = String(t).match(/\|\s*MC\d*\s*=\s*([^\n]*(?:\n(?!\s*\|)[^\n]*){0,4})/i); if(!f) return null;
+    const txt = f[1].replace(/<ref[\s\S]*?(?:<\/ref>|\/>)/gi, ' ').replace(/\{\{[^}]*\}\}/g, m=> m.replace(/[^0-9\/]+/g, ' '));
+    let nums = (txt.match(/\b(\d{2,3})\s*\/\s*100\b/g) || []).map(x=> +x.match(/\d+/)[0]);
+    if(!nums.length){ const b = txt.match(/^\s*(\d{2,3})\b/); if(b) nums = [+b[1]]; }
+    nums = nums.filter(n=> n >= 20 && n <= 100);
+    return nums.length ? Math.max.apply(null, nums) : null;
+  }
   async function wikiPage(name){
     const base = baseName(name), target = normGameName(base);
     const s = await wp({action:'query', list:'search', srsearch: base + ' video game', srlimit:'6'});
@@ -55,8 +64,7 @@
     let mc = null;
     try{
       const w = await wp({action:'parse', page: pick.title, prop:'wikitext', redirects:'1'});
-      const m = (w.parse.wikitext['*'] || '').match(/\|\s*MC\d*\s*=\s*(\d{2,3})\s*(?:\/\s*100)?/);
-      if(m) mc = +m[1];
+      mc = mcFromWikitext(w.parse.wikitext['*'] || '');
     }catch(e){}
     const cm = text.match(/Metacritic[^.]{0,200}?(?:based on|from)\s+(\d+)\s+(?:critic )?reviews/i);
     return {title: pick.title, url: 'https://en.wikipedia.org/wiki/' + encodeURIComponent(pick.title.replace(/ /g, '_')), text, mc, count: cm ? +cm[1] : null};
@@ -201,8 +209,8 @@
       // ordine di attendibilità del Metascore: Wikipedia (già sopra) → Steam dal vivo → Steam nei dati settimanali → CheapShark
       const cands = [[src.steam && src.steam.mc, 'Steam dal vivo'], [src.facts && src.facts.s && src.facts.s.mc, 'Steam, dati settimanali'], [src.facts && src.facts.c && src.facts.c.mc, 'CheapShark']].filter(x=> x[0]);
       const [mc, from] = cands[0] || [];
-      if(mc && Math.abs(mc - g.score) > 6 && !ch.some(c=> /^score/.test(c.id))){
-        ch.push({id:'score4', label:'Voto (Metascore da ' + from + ')', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${mc} (Metascore riportato da ${from}; recensioni non verificabili)`, patch:{score: mc, tier: tierOf(mc), m:'V'}, off:true});
+      if(mc && (g.m !== 'V' || Math.abs(mc - g.score) > 6) && !ch.some(c=> /^score|^method/.test(c.id))){          // voto ancora «stima»: il Metascore di Steam/CheapShark lo rende verificato (V)
+        ch.push({id:'score4', label:'Voto (Metascore da ' + from + ')', from: `${g.score} (${g.m === 'V' ? 'verificato' : 'stima'})`, to: `${mc} (Metascore riportato da ${from}; recensioni non verificabili)`, patch:{score: mc, tier: tierOf(mc), m:'V'}, off: g.m === 'V'});
       }
       // anno: Wikidata (già sopra) → Steam dal vivo → Steam nei dati settimanali → CheapShark → RAWG (sotto)
       const ys = [[src.steam && src.steam.year, 'Steam dal vivo'], [src.facts && src.facts.s && src.facts.s.y, 'Steam, dati settimanali'], [src.facts && src.facts.c && src.facts.c.y, 'CheapShark']].filter(x=> x[0]);

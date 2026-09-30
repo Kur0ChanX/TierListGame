@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v146', date:'2026-10-17', items:[
+    'Voto verificato più affidabile: Update+ e «Aggiorna info» ora leggono il Metascore anche per i giochi su più piattaforme (es. Dark Souls, con un voto per PC, PS3 e Xbox: vale il più alto) e, se Wikipedia non lo riporta, lo prendono da Steam o CheapShark. Un voto ancora «stima» diventa verificato (V+) con il Metacritic reale.'
+  ]},
   {version:'v145', date:'2026-10-16', items:[
     'Il Triple Triad è diventato un gioco a parte: Raccoon Triad (kur0chanx.github.io/raccoon-triad). Nel menu ✨ trovi «Raccoon Triad» che lo apre; i vecchi link d\'invito portano lì. La collezione già fatta si ritrova perché il sito è sullo stesso dominio. Qui la Tier List è più leggera.'
   ]},
