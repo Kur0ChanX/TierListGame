@@ -119,9 +119,10 @@ async function runEnrich(ids, opts){
         arr = parseNovitaJson(r && r.text);
       }catch(e){}
       const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
-      for(const g of part){
+      for(const g0 of part){
+        const g = GAMES.find(x=> x.id === g0.id) || g0;      // ultima versione del gioco: quella presa prima della ricerca AI è vecchia e cancellerebbe voto, generi e testi nel frattempo aggiornati
         tried[g.id] = new Date().toISOString().slice(0, 10);
-        const row = (arr || []).find(x=> x && Number(x.id) === g.id) || (arr && arr[part.indexOf(g)]);
+        const row = (arr || []).find(x=> x && Number(x.id) === g.id) || (arr && arr[part.indexOf(g0)]);
         if(!row) continue;
         const raw = Object.assign({}, row, {dopa: row.dopamine === true && Array.isArray(row.dopaLoop) ? {loop: row.dopaLoop, hook: row.dopaHook, watch: row.dopaWatch} : null, checked: tried[g.id]});
         const ce = cleanCustomEnrich(raw); if(!ce) continue;
@@ -1051,8 +1052,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-10-21';
-const DATA_BUILD_VERSION = 'v153';
+const DATA_BUILD_DATE = '2026-09-30';
+const DATA_BUILD_VERSION = 'v154';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

@@ -323,9 +323,12 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     list.forEach(c=>{ Object.keys(c.patch).forEach(k=>{ if(k === 'enrich') p.enrich = Object.assign(p.enrich || {}, c.patch.enrich); else if(k === 'label') p.label = Object.assign(p.label || {}, c.patch.label); else p[k] = c.patch[k]; }); });
     return p;
   }
+  // gioco aggiunto: la copia in memoria cambia a ogni salvataggio; lavoro sempre sull'ultima, altrimenti un salvataggio «vecchio» (es. scheda aperta da prima, o il completamento AI) cancella quello nuovo
+  const latest = g=> (g && g.custom && typeof GAMES !== 'undefined' && GAMES.find(x=> x.id === g.id)) || g;
   async function applyPatch(g, p, quiet){
+    g = latest(g);
     // voto diventato verificato: la nota «è una stima» non è più vera, la correggo nei dati (vale anche per i giochi futuri)
-    if((p.m === 'V' || g.m === 'V') && p.note == null && /voto e dettagli sono una stima/.test(g.note || '')) p = Object.assign({}, p, {note: g.note.replace(/ — voto e dettagli sono una stima[^.]*\./, ' — voto verificato (Metacritic/OpenCritic).')});
+    if((p.m === 'V' || g.m === 'V') && p.note == null && /voto e dettagli sono una stima/.test(g.note || '')) p = Object.assign({}, p, {note: g.note.replace(/ — (?:nessun Metacritic trovato: )?voto e dettagli sono una stima[^.]*\./, ' — voto verificato (Metacritic/OpenCritic).')});
     // cronologia (idea 29): salvo i valori di prima per poterli ripristinare
     try{
       if(window.rtHistory){
@@ -611,6 +614,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
   let fpTextN = 0;                       // trame riscritte dall'AI in questa sessione (con limite, per non consumare le richieste gratuite)
   async function updatePlus(g, manual){
+    g = latest(g);
     const src = await gather(g, false);
     const names = Object.keys(FP_SRC).filter(k=> src[k]).map(k=> FP_SRC[k]);
     let ch = factChanges(g, src);
@@ -621,7 +625,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     }catch(e){}
     let applied = 0, pending = 0, cover = false;
     if(g.custom){
-      const safe = ch.filter(c=> !c.off && c.patch);
+      const safe = ch.filter(c=> !c.off && c.patch).map(c=> c.patch.tags ? Object.assign({}, c, {patch: Object.assign({}, c.patch, {tags: c.patch.tags.slice(0, 3)})}) : c);      // massimo 3 generi nei giochi aggiunti: più di 3 sono quasi sempre rumore delle fonti
       if(safe.length){ await applyPatch(g, mergePatch(safe), true); applied = safe.length; }
     } else {
       // il voto Metacritic (o OpenCritic) di un gioco ancora «stima» si applica da solo, anche sui giochi di base: è la fonte che rende un voto verificato
@@ -647,6 +651,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
   // «Update+» forzato dalla scheda: subito, con la barra di caricamento
   window.updatePlusNow = async function(g){
+    g = latest(g);
     const P = window.Progress; try{ P && P.begin && P.begin('Update V+ di ' + g.name + '…'); }catch(e){}
     let r = null;
     try{ r = await updatePlus(g, true); }catch(e){}
@@ -655,7 +660,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{ P && P.end && P.end(); }catch(e){}
     if(r && r.ok) showToast('Update V+ completato · fonti: ' + r.names.join(', ') + (r.pending ? ' · ' + r.pending + ' modifiche da approvare' : '') + (r.applied ? ' · ' + r.applied + ' correzioni applicate' : ''), 5500);
     else showToast('Nessuna fonte ha risposto adesso: riprova tra poco (controlla la connessione o il ponte personale)', 5000);
-    try{ if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) openModal(g); }catch(e){}
+    try{ g = latest(g); if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) openModal(g); }catch(e){}
     return r;
   };
   let fpTimer = 0, fpBusy = false, fpDone = 0;

@@ -12,7 +12,7 @@ App statica (si apre anche con doppio clic, file://), senza server né build. Ut
 - Modifiche di routine (testi, colori, dati): modello leggero. Logica nuova o bug: Sonnet.
 
 ## Regole fisse
-- Ad OGNI versione: `DATA_BUILD_VERSION` e `DATA_BUILD_DATE` in `app-ai.js`, `<meta name="build" content="vNN">` nell'HTML (devono coincidere), voce nel CHANGELOG di `app-utente.js`. Poi `node tools/check-data.js` (deve dire «Nessun avviso»).
+- Ad OGNI versione: `DATA_BUILD_VERSION` e `DATA_BUILD_DATE` in `app-ai.js`, `<meta name="build" content="vNN">` nell'HTML (devono coincidere), voce nel CHANGELOG di `app-utente.js` con data E ORARIO (`date:'AAAA-MM-GG', time:'HH:MM'`, ora italiana: `TZ=Europe/Rome date`). Poi `node tools/check-data.js` (deve dire «Nessun avviso»).
 - Ogni nuovo file JS: nell'HTML (ordine!), in `sw.js` (SHELL) e in `.github/workflows/pages.yml`. `app-ai.js` deve restare l'ultimo (avvio).
 - L'HTML inizia con `<!DOCTYPE html>`. Dati locali con `<script src>`, mai fetch (file:// li blocca).
 - Chiavi/token dell'utente (Gemini `jrpg_gemini_key`, RAWG, OpenCritic, GitHub `jrpg_sync_token`) solo in localStorage: mai nel codice, nei commit o nei file. Richieste con chiave: SEMPRE `relays:false`.
