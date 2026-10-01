@@ -213,6 +213,7 @@
     return Math.max(-1, Math.min(1, v / 2.2));
   }
   window.tasteScore = tasteScore;
+  window.rtTasteModel = tasteModel; window.rtFeats = feats; window.rtFLAB = FLAB;
   function tolerances(m){
     const liked = m.sig.filter(x=> x.w > 0.9).map(x=> x.g), out = [];
     const traits = [['grind:alto', 'grinding alto'], ['diff:alta', 'difficoltà alta'], ['ore:lunghe', 'più di 50 ore'], ['ritmo:lento', 'ritmo lento'], ['storia:leggera', 'storia leggera']];
@@ -252,6 +253,7 @@
     const tol = tolerances(m);
     const recs = GAMES.filter(g=> !STATUSES[g.id] && !FAVS.has(g.id)).map(g=> ({g, s: tasteScore(g)})).sort((a, b)=> b.s - a.s).slice(0, 6);
     const body = sheet('xTaste', gi('dna') + ' I tuoi gusti', `<div class="lp-sub">Imparati da ${m.n} giochi (preferiti, stati e la tua tier list). Li uso per ordinare «Più adatti a te», per i consigli di Chiedi e per le ricerche di Novità.</div>
+      ${window.rtRadar ? window.rtRadar(null) : ''}
       <h4>Ti piace</h4>${pos.map(x=> bar(...x)).join('') || '<small>ancora poco chiaro</small>'}
       <h4>Tendi a evitare</h4>${neg.map(x=> bar(...x)).join('') || '<small>niente di netto</small>'}
       ${tol.length ? '<h4>Nonostante…</h4>' + tol.map(t=> `<div class="tg-tol">${esc(t)}</div>`).join('') : ''}

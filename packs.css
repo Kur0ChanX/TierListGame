@@ -84,7 +84,7 @@ html[data-pack] :is(.table-wrap,.modal-card,.lp-card,.filters-more,.x-row,.glabe
   background:var(--pk-block) !important; border:var(--pk-bw) solid var(--pk-bc) !important; border-radius:var(--pk-r) !important; box-shadow:var(--pk-sh) !important;
   -webkit-backdrop-filter:var(--pk-bf) !important; backdrop-filter:var(--pk-bf) !important}
 html[data-pack] .table-wrap{contain:layout}
-html[data-pack] :is(.linkbox,.dualscore-box,.pv-box,.rv-box,.mz-bar,.nine,.thermo,.fx-steam,.vd-card,.gd-card,.cp-card,.glabel-play,.glabel-store){border-radius:var(--pk-r2) !important}
+html[data-pack] :is(.linkbox,.dualscore-box,.pv-box,.rv-box,.mz-bar,.nine,.thermo,.fx-steam,.vd-card,.gd-card,.cp-card,.gs-card,.glabel-play,.glabel-store){border-radius:var(--pk-r2) !important}
 @media (min-width:761px){ html[data-pack] .modal-backdrop{background:var(--pk-scrim,rgba(8,6,20,.55)) !important} }
 html[data-pack] .dup-backdrop{background:var(--pk-scrim,rgba(8,6,20,.55)) !important}
 @media (max-width:760px){ html[data-pack] .modal-card, html[data-pack] .modal-card.wide{border-radius:0 !important; border:none !important; box-shadow:none !important; background-color:var(--bg) !important} }
