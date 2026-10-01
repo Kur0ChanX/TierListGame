@@ -1346,7 +1346,7 @@ function renderMyTier(){
     section.appendChild(dz);
     wrap.appendChild(section);
   });
-  if(q && !total) wrap.innerHTML = '<div class="empty" style="padding:24px;text-align:center;">Nessun gioco trovato con questo nome.</div>';
+  if(q && !total) wrap.innerHTML = window.rtEmpty ? window.rtEmpty('search') : '<div class="empty" style="padding:24px;text-align:center;">Nessun gioco trovato con questo nome.</div>';
 }
 (function(){
   const inp = document.getElementById('mtSearch'), clr = document.getElementById('mtClear'), jump = document.getElementById('mtJump');

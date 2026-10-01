@@ -1097,7 +1097,7 @@ function renderSagaView(){
   });
   const keys = Object.keys(bySaga).sort((a,b)=> bySaga[b].length - bySaga[a].length);
   if(keys.length===0){
-    panel.innerHTML = '<div class="empty">Nessuna saga corrisponde ai filtri attuali (prova a rimuovere qualche filtro).</div>';
+    panel.innerHTML = window.rtEmpty ? window.rtEmpty('saga') : '<div class="empty">Nessuna saga corrisponde ai filtri attuali (prova a rimuovere qualche filtro).</div>';
     return;
   }
   panel.innerHTML = `<div class="count-line" style="margin-bottom:10px;"><span>${keys.length} saghe multi-capitolo trovate (su ${list.length} giochi visibili)</span></div>` + keys.map(key=>{

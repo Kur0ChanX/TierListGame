@@ -94,7 +94,7 @@ html[data-pack] .modal-close{border-radius:var(--pk-rb) !important; border:var(-
 html[data-pack] thead th{font-size:var(--pk-thfs,.72rem); background:var(--pk-th) !important; color:var(--pk-th-c) !important; text-shadow:none !important; border-bottom:var(--pk-bw) solid var(--pk-bc) !important; box-shadow:none !important; font-weight:var(--pk-hfw)}
 html[data-pack] tbody tr{border-bottom:var(--pk-row-bd,1px solid var(--border))}
 html[data-pack] tbody tr:nth-child(even){background:var(--pk-alt)}
-html[data-pack] tbody tr:hover{background:var(--pk-hov); box-shadow:var(--pk-hov-sh,none)}
+html[data-pack] tbody tr:hover, html[data-pack] tbody tr:active{background:var(--pk-hov); box-shadow:var(--pk-hov-sh,none)}
 html[data-pack] td.score::after, html[data-pack] .stat-chip .bar i, html[data-pack] .glabel-bar i.on{background:var(--pk-bar,var(--accent)); box-shadow:var(--pk-bar-sh,none); border-radius:var(--pk-bar-r,3px)}
 html[data-pack] :is(.modal-section-title,.novita-genre-section-title,.pal-group,.glabel-title){color:var(--pk-tt-c,var(--accent))}
 

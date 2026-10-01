@@ -949,3 +949,51 @@ html.rt-notrans{transition:none !important}
 .gd-ecg b{position:absolute; top:-19px; transform:translateX(-50%); font-size:.72rem; font-weight:700; opacity:1 !important; white-space:nowrap}
 
 .toast.tappable{box-shadow:0 10px 30px rgba(var(--a1rgb),.5), 0 0 0 2px rgba(255,255,255,.55) inset}
+
+/* ===== v176: movimento fluido, scheletri di caricamento, stati vuoti con Frugu, tipografia ===== */
+/* scheletri della classifica: ci sono subito, spariscono quando arrivano le righe vere */
+tr.sk{pointer-events:none}
+tr.sk td{padding:6px 10px; border:none; background:transparent}
+.sk-row{display:flex; align-items:center; gap:12px; height:34px}
+.sk-row i{display:block; border-radius:8px; background:linear-gradient(100deg,rgba(127,127,150,.14) 30%,rgba(127,127,150,.32) 50%,rgba(127,127,150,.14) 70%); background-size:240% 100%; animation:moSk 1.3s linear infinite}
+.sk-c{width:20px; height:20px; border-radius:50% !important} .sk-l{flex:1; height:14px} .sk-p{width:34px; height:20px; border-radius:99px !important} .sk-s{width:32px; height:14px}
+tr.sk:nth-child(3n) .sk-l{max-width:46%} tr.sk:nth-child(3n+1) .sk-l{max-width:68%} tr.sk:nth-child(4n) .sk-l{max-width:56%}
+@keyframes moSk{to{background-position:-240% 0}}
+html.mo-off .sk-row i{animation:none}
+/* copertina che si carica: riflesso che passa finché l'immagine non è pronta */
+.cover-frame:not(:has(img.modal-cover.ld))::after{content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.14) 50%,transparent 65%); background-size:260% 100%; animation:moSk 1.4s linear infinite}
+html.mo-off .cover-frame::after{animation:none}
+/* pressione «a molla»: si schiaccia e torna con un piccolo rimbalzo */
+html:not(.mo-off) :is(.btn,.view-tab,.list-chip,.qf-chip,.tagchip,.stat-chip,.cover-pill,.modal-close,.iconbtn.lbl .ib-ic,.view-tab .vt-ic){transition:transform .55s cubic-bezier(.3,1.9,.5,1),background .25s,box-shadow .25s,color .2s,border-color .25s}
+html:not(.mo-off) :is(.btn,.view-tab,.list-chip,.qf-chip,.tagchip,.stat-chip,.cover-pill,.modal-close):active{transition-duration:.07s,.2s,.2s,.2s,.2s}
+/* scintille del preferito */
+.mo-burst{position:fixed; z-index:100900; width:0; height:0; pointer-events:none}
+.mo-burst i{position:absolute; left:0; top:0; font-style:normal; font-size:18px; line-height:1; text-shadow:0 0 6px rgba(255,255,255,.55)}
+/* pagine vuote con Frugu */
+.mo-empty{display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; padding:28px 18px 24px}
+.mo-empty img{width:120px; height:auto; image-rendering:pixelated; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28))}
+html:not(.mo-off) .mo-empty img{animation:moBob 3.2s ease-in-out infinite}
+@keyframes moBob{50%{transform:translateY(-5px)}}
+.mo-empty b{font-size:1.05rem; margin-top:4px}
+.mo-empty p{margin:0; max-width:34ch; color:var(--sub); line-height:1.45; font-size:.9rem}
+.mo-act{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:8px}
+/* passaggio tra le sezioni (dove il browser sa fare le «View Transitions»): il contenuto scivola, le barre restano ferme */
+html[data-vt] #viewTabs{view-transition-name:vtnav}
+html[data-vt] .topbar{view-transition-name:vttop}
+html[data-vt="f"]::view-transition-old(root){animation:moVtOutL .34s cubic-bezier(.4,0,.2,1) both}
+html[data-vt="f"]::view-transition-new(root){animation:moVtInR .42s cubic-bezier(.16,1,.3,1) both}
+html[data-vt="b"]::view-transition-old(root){animation:moVtOutR .34s cubic-bezier(.4,0,.2,1) both}
+html[data-vt="b"]::view-transition-new(root){animation:moVtInL .42s cubic-bezier(.16,1,.3,1) both}
+@keyframes moVtOutL{to{transform:translateX(-16%); opacity:0}} @keyframes moVtInR{from{transform:translateX(16%); opacity:0}}
+@keyframes moVtOutR{to{transform:translateX(16%); opacity:0}} @keyframes moVtInL{from{transform:translateX(-16%); opacity:0}}
+/* tipografia: cifre della stessa larghezza (niente balli), titoli bilanciati, paragrafi senza righe «orfane», sillabazione italiana solo nei testi lunghi */
+td.score, td.year, td.rank, .badge.big, .metric .n, .stat-chip .n, .list-cnt, .count-line, .ib-badge, .vd-score, .thermo b{font-variant-numeric:tabular-nums lining-nums}
+h1, h2, h3, .modal-title, .modal-section-title, .glabel-title, .lp-head b, .mo-empty b{text-wrap:balance}
+.modal-story, .pv-line, .lp-sub, .cover-hint, .vd-sub, .gd-card p, .mo-empty p{text-wrap:pretty; hyphens:auto; -webkit-hyphens:auto}
+.modal-story, .modal-card .lp-sub, .vd-sub{line-height:1.55}
+@media (min-width:761px){ .modal-story, .modal-card .lp-sub{max-width:68ch} }
+body{font-kerning:normal; text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased}
+/* sensazione di risposta immediata: la riga si illumina appena la tocchi */
+tbody tr:active{background:rgba(var(--a1rgb),.16)}
+/* lista vuota: al posto della tabella vuota resta solo Frugu */
+.wrap:has(#emptyMsg:not([style*="none"])) #tableWrap{display:none !important}
