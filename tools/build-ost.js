@@ -56,33 +56,29 @@ const pickFrom = (res, name)=>{
   return good.sort((a, b)=> (secs(b[2]) > 1800) - (secs(a[2]) > 1800)).slice(0, 5);
 };
 // i giochi aggiunti da Mario stanno nel catalogo pubblico (gist «RaccoonTier-catalogo»): si leggono dal server, senza chiavi
-async function customGames(){
-  try{
-    const owner = process.env.GITHUB_REPOSITORY_OWNER || 'kur0chanx';
-    const h = {'User-Agent': 'raccoon-tier', Accept: 'application/vnd.github+json'}; if(process.env.GITHUB_TOKEN) h.Authorization = 'Bearer ' + process.env.GITHUB_TOKEN;
-    const l = await (await fetch('https://api.github.com/users/' + owner + '/gists?per_page=100', {headers: h})).json();
-    const f = Array.isArray(l) && l.find(g=> g.description === 'RaccoonTier-catalogo'); const file = f && f.files && f.files['catalogo.json']; if(!file) return [];
-    const j = await (await fetch(file.raw_url)).json(); const v = j.keys && j.keys.jrpg_db_customGames && j.keys.jrpg_db_customGames.v; if(!v) return [];
-    const o = JSON.parse(v); return Object.keys(o).filter(id=> o[id] && o[id].name).map(id=> ({id, name: o[id].name}));
-  }catch(e){ console.log('catalogo non letto:', e.message); return []; }
-}
+const {customGames} = require('./catalog');
 (async()=>{
   const ALL = process.argv.includes('--all');
   const games = Object.assign({}, prev.games || {});
   const custom = await customGames(); console.log('giochi aggiunti dal catalogo:', custom.length);
   const seen = new Set(), list = D.games.concat(custom).filter(g=> g && g.name && !seen.has(String(g.id)) && seen.add(String(g.id))).slice(OFFSET, OFFSET + LIMIT);
-  let n = 0, ok = 0;
-  const save = ()=> fs.writeFileSync(FILE, 'const OST = ' + JSON.stringify({built: new Date().toISOString().slice(0, 10), games}) + ';\n');
+  // giochi già cercati senza risultato: si riprovano solo dopo 30 giorni (file a parte, l'app non lo scarica)
+  const MISS = path.join(ROOT, 'tools', 'ost-miss.json'); let miss = {}; try{ miss = JSON.parse(fs.readFileSync(MISS, 'utf8')); }catch(e){}
+  const today = new Date().toISOString().slice(0, 10), CAP = arg('cap') || 99999;
+  let n = 0, ok = 0, tried = 0;
+  const save = ()=>{ fs.writeFileSync(FILE, 'const OST = ' + JSON.stringify({built: today, games}) + ';\n'); fs.writeFileSync(MISS, JSON.stringify(miss)); };
   for(const g of list){
     n++;
     if(!ALL && games[g.id] && games[g.id].length){ continue; }
+    if(!ALL && miss[g.id] && (Date.parse(today) - Date.parse(miss[g.id])) < 30 * 864e5) continue;
+    if(++tried > CAP){ console.log('limite di', CAP, 'ricerche per giro: il resto alla prossima'); break; }
     let pick = [];
     for(const q of queries(g.name)){
       pick = pickFrom(await search(q), g.name);
       await sleep(700);
       if(pick.length) break;
     }
-    if(pick.length){ games[g.id] = pick; ok++; }
+    if(pick.length){ games[g.id] = pick; ok++; delete miss[g.id]; } else miss[g.id] = today;
     if(n % 50 === 0){ console.log(n + '/' + list.length, '· nuove:', ok); save(); }
   }
   save();

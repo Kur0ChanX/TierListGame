@@ -199,10 +199,12 @@
     // lite: solo le fonti leggere (Wikipedia, Wikidata, RAWG); Steam e PCGamingWiki (lingue) restano per «Aggiorna info»
     const none = Promise.resolve(null);
     const needCheap = !(window.SearchHub && SearchHub.factsFor(g)) && window.SearchHub;
-    const [wiki, wd, itw, steam, pcgw, rawg, cheap] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none]);
+    const mcArch = window.SearchHub && SearchHub.votiFor(g);
+    const [wiki, wd, itw, steam, pcgw, rawg, cheap, mcl] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none, !mcArch && window.SearchHub && SearchHub.metacriticLive ? SearchHub.metacriticLive(g.name) : none]);
+    const mcOff = mcArch || (mcl.status === 'fulfilled' ? mcl.value : null);
     const cheapLive = cheap.status === 'fulfilled' ? cheap.value : null;
     // OpenCritic (poche richieste gratuite al giorno) si interroga solo se Metacritic non ha dato nessun voto (Wikipedia, Steam o CheapShark)
-    const mcSeen = (window.SearchHub && SearchHub.votiFor(g)) || (wiki.status === 'fulfilled' && wiki.value && wiki.value.mc) || (steam.status === 'fulfilled' && steam.value && steam.value.mc) || (cheapLive && cheapLive.mc) || (window.SearchHub && (f=> f && ((f.s && f.s.mc) || (f.c && f.c.mc)))(SearchHub.factsFor(g)));
+    const mcSeen = mcOff || (wiki.status === 'fulfilled' && wiki.value && wiki.value.mc) || (steam.status === 'fulfilled' && steam.value && steam.value.mc) || (cheapLive && cheapLive.mc) || (window.SearchHub && (f=> f && ((f.s && f.s.mc) || (f.c && f.c.mc)))(SearchHub.factsFor(g)));
     const needOc = !mcSeen;
     const oc = needOc ? (await Promise.allSettled([ocInfoFor(g)]))[0] : {status: 'fulfilled', value: null};
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
@@ -218,7 +220,7 @@
       oc: mk('OpenCritic', oc, vals.oc, vals.oc && vals.oc.score, needOc && !hasK(H && H.opencritic), !needOc),
       rawg: mk('RAWG', rawg, vals.rawg, vals.rawg && vals.rawg.mc, !hasK(H && H.rawg))
     };
-    return {st, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), voti: (window.SearchHub && SearchHub.votiFor(g)) || null, facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
+    return {st, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), voti: mcOff || null, facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
@@ -482,7 +484,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{
       const H = window.SearchHub;
       if(key === 'gist'){ const j = await H.json('https://api.github.com/rate_limit', {timeout: 12000, relays: false, cache: false}); const r = j && j.resources && j.resources.core; if(!r) throw new Error('risposta vuota'); return {s: 'ok', ms: Date.now() - t0, note: 'richieste GitHub rimaste: ' + r.remaining + '/' + r.limit}; }
-      if(key === 'ponte'){ if(!(H && H.hasCustomRelay && H.hasCustomRelay())) return {s: 'off', why: 'non impostato (consigliato: è la via più affidabile per Steam)'}; await H.testCustomRelay(); return ok(); }
+      if(key === 'ponte'){ if(!(H && H.hasCustomRelay && H.hasCustomRelay())) return {s: 'off', why: 'non impostato (consigliato: è la via più affidabile per Steam)'}; await H.testCustomRelay(); const inf = await H.relayInfo(true); const r0 = ok(); r0.note = 'versione ' + ((inf && inf.v) || 1); if(!(inf && inf.v >= 2)){ r0.s = 'err'; r0.why = 'funziona ma è la versione vecchia: aggiornalo per avere Metacritic ufficiale dal vivo'; r0.layer = 'PONTE da aggiornare'; } return r0; }
       if(key === 'voti'){ if(typeof VOTI === 'undefined' || !VOTI.games) return {s: 'err', why: 'archivio voti.js non ancora scaricato dal server (parte da solo ogni notte)'}; const n = Object.values(VOTI.games).filter(x=> x && x.s).length; return {s: 'ok', ms: n + ' voti, aggiornati al ' + VOTI.built}; }
       if(key === 'wiki'){ await wp({action: 'query', meta: 'siteinfo'}); return ok(); }
       if(key === 'wd'){ await fj('https://www.wikidata.org/w/api.php?action=query&meta=siteinfo&format=json&origin=*'); return ok(); }
@@ -498,20 +500,25 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
   const SRC_NAMES = {ponte: 'Ponte personale (Cloudflare)', gist: 'GitHub (sincronizzazione)', voti: 'Metacritic ufficiale (server)', wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', cheap: 'CheapShark', rawg: 'RAWG', oc: 'OpenCritic', gem: 'Gemini'};
   // dove sta il problema quando una fonte non risponde: il sito, il browser (blocchi CORS) o il limite di una chiave
-  const SRC_HINT = {steam: 'Steam funziona (dal server rispondo sempre) ma blocca il browser: serve un ponte. Soluzione stabile: i dati arrivano ogni notte dal server (dati settimanali); in più puoi attivare il «ponte personale» (Cloudflare) in ⚙️.',
+  const SRC_HINT = {ponte: 'Apri Cloudflare → Workers → il tuo ponte → «Modifica codice», incolla il codice nuovo (pulsante «Copia il codice nuovo del ponte» qui sotto) e premi «Distribuisci». L\'indirizzo resta uguale.',
+    steam: 'Steam funziona (dal server rispondo sempre) ma blocca il browser: serve un ponte. Soluzione stabile: i dati arrivano ogni notte dal server (dati settimanali); in più puoi attivare il «ponte personale» (Cloudflare) in ⚙️.',
     oc: 'OpenCritic ha chiuso l\'accesso libero (solo chiave a pagamento/limitata): ora il voto arriva da Metacritic ufficiale dal server.',
     gem: 'Gemini: limite di richieste del piano gratuito (errore 429). Riprovo da solo con il modello più leggero; passa l\'ora e torna.',
     rawg: 'RAWG: chiave scaduta o quota giornaliera finita.', wiki: 'Wikipedia limita le richieste molto ravvicinate: aspetto e riprovo da solo.', wd: 'Wikidata limita le richieste ravvicinate (errore 429): passa dopo qualche minuto.'};
-  const hintFor = (k, r)=> (/^LIMITE/.test(r.layer || '') || /^(steam|oc|gem|rawg)$/.test(k)) && SRC_HINT[k] ? SRC_HINT[k] : (/^BROWSER/.test(r.layer || '') ? 'il telefono non riesce a raggiungerla adesso (rete assente, bloccata o ponti spenti): riprova con un\'altra rete o più tardi' : '');
+  const hintFor = (k, r)=> (/^LIMITE/.test(r.layer || '') || /^(steam|oc|gem|rawg|ponte)$/.test(k)) && SRC_HINT[k] ? SRC_HINT[k] : (/^BROWSER/.test(r.layer || '') ? 'il telefono non riesce a raggiungerla adesso (rete assente, bloccata o ponti spenti): riprova con un\'altra rete o più tardi' : '');
   // sonda con dettagli: via usata (diretto o quale ponte), errore grezzo, livello del problema
   async function probeFull(k){
+    if(window.SearchHub) SearchHub.bypassCache = true;
+    try{ return await probeFull0(k); } finally { if(window.SearchHub) SearchHub.bypassCache = false; }
+  }
+  async function probeFull0(k){
     const n0 = (window.DebugLog ? DebugLog.all().length : 0), t0 = Date.now(); let r;
     try{ r = await probe(k); }catch(e){ r = {s: 'err', why: whyFail(e), raw: String(e && e.message || e)}; }
     r.ms = r.ms == null ? Date.now() - t0 : r.ms;
     try{ const ev = DebugLog.all().slice(n0); const via = ev.filter(e=> e.kind === 'relay' && e.ok).map(e=> e.src).pop(); r.via = via || 'diretto'; r.log = ev.filter(e=> e.ok === false).slice(-4).map(e=> (e.src || '') + ': ' + (e.err || e.note || '') + (e.status != null ? ' [HTTP ' + e.status + ']' : '')); }catch(e){}
     if(r.s === 'err'){
       const m = (r.raw || '') + ' ' + (r.log || []).join(' ');
-      r.layer = /429|quota|troppe richieste/i.test(m) ? 'LIMITE: il sito/la chiave ha finito le richieste' : /401|403|chiave|accesso negato/i.test(m) ? 'CHIAVE o permessi' : /CORS|Failed to fetch|rete|nessuna via/i.test(m) ? 'BROWSER: blocco CORS e ponti non raggiungibili' : /5\d\d|problema/i.test(m) ? 'SITO: errore del server remoto' : 'DA CAPIRE';
+      r.layer = r.layer || /429|quota|troppe richieste/i.test(m) ? 'LIMITE: il sito/la chiave ha finito le richieste' : /401|403|chiave|accesso negato/i.test(m) ? 'CHIAVE o permessi' : /CORS|Failed to fetch|rete|nessuna via/i.test(m) ? 'BROWSER: blocco CORS e ponti non raggiungibili' : /5\d\d|problema/i.test(m) ? 'SITO: errore del server remoto' : 'DA CAPIRE';
     }
     return r;
   }
@@ -524,6 +531,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     let H = window.SearchHub, tech = '# Rapporto fonti Raccoon Tier\n- ora: ' + now + '\n- versione: ' + ((document.querySelector('meta[name=build]') || {}).content || '?') + '\n- online: ' + navigator.onLine + '\n- dispositivo: ' + navigator.userAgent + '\n- ponte personale: ' + (H && H.hasCustomRelay && H.hasCustomRelay() ? 'impostato' : 'NON impostato') + '\n- archivio voti.js: ' + (typeof VOTI !== 'undefined' ? VOTI.built + ', ' + Object.keys(VOTI.games).length + ' giochi' : 'non caricato') + '\n- facts.js: ' + (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.built ? GAME_FACTS.built : 'non caricato') + '\n\n## Esito per fonte\n';
     tech += keys.map(k=>{ const r = res[k]; return '- ' + SRC_NAMES[k] + ' [' + k + ']: ' + (r.s === 'ok' ? 'OK ' + (typeof r.ms === 'number' ? r.ms + ' ms' : r.ms) + ', via ' + (r.via || 'diretto') + (r.note ? ', ' + r.note : '') : r.s === 'off' ? 'SALTATA (' + r.why + ')' : 'ERRORE ' + r.ms + ' ms — ' + (r.layer || '') + ' — ' + (r.raw || r.why) + (r.log && r.log.length ? '\n    tentativi: ' + r.log.join(' | ') : '')); }).join('\n');
     try{ tech += '\n\n## Ponti pubblici (punteggio 0-100)\n' + H.relayStatus().map(x=> '- ' + x.name + ': ' + x.score + '%' + (x.cooling ? ' (in pausa)' : '') + ' ok=' + (x.ok || 0) + ' errori=' + (x.fail || 0)).join('\n'); }catch(e){}
+    try{ const cs = H.cacheStats || {}; tech += '\n\n## Memoria delle risposte (questa sessione)\n- dalla memoria: ' + (cs.hit || 0) + ', risposte vecchie usate perché il sito non rispondeva: ' + (cs.stale || 0) + ', richieste nuove: ' + (cs.miss || 0); }catch(e){}
+    try{ const gs = window.geminiStatus && geminiStatus(); if(gs) tech += '\n- Gemini: modelli in pausa per quota del giorno: ' + (gs.blocked.join(', ') || 'nessuno') + '; distanza minima tra richieste ' + gs.gap + ' ms'; }catch(e){}
     try{ const nr = JSON.parse(localStorage.getItem('rt_needs_relay') || '{}'); tech += '\n\n## Siti che richiedono un ponte\n' + (Object.keys(nr).join(', ') || 'nessuno'); }catch(e){}
     try{ tech += '\n\n## Ultimi errori del registro\n' + DebugLog.all().filter(e=> e.ok === false).slice(-12).map(e=> '- ' + e.t.slice(11, 19) + ' ' + (e.src || e.kind) + ' ' + (e.err || e.note || '')).join('\n'); }catch(e){}
     return {easy, tech};
@@ -552,6 +561,10 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       box.innerHTML = '<div class="dbg-rows"><div class="dbg-row"><b>📋 Rapporto facile</b><pre style="white-space:pre-wrap;margin:6px 0"></pre></div></div><div class="lp-tools"><button class="btn primary" id="smCopyTech">📋 Copia rapporto per Claude</button><button class="btn" id="smCopyEasy">Copia quello facile</button></div>';
       box.querySelector('pre').textContent = rep.easy;
       const cp = async t=>{ try{ await navigator.clipboard.writeText(t); }catch(e){ const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(x){} ta.remove(); } if(window.showToast) showToast('Copiato', 1800); };
+      if(res.ponte && /aggiornare/.test(res.ponte.layer || '')){
+        const bt = document.createElement('button'); bt.className = 'btn'; bt.textContent = '🌉 Copia il codice nuovo del ponte'; box.querySelector('.lp-tools').appendChild(bt);
+        bt.addEventListener('click', async ()=>{ try{ const t = await (await fetch('https://raw.githubusercontent.com/kur0chanx/TierListGame/main/tools/cloudflare-worker.js')).text(); await cp(t); }catch(e){ if(window.showToast) showToast('Non riesco a scaricarlo ora: riprova', 2500); } });
+      }
       box.querySelector('#smCopyTech').addEventListener('click', ()=> cp(rep.tech)); box.querySelector('#smCopyEasy').addEventListener('click', ()=> cp(rep.easy));
       window.__srcReport = rep;
       b.disabled = false; b.textContent = '🔎 Verifica di nuovo';
@@ -562,6 +575,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   window.rtScoreCheck = async function(c){
     const src = await gather({name: c.name, plat: c.plat || '', year: c.year || '', tags: [], custom: true}, true);
     const base = {st: src.st};
+    if(src.voti && src.voti.s) return Object.assign(base, {score: src.voti.s, vs: 'Metacritic (sito ufficiale)'});
     if(src.wiki && src.wiki.mc) return Object.assign(base, {score: src.wiki.mc, vs: 'Metacritic (da Wikipedia)'});
     if(src.facts && src.facts.c && src.facts.c.mc) return Object.assign(base, {score: src.facts.c.mc, vs: 'Metacritic (da CheapShark)'});
     if(src.oc && src.oc.score) return Object.assign(base, {score: src.oc.score, vs: 'OpenCritic (nessun Metacritic trovato)'});

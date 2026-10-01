@@ -13,6 +13,14 @@ const KNOWN_TAGS = new Set([...fs.readFileSync(path.join(__dirname, '..', 'app.j
 const norm = n => n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
 let warnings = 0;
 const warn = m => { warnings++; console.log('⚠️  ' + m); };
+// workflow di GitHub: un valore senza virgolette con «: » dentro rompe tutto il file (e il giro notturno non parte più)
+{ const fs0 = require('fs'), p0 = require('path'), dir = p0.join(__dirname, '..', '.github', 'workflows');
+  try{ fs0.readdirSync(dir).filter(f=> /\.ya?ml$/.test(f)).forEach(f=>{ fs0.readFileSync(p0.join(dir, f), 'utf8').split('\n').forEach((l, i)=>{
+    const m = /^\s*-?\s*(name|if|run):\s+(.*)$/.exec(l); if(!m) return; const v = m[2].trim();
+    if(/^["'|>]/.test(v) || m[1] === 'run' || m[1] === 'if') return;
+    if(/:\s/.test(v) || /\s#/.test(v)) warn(`Workflow ${f} riga ${i + 1}: metti il testo tra virgolette («${v.slice(0, 60)}»), altrimenti il workflow non parte`);
+  }); }); }catch(e){}
+}
 function walk(o, p, cb){ if (typeof o === 'string') cb(p, o); else if (Array.isArray(o)) o.forEach((x, i) => walk(x, p + '[' + i + ']', cb)); else if (o && typeof o === 'object') for (const k in o) walk(o[k], p ? p + '.' + k : k, cb); }
 const seen = {};
 for (const g of D.games) {

@@ -23,10 +23,15 @@ async function geminiFetch(body, signal, model){
     throw err;
   }
   if(!r.ok){
-    let msg = '';
-    try{ const j = await r.json(); msg = (j.error && j.error.message) || ''; }catch(e){}
+    let msg = '', det = [];
+    try{ const j = await r.json(); msg = (j.error && j.error.message) || ''; det = (j.error && j.error.details) || []; }catch(e){}
     const err = new Error(msg || ('HTTP ' + r.status));
     err.status = r.status;
+    if(r.status === 429){
+      // Google dice quanto aspettare (retryDelay «23s») e se è finita la quota del minuto o del GIORNO
+      const rd = det.map(d=> d && d.retryDelay).filter(Boolean)[0]; err.retryMs = rd ? Math.round(parseFloat(rd) * 1000) : 0;
+      err.perDay = /PerDay|per day|daily/i.test(JSON.stringify(det) + ' ' + msg);
+    }
     err.code = r.status === 429 ? 'gemini_rate_limited' : r.status === 503 ? 'gemini_busy' : (r.status === 403 || (r.status === 400 && /api key/i.test(msg))) ? 'gemini_bad_key' : 'gemini_error';
     throw err;
   }
@@ -35,20 +40,38 @@ async function geminiFetch(body, signal, model){
 
 let geminiNoThink = false;
 const sleep = ms=> new Promise(r=> setTimeout(r, ms));
+// Limiti del piano gratuito: poche richieste al MINUTO e al GIORNO per modello. Per non sbatterci contro:
+//  1) le richieste partono in fila, distanziate (niente raffiche durante Update+);
+//  2) se Google dice «aspetta N secondi» aspetto e riprovo lo stesso modello;
+//  3) se è finita la quota del GIORNO quel modello si salta fino a domattina (rt_gem_block, solo su questo dispositivo).
+const GEM_GAP = 4200;
+let gemLast = 0, gemQ = Promise.resolve();
+function gemPace(){ const p = gemQ.then(async ()=>{ const w = gemLast + GEM_GAP - Date.now(); if(w > 0) await sleep(w); gemLast = Date.now(); }); gemQ = p.catch(()=>{}); return p; }
+const gemBlocks = ()=>{ try{ return JSON.parse(localStorage.getItem('rt_gem_block') || '{}') || {}; }catch(e){ return {}; } };
+function gemBlock(model){ const b = gemBlocks(), t = new Date(); t.setUTCHours(24 + 8, 5, 0, 0); if(t - Date.now() > 30 * 3600e3) t.setTime(t - 24 * 3600e3); b[model] = +t; try{ localStorage.setItem('rt_gem_block', JSON.stringify(b)); }catch(e){} }   // la quota giornaliera riparte a mezzanotte di Los Angeles (circa le 9 in Italia)
+const gemBlocked = m=> (gemBlocks()[m] || 0) > Date.now();
+window.geminiStatus = ()=> ({blocked: Object.entries(gemBlocks()).filter(x=> x[1] > Date.now()).map(x=> x[0] + ' fino alle ' + new Date(x[1]).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})), gap: GEM_GAP});
 // Se il modello è sovraccarico (503/500) riprova con calma, poi passa al modello più leggero; se è al limite (429) prova subito quello leggero
 async function callGemini(body, signal){
   let lastErr;
   const custom = geminiCustomModel();
-  const chain = [custom, GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter((m, i, a)=> m && a.indexOf(m) === i && !geminiBadModels.has(m));
+  let chain = [custom, GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter((m, i, a)=> m && a.indexOf(m) === i && !geminiBadModels.has(m));
+  const open = chain.filter(m=> !gemBlocked(m)); if(open.length) chain = open;     // tutti in pausa: provo lo stesso (la pausa è una stima)
   for(const [mi, model] of chain.entries()){
     const attempts = mi === 0 ? 3 : 1;
+    let waited = false;
     for(let a = 0; a < attempts; a++){
-      try{ return await geminiFetch(body, signal, model); }
+      try{ await gemPace(); return await geminiFetch(body, signal, model); }
       catch(e){
         lastErr = e;
         if((e.status === 404 || (e.status === 400 && /model|not found|not supported/i.test(e.message || ''))) && mi < chain.length - 1){ geminiBadModels.add(model); break; }   // modello inesistente: passo al successivo
         if(![429, 500, 503].includes(e.status)) throw e;
-        if(e.status === 429) break;
+        if(e.status === 429){
+          if(e.perDay){ gemBlock(model); try{ DebugLog.add({kind: 'note', src: 'Gemini', ok: false, note: 'quota del giorno finita per ' + model + ': lo salto fino a domattina'}); }catch(x){} break; }
+          // quota del minuto: se l'attesa è breve aspetto e riprovo lo stesso modello (una volta), altrimenti passo al leggero
+          if(!waited && e.retryMs && e.retryMs <= 30000 && !(signal && signal.aborted)){ waited = true; await sleep(e.retryMs + 300); a--; continue; }
+          break;
+        }
         if(a < attempts - 1){ if(signal && signal.aborted) throw e; await sleep(1500 * (a + 1)); }
       }
     }

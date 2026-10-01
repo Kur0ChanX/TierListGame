@@ -23,16 +23,7 @@ async function q(name){
   }
   return null;
 }
-async function customGames(){
-  try{
-    const owner = process.env.GITHUB_REPOSITORY_OWNER || 'kur0chanx';
-    const h = {'User-Agent': 'raccoon-tier', Accept: 'application/vnd.github+json'}; if(process.env.GITHUB_TOKEN) h.Authorization = 'Bearer ' + process.env.GITHUB_TOKEN;
-    const l = await (await fetch('https://api.github.com/users/' + owner + '/gists?per_page=100', {headers: h})).json();
-    const f = Array.isArray(l) && l.find(g=> g.description === 'RaccoonTier-catalogo'); const file = f && f.files && f.files['catalogo.json']; if(!file) return [];
-    const j = await (await fetch(file.raw_url)).json(); const v = j.keys && j.keys.jrpg_db_customGames && j.keys.jrpg_db_customGames.v; if(!v) return [];
-    const o = JSON.parse(v); return Object.keys(o).filter(id=> o[id] && o[id].name).map(id=> ({id, name: o[id].name}));
-  }catch(e){ console.log('catalogo non letto:', e.message); return []; }
-}
+const {customGames} = require('./catalog');
 (async()=>{
   const games = Object.assign({}, prev.games || {});
   const custom = await customGames(); console.log('giochi aggiunti dal catalogo:', custom.length);
