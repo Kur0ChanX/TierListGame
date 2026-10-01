@@ -509,7 +509,7 @@
   // facts.js e discoveries.js (aggiornati ogni settimana da GitHub) si caricano dopo l'avvio, così non rallentano la prima schermata
   H.loadLocalData = function(){
     const b = (document.querySelector('meta[name="build"]') || {}).content || '0';
-    ['facts.js', 'discoveries.js', 'shots.js'].forEach(f=>{ const sc = document.createElement('script'); sc.src = f + '?b=' + b; sc.async = true; sc.onerror = ()=> LOG({kind: 'note', src: f, ok: false, note: 'file non trovato (il workflow «Dati settimanali» non è ancora girato?)'}); sc.onload = ()=>{ LOG({kind: 'note', src: f, ok: true, note: 'caricato'}); try{ window.dispatchEvent(new Event('localdata')); }catch(e){} }; document.head.appendChild(sc); });
+    ['facts.js', 'voti.js', 'discoveries.js', 'shots.js'].forEach(f=>{ const sc = document.createElement('script'); sc.src = f + '?b=' + b; sc.async = true; sc.onerror = ()=> LOG({kind: 'note', src: f, ok: false, note: 'file non trovato (il workflow «Dati settimanali» non è ancora girato?)'}); sc.onload = ()=>{ LOG({kind: 'note', src: f, ok: true, note: 'caricato'}); try{ window.dispatchEvent(new Event('localdata')); }catch(e){} }; document.head.appendChild(sc); });
   };
   setTimeout(()=> H.loadLocalData(), 2500);
   // CheapShark dal browser (accesso diretto): Metascore, % recensioni Steam e prezzo in dollari di un gioco PC. Serve ai giochi che non sono nel database di base (quindi non in facts.js).
@@ -522,6 +522,9 @@
     return {mc: +hit.metacriticScore || 0, sp: +hit.steamRatingPercent || 0, sc: +hit.steamRatingCount || 0, y: hit.releaseDate ? new Date(hit.releaseDate * 1000).getFullYear() : 0, p: {f: +hit.salePrice, i: +hit.normalPrice, d: Math.round(+hit.savings || 0)}, id: hit.steamAppID};
   };
   H.factsFor = g=>{ try{ return (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.games && GAME_FACTS.games[g.id]) || null; }catch(e){ return null; } };
+
+  // Metascore UFFICIALE da metacritic.com, scaricato dai server GitHub (voti.js): niente blocchi, niente chiavi, niente limiti
+  H.votiFor = g=>{ try{ const v = typeof VOTI !== 'undefined' && VOTI.games && VOTI.games[g.id]; return v && v.s ? v : null; }catch(e){ return null; } };
 
   // ---------- il cuore: giri di ricerca senza sosta ----------
   // Corsie parallele: una per le ricerche AI e due per le fonti dirette, ognuna con il proprio ritmo. Una fonte lenta o bloccata non rallenta le altre.
