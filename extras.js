@@ -53,7 +53,7 @@
     if(altObs){ altObs.disconnect(); altObs = null; }
     const list = applyFilters();
     alt.className = 'alt-view mode-' + MODE;
-    alt.innerHTML = list.length ? '' : '<div class="empty" style="display:block">Nessun gioco trovato con questi filtri.</div>';
+    alt.innerHTML = list.length ? '' : (window.rtEmpty ? window.rtEmpty('list') : '<div class="empty" style="display:block">Nessun gioco trovato con questi filtri.</div>');
     let shown = 0;
     (function more(){
       if(my !== altToken) return;
@@ -471,7 +471,7 @@
     const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
     const body = sheet('xWish', giIcon('gift') + ' Wishlist e uscite', `<div class="lp-sub">Aggiungi un gioco dalla sua scheda con il pulsante «Wishlist». Controllo la data di uscita (con Gemini e ricerca web) e ti avviso quando esce, <b>quando apri l'app</b> (un sito web non può avvisarti a app chiusa).</div>
       ${perm === 'default' ? '<div class="lp-tools"><button class="btn" id="xNotif">🔔 Attiva notifiche del telefono</button></div>' : ''}
-      ${rows || '<div class="lp-sub">La wishlist è vuota.</div>'}`);
+      ${rows || (window.rtEmpty ? window.rtEmpty('wish') : '<div class="lp-sub">La wishlist è vuota.</div>')}`);
     const n = body.querySelector('#xNotif'); if(n) n.addEventListener('click', ()=> Notification.requestPermission().then(p=> toast(p === 'granted' ? '🔔 Notifiche attive' : 'Notifiche non attivate')));
     body.querySelectorAll('[data-w-open]').forEach(b=> b.addEventListener('click', ()=>{ const g = byId(b.dataset.wOpen); if(g){ document.getElementById('xWish').classList.remove('show'); openModal(g); } }));
     body.querySelectorAll('[data-w-check]').forEach(b=> b.addEventListener('click', ()=>{ b.textContent = '…'; checkRelease(b.dataset.wCheck, true); }));
