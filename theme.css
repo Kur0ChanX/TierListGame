@@ -1079,3 +1079,27 @@ body[data-view="mytier"][data-mtmode="mine"] #filtersPanel, body[data-view="myti
 .tg-mt .tg-lrn{opacity:.95; color:var(--a1,#6a7bff)}
 .tg-ms{flex:none; font-size:1.2rem; min-width:26px; text-align:center}
 .tg-why{margin-left:4px; font-size:.8rem}
+
+/* ---- v184: eredi, dietro le quinte, punto d'uscita, album, scala d'ingresso ---- */
+.id-body{margin:4px 0 12px}
+.id-sub{font-size:.8rem; opacity:.8; margin:8px 0 4px}
+.id-chips{display:flex; flex-wrap:wrap; gap:6px}
+.id-chip{display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:12px; background:rgba(var(--a1rgb),.1); border:1px solid rgba(var(--a1rgb),.25)}
+.id-chip .btn{padding:3px 8px; min-height:0}
+.id-links{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0}
+.id-dev{margin-top:6px} .id-ai{border-left:3px solid rgba(var(--a1rgb),.7); padding-left:8px}
+.id-thumbs{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:6px; margin-bottom:8px}
+.id-th{padding:0; border:0; border-radius:10px; overflow:hidden; aspect-ratio:1; background:var(--card); cursor:pointer}
+.id-th img{width:100%; height:100%; object-fit:cover; display:block}
+.id-up{cursor:pointer}
+.id-viewer{position:fixed; inset:0; z-index:12000; background:rgba(0,0,0,.92); display:none; flex-direction:column; align-items:center; justify-content:center}
+.id-viewer.show{display:flex}
+.id-viewer img{max-width:96vw; max-height:78vh; object-fit:contain; border-radius:8px}
+.id-vx{position:absolute; top:calc(10px + env(safe-area-inset-top)); right:12px; width:42px; height:42px; border-radius:50%; border:0; background:rgba(255,255,255,.18); color:#fff; font-size:1.1rem}
+.id-vbar{display:flex; gap:10px; align-items:center; margin-top:12px; color:#fff}
+.ld-rung{margin:10px 0; padding:10px 12px; border-radius:14px; border:1px solid var(--border); background:var(--card); display:flex; flex-direction:column; gap:6px}
+.ld-rung > small{opacity:.75}
+.ld-g{display:flex; align-items:center; gap:8px; text-align:left; padding:7px 9px; border-radius:10px; border:1px solid var(--border); background:transparent; color:inherit; cursor:pointer; flex-wrap:wrap}
+.ld-g .nm{flex:1; min-width:0; font-weight:600} .ld-g small{opacity:.75}
+.sh-row{display:flex; gap:10px; margin:10px 0; align-items:flex-start} .sh-row img{width:84px; height:84px; object-fit:cover; border-radius:10px; flex:none}
+.sh-f{flex:1; min-width:0; display:flex; flex-direction:column; gap:6px} .sh-f input{width:100%; box-sizing:border-box; padding:9px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:inherit; font-size:1rem}
