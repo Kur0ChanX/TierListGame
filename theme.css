@@ -1400,3 +1400,65 @@ html.mo-off .rt-ghost{display:none}
 #modalCard > [data-tab]{animation:cdTabIn .22s ease both}
 @keyframes cdTabIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .vd-chiprow .vd-chip{cursor:pointer}
+/* v205: valutazioni con tasti 1–10 (niente cursori) e tasto Fine */
+.rr-n{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;margin:8px 0 4px}
+.rr-n button{height:38px;border:0;border-radius:10px;background:rgba(127,127,127,.14);color:inherit;font:inherit;font-weight:700;font-size:.9rem;cursor:pointer;padding:0;transition:background .15s,transform .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.rr-n button.lo{background:rgba(var(--a1rgb,124,92,255),.22)}
+.rr-n button.on{background:var(--pk-accent,#a78bfa);color:#fff;transform:scale(1.08);box-shadow:0 2px 10px rgba(var(--a1rgb,124,92,255),.5)}
+.rr-act{display:flex;gap:6px;flex:none}
+.rr-half{border:1px solid var(--glass-line,rgba(127,127,127,.3));background:none;color:inherit;border-radius:999px;font-size:.78rem;font-weight:700;padding:3px 10px;cursor:pointer}
+.rr-half.on{background:rgba(var(--a1rgb,124,92,255),.3);border-color:rgba(var(--a1rgb,124,92,255),.7)}
+.rr-half:disabled,.rr-x:disabled{opacity:.3}
+.rr-x{border:1px solid var(--glass-line,rgba(127,127,127,.3));background:none;color:inherit;border-radius:999px;width:28px;height:24px;padding:0;opacity:.7}
+.rr-end{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.rr-state{font-size:.8rem;opacity:.85}
+.rr-done{min-width:96px}
+.rr-done:disabled{opacity:.45}
+/* v205: riordino dei riquadri della scheda */
+.cd-tabs{grid-template-columns:repeat(3,minmax(0,1fr)) auto}
+.cd-reorder{width:40px;padding:0 !important;font-size:1rem !important;opacity:.85 !important}
+.cd-pin{display:none !important}
+.ro-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:10px 0}
+.ro-tabs button{border:1px solid var(--glass-line,rgba(127,127,127,.3));background:none;color:inherit;font:inherit;font-size:.82rem;padding:8px 2px;border-radius:10px}
+.ro-tabs button.on{background:rgba(var(--a1rgb,124,92,255),.25);border-color:rgba(var(--a1rgb,124,92,255),.7);font-weight:700}
+.ro-row{display:grid;grid-template-columns:26px minmax(0,1fr) repeat(4,38px);gap:4px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(127,127,127,.15)}
+.ro-row b{text-align:center;color:var(--pk-accent,#a78bfa)}
+.ro-row span{font-size:.9rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ro-row button{height:36px;border:1px solid var(--glass-line,rgba(127,127,127,.3));background:rgba(127,127,127,.1);color:inherit;border-radius:10px;font-size:.9rem;padding:0}
+.ro-row button:disabled{opacity:.25}
+.ro-row.moved{background:rgba(var(--a1rgb,124,92,255),.15);border-radius:10px}
+.own-row:empty{display:none}
+/* v205: riquadri «storia» e «dopamina» leggibili */
+.enrich-highlights.hl2{display:grid;gap:8px;margin:10px 0 12px}
+.hl-card{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;text-align:left;padding:12px 14px;border-radius:18px;border:1px solid var(--hl-line,rgba(127,127,127,.25));background:var(--hl-bg,rgba(127,127,127,.1));color:inherit;font:inherit}
+.hl-ic{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:1.5rem;background:var(--hl-ic,rgba(127,127,127,.18))}
+.hl-tx{flex:1;min-width:0}
+.hl-tx b{display:block;font-size:.98rem;line-height:1.25}
+.hl-tx p{margin:3px 0 0;font-size:.84rem;line-height:1.4;opacity:.82}
+.hl-card.hl-wow{--hl-bg:linear-gradient(135deg,rgba(250,204,21,.16),rgba(250,204,21,.05));--hl-line:rgba(250,204,21,.45);--hl-ic:rgba(250,204,21,.25)}
+.hl-card.hl-romance{--hl-bg:linear-gradient(135deg,rgba(244,114,182,.18),rgba(244,114,182,.05));--hl-line:rgba(244,114,182,.45);--hl-ic:rgba(244,114,182,.25)}
+.hl-card.hl-affinity{--hl-bg:linear-gradient(135deg,rgba(96,165,250,.18),rgba(96,165,250,.05));--hl-line:rgba(96,165,250,.45);--hl-ic:rgba(96,165,250,.25)}
+.hl-card.hl-dopa{--hl-bg:linear-gradient(135deg,rgba(34,211,238,.16),rgba(99,102,241,.08));--hl-line:rgba(34,211,238,.4);--hl-ic:rgba(34,211,238,.22);cursor:pointer}
+.hl-card.hl-dopa .dopa-chev{flex:none;opacity:.7;transition:transform .25s}
+.hl-card.hl-dopa[aria-expanded="true"] .dopa-chev{transform:rotate(180deg)}
+.dopa-panel{border-radius:18px !important;padding:14px !important;font-size:.88rem !important}
+.dopa-panel .dopa-k{display:block;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;opacity:.7;margin:10px 0 4px;font-weight:700}
+.dopa-loop{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dopa-step{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:12px;background:rgba(34,211,238,.14);border:1px solid rgba(34,211,238,.35);font-size:.82rem}
+.dopa-step i{font-style:normal;font-weight:800;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:rgba(34,211,238,.35);font-size:.7rem}
+.dopa-arrow{opacity:.5}
+/* v205: «Cosa ti ha preso» più ordinato */
+.dna-card{padding:14px !important;border-radius:20px !important}
+.dna-head{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;font-size:1rem}
+.dna-sub{font-size:.8rem !important;line-height:1.4;opacity:.85;margin:4px 0 10px !important}
+.dna-ct{display:flex !important;justify-content:space-between;align-items:center;gap:8px;min-height:40px}
+.dna-ct small{opacity:.8;font-size:.74rem}.dna-ct small b{color:#4ade80}
+details.dna-cat>summary.dna-ct::after{content:none !important}
+details.dna-cat>summary.dna-ct small::after{content:' ▾';opacity:.6}
+details.dna-cat[open]>summary.dna-ct small::after{content:' ▴'}
+.dna-chip{touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:36px}
+.dna-info{margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(var(--a1rgb,124,92,255),.12);font-size:.84rem;line-height:1.45}
+.dna-free{margin-top:10px}
+.dna-free .btn{width:100%}
+.dna-free small{display:block;margin-top:6px;opacity:.7;font-size:.74rem}
+#modalCard{overflow-anchor:none}

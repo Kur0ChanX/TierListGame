@@ -492,7 +492,7 @@
       const stTitle = [...card.querySelectorAll('.modal-section-title')].find(x=> /Il tuo stato/.test(x.textContent));
       const extra = sagaPathHtml(g) + versionsHtml(g) + historyHtml(g);
       if(stTitle) stTitle.insertAdjacentHTML('beforebegin', extra); else card.insertAdjacentHTML('beforeend', extra);
-      const sr = document.getElementById('statusRow'); if(sr) sr.insertAdjacentHTML('afterend', `<div class="own-row">${ownedHtml(g)}</div>`);
+      const sr = document.getElementById('statusRow'); if(sr) sr.insertAdjacentHTML('afterend', '<div class="own-row"></div>');      // v205: via «Segna come posseduto» (poco utile); resta solo il punto d'aggancio per voto e recensione
       card.querySelectorAll('[data-sp]').forEach(b=> b.addEventListener('click', ()=>{ const x = GAMES.find(y=> y.id == b.dataset.sp); if(x && x.id !== g.id) openModal(x); }));
       const vb = document.getElementById('vmBtn'); if(vb) vb.addEventListener('click', ()=> runVersions(g));
       card.querySelectorAll('[data-hist-undo]').forEach(b=> b.addEventListener('click', ()=> historyUndo(g, +b.dataset.histUndo)));

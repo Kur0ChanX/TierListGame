@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v205', date:'2026-10-01', time:'19:50', items:[
+    'Locandina di Dragon Quest XI S (finalmente): l\'immagine ufficiale di Steam c\'era, ma il telefono non può chiedere a Steam «qual è il numero di questo gioco» e ricadeva su RAWG, che sbagliava gioco. Ora il numero Steam arriva dal server per molti più giochi (il server ora cerca anche con il nome italiano), e le locandine sbagliate di RAWG già salvate si correggono da sole (ricontrollo ogni 3 giorni; mai se l\'hai caricata tu o bloccata 🔒).',
+    'Valutazioni rifatte: via i cursori scomodi. Ora ogni voce ha i tasti 1–10 grandi (+½ per il mezzo punto, ✕ per togliere) e c\'è il tasto ✅ Fine: finché non lo premi vedi «Non ancora salvato», dopo vedi «🔒 Salvato». Se chiudi la scheda senza premere, le salvo io.',
+    'Riordina la scheda come vuoi: al posto del vecchio 📌 (limitato e mezzo rotto) c\'è il pulsante ↕️ accanto alle linguette. Scegli la parte, poi sposta ogni riquadro: ⤒ in cima, ▲ su, ▼ giù, ⤓ in fondo. Vale per tutti i giochi. Chi aveva dei blocchi fissati li ritrova in cima.',
+    'Tolto «Segna come posseduto» (poco utile).',
+    'Storia sorprendente / Loop coinvolgente (dopamina): ora sono due riquadri grandi e leggibili, con icona, titolo e spiegazione, e il dettaglio del loop a passi numerati.',
+    '«Cosa ti ha preso»: cliccando un tratto non salta più a fine pagina (si aggiorna sul posto), le categorie partono chiuse con il conteggio dei tratti segnati, testi più chiari.'
+  ]},
   {version:'v204', date:'2026-10-01', time:'17:48', items:[
     'Scheda del gioco in 3 parti, con le linguette che restano in alto mentre scorri: 💜 Per te (verdetto, sintonia, DNA, recensione, comprare, giochi simili) · 🎮 Il gioco (storia, a colpo d\'occhio, gameplay, pro e contro, guida, saga) · 📚 Altro (affidabilità dei dati, eredi, dietro le quinte, album). Sopra le linguette resta sempre quello che serve subito: locandina, la tua barra, le valutazioni e la musica. Le parti che non guardi non vengono disegnate: la scheda si apre più leggera. L\'ultima linguetta scelta viene ricordata.',
     '🖼️ Un solo pulsante «Locandina e foto» al posto di 8: dentro trovi cambia locandina, foto del carosello, carica dal telefono, scatta foto, aggiorna in automatico, prossima immagine, cerca su internet, usa un link, sblocca e diagnostica. Se la locandina è bloccata 🔒, le voci automatiche spariscono.',

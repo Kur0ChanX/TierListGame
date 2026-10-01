@@ -41,7 +41,15 @@
     if(el.classList.contains('saga-note')) return 'saga'; if(el.matches('details.hist')) return 'cronologia';
     return null;
   }
+  // v205: il tuo ordine dei blocchi, per ogni parte (sostituisce il vecchio «fissa in alto»): jrpg_card_order2 = {perme: [chiavi…], gioco: […], altro: […]}
+  const OK2 = 'jrpg_card_order2';
+  const customOrder = ()=>{ const o = LS.get(OK2, {}) || {}; return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; };
   const pins = ()=> (LS.get(PINS, []) || []).filter(k=> typeof k === 'string');
+  (function migratePins(){        // chi aveva fissato dei blocchi li ritrova in cima alla loro parte
+    try{ const p = pins(); if(!p.length || Object.keys(customOrder()).length) return;
+      const co = {}; p.forEach(k=>{ const l = LAYERS.find(x=> x.keys.includes(k)); if(l){ (co[l.tab] = co[l.tab] || []).push(k); } });
+      if(Object.keys(co).length) LS.set(OK2, co); LS.set(PINS, []); }catch(e){}
+  })();
   let arranging = false, obs = null, tm = 0;
   function arrange(){
     const card = document.getElementById('modalCard'); if(!card || !card.children.length) return;
@@ -61,37 +69,41 @@
     const st = g && typeof STATUSES !== 'undefined' ? STATUSES[g.id] : '';
     let layers = LAYERS.slice();
     if(st === 'playing'){ const a = layers.find(l=> l.id === 'giocare'); layers = [a].concat(layers.filter(l=> l !== a)); }
-    const used = new Set(), out = top.slice(), pinned = pins().filter(k=> blocks.has(k) && !['verdetto'].includes(k));
-    // v204: il verdetto sta in «Per te» (in alto resta la pillola, che porta lì con un tocco)
+    const used = new Set(), out = top.slice();
     // le etichette già presenti si riusano (altrimenti a ogni ridisegno se ne accumulavano di vecchie in cima alla scheda)
     const prevL = {}; card.querySelectorAll(':scope > .cd-layer').forEach(n=>{ if(prevL[n.dataset.l]) n.remove(); else prevL[n.dataset.l] = n; });
     const label = (id, text)=>{ let d = prevL[id]; if(!d){ d = document.createElement('div'); d.className = 'cd-layer'; d.dataset.l = id; } d.textContent = text; return d; };
-    if(pinned.length){ out.push(label('pins', '📌 Fissati da te')); pinned.forEach(k=>{ out.push(...blocks.get(k)); used.add(k); }); }
     const known = new Set(LAYERS.flatMap(l=> l.keys));
-    // tutto ciò che sta sopra le linguette (identità, locandina, la tua barra, verdetto, fissati) si vede sempre
+    // tutto ciò che sta sopra le linguette (identità, locandina, la tua barra) si vede sempre
     out.forEach(el=> el.removeAttribute && el.removeAttribute('data-tab'));
     let bar = card.querySelector(':scope > .cd-tabs');
-    if(!bar){ bar = document.createElement('div'); bar.className = 'cd-tabs'; bar.setAttribute('role', 'tablist'); bar.innerHTML = TABS.map(([id, n])=> `<button type="button" role="tab" data-ctab="${id}">${n}</button>`).join(''); }
+    if(!bar){ bar = document.createElement('div'); bar.className = 'cd-tabs'; bar.setAttribute('role', 'tablist'); bar.innerHTML = TABS.map(([id, n])=> `<button type="button" role="tab" data-ctab="${id}">${n}</button>`).join('') + '<button type="button" class="cd-reorder" data-creorder title="Riordina la scheda come vuoi" aria-label="Riordina la scheda">↕️</button>'; }
     out.push(bar);
-    const firstOfTab = {};
+    // 1) quali blocchi ci sono in ogni parte (nell'ordine di base); 2) il TUO ordine, se l'hai scelto
+    const byTab = {perme: [], gioco: [], altro: []};
     layers.forEach(l=>{
       const ks = l.keys.filter(k=> blocks.has(k) && !used.has(k));
       if(l.id === 'altro') blocks.forEach((v, k)=>{ if(!known.has(k) && !used.has(k) && !ks.includes(k)) ks.push(k); });         // blocchi nuovi/sconosciuti: in «Altro»
-      if(!ks.length) return;
-      if(firstOfTab[l.tab]){ const lb = label(l.id, l.n); lb.dataset.tab = l.tab; out.push(lb); } else firstOfTab[l.tab] = true;   // la prima etichetta di ogni parte è già il nome della linguetta
-      ks.forEach(k=>{ blocks.get(k).forEach(el=>{ el.dataset.tab = l.tab; out.push(el); }); used.add(k); });
+      ks.forEach(k=>{ byTab[l.tab].push({k, l}); used.add(k); });
     });
+    const co = customOrder(), firstOfTab = {};
+    TABS.forEach(([tid])=>{
+      let items = byTab[tid]; if(!items.length) return; firstOfTab[tid] = true;
+      const mine = co[tid];
+      if(mine && mine.length){
+        items = items.map((x, i)=> [x, mine.indexOf(x.k) >= 0 ? mine.indexOf(x.k) : 1000 + i]).sort((a, b)=> a[1] - b[1]).map(x=> x[0]);       // il tuo ordine (i blocchi nuovi in fondo)
+        items.forEach(({k})=> blocks.get(k).forEach(el=>{ el.dataset.tab = tid; out.push(el); }));
+      } else {
+        let lastL = null;
+        items.forEach(({k, l})=>{ if(lastL && lastL !== l.id){ const lb = label(l.id, l.n); lb.dataset.tab = tid; out.push(lb); } lastL = l.id; blocks.get(k).forEach(el=>{ el.dataset.tab = tid; out.push(el); }); });
+      }
+    });
+    window.__rtTabKeys = Object.fromEntries(TABS.map(([tid])=> [tid, (byTab[tid] || []).map(x=> x.k)]));
     bottom.forEach(el=> el.removeAttribute('data-tab'));
     out.push(...bottom);
     const t = tabNow(); if(card.dataset.ctab !== t) card.dataset.ctab = t;
     bar.querySelectorAll('[data-ctab]').forEach(b=>{ const on = b.dataset.ctab === t, n = firstOfTab[b.dataset.ctab]; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); b.hidden = !n; });
-    // pulce su ogni blocco
-    blocks.forEach((els, k)=>{
-      const f = els[0]; if(!f || f.querySelector(':scope > .cd-pin')) return;
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'cd-pin'; b.dataset.pin = k; b.title = 'Fissa questo blocco in alto'; b.setAttribute('aria-label', 'Fissa in alto'); b.textContent = '📌';
-      f.classList.add('cd-has-pin'); f.appendChild(b);
-    });
-    card.querySelectorAll('.cd-pin').forEach(b=> b.classList.toggle('on', pins().includes(b.dataset.pin)));
+    card.querySelectorAll('.cd-pin').forEach(n=> n.remove()); card.querySelectorAll('.cd-has-pin').forEach(n=> n.classList.remove('cd-has-pin'));
     // tolgo le etichette che non servono più
     Object.keys(prevL).forEach(k=>{ if(!out.includes(prevL[k])){ if(obs) obs.disconnect(); arranging = true; prevL[k].remove(); arranging = false; } });
     // se l'ordine è già quello giusto non tocco nulla (evita giri a vuoto)
@@ -99,7 +111,9 @@
     if(now.length === out.length && now.every((e, i)=> e === out[i])){ watch(); return; }
     if(obs) obs.disconnect();
     arranging = true;
+    const sy = card.scrollTop;                       // spostando i blocchi il browser potrebbe far saltare la pagina: rimetto lo scorrimento dov'era
     out.forEach(el=> card.appendChild(el));
+    if(card.scrollTop !== sy) card.scrollTop = sy;
     arranging = false;
     watch();
   }
@@ -117,15 +131,40 @@
     try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
     const bar = card.querySelector('.cd-tabs'); if(bar && bar.getBoundingClientRect().top < 0){ try{ card.scrollTo({top: bar.offsetTop - 6, behavior: 'smooth'}); }catch(x){} }
   });
+  // ---------- «↕️ Riordina la scheda»: scegli tu cosa va al 1°, 2°, 3° posto… e cosa in fondo (vale per tutti i giochi) ----------
   document.addEventListener('click', e=>{
-    const b = e.target.closest && e.target.closest('.cd-pin'); if(!b) return;
-    e.preventDefault(); e.stopPropagation();
-    const k = b.dataset.pin, p = pins(), i = p.indexOf(k);
-    if(i >= 0){ p.splice(i, 1); toast('Blocco rimesso al suo posto', 1800); } else { p.push(k); if(!LS.get('jrpg_card_pin_hint', false)){ LS.set('jrpg_card_pin_hint', true); toast('📌 Fissato in alto per tutti i giochi (rifai il tocco per toglierlo)', 3600); } else toast('📌 Fissato in alto', 1500); }
-    LS.set(PINS, p); try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
-    const y = b.getBoundingClientRect().top; arrange();
-    const nb = document.querySelector('.cd-pin[data-pin="' + k + '"]'); if(nb){ try{ nb.scrollIntoView({block: 'center', behavior: 'smooth'}); }catch(x){} }
-  }, true);
+    const rb = e.target.closest && e.target.closest('[data-creorder]'); if(!rb) return;
+    e.preventDefault(); openReorder();
+  });
+  function openReorder(tabId){
+    if(!U.sheet) return;
+    const card = document.getElementById('modalCard'); if(!card) return;
+    const tid = tabId || tabNow(), keys = (window.__rtTabKeys || {})[tid] || [], co = customOrder();
+    let list = (co[tid] && co[tid].length) ? keys.slice().sort((a, b)=>{ const ia = co[tid].indexOf(a), ib = co[tid].indexOf(b); return (ia < 0 ? 1000 : ia) - (ib < 0 ? 1000 : ib); }) : keys.slice();
+    const name = k=> KEY_NAMES[k] || k;
+    const body = U.sheet('xReorder', '↕️ Riordina la scheda', `<div class="lp-sub">Scegli la parte, poi sposta i riquadri: il <b>primo in lista</b> compare per primo. Vale per <b>tutti</b> i giochi.</div>
+      <div class="ro-tabs">${TABS.map(([id, n])=> `<button type="button" class="${id === tid ? 'on' : ''}" data-rot="${id}">${n}</button>`).join('')}</div>
+      <div id="roList" class="ro-list"></div>
+      <div class="lp-tools"><button class="btn" id="roReset" type="button">↩️ Ordine originale di questa parte</button></div>`);
+    const L = body.querySelector('#roList');
+    const save = ()=>{ const c = customOrder(); c[tid] = list.slice(); LS.set(OK2, c); arrange(); };
+    const draw = ()=>{
+      L.innerHTML = list.length ? list.map((k, i)=> `<div class="ro-row"><b>${i + 1}</b><span>${esc(name(k))}</span>
+        <button type="button" data-mv="${i}:top" ${i ? '' : 'disabled'} title="In cima">⤒</button><button type="button" data-mv="${i}:up" ${i ? '' : 'disabled'} title="Su">▲</button><button type="button" data-mv="${i}:down" ${i < list.length - 1 ? '' : 'disabled'} title="Giù">▼</button><button type="button" data-mv="${i}:end" ${i < list.length - 1 ? '' : 'disabled'} title="In fondo">⤓</button></div>`).join('') : '<div class="lp-sub">Questa parte è vuota per questo gioco.</div>';
+    };
+    body.addEventListener('click', ev=>{
+      const t = ev.target.closest('[data-rot]'); if(t){ openReorder(t.dataset.rot); return; }
+      if(ev.target.closest('#roReset')){ const c = customOrder(); delete c[tid]; LS.set(OK2, c); arrange(); toast('Ordine originale ripristinato', 1600); openReorder(tid); return; }
+      const b = ev.target.closest('[data-mv]'); if(!b || b.disabled) return;
+      const [i, a] = b.dataset.mv.split(':'), n = +i, it = list.splice(n, 1)[0];
+      const to = a === 'top' ? 0 : a === 'end' ? list.length : a === 'up' ? n - 1 : n + 1;
+      list.splice(to, 0, it); save(); draw();
+      try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
+      const row = L.children[to]; if(row){ row.classList.add('moved'); try{ row.scrollIntoView({block: 'nearest'}); }catch(x){} }
+    });
+    draw();
+  }
+  window.rtOpenReorder = openReorder;
   if(typeof window.openModal === 'function'){
     const prev = window.openModal;
     window.openModal = function(g){
@@ -135,7 +174,7 @@
     };
     try{ openModal = window.openModal; }catch(e){}
   }
-  window.rtCardOrder = {arrange, pins, resetPins: ()=> { LS.set(PINS, []); arrange(); }, on: cardOrderOn, setOn: v=> { LS.set(ON, v ? 'on' : 'off'); arrange(); }, KEY_NAMES};
+  window.rtCardOrder = {arrange, pins, resetPins: ()=> { LS.set(PINS, []); LS.set(OK2, {}); arrange(); }, openReorder: ()=> openReorder(), on: cardOrderOn, setOn: v=> { LS.set(ON, v ? 'on' : 'off'); arrange(); }, KEY_NAMES};
 
   // =====================================================================
   // R2) MENU ✨ IN STANZE, con ricerca, preferite (pulce) e usate di recente
@@ -222,7 +261,7 @@
     {id: 'motion', n: '🎛️ Animazioni e vibrazione', d: 'Righe a cascata, scintille, tic al tocco'}
   ];
   const SOFT = [
-    {k: 'cardorder', n: '📌 Scheda in ordine di importanza', d: 'Riordina i blocchi della scheda a strati (con la pulce)', get: ()=> cardOrderOn(), set: v=> window.rtCardOrder.setOn(v)},
+    {k: 'cardorder', n: '📑 Scheda in 3 parti', d: 'Divide la scheda in Per te / Il gioco / Altro (con ↕️ scegli tu l\'ordine dei riquadri)', get: ()=> cardOrderOn(), set: v=> window.rtCardOrder.setOn(v)},
     {k: 'menurooms', n: '🗂️ Menu ✨ in stanze', d: 'Raggruppa le voci per argomento, con ricerca', get: ()=> roomsOn(), set: v=> window.rtMenuRooms.setOn(v)},
     {k: 'oggi', n: '🌅 Riquadro «Oggi» e avviso unico', d: 'Un solo avviso all\'avvio e il riquadro con le novità', get: ()=> todayOn(), set: v=>{ LS.set(TON, v ? 'on' : 'off'); renderToday(); }}
   ];
@@ -234,11 +273,11 @@
         <h4>Funzioni</h4>${MODS.map(m=> `<label class="ask-toggle md-row"><input type="checkbox" data-m="${m.id}" ${off[m.id] ? '' : 'checked'}> <span><b>${m.n}</b><small>${esc(m.d)}</small></span></label>`).join('')}
         <div class="lp-tools"><button type="button" class="btn primary" id="mdReload" hidden>🔄 Riavvia ora per applicare</button></div>
         <h4>Ordine e comodità (subito)</h4>${SOFT.map(m=> `<label class="ask-toggle md-row"><input type="checkbox" data-s="${m.k}" ${m.get() ? 'checked' : ''}> <span><b>${m.n}</b><small>${esc(m.d)}</small></span></label>`).join('')}
-        <div class="lp-tools"><button type="button" class="btn" id="mdPins">📌 Blocchi fissati: ${pins().length ? pins().map(k=> esc(KEY_NAMES[k] || k)).join(', ') : 'nessuno'} — togli tutti</button></div>`;
+        <div class="lp-tools"><button type="button" class="btn" id="mdPins">↩️ Ordine della scheda: rimetti l'originale</button></div>`;
       body.querySelectorAll('[data-m]').forEach(c=> c.addEventListener('change', ()=>{ const o = offMap(); if(c.checked) delete o[c.dataset.m]; else o[c.dataset.m] = true; LS.set(OFFK, o); body.querySelector('#mdReload').hidden = false; }));
       body.querySelectorAll('[data-s]').forEach(c=> c.addEventListener('change', ()=>{ const m = SOFT.find(x=> x.k === c.dataset.s); m.set(c.checked); toast(c.checked ? 'Acceso' : 'Spento', 1400); }));
       body.querySelector('#mdReload').addEventListener('click', ()=> location.reload());
-      body.querySelector('#mdPins').addEventListener('click', ()=>{ window.rtCardOrder.resetPins(); toast('Nessun blocco fissato', 1600); draw(); });
+      body.querySelector('#mdPins').addEventListener('click', ()=>{ window.rtCardOrder.resetPins(); toast('Ordine della scheda ripristinato', 1600); draw(); });
     };
     draw();
   }
