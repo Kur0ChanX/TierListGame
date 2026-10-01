@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v202', date:'2026-10-01', time:'17:21', items:[
+    'Risolto il programma che non si apriva («Rate limit exceeded»). Il limite di GitHub vale per indirizzo internet, e sulla rete mobile l\'indirizzo è condiviso con tante persone (per questo spegnendo e riaccendendo i dati ripartiva). Ora il programma chiede al sito solo la pagina: tutto il resto lo prende dalla memoria del telefono, i file nuovi una sola volta per versione, i dati notturni al massimo ogni 6 ore. Se GitHub rifiuta, si apre lo stesso con la copia salvata. Prima ogni apertura erano circa 60 richieste, ora 1.',
+    'Se il caricamento resta fermo, lo dico chiaramente e riprovo da solo (al massimo 3 volte).',
+    'Locandina e foto di Dragon Quest XI S: RAWG scambiava «Dragon Quest XI S: Echi di un\'era perduta» per «Dragon Quest» (il primo). Ora un nome più corto non basta più, e le foto sbagliate salvate vengono rifatte.'
+  ]},
   {version:'v201', date:'2026-10-01', time:'16:50', items:[
     'Trovato perché locandine, foto e voti sbagliavano gioco: molti nomi sono in italiano («Echi di un\'era perduta») e i siti stranieri trovavano un altro gioco (es. Dragon Quest I) o «non trovato». Ora il programma ricava da Steam il nome inglese ufficiale di ogni gioco e lo usa per RAWG, OpenCritic, Metacritic, Wikidata e le locandine. Anche il controllo notturno sul server ora trova i giochi coi nomi italiani.',
     '🎞️ Foto del carosello senza fine: quando finiscono quelle di Steam e RAWG, «Altre foto diverse» continua a cercarne di nuove dai video di gameplay (sempre del gioco giusto).',
