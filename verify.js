@@ -152,6 +152,7 @@
   }
   // RAWG (chiave gratuita dell'utente): anno, voto Metacritic, descrizione, giochi affini. Se non c'è la chiave o non risponde, viene saltata.
   async function ocInfoFor(g){
+    const arch = window.SearchHub && SearchHub.ocArchFor && SearchHub.ocArchFor(g); if(arch) return arch;     // voto OpenCritic letto dal server ogni notte: nessuna chiave, nessuna quota
     if(!(window.SearchHub && SearchHub.opencritic && SearchHub.opencritic.has())) return null;
     return SearchHub.opencritic.info(g.name);
   }
@@ -217,28 +218,28 @@
       wiki: mk('Wikipedia (Metacritic)', wiki, vals.wiki, vals.wiki && vals.wiki.mc),
       steam: mk('Steam (Metacritic)', steam, vals.steam, vals.steam && vals.steam.mc, false, lite),
       cheap: mk('CheapShark (Metacritic)', needCheap ? cheap : {status:'fulfilled'}, cf, (cf && ((cf.s && cf.s.mc) || (cf.c && cf.c.mc))) || 0),
-      oc: mk('OpenCritic', oc, vals.oc, vals.oc && vals.oc.score, needOc && !hasK(H && H.opencritic), !needOc),
+      oc: mk('OpenCritic', oc, vals.oc, vals.oc && vals.oc.score, needOc && !hasK(H && H.opencritic) && !(vals.oc && vals.oc.arch), !needOc),
       rawg: mk('RAWG', rawg, vals.rawg, vals.rawg && vals.rawg.mc, !hasK(H && H.rawg))
     };
     return {st, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), voti: mcOff || null, facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
-  function factChanges(g, src){
+  function factChanges0(g, src){
     const ch = [];
     // Il voto si cerca in quest'ordine di priorità: 1) Metacritic (Wikipedia, Steam, CheapShark) → 2) OpenCritic → 3) RAWG. Una fonte meno affidabile non sostituisce mai una più affidabile.
     const rk = v=> /^Metacritic/.test(v || '') ? 3 : /^OpenCritic/.test(v || '') ? 2 : /^RAWG/.test(v || '') ? 1 : 0;
     const offerScore = (r, sc, vs, id, label, to)=>{
       if(!sc || ch.some(c=> /^score|^method|^vsrc/.test(c.id))) return;
       const v = g.m === 'V';
-      if(v && g.vs && rk(g.vs) > r) return;                                   // voto già preso da una fonte più affidabile
+      if(v && g.vs && rk(g.vs) > r && !FORCE_VOTE) return;                    // (tranne se la fonte del voto l'hai scelta tu in «Fonti e lucchetti»)                                   // voto già preso da una fonte più affidabile
       if(sc === g.score){                                                      // stesso voto: lo confermo e registro da dove viene
         if(!v) ch.push({id:'method', label:'Voto confermato (' + to + ')', from:'stima', to:'verificato (V)', patch:{m:'V', vs}});
         else if(r === 3 && rk(g.vs) < 3) ch.push({id:'vsrc', label:'Fonte del voto', from: g.vs || 'non registrata', to: vs, patch:{vs}});
         return;
       }
       // un voto verificato di origine ignota è quasi sempre Metacritic: OpenCritic/RAWG non lo toccano. Metacritic vince sempre da solo; solo uno scarto enorme (>15, probabile gioco sbagliato) chiede conferma
-      if(v && !g.vs && r < 3) return;
+      if(v && !g.vs && r < 3 && !FORCE_VOTE) return;
       const off = v && Math.abs(sc - g.score) > 15;
       ch.push({id, label: label + ' (' + to + ')', from: `${g.score} (${v ? 'verificato' : 'stima'})`, to: `${sc} (${to})`, patch:{score: sc, tier: tierOf(sc), m:'V', vs}, off});
     };
@@ -328,7 +329,7 @@
     if(a < 0 || b < a) return null;
     try{ return JSON.parse(s.slice(a, b + 1)); }catch(e){ return null; }
   }
-  async function textChanges(g, src, silent){
+  async function textChanges0(g, src, silent){
     const hasSrc = !!((src.wiki && src.wiki.text) || (src.rawg && src.rawg.desc) || (src.steam && src.steam.desc));
     if(!llmAvailable() || !hasSrc) return {changes:[], note: !hasSrc ? 'Nessuna pagina Wikipedia o RAWG trovata: testi non riscritti.' : 'Nessun motore AI configurato: testi non riscritti.'};
     const prompt = todayLine() + `Aggiorna la scheda del videogioco "${g.name}" (${g.year}, ${g.plat}) usando SOLO le fonti qui sotto. Se una informazione non è nelle fonti scrivi null: non inventare nulla. Niente espressioni come "recente" o "uscito da poco": usa gli anni.
@@ -348,7 +349,7 @@ ${src.wiki && src.wiki.text ? `FONTE — Wikipedia (${src.wiki.title}):\n${diges
   }
 
   // ricerca approfondita (Gemini con ricerca Google): ore, "a colpo d'occhio", gameplay, lingua, edizioni. Ogni dato deve avere una fonte, altrimenti null.
-  async function deepChanges(g, silent){
+  async function deepChanges0(g, silent){
     if(!geminiKey()) return {changes:[], sources:[], note:'Ricerca approfondita (ore, difficoltà, lingua, gameplay) non fatta: serve la chiave Gemini.'};
     const Y = new Date().getFullYear();
     const symTxt = (g.enrich && (g.enrich.storyTag || g.enrich.dopamine)) ? `\nSIMBOLI: questo gioco ha già ${g.enrich.storyTag ? 'il simbolo storia «' + g.enrich.storyTag + '»' + (g.enrich.storyTagNote ? ' (' + g.enrich.storyTagNote + ')' : '') : ''}${g.enrich.storyTag && g.enrich.dopamine ? ' e ' : ''}${g.enrich.dopamine ? 'il simbolo dopamina (loop di ricompense)' : ''}. Giudica con onestà, cercando sulle fonti, se è DAVVERO distintivo: storia affascinante o memorabile, oppure meccanica unica e travolgente che quasi nessun altro gioco ha (il voto NON conta). Aggiungi al JSON i campi storyTagUnique (true/false/null se non c'è il simbolo), dopamineUnique (true/false/null) e symbolWhy (una frase che spiega perché sì o perché no).` : '';
@@ -395,6 +396,113 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     }
     return {changes: ch, sources: srcs, note:''};
   }
+
+  // ---- Fonti scelte da te e lucchetti (v194) ----
+  // Per ogni informazione scegli da quale fonte prenderla (o «automatico» = ordine di priorità, o «non toccare»).
+  // Impostazioni generali: jrpg_field_src {campo: scelta}. Per un singolo gioco: jrpg_field_game {id: {campo: {src, lock}}}:
+  // un campo con il lucchetto NON viene più cambiato da nessun aggiornamento automatico o in background (solo da te, con «Prendi adesso»).
+  const FIELDS = {
+    voto:     {label: 'Voto', ids: /^(score\d?|method|vsrc)$/, opts: [['auto', 'Automatico (Metacritic ufficiale → Wikipedia → Steam → OpenCritic → RAWG)'], ['mc', 'Metacritic sito ufficiale'], ['wiki', 'Metacritic da Wikipedia'], ['steam', 'Metacritic da Steam / CheapShark'], ['oc', 'OpenCritic'], ['rawg', 'RAWG'], ['off', 'Non toccarlo mai']]},
+    anno:     {label: 'Anno di uscita', ids: /^(year|unreleased)$/, opts: [['auto', 'Automatico (Wikidata → Steam → RAWG)'], ['wd', 'Wikidata'], ['steam', 'Steam'], ['rawg', 'RAWG'], ['off', 'Non toccarlo mai']]},
+    generi:   {label: 'Generi', ids: /^tagsync$/, opts: [['auto', 'Automatico (Wikidata + RAWG + Steam che si confermano)'], ['off', 'Non toccarli mai']]},
+    lingua:   {label: 'Lingua italiana ed edizioni', ids: /^(lang|itsrc|itdub)$/, opts: [['auto', 'Automatico (Steam → PCGamingWiki → it.wikipedia → web)'], ['off', 'Non toccarla mai']]},
+    storia:   {label: 'Storia', ids: /^story$/, opts: [['auto', 'Automatico (Wikipedia → RAWG → Steam)'], ['wiki', 'Wikipedia'], ['rawg', 'RAWG'], ['steam', 'Steam'], ['off', 'Non toccarla mai']]},
+    pro:      {label: 'Pro e contro', ids: /^proscons$/, opts: [['auto', 'Automatico (Wikipedia → RAWG → Steam)'], ['wiki', 'Wikipedia'], ['rawg', 'RAWG'], ['steam', 'Steam'], ['off', 'Non toccarli mai']]},
+    perche:   {label: 'Perché potrebbe piacerti', ids: /^why$/, opts: [['auto', 'Automatico (Wikipedia → RAWG → Steam)'], ['wiki', 'Wikipedia'], ['rawg', 'RAWG'], ['steam', 'Steam'], ['off', 'Non toccarlo mai']]},
+    regge:    {label: 'Come regge oggi', ids: /^aging$/, opts: [['auto', 'Automatico (ricerca web, poi le fonti)'], ['web', 'Ricerca web (Gemini)'], ['wiki', 'Wikipedia'], ['rawg', 'RAWG'], ['steam', 'Steam'], ['off', 'Non toccarlo mai']]},
+    gameplay: {label: 'Gameplay (voto e nota)', ids: /^gameplay$/, opts: [['auto', 'Ricerca web (Gemini)'], ['off', 'Non toccarlo mai']]},
+    ore:      {label: 'Ore di gioco', ids: /^hours$/, opts: [['auto', 'Ricerca web (Gemini, HowLongToBeat e altre)'], ['off', 'Non toccarle mai']]},
+    colpo:    {label: 'A colpo d\'occhio (difficoltà, grinding, ritmo…)', ids: /^label$/, opts: [['auto', 'Ricerca web (Gemini)'], ['off', 'Non toccarlo mai']]}
+  };
+  const FS_KEY = 'jrpg_field_src', FG_KEY = 'jrpg_field_game', AUTO_ALL = 'jrpg_auto_all';
+  const jget = (k, d)=>{ try{ return JSON.parse(localStorage.getItem(k) || 'null') || d; }catch(e){ return d; } };
+  const jset = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+  const fieldOf = id=> Object.keys(FIELDS).find(f=> FIELDS[f].ids.test(id)) || null;
+  const gameF = (g, f)=> ((jget(FG_KEY, {})[g.id] || {})[f]) || null;
+  const prefFor = (g, f)=>{ const pg = gameF(g, f); return (pg && pg.src && pg.src !== 'gen') ? pg.src : (jget(FS_KEY, {})[f] || 'auto'); };
+  const locked = (g, f)=> !!(gameF(g, f) || {}).lock;
+  const autoAll = ()=> localStorage.getItem(AUTO_ALL) !== 'off';
+  // da quale fonte viene una proposta (per voto e anno, dove le fonti sono diverse)
+  const SRC_RX = {voto: {mc: /sito ufficiale/i, wiki: /Wikipedia/i, steam: /Steam|CheapShark/i, oc: /OpenCritic/i, rawg: /RAWG/i}, anno: {wd: /Wikidata/i, steam: /Steam/i, rawg: /RAWG/i}};
+  function prefFilter(g, ch, opts){
+    opts = opts || {};
+    return (ch || []).filter(c=>{
+      const f = fieldOf(c.id); if(!f) return true;
+      if(!opts.ignoreLock && locked(g, f)) return false;
+      const pf = opts.src && opts.src[f] ? opts.src[f] : prefFor(g, f);
+      if(pf === 'off') return false;
+      const rx = SRC_RX[f] && SRC_RX[f][pf];
+      if(rx){ const txt = ((c.patch && c.patch.vs) || '') + ' ' + c.label + ' ' + c.to; if(c.id === 'method' || c.id === 'vsrc') return rx.test((c.patch && c.patch.vs) || ''); return rx.test(txt); }
+      return true;
+    });
+  }
+  // con una fonte scelta per voto o anno «nascondo» le altre fonti di quel dato, così la proposta arriva proprio da quella
+  const without = (o, keys)=>{ if(!o) return o; const c = Object.assign({}, o); keys.forEach(k=> delete c[k]); return c; };
+  function maskSrc(g, src, opts){
+    const pv = (opts && opts.src && opts.src.voto) || prefFor(g, 'voto'), py = (opts && opts.src && opts.src.anno) || prefFor(g, 'anno');
+    let s2 = Object.assign({}, src);
+    if(pv !== 'auto' && pv !== 'off'){
+      if(pv !== 'mc') s2.voti = null;
+      if(pv !== 'wiki') s2.wiki = without(s2.wiki, ['mc']);
+      if(pv !== 'steam'){ s2.steam = without(s2.steam, ['mc']); if(s2.facts) s2.facts = {s: without(s2.facts.s, ['mc']), c: without(s2.facts.c, ['mc'])}; }
+      if(pv !== 'oc') s2.oc = null;
+      if(pv !== 'rawg') s2.rawg = without(s2.rawg, ['mc']);
+    }
+    if(py !== 'auto' && py !== 'off'){
+      if(py !== 'wd') s2.wd = without(s2.wd, ['years']);
+      if(py !== 'steam'){ s2.steam = without(s2.steam, ['year']); if(s2.facts) s2.facts = {s: without(s2.facts.s, ['y']), c: without(s2.facts.c, ['y'])}; }
+      if(py !== 'rawg') s2.rawg = without(s2.rawg, ['year']);
+    }
+    return s2;
+  }
+  let FORCE_VOTE = false;
+  function factChanges(g, src, opts){
+    const pv = (opts && opts.src && opts.src.voto) || prefFor(g, 'voto');
+    FORCE_VOTE = pv !== 'auto' && pv !== 'off';
+    try{ return prefFilter(g, factChanges0(g, maskSrc(g, src, opts)), opts); } finally { FORCE_VOTE = false; }
+  }
+  async function deepChanges(g, silent, opts){
+    const d = await deepChanges0(g, silent);
+    d.changes = prefFilter(g, d.changes, opts);
+    const pr = (opts && opts.src && opts.src.regge) || prefFor(g, 'regge');
+    if(pr !== 'auto' && pr !== 'web') d.changes = d.changes.filter(c=> c.id !== 'aging');     // «come regge oggi» scelto da una fonte di testo: non dalla ricerca web
+    return d;
+  }
+  // testi: se per storia / pro e contro / perché / come regge oggi hai scelto fonti diverse, riscrivo ogni gruppo SOLO dalla sua fonte
+  async function textChanges(g, src, silent, opts){
+    const TF = {storia: 'story', pro: 'proscons', perche: 'why', regge: 'aging'};
+    const groups = {};
+    Object.keys(TF).forEach(f=>{
+      if(opts && opts.only && opts.only !== f) return;
+      if(!(opts && opts.ignoreLock) && locked(g, f)) return;
+      let pf = (opts && opts.src && opts.src[f]) || prefFor(g, f); if(pf === 'off') return; if(pf === 'web') pf = 'auto';
+      (groups[pf] = groups[pf] || []).push(TF[f]);
+    });
+    const out = {changes: [], note: ''};
+    for(const k of Object.keys(groups)){
+      const s2 = k === 'auto' ? src : Object.assign({}, src, {wiki: k === 'wiki' ? src.wiki : null, rawg: k === 'rawg' ? src.rawg : null, steam: k === 'steam' ? src.steam : null});
+      const r = await textChanges0(g, s2, silent);
+      out.changes = out.changes.concat((r.changes || []).filter(c=> groups[k].includes(c.id)));
+      if(r.note) out.note = (out.note ? out.note + ' ' : '') + r.note + (k !== 'auto' ? ' (fonte scelta: ' + k + ')' : '');
+    }
+    return out;
+  }
+  // lucchetti anche al salvataggio: qualunque aggiornamento automatico che tocchi un campo bloccato viene ignorato per quel campo
+  const PATCH_FIELD = {score: 'voto', tier: 'voto', m: 'voto', vs: 'voto', year: 'anno', ysort: 'anno', tags: 'generi', story: 'storia'};
+  const ENRICH_FIELD = {pros: 'pro', cons: 'pro', agingNote: 'regge', whyLikeIt: 'perche', gameplayScore: 'gameplay', gameplayNote: 'gameplay', hoursMain: 'ore', hoursCompletionist: 'ore', language: 'lingua', remaster: 'lingua'};
+  function stripLocked(g, p){
+    const out = {}; let dropped = 0;
+    Object.keys(p || {}).forEach(k=>{
+      if(k === 'enrich'){ const e = {}; Object.keys(p.enrich || {}).forEach(sk=>{ const f = ENRICH_FIELD[sk]; if(f && locked(g, f)) dropped++; else e[sk] = p.enrich[sk]; }); if(Object.keys(e).length) out.enrich = e; }
+      else if(k === 'label'){ const l = {}; Object.keys(p.label || {}).forEach(sk=>{ const f = sk === 'it' ? 'lingua' : 'colpo'; if(locked(g, f)) dropped++; else l[sk] = p.label[sk]; }); if(Object.keys(l).length) out.label = l; }
+      else { const f = PATCH_FIELD[k]; if(f && locked(g, f)) dropped++; else out[k] = p[k]; }
+    });
+    return {p: out, dropped};
+  }
+  window.rtFields = {FIELDS, prefFor, locked, autoAll, gameF,
+    setGeneral(f, v){ const o = jget(FS_KEY, {}); if(v === 'auto') delete o[f]; else o[f] = v; jset(FS_KEY, o); },
+    setGame(g, f, v){ const o = jget(FG_KEY, {}); const e = o[g.id] = o[g.id] || {}; e[f] = Object.assign({}, e[f] || {}, v); if(!e[f].lock && (!e[f].src || e[f].src === 'gen')) delete e[f]; if(!Object.keys(e).length) delete o[g.id]; jset(FG_KEY, o); },
+    setAutoAll(on){ try{ localStorage.setItem(AUTO_ALL, on ? 'on' : 'off'); }catch(e){} }};
   function mergePatch(list){
     const p = {};
     list.forEach(c=>{ Object.keys(c.patch).forEach(k=>{ if(k === 'enrich') p.enrich = Object.assign(p.enrich || {}, c.patch.enrich); else if(k === 'label') p.label = Object.assign(p.label || {}, c.patch.label); else p[k] = c.patch[k]; }); });
@@ -402,8 +510,9 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
   // gioco aggiunto: la copia in memoria cambia a ogni salvataggio; lavoro sempre sull'ultima, altrimenti un salvataggio «vecchio» (es. scheda aperta da prima, o il completamento AI) cancella quello nuovo
   const latest = g=> (g && g.custom && typeof GAMES !== 'undefined' && GAMES.find(x=> x.id === g.id)) || g;
-  async function applyPatch(g, p, quiet){
+  async function applyPatch(g, p, quiet, opts){
     g = latest(g);
+    if(!(opts && opts.force)){ const sl = stripLocked(g, p); p = sl.p; if(!Object.keys(p).length) return; }
     // voto diventato verificato: la nota «è una stima» non è più vera, la correggo nei dati (vale anche per i giochi futuri)
     if((p.m === 'V' || g.m === 'V') && p.note == null && /voto e dettagli sono una stima/.test(g.note || '')) p = Object.assign({}, p, {note: g.note.replace(/ — (?:nessun Metacritic trovato: )?voto e dettagli sono una stima[^.]*\./, ' — voto verificato (Metacritic/OpenCritic).')});
     // cronologia (idea 29): salvo i valori di prima per poterli ripristinare
@@ -449,6 +558,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     if(!c || !c.patch || c.off || c.warn || c.id === 'score2') return false;
     if(c.patch.score != null && Math.abs(c.patch.score - g.score) > 15) return false;              // scarto enorme: probabile gioco sbagliato, chiedo
     if(/^(method|vsrc|score\d?|itsrc|itdub|similar|tagsync)$/.test(c.id)) return true;
+    if(autoAll() && !/^(symStory|symDopa|unreleased)$/.test(c.id)) return true;                  // «Applica tutto da solo»: ogni proposta senza avvisi si applica (si può annullare dalla cronologia)
     return isFill(c) && /^(story|proscons|aging|why|hours|gameplay|lang|label)$/.test(c.id);
   }
   // le proposte «sicure» (voto da fonte in ordine di priorità, lingua da Steam/PCGamingWiki/it.wikipedia, giochi affini) si applicano da sole, anche quelle rimaste in coda: niente scelte inutili
@@ -467,6 +577,58 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
   window.autoApproveQueue = autoApproveQueue;
   setTimeout(()=>{ try{ autoApproveQueue(); }catch(e){} }, 25000);
+
+  // ---- pannelli «Fonti e lucchetti» ----
+  function fpPanel(){ let el = document.getElementById('fieldPrefBackdrop'); if(!el){ el = document.createElement('div'); el.id = 'fieldPrefBackdrop'; el.className = 'dup-backdrop'; el.style.zIndex = 100800; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); } return el; }
+  const optHtml = (opts, cur)=> opts.map(o=> `<option value="${o[0]}"${o[0] === cur ? ' selected' : ''}>${escHtml(o[1])}</option>`).join('');
+  window.openFieldPrefs = function(){
+    const el = fpPanel(), gen = jget(FS_KEY, {});
+    el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🎛️ Fonti e lucchetti</b><button class="btn" data-ui-close>Chiudi</button></div>
+      <div class="lp-sub">Da dove prendere ogni informazione, per TUTTI i giochi. Nella scheda di un gioco («🎛️ Fonti» vicino a Update V+) puoi scegliere una fonte diversa solo per quel gioco e mettere il 🔒 lucchetto: un campo con il lucchetto non lo cambia più nessun aggiornamento automatico.</div>
+      <label class="fp-row fp-auto"><input type="checkbox" id="fpAutoAll"${autoAll() ? ' checked' : ''}> <span><b>Applica tutto da solo</b><small>Update+ e «Aggiorna info» correggono la scheda senza chiederti l'ok (resta la conferma solo per i casi con ⚠️, es. voto molto diverso). Ogni modifica si annulla dalla cronologia del gioco.</small></span></label>
+      <div class="fp-list">${Object.keys(FIELDS).map(f=> `<label class="fp-row"><span>${escHtml(FIELDS[f].label)}</span><select data-f="${f}">${optHtml(FIELDS[f].opts, gen[f] || 'auto')}</select></label>`).join('')}</div></div>`;
+    el.classList.add('show');
+    el.querySelector('#fpAutoAll').addEventListener('change', e=>{ window.rtFields.setAutoAll(e.target.checked); showToast(e.target.checked ? '✅ Le correzioni si applicano da sole' : 'Le correzioni aspettano il tuo ok', 2200); });
+    el.querySelectorAll('select[data-f]').forEach(sel=> sel.addEventListener('change', ()=>{ window.rtFields.setGeneral(sel.dataset.f, sel.value); showToast('Salvato: ' + FIELDS[sel.dataset.f].label, 1500); }));
+  };
+  window.openGameFields = function(g){
+    g = latest(g); const el = fpPanel();
+    const row = f=>{ const pg = gameF(g, f) || {}; const cur = pg.src || 'gen';
+      return `<div class="fp-row fp-g" data-f="${f}"><span>${escHtml(FIELDS[f].label)}${pg.lock ? ' 🔒' : ''}</span>
+        <select data-f="${f}"><option value="gen"${cur === 'gen' ? ' selected' : ''}>Come le impostazioni generali (${escHtml((FIELDS[f].opts.find(o=> o[0] === (jget(FS_KEY, {})[f] || 'auto')) || FIELDS[f].opts[0])[1].replace(/ \(.*$/, ''))})</option>${optHtml(FIELDS[f].opts, cur)}</select>
+        <span class="fp-act"><label class="fp-lock"><input type="checkbox" data-lock="${f}"${pg.lock ? ' checked' : ''}> 🔒 blocca</label><button class="btn" data-take="${f}">↻ Prendi adesso</button></span></div>`; };
+    el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🎛️ Fonti — ${escHtml(g.name)}</b><button class="btn" data-ui-close>Chiudi</button></div>
+      <div class="lp-sub">Per ogni informazione di questa scheda: da quale fonte prenderla. «↻ Prendi adesso» la scarica subito da quella fonte, ti mostra prima/dopo e, se la tieni, mette il 🔒: da lì in poi nessun aggiornamento automatico la cambia (finché non togli il lucchetto).</div>
+      <div class="fp-list">${Object.keys(FIELDS).map(row).join('')}</div><div id="fpTake"></div></div>`;
+    el.classList.add('show');
+    el.querySelectorAll('select[data-f]').forEach(sel=> sel.addEventListener('change', ()=>{ window.rtFields.setGame(g, sel.dataset.f, {src: sel.value}); }));
+    el.querySelectorAll('input[data-lock]').forEach(cb=> cb.addEventListener('change', ()=>{ window.rtFields.setGame(g, cb.dataset.lock, {lock: cb.checked ? 1 : 0}); showToast(cb.checked ? '🔒 Bloccato: gli aggiornamenti automatici non lo cambiano più' : 'Lucchetto tolto', 2200); openGameFields(g); }));
+    el.querySelectorAll('[data-take]').forEach(b=> b.addEventListener('click', async ()=>{
+      const f = b.dataset.take, sel = el.querySelector('select[data-f="' + f + '"]'); let pf = sel.value === 'gen' ? (jget(FS_KEY, {})[f] || 'auto') : sel.value;
+      if(pf === 'off'){ showToast('Hai scelto «non toccare»: scegli una fonte', 2500); return; }
+      const box = el.querySelector('#fpTake'); box.innerHTML = '<div class="lp-sub">🔎 Cerco «' + escHtml(FIELDS[f].label) + '» da ' + escHtml((FIELDS[f].opts.find(o=> o[0] === pf) || ['', pf])[1]) + '…</div>'; box.scrollIntoView({block: 'nearest'});
+      let ch = [];
+      try{
+        const src = await gather(g, false), o = {src: {[f]: pf}, ignoreLock: true};
+        if(/^(voto|anno|generi|lingua)$/.test(f)) ch = factChanges(g, src, o);
+        if(/^(storia|pro|perche|regge)$/.test(f) && !(f === 'regge' && (pf === 'web' || pf === 'auto'))) ch = ch.concat((await textChanges(g, src, false, Object.assign({only: f}, o))).changes);
+        if(/^(gameplay|ore|colpo|lingua)$/.test(f) || (f === 'regge' && (pf === 'web' || pf === 'auto'))) ch = ch.concat((await deepChanges(g, false, o)).changes);
+        ch = ch.filter(c=> fieldOf(c.id) === f && c.patch);
+      }catch(e){ box.innerHTML = '<div class="lp-sub">⚠️ ' + escHtml(llmErrorText ? llmErrorText(e) : (e.message || 'errore')) + '</div>'; return; }
+      if(!ch.length){ box.innerHTML = '<div class="lp-sub">Questa fonte non ha dati diversi da quelli attuali (o non ha il gioco). Puoi comunque mettere il 🔒 per tenere quelli di ora.</div>'; return; }
+      box.innerHTML = ch.map((c, i)=> `<div class="au-chg"><h4>${escHtml(c.label)}</h4><div class="au-box au-before"><small>PRIMA</small>${escHtml(c.from || '—')}</div><div class="au-box au-after"><small>DOPO (da questa fonte)</small>${escHtml(c.to)}</div></div>`).join('') +
+        '<div class="au-actions"><button class="btn primary" id="fpUse">✅ Usa questa e blocca 🔒</button><button class="btn" id="fpNo">Lascia com\'è</button></div>';
+      box.querySelector('#fpNo').addEventListener('click', ()=>{ box.innerHTML = ''; });
+      box.querySelector('#fpUse').addEventListener('click', async ()=>{
+        await applyPatch(g, mergePatch(ch), false, {force: true});
+        window.rtFields.setGame(g, f, {src: sel.value === 'gen' ? pf : sel.value, lock: 1});
+        showToast('✅ ' + FIELDS[f].label + ' aggiornato e bloccato 🔒', 3000);
+        try{ const ng = GAMES.find(x=> x.id === g.id) || g; openGameFields(ng); if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) openModal(ng); }catch(e){}
+      });
+    }));
+  };
+  document.addEventListener('click', e=>{ const b = e.target && e.target.closest && e.target.closest('#gameFieldsBtn'); if(b && typeof currentModalGame !== 'undefined' && currentModalGame) openGameFields(currentModalGame); });
+  (window.XMENU = window.XMENU || []).push({html: '🎛️ Fonti e lucchetti (da dove prendere ogni dato)', run: ()=> window.openFieldPrefs()});
   // ---- Mappa delle fonti: per ogni dato, in che ordine si cerca, e se ogni fonte funziona adesso ----
   const SRC_MAP = [
     ['Voto', 'Metacritic ufficiale (archivio dal server) → Wikipedia → Steam → dati settimanali → CheapShark → OpenCritic → RAWG → altrimenti Stima', ['voti', 'wiki', 'steam', 'cheap', 'oc', 'rawg']],
@@ -614,6 +776,12 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     let deepSrc = [];
     try{ const d = await deepChanges(g); if(d.changes.some(c=> c.id === 'aging')) changes = changes.filter(c=> c.id !== 'aging'); changes = changes.concat(d.changes); deepSrc = d.sources; if(d.note) note += (note ? ' ' : '') + d.note; }catch(e){ note += (note ? ' ' : '') + 'Ricerca approfondita non riuscita: ' + llmErrorText(e); }
     const sources = [src.rawg && `<a href="${src.rawg.url}" target="_blank" rel="noopener">RAWG</a>`, src.itw && `<a href="${src.itw.url}" target="_blank" rel="noopener">it.wikipedia</a>`, src.steam && `<a href="${src.steam.url}" target="_blank" rel="noopener">Steam</a>`, src.pcgw && `<a href="${src.pcgw.url}" target="_blank" rel="noopener">PCGamingWiki</a>`, src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
+    // «Applica tutto da solo» (⚙️ Fonti e lucchetti): le proposte senza avvisi si applicano subito; qui restano solo quelle con un ⚠️
+    if(autoAll() && changes.length){
+      const autoL = changes.filter(c=> canAuto(c, g));
+      if(autoL.length){ try{ await applyPatch(g, mergePatch(autoL)); markChecked(g.id); }catch(e){} changes = changes.filter(c=> !autoL.includes(c)); note = '✅ Applicate da sole: ' + autoL.map(c=> c.label).join(', ') + ' (le annulli dalla cronologia del gioco).' + (note ? ' ' + note : ''); }
+      if(!changes.length){ el.classList.remove('show'); try{ showToast(note, 7000); openModal(GAMES.find(x=> x.id === g.id) || g); }catch(e){} return; }
+    }
     if(!changes.length){ markChecked(g.id); el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
     el.innerHTML = shell(`<div class="lp-sub">Fonti: ${sources || 'nessuna'}. ${changes.length} ${changes.length === 1 ? 'modifica proposta' : 'modifiche proposte'}: scorri per vedere tutto e togli la spunta a ciò che non ti convince.${note ? '<br>' + escHtml(note) : ''}</div>
       <div class="au-rev">${changes.map((c,i)=> `<div class="au-chg"><label><h4><input type="checkbox" data-i="${i}" ${(c.off || c.warn) ? '' : 'checked'}> ${escHtml(c.label)}</h4></label>
@@ -917,7 +1085,11 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   function fpLine(){
     const el = document.getElementById('buildLine'); if(!el) return;
     let c = document.getElementById('upPlusLine');
-    if(!c){ c = document.createElement('button'); c.type = 'button'; c.id = 'upPlusLine'; c.className = 'upplus-line'; el.insertAdjacentElement('afterend', c); c.addEventListener('click', ()=> window.openAuditPanel && openAuditPanel('todo')); }
+    if(!c){ c = document.createElement('button'); c.type = 'button'; c.id = 'upPlusLine'; c.className = 'upplus-line'; c.addEventListener('click', ()=> window.openAuditPanel && openAuditPanel('todo'));
+      // posto fisso e piccolo: sulla stessa riga di «Database aggiornato…», allineato a destra
+      let row = document.getElementById('metaRow');
+      if(!row){ row = document.createElement('div'); row.id = 'metaRow'; el.parentNode.insertBefore(row, el); row.appendChild(el); }
+      row.appendChild(c); }
     const st = updatePlusStats();
     c.innerHTML = giIcon('upplus') + ' Update+ ' + st.done + '/' + st.total + (updatePlusOn() ? (fpBusy ? ' · al lavoro…' : '') : ' · spento');
   }

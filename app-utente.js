@@ -3,6 +3,17 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v194', date:'2026-10-01', time:'14:35', items:[
+    'Nuovo «🎛️ Fonti e lucchetti» (⚙️ Impostazioni → Dati e fonti, o ✨): scegli da quale fonte prendere OGNI informazione (voto, anno, generi, lingua, storia, pro e contro, perché piacerti, come regge oggi, gameplay, ore, colpo d\'occhio) oppure «non toccare mai». C\'è anche «Applica tutto da solo»: Update+ e «Aggiorna info» correggono senza chiederti l\'ok (resta la conferma solo per i casi con ⚠️) e tutto si annulla dalla cronologia.',
+    'Nella scheda di ogni gioco il pulsante «🎛️ Fonti» (vicino a Update V+): scegli la fonte solo per quel gioco, premi «↻ Prendi adesso», vedi prima/dopo e con «Usa questa e blocca 🔒» il dato resta fermo: nessun aggiornamento automatico o in background lo cambia più (finché non togli il lucchetto).',
+    'Il contatore Update+ in home ora sta piccolo e fisso a destra della riga «Database aggiornato».',
+    'Anteprima nella scheda: la locandina ufficiale si vede SEMPRE prima, ferma (aspetto che sia caricata), poi parte il carosello. Almeno 5 schermate quando possibile (Steam + RAWG insieme, con RAWG fino a 12). Nuove impostazioni: tempo della locandina iniziale, tempo di ogni schermata, locandina tra un giro e l\'altro, effetto (zoom lento, dissolvenza, scorrimento, panoramica).',
+    'Il radar a 8 punte diventa «🎯 Sintonia con i tuoi gusti»: un cerchio con la % di sintonia, poi i tuoi 10 gusti più forti come barre in ordine, con ✓ su quelli che ha il gioco. Dentro ci sono anche i simboli 💕🤝✨💉 del gioco, spiegati e collegati ai tuoi gusti.',
+    'Ordine di lettura della scheda: prima la storia e il colpo d\'occhio, poi la sintonia con i tuoi gusti, perché potrebbe piacerti, gameplay, pro e contro; dettagli tecnici in fondo.',
+    'Ricaricando la pagina resti nella vista dove eri (es. Novità) invece di tornare alla classifica.',
+    'OpenCritic SENZA chiave e senza limiti: ogni notte il server legge il voto dalle pagine pubbliche di OpenCritic per i giochi che Metacritic non ha (trovati tramite Wikidata). Oggi: 28 voti in più. La tua chiave RapidAPI ora serve solo come riserva.',
+    'Giro notturno: i voti ora si fanno prima delle colonne sonore (che sono lente: 150 giochi a notte).',
+  ]},
   {version:'v193', date:'2026-10-01', time:'13:54', items:[
     'Gemini, falso allarme corretto: Google spesso elenca insieme il limite al minuto e quello al giorno; bastava la parola «giorno» per mettere in pausa il modello principale fino al mattino dopo. Ora la pausa scatta solo se è davvero finita la quota del giorno; altrimenti aspetto i secondi indicati e riprovo. Le pause messe per errore sono state tolte.',
     'La Diagnostica prova DAVVERO il modello principale di Gemini: se risponde toglie la pausa; se è al limite dice se è il limite del minuto o del giorno e che intanto il modello leggero funziona.',

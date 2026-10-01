@@ -796,6 +796,7 @@ function openModal(g){
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
       ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : ''}
       ${typeof updatePlusNow === 'function' ? `<button class="btn upplus-btn" id="updatePlusBtn" title="Controlla voto (Metacritic), generi, anno, lingua, testi e locandina da tutte le fonti e ti mostra cosa cambiare">${giIcon('upplus')} ${freshInfo(g) ? 'Rifai Update V+' : 'Update V+'}</button>` : ''}
+      ${typeof openGameFields === 'function' ? `<button class="btn" id="gameFieldsBtn" title="Scegli da quale fonte prendere ogni informazione di questa scheda e blocca quelle che vuoi tenere">🎛️ Fonti</button>` : ''}
       <button class="btn" id="modalDelBtn" title="Elimina questo gioco dalla tua lista (chiede due conferme)">🗑️ Elimina</button>
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
     </div>

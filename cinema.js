@@ -11,7 +11,11 @@
     && !(navigator.connection && navigator.connection.saveData)
     && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const holdMs = ()=> Math.max(2000, Math.min(12000, (+LSG(K_HOLD, 5)) * 1000));
-  const SLIDE_MS = 4400, BACK_MS = 3800, MAX_CYCLES = 12;      // giro di schermate → copertina ferma → di nuovo le schermate, e così via
+  // tempi ed effetto scelti in ✨ → Anteprima cinematografica (o ⚙️ Impostazioni): schermata, copertina tra un giro e l'altro, stile del passaggio
+  const slideMs = ()=> Math.max(2000, Math.min(15000, (+LSG('jrpg_hero_slide', 4.4)) * 1000));
+  const backMs = ()=> Math.max(1500, Math.min(15000, (+LSG('jrpg_hero_back', 4)) * 1000));
+  const fxName = ()=> LSG('jrpg_hero_fx', 'zoom');
+  const MAX_CYCLES = 12, MIN_SHOTS = 5;      // giro di schermate → copertina ferma → di nuovo le schermate, e così via
 
   let ticket = 0, timers = [], playing = false, obs = null;
   const stop = ()=>{ ticket++; timers.forEach(clearTimeout); timers = []; playing = false; if(obs){ obs.disconnect(); obs = null; } };
@@ -25,19 +29,20 @@
     }catch(e){ return []; }
   }
   async function rawgShots(g){
-    const c = LSG('rt_shots_rawg', {}), e = c[g.id];
+    const c = LSG('rt_shots_rawg2', {}), e = c[g.id];
     if(e && Date.now() - e.t < 30 * 864e5) return e.u || [];
     try{
       if(!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has() && SearchHub.rawg.shots)) return [];
       const u = await SearchHub.rawg.shots(g.name);
       c[g.id] = {t: Date.now(), u: u || []};
       const ks = Object.keys(c); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k=> delete c[k]);
-      LSS('rt_shots_rawg', c); return u || [];
+      LSS('rt_shots_rawg2', c); return u || [];
     }catch(e2){ return []; }
   }
   async function shotsFor(g){
-    const s = steamShots(g); if(s.length) return s;
-    return rawgShots(g);
+    const s = steamShots(g); if(s.length >= MIN_SHOTS) return s;
+    const r = await rawgShots(g);                                        // poche schermate: aggiungo quelle di RAWG (se c'è la chiave)
+    return s.concat(r.filter(u=> !s.includes(u))).slice(0, 12);
   }
   window.rtShotsFor = shotsFor;
 
@@ -72,10 +77,13 @@
     if(!same()) return;
     if(first) urls.push(first);
     urls0.slice(1).forEach(u=> urls.push(u));                          // le altre si scaricano una alla volta, appena prima di mostrarle
+    // la locandina ufficiale arriva spesso un attimo dopo l'apertura della scheda: la aspetto (fino a 4 s), così si vede SEMPRE prima, ferma, con le sue proporzioni
+    const coverIn = ()=>{ const im = document.querySelector('#coverBlock img.modal-cover'); return !!(im && im.complete && im.naturalWidth); };
+    for(let w = 0; w < 40 && !coverIn(); w++){ await new Promise(r=> setTimeout(r, 100)); if(!same()) return; }
     const frame0 = mount(); if(!frame0) return;
-    const hadCover = !!frame0.querySelector('img.modal-cover');
+    const hadCover = coverIn();
     bar.innerHTML = urls.map(()=> '<i></i>').join('');
-    bar.style.setProperty('--hd', (SLIDE_MS / 1000) + 's');
+    bar.style.setProperty('--hd', (slideMs() / 1000) + 's'); layer.dataset.fx = fxName(); layer.style.setProperty('--hsd', (slideMs() / 1000 + 2) + 's');
     const segs = [...bar.children];
     // se un altro pezzo dell'app ridisegna la cornice mentre scorrono le schermate, la copertina non deve riaffacciarsi: rimetto subito lo strato e la classe
     try{
@@ -93,7 +101,7 @@
       if(cur >= urls.length){                                          // fine giro: torna la copertina
         playing = false; frame.classList.remove('hero-play'); imgs.forEach(im=> im.classList.remove('on')); setBar(-1); cycles++;
         if(cycles >= MAX_CYCLES) return;                               // dopo molti giri si ferma sulla copertina
-        cur = 0; later(show, BACK_MS); return;
+        cur = 0; later(show, backMs()); return;
       }
       const ok = await preload(urls[cur]);
       if(!same()) return;
@@ -103,9 +111,9 @@
       next.classList.remove('on'); void next.offsetWidth; next.classList.add('on');       // riparte il lento zoom
       prev.classList.remove('on');
       playing = true; mount().classList.add('hero-play'); setBar(cur);
-      cur++; later(show, SLIDE_MS);
+      cur++; later(show, slideMs());
     }
-    later(show, hadCover ? holdMs() : 300);
+    later(show, hadCover ? holdMs() : 1200);
   }
   window.rtHero = {run, stop, enabled};
 
@@ -127,9 +135,15 @@
     const on = LSG(K_ON, 'on') !== 'off', hold = +LSG(K_HOLD, 5);
     const body = U.sheet('xHero', '🎬 Anteprima cinematografica', `<div class="lp-sub">Aprendo un gioco la copertina resta ferma in alto per qualche secondo, poi passa con dissolvenze alle schermate di gioco (senza filmati, quindi poco spoiler e pochi dati). La musica continua.</div>
       <label class="ask-toggle"><input type="checkbox" id="hrOn" ${on ? 'checked' : ''}> Attiva nelle schede dei giochi</label>
-      <label class="gs-row">Copertina ferma per <select id="hrHold">${[3, 5, 8, 12].map(n=> `<option value="${n}"${n === hold ? ' selected' : ''}>${n} secondi</option>`).join('')}</select></label>
+      <label class="gs-row">Locandina ferma all'inizio <select id="hrHold">${[2, 3, 5, 8, 12].map(n=> `<option value="${n}"${n === hold ? ' selected' : ''}>${n} secondi</option>`).join('')}</select></label>
+      <label class="gs-row">Ogni schermata resta <select id="hrSlide">${[2.5, 3.5, 4.4, 6, 8, 10].map(n=> `<option value="${n}"${n === +LSG('jrpg_hero_slide', 4.4) ? ' selected' : ''}>${String(n).replace('.', ',')} secondi</option>`).join('')}</select></label>
+      <label class="gs-row">Locandina tra un giro e l'altro <select id="hrBack">${[2, 4, 6, 10].map(n=> `<option value="${n}"${n === +LSG('jrpg_hero_back', 4) ? ' selected' : ''}>${n} secondi</option>`).join('')}</select></label>
+      <label class="gs-row">Effetto del passaggio <select id="hrFx">${[['zoom', 'Dissolvenza con zoom lento'], ['fade', 'Solo dissolvenza'], ['slide', 'Scorrimento laterale'], ['pan', 'Panoramica (si sposta piano)']].map(o=> `<option value="${o[0]}"${o[0] === fxName() ? ' selected' : ''}>${o[1]}</option>`).join('')}</select></label>
       <div class="lp-sub">Si ferma da sola con il risparmio dati o con «riduci animazioni» del telefono. Per uno spettacolo a schermo intero con le tue copertine usa anche «Modalità vetrina».</div>`);
     body.querySelector('#hrOn').addEventListener('change', e=>{ LSS(K_ON, e.target.checked ? 'on' : 'off'); if(!e.target.checked) stop(); });
     body.querySelector('#hrHold').addEventListener('change', e=> LSS(K_HOLD, +e.target.value));
+    body.querySelector('#hrSlide').addEventListener('change', e=> LSS('jrpg_hero_slide', +e.target.value));
+    body.querySelector('#hrBack').addEventListener('change', e=> LSS('jrpg_hero_back', +e.target.value));
+    body.querySelector('#hrFx').addEventListener('change', e=> LSS('jrpg_hero_fx', e.target.value));
   }});
 })();
