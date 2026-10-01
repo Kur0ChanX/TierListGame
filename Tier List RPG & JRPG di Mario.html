@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raccoon Tier — Tier List RPG & JRPG di Mario</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="build" content="v181">
+<meta name="build" content="v182">
 <meta name="theme-color" content="#161221">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -182,6 +182,9 @@
         <button class="qf-chip qf-reset" type="button" data-qf="reset"><svg class="gi gi-s" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-refresh"/></svg> Azzera</button>
       </div>
       <div class="stats-row" id="statsRow"></div>
+      <details class="filters-adv" id="filtersAdv">
+        <summary id="faSummary"><svg class="gi gi-s" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-sliders"/></svg> <b>Altri filtri</b> <span id="faActive">nessuno attivo</span></summary>
+        <div class="fa-body">
       <div class="controls">
         <select id="methodFilter">
           <option value="">Tutte le fonti</option>
@@ -244,6 +247,8 @@
           <button class="btn" id="qualityCheckBtn"><svg class="gi gi-s" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-pulse"/></svg> Verifica qualità dati</button>
         </div>
       </details>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -279,11 +284,19 @@
   <div class="empty" id="emptyMsg" style="display:none;">Nessun gioco trovato con questi filtri.</div>
 
   <div id="myTierWrap" style="display:none;">
-    <div class="mytier-toolbar">
-      <span class="mytier-hint">Trascina i giochi tra i tier (desktop), tieni premuto e trascina (telefono) oppure tocca ⇅ per spostarli. Salvata solo su questo dispositivo.</span>
-      <button class="btn" id="resetMyTierBtn"><svg class="gi gi-s" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-refresh"/></svg> Reset alla classifica ufficiale</button>
+    <div class="mt-guide" id="mtGuide">
+      <div class="mt-g-head"><b>La mia tier list</b><span class="mt-saved">salvata su questo dispositivo</span></div>
+      <details class="mt-how" id="mtHow" open><summary>Come funziona</summary>
+      <ol class="mt-steps">
+        <li><b>Scegli un gioco</b>: cercalo qui sotto oppure prendilo da «Da classificare».</li>
+        <li><b>Scegli il suo tier</b>, da S+ (il migliore) a F: tocca il tier accanto al gioco.</li>
+        <li>Per cambiarlo tocca di nuovo il tier. Sul telefono puoi anche tenere premuto un gioco e trascinarlo su un altro tier.</li>
+      </ol></details>
+      <div class="mt-modes" id="mtModes" role="tablist"><button type="button" class="mt-mode" data-mtm="mine">Solo i miei giochi</button><button type="button" class="mt-mode" data-mtm="all">Tutti i giochi (parto dalla classifica ufficiale)</button></div>
+      <div class="mytier-toolbar"><button class="btn" id="resetMyTierBtn"><svg class="gi gi-s" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-refresh"/></svg> Ricomincia da zero</button></div>
     </div>
-    <div class="mt-search"><input id="mtSearch" type="search" placeholder="Cerca un gioco nella tua tier list…" autocomplete="off" enterkeyhint="search"><button type="button" id="mtClear" class="btn" hidden aria-label="Cancella">✕</button></div>
+    <div class="mt-search"><input id="mtSearch" type="search" placeholder="Cerca un gioco da aggiungere alla tua tier list…" autocomplete="off" enterkeyhint="search"><button type="button" id="mtClear" class="btn" hidden aria-label="Cancella">✕</button></div>
+    <div class="mt-tray" id="mtTray"></div>
     <div class="mt-jump" id="mtJump"></div>
     <div id="myTierSections"></div>
   </div>

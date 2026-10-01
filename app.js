@@ -706,9 +706,14 @@ function effectiveTier(g){ return MYTIER[g.id] || g.tier; }
 function moveToTier(id, tier){
   const g = GAMES.find(x=>String(x.id)===String(id));
   if(!g) return;
-  if(g.tier===tier) delete MYTIER[id]; else MYTIER[id] = tier;
+  MYTIER[id] = tier;                                  // sempre esplicito: «l'ho classificato io» anche se coincide con la classifica ufficiale
   saveMyTier(); renderMyTier();
-  showToast(`${g.name} spostato in ${tier}`);
+  showToast(`${g.name} → ${tier}`);
+}
+function removeFromMyTier(id){
+  const g = GAMES.find(x=>String(x.id)===String(id)); if(!g) return;
+  delete MYTIER[id]; saveMyTier(); renderMyTier();
+  showToast(`${g.name} tolto dalla tua tier list`);
 }
 
 // ---- Classifiche per genere: "JRPG / RPG" (predefinita) + le liste per genere che scegli tu ----
@@ -997,6 +1002,7 @@ function searchFuzzyMatch(g, q){
   return qt.every(t=> words.some(w=> w.startsWith(t) || (t.length >= 4 && (editDistanceWithin(t, w, t.length >= 7 ? 2 : 1) || (w.length > t.length && editDistanceWithin(t, w.slice(0, t.length), 1))))));
 }
 function applyFilters(){
+  try{ faUpdate(); }catch(e){}
   let list = GAMES.filter(inActiveList);
   if(state.tiers.size>0) list = list.filter(g=> state.tiers.has(state.view==='mytier' ? effectiveTier(g) : g.tier));
   if(state.method) list = list.filter(g=> state.method === 'V' || state.method === 'S' ? g.m === state.method : srcKind(g) === state.method);
@@ -1218,7 +1224,7 @@ document.getElementById('themeBtn').addEventListener('click', ()=>{
 
 // View tabs
 function setView(v){
-  state.view = v;
+  state.view = v; document.body.dataset.view = v;
   document.querySelectorAll('.view-tab').forEach(t=> t.classList.toggle('active', t.dataset.view===v));
   document.getElementById('tableWrap').style.display = (v==='list') ? '' : 'none';
   document.getElementById('emptyMsg').style.display = 'none';
@@ -1299,24 +1305,69 @@ function mtEnableTouchDrag(chip, gid){
   chip.addEventListener('touchend', ()=>{ if(active && lastZone){ const tier = lastZone.dataset.tier; cleanup(); moveToTier(gid, tier); } else cleanup(); });
   chip.addEventListener('touchcancel', cleanup);
 }
+// ---- La mia tier list: «Solo i miei giochi» (predefinita) oppure «Tutti» (parte dalla classifica ufficiale) ----
+const MT_TIERS = ['S+','S','A','B','C','D','E','F'];
+let mtMode = 'mine'; try{ mtMode = localStorage.getItem('jrpg_mt_mode') === 'all' ? 'all' : 'mine'; }catch(e){}
+function openTierSheet(g){
+  const U = window.XUI; if(!U || !U.sheet){ openTierPicker(document.body, g.id); return; }
+  const cur = MYTIER[g.id], off = g.tier;
+  const body = U.sheet('xTierSheet', 'In che tier lo metti?', `<div class="mt-sheet-name"><b>${escHtml(g.name)}</b><small>${g.year ? escHtml(g.year) + ' · ' : ''}${scoreTxt(g)}${off && off !== 'ND' ? ' · classifica ufficiale: ' + off : ''}</small></div>
+    <div class="mt-sheet-grid">${MT_TIERS.map(t=> `<button type="button" class="mt-sheet-t${cur === t ? ' cur' : ''}" data-t="${t}"><span class="badge big ${TIER_LABEL[t]}">${t}</span></button>`).join('')}</div>
+    <div class="lp-tools">${cur ? '<button type="button" class="btn" data-rm="1">Togli dalla mia tier list</button>' : ''}<button type="button" class="btn" data-open="1">Apri la scheda</button></div>`);
+  const close = ()=>{ const el = document.getElementById('xTierSheet'); if(el) el.classList.remove('show'); };
+  body.querySelectorAll('[data-t]').forEach(b=> b.addEventListener('click', ()=>{ close(); moveToTier(g.id, b.dataset.t); try{ window.rtHaptic && rtHaptic('success'); }catch(e){} }));
+  const rm = body.querySelector('[data-rm]'); if(rm) rm.addEventListener('click', ()=>{ close(); removeFromMyTier(g.id); });
+  body.querySelector('[data-open]').addEventListener('click', ()=>{ close(); openModal(g); });
+}
+function mtChip(g, opts){
+  opts = opts || {};
+  const chip = document.createElement('div');
+  chip.className = 'mytier-chip' + (opts.tray ? ' mt-tray-chip' : '');
+  chip.draggable = !opts.tray;
+  const t = MYTIER[g.id];
+  chip.innerHTML = `<span class="nm" title="${escHtml(g.name)}">${escHtml(g.name)}</span><span class="sc">${scoreTxt(g)}</span><button class="mt-tb${t ? '' : ' mt-tb-new'}" aria-label="Scegli il tier">${t ? `<span class="badge ${TIER_LABEL[t]}">${t}</span>` : 'Scegli tier'} ▾</button>`;
+  chip.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', String(g.id)); });
+  chip.querySelector('.nm').addEventListener('click', ()=> openModal(g));
+  chip.querySelector('.mt-tb').addEventListener('click', e=>{ e.stopPropagation(); openTierSheet(g); });
+  if(!opts.tray) mtEnableTouchDrag(chip, g.id);
+  return chip;
+}
 function renderMyTier(){
-  const list = applyFilters();
-  const q = mtNorm(mtQuery);
-  const grouped = {};
-  TIERS_LIST.forEach(t=> grouped[t]=[]);
-  list.forEach(g=>{
-    if(q && !mtNorm(g.name).includes(q)) return;
-    const t = effectiveTier(g);
-    if(!grouped[t]) grouped[t]=[];
-    grouped[t].push(g);
-  });
+  const q = mtNorm(mtQuery), mine = mtMode === 'mine';
+  document.querySelectorAll('#mtModes .mt-mode').forEach(b=> b.classList.toggle('active', b.dataset.mtm === mtMode));
+  document.body.dataset.mtmode = mtMode;
+  const how = document.getElementById('mtHow'); if(how && !how.dataset.touched){ how.open = !GAMES.some(g=> MYTIER[g.id]); }
+  const tray = document.getElementById('mtTray'); if(tray) tray.innerHTML = '';
+  const grouped = {}; MT_TIERS.concat(['ND']).forEach(t=> grouped[t] = []);
+  // elenco di partenza: solo i miei (fuori dai filtri della home) oppure tutti i giochi filtrati come nella classifica
+  let base = mine ? GAMES.filter(g=> MYTIER[g.id]) : applyFilters();
+  const rankedCount = GAMES.reduce((n, g)=> n + (MYTIER[g.id] ? 1 : 0), 0);
+  let results = null;
+  if(mine && q){ results = GAMES.filter(g=> mtNorm(g.name).includes(q)).sort((a, b)=> b.score - a.score).slice(0, 40); base = base.filter(g=> mtNorm(g.name).includes(q)); }
+  else if(q) base = base.filter(g=> mtNorm(g.name).includes(q));
+  base.forEach(g=>{ const t = effectiveTier(g); (grouped[t] = grouped[t] || []).push(g); });
+  if(mine && tray){
+    if(results){
+      tray.innerHTML = `<div class="mt-tray-head"><b>Risultati per «${escHtml(mtQuery)}»</b><small>tocca «Scegli tier» per metterlo nella tua tier list</small></div><div class="mt-tray-list"></div>`;
+      const host = tray.querySelector('.mt-tray-list'); results.forEach(g=> host.appendChild(mtChip(g, {tray: true})));
+      if(!results.length) host.innerHTML = '<div class="lp-sub">Nessun gioco con questo nome.</div>';
+    } else {
+      const sug = GAMES.filter(g=> !MYTIER[g.id] && (FAVS.has(g.id) || STATUSES[g.id] === 'played' || STATUSES[g.id] === 'playing')).sort((a, b)=> b.score - a.score);
+      if(sug.length){
+        tray.innerHTML = `<div class="mt-tray-head"><b>Da classificare (${sug.length})</b><small>giochi che hai già giocato o messo tra i preferiti: scegli il tier di ognuno</small></div><div class="mt-tray-list"></div>`;
+        const host = tray.querySelector('.mt-tray-list'); sug.slice(0, 40).forEach(g=> host.appendChild(mtChip(g, {tray: true})));
+      } else if(!rankedCount){
+        tray.innerHTML = `<div class="mt-empty-card"><b>La tua tier list è vuota</b><p>Cerca un gioco nella casella qui sotto e scegli il suo tier. Se segni qualche gioco come «Giocato» o tra i preferiti, comparirà qui da classificare.</p></div>`;
+      }
+    }
+  }
   const wrap = document.getElementById('myTierSections');
   wrap.innerHTML = '';
   const jump = document.getElementById('mtJump'); if(jump) jump.innerHTML = '';
   let total = 0;
-  TIERS_LIST.forEach(t=>{
+  (mine ? MT_TIERS : TIERS_LIST).forEach(t=>{
     const games = grouped[t] || []; total += games.length;
-    if(q && !games.length) return;                                   // con la ricerca mostro solo i tier che contengono qualcosa
+    if((q || mine) && !games.length) return;                          // niente blocchi vuoti: solo i tier che contengono qualcosa
     if(jump) jump.insertAdjacentHTML('beforeend', `<button type="button" class="mt-jbtn" data-jt="${t}"><span class="badge ${TIER_LABEL[t]}">${t}</span> ${games.length}</button>`);
     const section = document.createElement('div');
     section.className = 'mytier-section' + (games.length ? '' : ' mt-empty');
@@ -1325,20 +1376,10 @@ function renderMyTier(){
     const dz = document.createElement('div');
     dz.className = 'mytier-dropzone';
     dz.dataset.tier = t;
-    games.sort((a,b)=> b.score-a.score).forEach(g=>{
-      const chip = document.createElement('div');
-      chip.className = 'mytier-chip';
-      chip.draggable = true;
-      chip.innerHTML = `<span class="nm" title="${g.name}">${g.name}</span><span class="sc">${scoreTxt(g)}</span><button class="movebtn" aria-label="Sposta">⇅</button>`;
-      chip.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', String(g.id)); });
-      chip.querySelector('.nm').addEventListener('click', ()=> openModal(g));
-      chip.querySelector('.movebtn').addEventListener('click', (e)=>{ e.stopPropagation(); openTierPicker(e.currentTarget, g.id); });
-      mtEnableTouchDrag(chip, g.id);
-      dz.appendChild(chip);
-    });
-    dz.addEventListener('dragover', (e)=>{ e.preventDefault(); dz.classList.add('dragover'); });
+    games.sort((a, b)=> b.score - a.score).forEach(g=> dz.appendChild(mtChip(g)));
+    dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('dragover'); });
     dz.addEventListener('dragleave', ()=> dz.classList.remove('dragover'));
-    dz.addEventListener('drop', (e)=>{
+    dz.addEventListener('drop', e=>{
       e.preventDefault(); dz.classList.remove('dragover');
       const id = e.dataTransfer.getData('text/plain');
       if(id) moveToTier(id, t);
@@ -1346,8 +1387,11 @@ function renderMyTier(){
     section.appendChild(dz);
     wrap.appendChild(section);
   });
-  if(q && !total) wrap.innerHTML = window.rtEmpty ? window.rtEmpty('search') : '<div class="empty" style="padding:24px;text-align:center;">Nessun gioco trovato con questo nome.</div>';
+  if(mine && !rankedCount && !q) wrap.innerHTML = '';
+  else if(q && !total && !results) wrap.innerHTML = window.rtEmpty ? window.rtEmpty('search') : '<div class="empty" style="padding:24px;text-align:center;">Nessun gioco trovato con questo nome.</div>';
 }
+{ const how = document.getElementById('mtHow'); if(how) how.addEventListener('toggle', e=>{ if(e.isTrusted !== false) how.dataset.touched = '1'; }); }
+document.getElementById('mtModes').addEventListener('click', e=>{ const b = e.target.closest('[data-mtm]'); if(!b) return; mtMode = b.dataset.mtm; try{ localStorage.setItem('jrpg_mt_mode', mtMode); }catch(x){} renderMyTier(); });
 (function(){
   const inp = document.getElementById('mtSearch'), clr = document.getElementById('mtClear'), jump = document.getElementById('mtJump');
   if(!inp) return;
@@ -1357,8 +1401,10 @@ function renderMyTier(){
   jump.addEventListener('click', e=>{ const b = e.target.closest('[data-jt]'); if(!b) return; const el = document.getElementById('mt-sec-' + String(b.dataset.jt).replace('+', 'plus')); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); });
 })();
 document.getElementById('resetMyTierBtn').addEventListener('click', ()=>{
+  if(!Object.keys(MYTIER).length){ showToast('La tua tier list è già vuota'); return; }
+  if(!window.confirm('Ricomincio da zero? La tua tier list personale (' + Object.keys(MYTIER).length + ' giochi) verrà svuotata. I preferiti e gli stati restano.')) return;
   MYTIER = {}; saveMyTier(); renderMyTier();
-  showToast('Classifica personale azzerata');
+  showToast('La tua tier list è stata svuotata');
 });
 
 // Collapsible filters panel
@@ -1376,6 +1422,26 @@ filtersBtn.addEventListener('click', ()=>{
   applyFiltersPanelState();
 });
 applyFiltersPanelState();
+// «Altri filtri»: un solo riquadro che raccoglie fonti, epoche, voto, scheda, stato, generi, preferiti… La riga dice cosa è attivo anche da chiuso.
+function faUpdate(){
+  const el = document.getElementById('faActive'), box = document.getElementById('filtersAdv'); if(!el || !box) return;
+  const parts = [], sel = id=>{ const e = document.getElementById(id); return e && e.value && e.selectedIndex >= 0 ? e.options[e.selectedIndex].text.trim() : ''; };
+  ['methodFilter', 'decadeFilter', 'scoreFilter', 'storyFilter', 'statusFilter'].forEach(id=>{ const t = sel(id); if(t) parts.push(t); });
+  if(state.tags && state.tags.size) parts.push(state.tags.size + (state.tags.size === 1 ? ' genere' : ' generi'));
+  if(state.mood) parts.push('umore');
+  if(state.onlyFavs) parts.push('★ preferiti');
+  const dn = document.getElementById('dnaSortBtn'); if(dn && dn.classList.contains('active')) parts.push('più adatti a te');
+  el.textContent = parts.length ? parts.length + (parts.length === 1 ? ' attivo: ' : ' attivi: ') + parts.join(' · ') : 'nessuno attivo';
+  box.classList.toggle('has-active', parts.length > 0);
+}
+(function(){
+  const box = document.getElementById('filtersAdv'); if(!box) return;
+  try{ box.open = localStorage.getItem('jrpg_filters_adv') === '1'; }catch(e){}
+  box.addEventListener('toggle', ()=>{ try{ localStorage.setItem('jrpg_filters_adv', box.open ? '1' : '0'); }catch(e){} });
+  filtersPanel.addEventListener('click', ()=> setTimeout(faUpdate, 80));
+  filtersPanel.addEventListener('change', ()=> setTimeout(faUpdate, 80));
+  faUpdate();
+})();
 
 // Shareable link
 (function(){

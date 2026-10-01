@@ -1029,3 +1029,41 @@ body:has(#modalBackdrop.show) .rt-music.docked{display:none !important}
 .saga-upd{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px}
 .saga-upd .lp-sub{flex-basis:100%; margin:0}
 .mc-link{font-size:.78rem; margin-left:6px; white-space:nowrap}
+
+/* ---- v182: «Altri filtri» in un solo riquadro ---- */
+.filters-adv{margin:8px 0; border-radius:16px; border:1px solid rgba(var(--a1rgb),.28); background:rgba(var(--a1rgb),.07)}
+.filters-adv > summary{display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer; list-style:none; min-height:44px}
+.filters-adv > summary::-webkit-details-marker{display:none}
+.filters-adv > summary::after{content:'▾'; margin-left:auto; opacity:.7; transition:transform .25s ease}
+.filters-adv[open] > summary::after{transform:rotate(180deg)}
+.filters-adv #faActive{font-size:.82rem; opacity:.78; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.filters-adv.has-active{border-color:rgba(var(--a1rgb),.7); box-shadow:0 0 0 2px rgba(var(--a1rgb),.18)}
+.filters-adv.has-active #faActive{opacity:1; font-weight:600}
+.filters-adv .fa-body{padding:2px 10px 10px}
+
+/* ---- v182: La mia tier list, spiegata e guidata ---- */
+.mt-guide{margin:8px 0 10px; padding:12px 14px; border-radius:18px; border:1px solid rgba(var(--a1rgb),.3); background:rgba(var(--a1rgb),.08)}
+.mt-g-head{display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap}
+.mt-g-head b{font-size:1.02rem} .mt-saved{font-size:.72rem; opacity:.7}
+.mt-steps{margin:8px 0 10px 18px; padding:0; font-size:.84rem; line-height:1.4} .mt-steps li{margin:3px 0}
+.mt-modes{display:flex; gap:6px; flex-wrap:wrap; margin:6px 0}
+.mt-mode{flex:1 1 150px; padding:9px 10px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:inherit; font-size:.82rem; cursor:pointer}
+.mt-mode.active{background:rgba(var(--a1rgb),.28); border-color:rgba(var(--a1rgb),.8); font-weight:700}
+.mt-guide .mytier-toolbar{margin:6px 0 0; justify-content:flex-end}
+.mt-tray{margin:6px 0 4px}
+.mt-tray-head{display:flex; flex-direction:column; gap:1px; margin:6px 2px} .mt-tray-head small{opacity:.75; font-size:.76rem}
+.mt-tray-list{display:flex; flex-wrap:wrap; gap:6px}
+.mt-tray-chip{cursor:default; background:rgba(var(--a1rgb),.1); border-color:rgba(var(--a1rgb),.4)}
+.mt-tb{flex:none; display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); background:var(--card); color:inherit; font-size:.76rem; cursor:pointer; min-height:30px}
+.mt-tb-new{background:rgba(var(--a1rgb),.3); border-color:rgba(var(--a1rgb),.8); font-weight:700}
+.mt-tb .badge{font-size:.72rem; padding:1px 7px}
+.mt-empty-card{padding:16px; border-radius:16px; border:1px dashed rgba(var(--a1rgb),.5); text-align:center} .mt-empty-card p{margin:6px 0 0; opacity:.85; font-size:.86rem}
+.mt-sheet-name{display:flex; flex-direction:column; gap:2px; margin-bottom:10px} .mt-sheet-name small{opacity:.75}
+.mt-sheet-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px}
+.mt-sheet-t{padding:10px 4px; border-radius:14px; border:2px solid transparent; background:var(--card); cursor:pointer; display:flex; justify-content:center; min-height:52px; align-items:center}
+.mt-sheet-t.cur{border-color:rgba(var(--a1rgb),.9)}
+.mt-sheet-t:active{transform:scale(.94)}
+@media (max-width:760px){ .mytier-chip.mt-tray-chip{flex:1 1 100%} }
+.mt-how > summary{cursor:pointer; font-size:.84rem; opacity:.85; margin:6px 0 0; list-style:none} .mt-how > summary::-webkit-details-marker{display:none} .mt-how > summary::before{content:'ⓘ '}
+/* nella mia tier list (solo i miei) i filtri della classifica e le liste per genere non servono: tolgo il rumore */
+body[data-view="mytier"][data-mtmode="mine"] #filtersPanel, body[data-view="mytier"][data-mtmode="mine"] #listBar{display:none !important}
