@@ -38,7 +38,7 @@
   function cardHtml(g){
     const c = coverOf(g), st = (typeof STATUSES !== 'undefined') && STATUSES[g.id];
     const fav = FAVS.has(g.id) ? '<span class="x-fav">★</span>' : '';
-    const img = c ? `<img src="${esc(coverThumb(c, 360))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onerror="if(this.dataset.orig&&this.src!==this.dataset.orig){this.src=this.dataset.orig}else{this.remove()}">` : '';
+    const img = c ? `<img src="${esc(coverThumb(c, 360))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onload="this.style.visibility=''" onerror="this.style.visibility='hidden';if(this.dataset.orig&&this.src!==this.dataset.orig){this.src=this.dataset.orig}else{this.remove()}">` : '';
     const ph = `<div class="x-ph" style="--tc:${TIER_COL[g.tier] || '#7c5cff'}"><span>${esc(g.name)}</span></div>`;
     const badge = `<span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>`;
     if(MODE === 'grid'){
@@ -48,23 +48,34 @@
     const stl = st && STATUS_INFO[st] ? `<span class="x-st">${esc(STATUS_INFO[st].label)}</span>` : '';
     return `<div class="x-row" data-id="${g.id}"><div class="x-thumb">${ph}${img}</div><div class="x-info"><div class="x-name">${fav}${esc(g.name)}</div><div class="x-meta">${esc(g.plat)} · ${esc(g.year || '')}${hoursOf(g) ? ' · ' + hoursOf(g) + 'h' : ''}</div><div class="x-tags">${tags}${stl}</div></div><div class="x-score">${badge}<b>${g.score}</b></div></div>`;
   }
+  // Disegno «a pezzi» e SENZA rifare le schede già giuste: prima ogni aggiornamento in background (Update+, voti…) ricreava tutta la griglia,
+  // le copertine ripartivano da capo e si vedeva lo sfarfallio (icona rotta → sfondo → icona rotta). Ora si cambiano solo le schede diverse.
+  const tpl = document.createElement('template');
+  const mk = html=>{ tpl.innerHTML = html.trim(); const n = tpl.content.firstElementChild; n._sig = html; return n; };
   function renderAlt(){
     const my = ++altToken;
     if(altObs){ altObs.disconnect(); altObs = null; }
     const list = applyFilters();
-    alt.className = 'alt-view mode-' + MODE;
-    alt.innerHTML = list.length ? '' : (window.rtEmpty ? window.rtEmpty('list') : '<div class="empty" style="display:block">Nessun gioco trovato con questi filtri.</div>');
-    let shown = 0;
-    (function more(){
+    const cls = 'alt-view mode-' + MODE; if(alt.className !== cls){ alt.className = cls; alt.innerHTML = ''; }
+    if(!list.length){ alt.innerHTML = window.rtEmpty ? window.rtEmpty('list') : '<div class="empty" style="display:block">Nessun gioco trovato con questi filtri.</div>'; return; }
+    [...alt.children].forEach(n=>{ if(!n._sig) n.remove(); });                       // messaggi «vuoto» o resti di prima
+    const target = Math.min(list.length, Math.max(alt.children.length, 60));
+    for(let i = 0; i < target; i++){
+      const html = cardHtml(list[i]), cur = alt.children[i];
+      if(cur && cur._sig === html) continue;
+      const n = mk(html);
+      if(cur) alt.replaceChild(n, cur); else alt.appendChild(n);
+    }
+    while(alt.children.length > target) alt.lastElementChild.remove();
+    let shown = target;
+    (function more(first){
       if(my !== altToken) return;
-      const end = Math.min(list.length, shown + 60);
-      let h = ''; for(; shown < end; shown++) h += cardHtml(list[shown]);
-      alt.insertAdjacentHTML('beforeend', h);
-      if(shown < list.length && 'IntersectionObserver' in window){
-        altObs = new IntersectionObserver(es=>{ if(es.some(e=> e.isIntersecting)){ altObs.disconnect(); altObs = null; more(); } }, {root: alt, rootMargin:'600px'});
+      if(!first){ const end = Math.min(list.length, shown + 60); let h = ''; for(; shown < end; shown++) h += cardHtml(list[shown]); const t2 = document.createElement('template'); t2.innerHTML = h; [...t2.content.children].forEach((n, k)=>{ n._sig = cardHtml(list[shown - t2.content.children.length + k]); }); alt.appendChild(t2.content); }
+      if(shown < list.length && 'IntersectionObserver' in window && alt.lastElementChild){
+        altObs = new IntersectionObserver(es=>{ if(es.some(e=> e.isIntersecting)){ altObs.disconnect(); altObs = null; more(false); } }, {root: alt, rootMargin:'600px'});
         altObs.observe(alt.lastElementChild);
       }
-    })();
+    })(true);
   }
   alt.addEventListener('click', e=>{ const c = e.target.closest('[data-id]'); if(c){ const g = byId(c.dataset.id); if(g) openModal(g); } });
   function syncMode(){
