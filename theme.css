@@ -1143,3 +1143,7 @@ body[data-view="mytier"][data-mtmode="mine"] #filtersPanel, body[data-view="myti
 .st-row{display:flex; flex-direction:column; align-items:flex-start; gap:1px; width:100%; text-align:left; margin:4px 0; padding:10px 12px} .st-row small{opacity:.72; font-size:.76rem}
 .st-reset{padding:4px 10px; min-height:0; font-size:.76rem} .st-row[hidden],.st-sec[hidden]{display:none !important}
 body[data-view]:not([data-view="list"]) #todayBox{display:none}
+
+.mc-link{color:var(--accent,#8ab4ff) !important; text-decoration:underline}
+.fi-g{margin:8px 0; padding:8px 10px; border-radius:12px; border:1px solid var(--border); background:var(--card)} .fi-g > b{display:block; font-size:.8rem; opacity:.8; margin-bottom:2px}
+.fi-m{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:3px 0}

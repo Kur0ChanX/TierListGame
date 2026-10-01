@@ -149,7 +149,7 @@
       return false;
     }finally{ busy = false; }
   }
-  function schedulePush(){ clearTimeout(timer); timer = setTimeout(()=> syncNow({noReload:true}), 4000); }
+  function schedulePush(){ clearTimeout(timer); timer = setTimeout(()=> syncNow({noReload:true}), 15000); }   // 15 s: durante Update+ le modifiche arrivano a raffica, meglio una sincronizzazione sola
 
   // ---- Catalogo condiviso (dati NON personali): giochi aggiunti, correzioni, Update+ già fatto, note sul voto ----
   // Il dispositivo di Mario lo pubblica in un gist pubblico; ogni altro dispositivo lo scarica da solo all'avvio, così non parte da zero e non rifà gli Update+ già fatti.

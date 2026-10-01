@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raccoon Tier — Tier List RPG & JRPG di Mario</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="build" content="v186">
+<meta name="build" content="v187">
 <meta name="theme-color" content="#161221">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -337,16 +337,16 @@
           </select>
         </label>
         <label>Chiave API Gemini (Google AI Studio)
-          <input type="password" id="geminiKeyInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave">
+          <input type="text" id="geminiKeyInput" name="rt-geminiKeyInput" data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="-webkit-text-security:disc" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave">
         </label>
         <label>Modello Gemini (facoltativo)
           <input type="text" id="geminiModelInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="vuoto = gemini-flash-latest (sempre l'ultimo Flash)">
         </label>
         <label>Chiave RAWG (facoltativa, gratuita su rawg.io/apidocs): fonte di riserva per «Fruga altri titoli»
-          <input type="password" id="rawgKeyInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave RAWG">
+          <input type="text" id="rawgKeyInput" name="rt-rawgKeyInput" data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="-webkit-text-security:disc" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave RAWG">
         </label>
         <label>Chiave OpenCritic (facoltativa, gratuita su rapidapi.com → «OpenCritic API», ~200 richieste al giorno): seconda fonte dei voti quando Metacritic non basta
-          <input type="password" id="ocKeyInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave RapidAPI">
+          <input type="text" id="ocKeyInput" name="rt-ocKeyInput" data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="-webkit-text-security:disc" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave RapidAPI">
         </label>
         <label>Ponte personale (facoltativo): indirizzo del tuo Cloudflare Worker, per far funzionare Steam, GOG e Reddit
           <input type="text" id="relayUrlInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://nome.tuo-account.workers.dev/">
@@ -356,7 +356,7 @@
         <div class="ask-engine-status" id="geminiStatus">La chiave resta solo su questo dispositivo, nel browser.</div>
         <hr>
         <label><svg class="gi gi-s" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-cloud"/></svg> Sincronizzazione tra dispositivi (token GitHub)
-          <input type="password" id="syncTokenInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui il token GitHub">
+          <input type="text" id="syncTokenInput" name="rt-syncTokenInput" data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="-webkit-text-security:disc" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui il token GitHub">
         </label>
         <a href="https://github.com/settings/tokens/new?scopes=gist&description=TierList%20sync&default_expires_at=none" target="_blank" rel="noopener">1) Crea il token (il permesso giusto è già selezionato)</a>
         <div class="ask-engine-actions"><button class="btn primary" id="syncSaveBtn">Attiva sincronizzazione</button><button class="btn" id="syncNowBtn">Sincronizza ora</button><button class="btn" id="syncOffBtn">Disattiva</button></div>

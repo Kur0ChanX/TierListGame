@@ -60,7 +60,9 @@
     if(st === 'playing'){ const a = layers.find(l=> l.id === 'giocare'), b = layers.find(l=> l.id === 'stato'); layers = [a, b].concat(layers.filter(l=> l !== a && l !== b)); }
     const used = new Set(), out = top.slice(), pinned = pins().filter(k=> blocks.has(k) && !['verdetto', 'radar'].includes(k));
     ['verdetto', 'radar'].forEach(k=>{ if(blocks.has(k)){ out.push(...blocks.get(k)); used.add(k); } });
-    const label = (id, text)=>{ const d = document.createElement('div'); d.className = 'cd-layer'; d.dataset.l = id; d.textContent = text; return d; };
+    // le etichette già presenti si riusano (altrimenti a ogni ridisegno se ne accumulavano di vecchie in cima alla scheda)
+    const prevL = {}; card.querySelectorAll(':scope > .cd-layer').forEach(n=>{ if(prevL[n.dataset.l]) n.remove(); else prevL[n.dataset.l] = n; });
+    const label = (id, text)=>{ let d = prevL[id]; if(!d){ d = document.createElement('div'); d.className = 'cd-layer'; d.dataset.l = id; } d.textContent = text; return d; };
     if(pinned.length){ out.push(label('pins', '📌 Fissati da te')); pinned.forEach(k=>{ out.push(...blocks.get(k)); used.add(k); }); }
     const known = new Set(LAYERS.flatMap(l=> l.keys).concat(['verdetto', 'radar']));
     layers.forEach(l=>{
@@ -77,9 +79,11 @@
       f.classList.add('cd-has-pin'); f.appendChild(b);
     });
     card.querySelectorAll('.cd-pin').forEach(b=> b.classList.toggle('on', pins().includes(b.dataset.pin)));
+    // tolgo le etichette che non servono più
+    Object.keys(prevL).forEach(k=>{ if(!out.includes(prevL[k])){ if(obs) obs.disconnect(); arranging = true; prevL[k].remove(); arranging = false; } });
     // se l'ordine è già quello giusto non tocco nulla (evita giri a vuoto)
     const now = Array.from(card.children);
-    if(now.length === out.length && now.every((e, i)=> e === out[i])) return;
+    if(now.length === out.length && now.every((e, i)=> e === out[i])){ watch(); return; }
     if(obs) obs.disconnect();
     arranging = true;
     out.forEach(el=> card.appendChild(el));
@@ -112,7 +116,7 @@
   // =====================================================================
   const ROOMS = [
     {id: 'scopri', n: '🔍 Scopri', rx: /Radar|Wishlist|Scansiona|Oracolo|Scala d.ingresso|Uscite nel calendario|Raccoon Triad|Oggi/i},
-    {id: 'gusto', n: '🧬 Il tuo gusto', rx: /gusti|Livello|cronologia|Traguardi/i},
+    {id: 'gusto', n: '🧬 Il tuo gusto', rx: /gusti|Livello|cronologia|Traguardi|preferiti/i},
     {id: 'aspetto', n: '🎨 Aspetto e comportamento', rx: /Palette|Temi grafici|Set di icone|Movimento|Suoni|Anteprima cinematografica|Vetro sfocato|Colori della scheda|Tema dalla copertina|Gesti|Impostazioni|Moduli|Ordine della scheda/i},
     {id: 'condividi', n: '📤 Condividi e mostra', rx: /Condividi|carta profilo|Tier list animata|QR|vetrina|Screenshot nell/i},
     {id: 'dati', n: '🗂️ Dati e manutenzione', rx: /Controllo dati|Completa le schede|Copertin|Backup|Rapporto qualit|Versione di sicurezza|offline/i}
