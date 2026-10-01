@@ -202,7 +202,7 @@
     const [wiki, wd, itw, steam, pcgw, rawg, cheap] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none]);
     const cheapLive = cheap.status === 'fulfilled' ? cheap.value : null;
     // OpenCritic (poche richieste gratuite al giorno) si interroga solo se Metacritic non ha dato nessun voto (Wikipedia, Steam o CheapShark)
-    const mcSeen = (wiki.status === 'fulfilled' && wiki.value && wiki.value.mc) || (steam.status === 'fulfilled' && steam.value && steam.value.mc) || (cheapLive && cheapLive.mc) || (window.SearchHub && (f=> f && ((f.s && f.s.mc) || (f.c && f.c.mc)))(SearchHub.factsFor(g)));
+    const mcSeen = (window.SearchHub && SearchHub.votiFor(g)) || (wiki.status === 'fulfilled' && wiki.value && wiki.value.mc) || (steam.status === 'fulfilled' && steam.value && steam.value.mc) || (cheapLive && cheapLive.mc) || (window.SearchHub && (f=> f && ((f.s && f.s.mc) || (f.c && f.c.mc)))(SearchHub.factsFor(g)));
     const needOc = !mcSeen;
     const oc = needOc ? (await Promise.allSettled([ocInfoFor(g)]))[0] : {status: 'fulfilled', value: null};
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
@@ -218,7 +218,7 @@
       oc: mk('OpenCritic', oc, vals.oc, vals.oc && vals.oc.score, needOc && !hasK(H && H.opencritic), !needOc),
       rawg: mk('RAWG', rawg, vals.rawg, vals.rawg && vals.rawg.mc, !hasK(H && H.rawg))
     };
-    return {st, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
+    return {st, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), voti: (window.SearchHub && SearchHub.votiFor(g)) || null, facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
             errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
   }
   // proposte "di fatto" (senza AI)
@@ -257,6 +257,7 @@
       ch.push({id:'itdub', label:'🎙️ Doppiaggio italiano', from: `italiano: ${(g.label || {}).it || '—'}`, to: `testi e doppiaggio in italiano (prova: la voce di it.wikipedia "${src.itw.title}" elenca i doppiatori italiani) ${src.itw.url}`, patch:{label:{it:'D'}}});
     }
     const nowY = new Date().getFullYear();
+    offerScore(3, src.voti && src.voti.s, 'Metacritic (sito ufficiale)', 'score', 'Voto', 'Metacritic, sito ufficiale');
     offerScore(3, src.wiki && src.wiki.mc, 'Metacritic (da Wikipedia)', 'score', 'Voto', 'Metacritic, da Wikipedia');
     // GENERI dalle fonti (Wikidata, RAWG, Steam): i generi che le fonti sanno riconoscere diventano quelli del gioco (si aggiungono i confermati, si tolgono quelli che nessuna fonte conferma).
     // JRPG/WRPG, «a turni», Crossover, Remake, Guerra, Gacha… non si possono verificare e restano. Se le fonti non dicono nulla di preciso (solo «RPG») non si cambia niente.
@@ -466,7 +467,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   setTimeout(()=>{ try{ autoApproveQueue(); }catch(e){} }, 25000);
   // ---- Mappa delle fonti: per ogni dato, in che ordine si cerca, e se ogni fonte funziona adesso ----
   const SRC_MAP = [
-    ['Voto', 'Metacritic (Wikipedia → Steam → dati settimanali → CheapShark) → OpenCritic → RAWG → altrimenti Stima', ['wiki', 'steam', 'cheap', 'oc', 'rawg']],
+    ['Voto', 'Metacritic ufficiale (archivio dal server) → Wikipedia → Steam → dati settimanali → CheapShark → OpenCritic → RAWG → altrimenti Stima', ['voti', 'wiki', 'steam', 'cheap', 'oc', 'rawg']],
     ['Anno di uscita', 'Wikidata → Steam → CheapShark → RAWG', ['wd', 'steam', 'cheap', 'rawg']],
     ['Generi', 'Wikidata + RAWG + Steam (si confermano a vicenda; i generi non confermati si tolgono)', ['wd', 'rawg', 'steam']],
     ['Lingua italiana', 'Steam → PCGamingWiki → it.wikipedia (solo prove positive)', ['steam', 'pcgw', 'itw']],
@@ -480,6 +481,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const t0 = Date.now(), ok = ()=> ({s: 'ok', ms: Date.now() - t0});
     try{
       const H = window.SearchHub;
+      if(key === 'voti'){ if(typeof VOTI === 'undefined' || !VOTI.games) return {s: 'err', why: 'archivio voti.js non ancora scaricato dal server (parte da solo ogni notte)'}; const n = Object.values(VOTI.games).filter(x=> x && x.s).length; return {s: 'ok', ms: n + ' voti, aggiornati al ' + VOTI.built}; }
       if(key === 'wiki'){ await wp({action: 'query', meta: 'siteinfo'}); return ok(); }
       if(key === 'wd'){ await fj('https://www.wikidata.org/w/api.php?action=query&meta=siteinfo&format=json&origin=*'); return ok(); }
       if(key === 'itw'){ await fj('https://it.wikipedia.org/w/api.php?action=query&meta=siteinfo&format=json&origin=*'); return ok(); }
@@ -492,7 +494,12 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     }catch(e){ return {s: 'err', why: whyFail(e)}; }
     return {s: 'off', why: 'non controllabile'};
   }
-  const SRC_NAMES = {wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', cheap: 'CheapShark', rawg: 'RAWG', oc: 'OpenCritic', gem: 'Gemini'};
+  const SRC_NAMES = {voti: 'Metacritic ufficiale (server)', wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', cheap: 'CheapShark', rawg: 'RAWG', oc: 'OpenCritic', gem: 'Gemini'};
+  // dove sta il problema quando una fonte non risponde: il sito, il browser (blocchi CORS) o il limite di una chiave
+  const SRC_HINT = {steam: 'Steam funziona (dal server rispondo sempre) ma blocca il browser: serve un ponte. Soluzione stabile: i dati arrivano ogni notte dal server (dati settimanali); in più puoi attivare il «ponte personale» (Cloudflare) in ⚙️.',
+    oc: 'OpenCritic ha chiuso l\'accesso libero (solo chiave a pagamento/limitata): ora il voto arriva da Metacritic ufficiale dal server.',
+    gem: 'Gemini: limite di richieste del piano gratuito (errore 429). Riprovo da solo con il modello più leggero; passa l\'ora e torna.',
+    rawg: 'RAWG: chiave scaduta o quota giornaliera finita.', wiki: 'Wikipedia limita le richieste molto ravvicinate: aspetto e riprovo da solo.', wd: 'Wikidata limita le richieste ravvicinate (errore 429): passa dopo qualche minuto.'};
   window.openSourceMap = function(){
     let el = document.getElementById('srcMapBackdrop');
     if(!el){ el = document.createElement('div'); el.id = 'srcMapBackdrop'; el.className = 'dup-backdrop'; el.style.zIndex = 100900; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
@@ -508,7 +515,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       const b = el.querySelector('#smRun'); b.disabled = true; b.textContent = 'Verifico…';
       await Promise.all(keys.map(async k=>{
         const row = el.querySelector('#sm_' + k); row.querySelector('span').textContent = '… provo'; const r = await probe(k);
-        row.querySelector('span').textContent = r.s === 'ok' ? '✅ funziona (' + r.ms + ' ms)' : r.s === 'off' ? '➖ ' + r.why : '⚠️ ' + r.why;
+        row.querySelector('span').textContent = r.s === 'ok' ? '✅ funziona (' + (typeof r.ms === 'number' ? r.ms + ' ms' : r.ms) + ')' : r.s === 'off' ? '➖ ' + r.why : '⚠️ ' + r.why + (SRC_HINT[k] ? ' — ' + SRC_HINT[k] : '');
         el.querySelectorAll('.sm_ic_' + k).forEach(n=>{ n.textContent = (r.s === 'ok' ? '✅ ' : r.s === 'off' ? '➖ ' : '⚠️ ') + SRC_NAMES[k] + ' ·'; });
       }));
       b.disabled = false; b.textContent = '🔎 Verifica di nuovo';

@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v188', date:'2026-10-01', time:'11:10', items:[
+    'Fonti: ho provato una per una tutte le fonti dal server. Risultato: Steam, Metacritic, OpenCritic e YouTube funzionano; il problema è che Steam e Metacritic NON si lasciano leggere dal browser (blocco CORS) e i ponti pubblici sono morti o lenti. Wikipedia/Wikidata rispondono «troppe richieste» se si insiste. OpenCritic ha chiuso l\'accesso libero (solo chiave limitata).',
+    'Soluzione definitiva: ogni notte GitHub (dal server, senza blocchi né chiavi né limiti) legge il Metascore UFFICIALE da metacritic.com per tutti i giochi, anche quelli che aggiungi tu, e lo salva in un archivio (voti.js). Update+ lo usa per primo: voto verificato «Metacritic (sito ufficiale)» istantaneo, senza ponti e senza consumare OpenCritic.',
+    'La «Mappa delle fonti» ora mostra anche l\'archivio ufficiale e, quando una fonte non risponde, dice di chi è il problema (il sito, il browser o il limite di una chiave) e cosa fare.',
+  ]},
   {version:'v187', date:'2026-10-01', time:'10:34', items:[
     'Corretto il «loop» di etichette in cima alla scheda (Capire il gioco, Giocarlo bene, Il tuo stato…): quando la scheda veniva ridisegnata (per esempio da Update V+) le etichette vecchie si accumulavano. Ora ce n\'è una sola per strato e non spariscono più solo premendo Update V+.',
     'Popup «Aggiornare la password?» di Google: i quattro campi delle chiavi sono testo a pallini già nel file della pagina (non più campi password trasformati dopo), così Chrome non li riconosce. Se compare ancora, cancella la voce salvata in Chrome → Gestore password → raccoon/kur0chanx.github.io.',
