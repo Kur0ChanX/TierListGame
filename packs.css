@@ -73,6 +73,7 @@ html[data-pack] .list-cnt{background:rgba(var(--a1rgb),.18); border-radius:var(-
 html[data-pack] :is(.list-chip.active .list-cnt){background:rgba(0,0,0,.2); color:inherit}
 html[data-pack] :is(.stat-chip,.metric){background:var(--pk-chip) !important; border:var(--pk-bw) solid var(--pk-bc) !important; border-radius:var(--pk-r2) !important; box-shadow:var(--pk-shs) !important; -webkit-backdrop-filter:none; backdrop-filter:none}
 html[data-pack] .stat-chip.active{background:var(--pk-act) !important; color:var(--pk-act-c)}
+html[data-pack] .stat-chip.active :is(.n,.l,.t,small,span){color:var(--pk-act-c) !important}
 
 /* ---- pulsanti ---- */
 html[data-pack] .btn:not(.primary){background:var(--pk-btn,var(--pk-chip)) !important; color:var(--text); border:var(--pk-bw) solid var(--pk-bc) !important; border-radius:var(--pk-rbtn,var(--pk-r2)) !important; box-shadow:var(--pk-shbtn,var(--pk-shs)) !important}
