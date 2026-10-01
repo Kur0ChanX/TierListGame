@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v207', date:'2026-10-01', time:'20:16', items:[
+    '🧬 «Cosa ti ha preso di questo gioco» rifatto da zero. In alto c\'è il tuo «filamento di DNA» con il gioco (una striscia colorata), poi in tre gruppi: 💖 i motivi principali (al massimo 3, pesano il doppio), 👍 cosa ti è piaciuto, 👎 cosa no.',
+    'Nuovo GIOCO VELOCE: un tratto alla volta su una carta grande, con la spiegazione. Scorri a destra = mi piace, a sinistra = no, in su = è il motivo principale (o usa i 4 tasti). Prima i tratti riconosciuti nel gioco, poi quelli che di solito ami. In 30 secondi il cervello impara il perché dei tuoi gusti.',
+    '«🔎 Tutti i tratti» con la ricerca (scrivi «boss», «loot», «minigiochi»…). Tocca un tratto per cambiarlo: 👍 → 💖 → 👎 → via, senza salti di pagina.',
+    'Le linguette Per te / Il gioco / Altro ora stanno subito sotto la tua barra (più in alto), restano attaccate in cima a tutta larghezza mentre scorri, con un evidenziatore che scivola sulla linguetta scelta. Le tue valutazioni stanno in «Per te»; voti, piattaforme e musica in «Il gioco».'
+  ]},
   {version:'v206', date:'2026-10-01', time:'20:01', items:[
     'Risolto «appena entro clicco News o le icone in alto e non apre»: la schermata d\'apertura copriva i tocchi per quasi un secondo dopo «Inizia a frugare». Ora smette dopo 0,35 secondi. In più, se tocchi un pulsante in alto mentre il programma si sta ancora caricando, il tocco non si perde più: viene rifatto appena è pronto.',
     'Intro: se aspetti a lungo il programma non ricarica più la pagina mentre stai toccando lo schermo, e una rete di sicurezza toglie la schermata d\'apertura se resta ferma con i giochi già pronti.',

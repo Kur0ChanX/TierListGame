@@ -3,13 +3,13 @@ const {chromium}=require('playwright');
 const ctx=await b.newContext({viewport:{width:412,height:915},colorScheme:'dark',isMobile:true,hasTouch:true});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await ctx.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort());
 await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html');await p.waitForTimeout(4000);
-await p.evaluate(()=>openModal(GAMES.find(g=>g.name==='Final Fantasy X'))); await p.waitForTimeout(1500);
+await p.evaluate(()=>{const g=GAMES.find(g=>g.name==='Final Fantasy X');localStorage.setItem('jrpg_dna_why',JSON.stringify({[g.id]:{BUILD:1,LORE:1}}));openModal(g);}); await p.waitForTimeout(1500);
 // DNA: scroll stays
 await p.evaluate(()=>{const c=document.getElementById('modalCard');document.getElementById('dnaWhy').scrollIntoView();});await p.waitForTimeout(300);
 const y0=await p.evaluate(()=>document.getElementById('modalCard').scrollTop);
-await p.evaluate(()=>document.querySelector('#dnaWhy .dna-chip').click()); await p.waitForTimeout(900);
+await p.evaluate(()=>document.querySelector('#dnaWhy [data-dna]').click()); await p.waitForTimeout(900);
 const y1=await p.evaluate(()=>document.getElementById('modalCard').scrollTop);
-console.log('scroll prima/dopo clic tratto:',Math.round(y0),Math.round(y1),'chip on:',await p.evaluate(()=>document.querySelector('#dnaWhy .dna-chip').className));
+console.log('scroll prima/dopo clic tratto:',Math.round(y0),Math.round(y1),'chip on:',await p.evaluate(()=>document.querySelector('#dnaWhy [data-dna]').className));
 // ratings
 await p.evaluate(()=>{const r=document.getElementById('rtRate');r.open=true;});
 await p.evaluate(()=>{document.querySelector('#rtRate [data-k="story"] [data-n="9"]').click();document.querySelector('#rtRate [data-k="story"] .rr-half').click();document.querySelector('#rtRate [data-k="combat"] [data-n="7"]').click();});

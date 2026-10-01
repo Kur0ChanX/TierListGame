@@ -14,16 +14,17 @@
   const cardOrderOn = ()=> LS.get(ON, 'on') !== 'off';
   // v204: la scheda è divisa in 3 parti (linguette in alto): «Per te», «Il gioco», «Altro». Le parti nascoste non si disegnano: apertura più leggera.
   const LAYERS = [
-    {id: 'perme', tab: 'perme', n: '💜 Per te', keys: ['verdetto', 'radar', 'dna', 'recensione', 'nota', 'stato']},
+    {id: 'perme', tab: 'perme', n: '💜 Per te', keys: ['verdetto', 'valuta', 'radar', 'dna', 'recensione', 'nota', 'stato']},
     {id: 'comprare', tab: 'perme', n: '🛒 Comprare', keys: ['comprare', 'versioni']},
     {id: 'simili', tab: 'perme', n: '🔁 Altri giochi', keys: ['simili']},
+    {id: 'scheda', tab: 'gioco', n: '⭐ Voti e musica', keys: ['punteggi', 'musica']},
     {id: 'capire', tab: 'gioco', n: '🔎 Capire il gioco', keys: ['storia', 'etichetta', 'piace', 'gameplay', 'proscons', 'generi', 'longevita', 'tempo', 'colonna', 'cast', 'approfondimento', 'dettagli', 'simboli']},
     {id: 'giocare', tab: 'gioco', n: '🎮 Giocarlo bene', keys: ['guida', 'compagno', 'saga']},
     {id: 'altro', tab: 'altro', n: '📚 Per approfondire', keys: ['affidabilita', 'eredi', 'quinte', 'uscita', 'album', 'cronologia']}
   ];
   const TABS = [['perme', '💜 Per te'], ['gioco', '🎮 Il gioco'], ['altro', '📚 Altro']];
   const tabNow = ()=>{ const t = LS.get('jrpg_card_tab', 'perme'); return TABS.some(x=> x[0] === t) ? t : 'perme'; };
-  const KEY_NAMES = {verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'A colpo d\'occhio', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
+  const KEY_NAMES = {valuta: 'Le tue valutazioni', punteggi: 'Voti e piattaforme', musica: 'Colonna sonora (lettore)', verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'A colpo d\'occhio', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
   const titleKey = t=>{
     t = norm(t);
     if(/etichetta|colpo d.?occhio/.test(t)) return 'etichetta'; if(/prima di comprarlo/.test(t)) return 'comprare'; if(/quale versione/.test(t)) return 'versioni'; if(/il tuo stato/.test(t)) return 'stato';
@@ -36,7 +37,7 @@
   function startKey(el){
     if(el.classList.contains('cd-layer')) return null;
     if(el.classList.contains('modal-section-title')) return titleKey(el.textContent);
-    if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'voteSrc') return 'affidabilita'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
+    if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'rtRate') return 'valuta'; if(el.id === 'mzBar') return 'musica'; if(el.classList.contains('modal-plat') || el.classList.contains('modal-badges')) return 'punteggi'; if(el.id === 'voteSrc') return 'affidabilita'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
     if(el.classList.contains('modal-tags')) return 'generi'; if(el.classList.contains('enrich-highlights')) return 'simboli'; if(el.classList.contains('ds-chip')) return 'affidabilita';
     if(el.classList.contains('saga-note')) return 'saga'; if(el.matches('details.hist')) return 'cronologia';
     return null;
@@ -77,7 +78,7 @@
     // tutto ciò che sta sopra le linguette (identità, locandina, la tua barra) si vede sempre
     out.forEach(el=> el.removeAttribute && el.removeAttribute('data-tab'));
     let bar = card.querySelector(':scope > .cd-tabs');
-    if(!bar){ bar = document.createElement('div'); bar.className = 'cd-tabs'; bar.setAttribute('role', 'tablist'); bar.innerHTML = TABS.map(([id, n])=> `<button type="button" role="tab" data-ctab="${id}">${n}</button>`).join('') + '<button type="button" class="cd-reorder" data-creorder title="Riordina la scheda come vuoi" aria-label="Riordina la scheda">↕️</button>'; }
+    if(!bar){ bar = document.createElement('div'); bar.className = 'cd-tabs'; bar.setAttribute('role', 'tablist'); bar.innerHTML = '<span class="cd-ind" aria-hidden="true"></span>' + TABS.map(([id, n])=> `<button type="button" role="tab" data-ctab="${id}">${n}</button>`).join('') + '<button type="button" class="cd-reorder" data-creorder title="Riordina la scheda come vuoi" aria-label="Riordina la scheda">↕️</button>'; }
     out.push(bar);
     // 1) quali blocchi ci sono in ogni parte (nell'ordine di base); 2) il TUO ordine, se l'hai scelto
     const byTab = {perme: [], gioco: [], altro: []};
@@ -101,7 +102,7 @@
     window.__rtTabKeys = Object.fromEntries(TABS.map(([tid])=> [tid, (byTab[tid] || []).map(x=> x.k)]));
     bottom.forEach(el=> el.removeAttribute('data-tab'));
     out.push(...bottom);
-    const t = tabNow(); if(card.dataset.ctab !== t) card.dataset.ctab = t;
+    const t = tabNow(); if(card.dataset.ctab !== t) card.dataset.ctab = t; bar.style.setProperty('--i', TABS.findIndex(x=> x[0] === t));
     bar.querySelectorAll('[data-ctab]').forEach(b=>{ const on = b.dataset.ctab === t, n = firstOfTab[b.dataset.ctab]; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); b.hidden = !n; });
     card.querySelectorAll('.cd-pin').forEach(n=> n.remove()); card.querySelectorAll('.cd-has-pin').forEach(n=> n.classList.remove('cd-has-pin'));
     // tolgo le etichette che non servono più
@@ -126,7 +127,7 @@
   document.addEventListener('click', e=>{
     const tb = e.target.closest && e.target.closest('.cd-tabs [data-ctab]'); if(!tb) return;
     e.preventDefault(); const card = document.getElementById('modalCard'); if(!card) return;
-    LS.set('jrpg_card_tab', tb.dataset.ctab); card.dataset.ctab = tb.dataset.ctab;
+    LS.set('jrpg_card_tab', tb.dataset.ctab); card.dataset.ctab = tb.dataset.ctab; const br = tb.closest('.cd-tabs'); if(br) br.style.setProperty('--i', TABS.findIndex(x=> x[0] === tb.dataset.ctab));
     card.querySelectorAll('.cd-tabs [data-ctab]').forEach(b=>{ const on = b === tb; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
     const bar = card.querySelector('.cd-tabs'); if(bar && bar.getBoundingClientRect().top < 0){ try{ card.scrollTo({top: bar.offsetTop - 6, behavior: 'smooth'}); }catch(x){} }
