@@ -39,7 +39,6 @@
     if(show) filtBtn.innerHTML = '⚙️ ' + esc(n) + ' filtri · <u>togli</u>';
   }
 
-  let listY = null;
   function paint(v){
     const page = v && v !== 'list' && TITLES[v];
     body.classList.toggle('rt-page', !!page);
@@ -51,11 +50,7 @@
     icEl.innerHTML = tab ? tab.outerHTML : '';
     refreshFilt();
   }
-  function enterAnim(v){                                            // solo dove NON ci sono le View Transitions (o se il passaggio non è partito dalla barra)
-    if(html.hasAttribute('data-vt') || html.classList.contains('mo-off')) return;
-    const p = document.getElementById(PANEL[v]);
-    [head, p].forEach((el, i)=>{ if(el && el.animate) try{ el.animate([{opacity: 0, transform: 'translateY(10px)'}, {opacity: 1, transform: 'none'}], {duration: 260, delay: i * 30, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards'}); }catch(e){} });
-  }
+
 
   // il segno nella cronologia: «indietro» del telefono = torna alla classifica
   const markPage = ()=>{ try{ if(!(history.state && history.state.rtpage)) history.pushState({rtpage: 1}, ''); }catch(e){} };
@@ -66,28 +61,28 @@
     const st = e.state;
     if(st && (st.rtpage || st.rtov)) return;                        // è solo una finestra che si chiude: resto nella pagina
     if(document.querySelector('[id$="Backdrop"].show, .dup-backdrop.show')) return;
-    html.setAttribute('data-vt', 'b');
-    const run = ()=> window.setView('list');
-    let t = null;
-    try{ if(document.startViewTransition && !html.classList.contains('mo-off')) t = document.startViewTransition(run); else run(); }catch(err){ run(); }
-    const done = ()=> html.removeAttribute('data-vt');
-    if(t && t.finished) t.finished.then(done, done); else done();
+    window.setView('list');                                         // v212: subito, senza animazione
   });
 
+  // v212: ogni sezione (anche la Classifica) si apre SEMPRE in cima, di colpo: niente scorrimenti animati, niente posizione ricordata, niente righe che scendono
+  const PANELS = ['tableWrap', 'altView', 'myTierWrap', 'statsPanel', 'sagaPanel', 'discoverPanel', 'novitaPanel', 'novitaGenrePanel'];
+  function toTop(){
+    try{ window.scrollTo({top: 0, left: 0, behavior: 'instant'}); }catch(e){ try{ window.scrollTo(0, 0); }catch(x){} }
+    PANELS.forEach(id=>{ const el = document.getElementById(id); if(el && el.offsetParent !== null && el.scrollTop) try{ el.scrollTo({top: 0, behavior: 'instant'}); }catch(e){ el.scrollTop = 0; } });
+  }
+  window.rtViewTop = toTop;
   const prev = window.setView;
   window.setView = function(v){
     const from = (typeof state !== 'undefined' && state.view) || 'list';
-    const tw = document.getElementById('tableWrap'), av = document.getElementById('altView');
-    if(from === 'list' && v !== 'list') listY = {w: window.scrollY || 0, t: tw ? tw.scrollTop : 0, a: av ? av.scrollTop : 0};
-    const r = prev.apply(this, arguments);
+    window.__rtInstantViews = true; window.__rtViewSwitch = true;
+    let r;
+    try{ toTop(); r = prev.apply(this, arguments); }
+    finally{ window.__rtViewSwitch = false; }
     try{
       paint(v);
-      if(v !== 'list' && v !== from){ window.scrollTo(0, 0); markPage(); enterAnim(v); }
-      else if(v === 'list' && from !== 'list'){        // la classifica scorre dentro il suo riquadro: rimetto anche quello dov'era
-        const L = listY || {w: 0, t: 0, a: 0};
-        window.scrollTo(0, L.w); if(tw && L.t) tw.scrollTop = L.t; if(av && L.a) av.scrollTop = L.a;
-        unmarkPage();
-      }
+      requestAnimationFrame(toTop);                                 // le sezioni nascoste ripartono già da 0 da sole; qui solo una verifica a disegno fatto (costa zero)                                 // se qualcosa nella pagina nuova prova a spostarla, la rimetto in cima
+      if(v !== 'list' && v !== from) markPage();
+      else if(v === 'list' && from !== 'list') unmarkPage();
     }catch(e){}
     return r;
   };

@@ -38,8 +38,8 @@
   function cardHtml(g){
     const c = coverOf(g), st = (typeof STATUSES !== 'undefined') && STATUSES[g.id];
     const fav = FAVS.has(g.id) ? '<span class="x-fav">★</span>' : '';
-    // v211: i tuoi top in assoluto: corona d'oro sulla copertina (prima il procione con gli occhi a cuore)
-    const heart = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : []; return Array.isArray(t) && t.includes(g.id) ? '<span class="x-top" title="Nei tuoi top" aria-label="Nei tuoi top"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M2.5 8.2l4.6 3.6L12 4l4.9 7.8 4.6-3.6-1.9 10.3H4.4z"/><rect x="4.4" y="19.3" width="15.2" height="2" rx="1"/></svg></span>' : ''; }catch(e){ return ''; } })();
+    // v212: i tuoi top in assoluto: lo stemma del procione con gli occhi a cuore sulla copertina
+    const heart = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : []; return Array.isArray(t) && t.includes(g.id) ? '<img class="x-top" src="icons/top-procione-mini-72.webp" srcset="icons/top-procione-mini-72.webp 1x, icons/top-procione-mini-144.webp 2x" alt="Nei tuoi top" title="Nei tuoi top" width="30" height="30" loading="lazy">' : ''; }catch(e){ return ''; } })();
     const img = c ? `<img src="${esc(coverThumb(c, 360))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onload="this.style.visibility=''" onerror="this.style.visibility='hidden';if(this.dataset.orig&&this.src!==this.dataset.orig){this.src=this.dataset.orig}else{this.remove()}">` : '';
     const ph = `<div class="x-ph" style="--tc:${TIER_COL[g.tier] || '#7c5cff'}"><span>${esc(g.name)}</span></div>`;
     const badge = `<span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>`;
@@ -48,7 +48,7 @@
     }
     const tags = (g.tags || []).slice(0, 2).map(t=> TAG_INFO[t] ? `<span class="x-tag">${TAG_INFO[t].icon} ${esc(TAG_INFO[t].label)}</span>` : '').join('');
     const stl = st && STATUS_INFO[st] ? `<span class="x-st">${esc(STATUS_INFO[st].label)}</span>` : '';
-    return `<div class="x-row${heart ? ' is-top' : ''}" data-id="${g.id}"><div class="x-thumb">${ph}${img}</div><div class="x-info"><div class="x-name">${fav}${esc(g.name)}${heart ? heart.replace('x-top', 'row-top') : ''}</div><div class="x-meta">${esc(g.plat)} · ${esc(g.year || '')}${hoursOf(g) ? ' · ' + hoursOf(g) + 'h' : ''}</div><div class="x-tags">${tags}${stl}</div></div><div class="x-score">${badge}<b>${g.score}</b></div></div>`;
+    return `<div class="x-row${heart ? ' is-top' : ''}" data-id="${g.id}"><div class="x-thumb">${ph}${img}</div><div class="x-info"><div class="x-name">${fav}${esc(g.name)}${heart ? heart.replace('x-top', 'row-top-i') : ''}</div><div class="x-meta">${esc(g.plat)} · ${esc(g.year || '')}${hoursOf(g) ? ' · ' + hoursOf(g) + 'h' : ''}</div><div class="x-tags">${tags}${stl}</div></div><div class="x-score">${badge}<b>${g.score}</b></div></div>`;
   }
   // Disegno «a pezzi» e SENZA rifare le schede già giuste: prima ogni aggiornamento in background (Update+, voti…) ricreava tutta la griglia,
   // le copertine ripartivano da capo e si vedeva lo sfarfallio (icona rotta → sfondo → icona rotta). Ora si cambiano solo le schede diverse.
