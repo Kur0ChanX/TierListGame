@@ -1,0 +1,65 @@
+/* ===== Brutale (neo-brutalismo): bordi neri spessi, ombre dure, colori pop, adesivi storti ===== */
+@font-face{font-family:"Space Grotesk";src:url(../fonts/space-grotesk.woff2) format("woff2");font-weight:300 700;font-display:swap}
+@font-face{font-family:"Archivo Black";src:url(../fonts/archivo-black-400.woff2) format("woff2");font-weight:400;font-display:swap}
+
+html[data-pack="brutale"]{
+  --pk-ff:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif; --pk-fh:"Archivo Black","Space Grotesk",system-ui,sans-serif; --pk-fc:"Space Grotesk",system-ui,sans-serif;
+  --pk-hfw:400; --pk-htt:uppercase; --pk-hls:.02em; --pk-cls:0;
+  --pk-r:0px; --pk-r2:0px; --pk-rp:0px; --pk-rb:0px; --pk-bw:3px; --pk-bwc:2px; --pk-bc:var(--border);
+  --pk-hard:#0a0a0a;
+  --pk-sh:6px 6px 0 0 var(--pk-hard); --pk-shs:3px 3px 0 0 var(--pk-hard); --pk-shc:2px 2px 0 0 var(--pk-hard);
+  --pk-chip:#fff; --pk-input:#fff; --pk-ib:#fff; --pk-nav:#fff; --pk-top:transparent;
+  --pk-th:#0a0a0a; --pk-th-c:#ffd400; --pk-alt:rgba(255,212,0,.18); --pk-hov:rgba(255,79,129,.2); --pk-row-bd:2px solid #0a0a0a;
+  --pk-act:#ffd400; --pk-act-c:#0a0a0a; --pk-act-sh:3px 3px 0 0 var(--pk-hard); --pk-ib-act:#ffd400;
+  --pk-badge-r:0px; --pk-badge-bd:2px solid #0a0a0a; --pk-badge-sh:2px 2px 0 0 #0a0a0a; --pk-badge-c:#0a0a0a;
+  --t-splus:#ffd400; --t-s:#ff4f81; --t-a:#2f6bff; --t-b:#35d07f; --t-c:#ffb020; --t-d:#ff7a3d; --t-e:#ff4040; --t-f:#d6d6d6; --t-nd:#ffffff;
+  --t-splus-c:#0a0a0a; --t-c-c:#0a0a0a; --t-nd-c:#0a0a0a;
+  --pk-bar:#0a0a0a; --pk-bar-r:0px; --pk-gi:none; --pk-press:translate(3px,3px); --pk-tt-c:var(--text);
+  --pk-scrim:rgba(10,10,10,.55);
+}
+html[data-pack="brutale"].pk-dark{
+  --pk-hard:#ff5c93; --pk-chip:#1c1c24; --pk-input:#1c1c24; --pk-ib:#1c1c24; --pk-nav:#1c1c24;
+  --pk-th:#ffffff; --pk-th-c:#0e0e12; --pk-alt:rgba(255,255,255,.05); --pk-hov:rgba(255,92,147,.22); --pk-row-bd:2px solid #3a3a46;
+  --pk-act:#ffe14d; --pk-act-c:#0e0e12; --pk-badge-bd:2px solid #fff; --pk-badge-sh:2px 2px 0 0 #fff; --pk-bar:#ffe14d;
+  --t-nd:#1c1c24; --t-nd-c:#fff; --pk-tt-c:#ffe14d;
+}
+
+/* sfondo: puntini da quaderno stampato */
+html[data-pack="brutale"] body::before{background:radial-gradient(rgba(10,10,10,.2) 1.4px,transparent 1.6px) 0 0/16px 16px}
+html[data-pack="brutale"].pk-dark body::before{background:radial-gradient(rgba(255,255,255,.13) 1.4px,transparent 1.6px) 0 0/16px 16px}
+
+/* barra in alto: una riga spessa sotto, il logo con l'ombra dura */
+html[data-pack="brutale"] .topbar{border-bottom-width:4px !important}
+html[data-pack="brutale"] .brand-logo{filter:drop-shadow(3px 3px 0 #0a0a0a)}
+html[data-pack="brutale"].pk-dark .brand-logo{filter:drop-shadow(3px 3px 0 var(--accent))}
+html[data-pack="brutale"] .iconbtn.lbl .ib-lb{text-transform:uppercase; font-size:.52rem; letter-spacing:.03em}
+html[data-pack="brutale"] .iconbtn.lbl:active .ib-ic, html[data-pack="brutale"] .btn:active, html[data-pack="brutale"] .list-chip:active, html[data-pack="brutale"] .qf-chip:active{box-shadow:0 0 0 0 transparent !important}
+
+/* pillole e contatori: adesivi appena storti */
+html[data-pack="brutale"] .list-chip:nth-child(odd), html[data-pack="brutale"] .qf-chip:nth-child(3n+1){transform:rotate(-1.4deg)}
+html[data-pack="brutale"] .list-chip:nth-child(even), html[data-pack="brutale"] .qf-chip:nth-child(3n+2){transform:rotate(1deg)}
+html[data-pack="brutale"] .list-chip.active{transform:rotate(-1deg) scale(1.03)}
+html[data-pack="brutale"] .stat-chip:nth-child(odd){transform:rotate(-.7deg)} html[data-pack="brutale"] .stat-chip:nth-child(even){transform:rotate(.6deg)}
+html[data-pack="brutale"] .upplus-line{background:#ffd400 !important; color:#0a0a0a; font-weight:700}
+
+/* tabella: testata nera col giallo, righe divise da linee nere */
+html[data-pack="brutale"] thead th{font-size:.62rem; letter-spacing:0}
+html[data-pack="brutale"] td.score{font-family:var(--pk-fh); font-size:1.02rem}
+html[data-pack="brutale"] .table-wrap{box-shadow:8px 8px 0 0 var(--pk-hard) !important}
+html[data-pack="brutale"] tbody tr:nth-child(odd) .badge:not(.outline){transform:rotate(-5deg)}
+html[data-pack="brutale"] tbody tr:nth-child(even) .badge:not(.outline){transform:rotate(4deg)}
+html[data-pack="brutale"] .badge:not(.outline){min-width:2.1em; text-align:center; font-size:.9rem}
+html[data-pack="brutale"] .badge.A, html[data-pack="brutale"] .badge.D{color:#fff}
+html[data-pack="brutale"] td.score::after, html[data-pack="brutale"] .bar{height:5px !important}
+html[data-pack="brutale"] .itb, html[data-pack="brutale"] .srcico{border-radius:0 !important}
+
+/* barra in basso: tasto attivo = quadrato giallo che «salta» */
+html[data-pack="brutale"] .view-tabs{border-top-width:4px !important}
+html[data-pack="brutale"] .vt-tx{font-family:var(--pk-fh); text-transform:uppercase; font-size:.5rem !important; letter-spacing:.02em; color:var(--text)}
+html[data-pack="brutale"] .view-tab.active .vt-ic{transform:translate(-2px,-5px); box-shadow:4px 4px 0 0 var(--pk-hard) !important}
+
+/* scheda del gioco */
+html[data-pack="brutale"] .modal-title{font-size:1.25rem; line-height:1.1}
+html[data-pack="brutale"] .glabel, html[data-pack="brutale"] .cover-block{box-shadow:5px 5px 0 0 var(--pk-hard) !important}
+html[data-pack="brutale"] .toast{box-shadow:4px 4px 0 0 var(--pk-hard) !important; font-family:var(--pk-fh); text-transform:uppercase; font-size:.8rem}
+html[data-pack="brutale"] .ask-fab, html[data-pack="brutale"] .scrolltop-fab{background:#ff4f81 !important}

@@ -1,0 +1,49 @@
+/* ===== Washi: carta di riso con le fibre, inchiostro sumi, sole rosso, sigilli hanko per i tier (di sera: notte a Kyoto) ===== */
+@font-face{font-family:"Shippori Mincho";src:url(../fonts/shippori-mincho-500.woff2) format("woff2");font-weight:400 600;font-display:swap}
+@font-face{font-family:"Shippori Mincho";src:url(../fonts/shippori-mincho-700.woff2) format("woff2");font-weight:700 900;font-display:swap}
+
+html[data-pack="washi"]{
+  --pk-ff:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",Georgia,serif; --pk-fh:var(--pk-ff); --pk-fc:var(--pk-ff);
+  --pk-hfw:700; --pk-bfs:14px; --pk-hls:.04em; --pk-cls:.02em;
+  --pk-r:3px; --pk-r2:3px; --pk-rp:3px; --pk-rb:50%; --pk-bw:1px; --pk-bwc:1px; --pk-bc:#2b2420;
+  --fiber:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.5' numOctaves='3' seed='11'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .36  0 0 0 0 .25  0 0 0 .14 -.01'/></filter><rect width='100%' height='100%' filter='url(%23f)'/></svg>");
+  --pk-block:var(--fiber),#fbf6e9; --pk-chip:var(--fiber),#fbf6e9; --pk-input:#fffbf0; --pk-ib:var(--fiber),#fbf6e9;
+  --pk-sh:0 0 0 3px #fbf6e9, 0 0 0 4px #2b2420, 0 10px 24px -12px rgba(43,36,32,.55); --pk-shs:0 1px 0 rgba(43,36,32,.35); --pk-shc:none;
+  --pk-top:linear-gradient(180deg,rgba(242,234,215,.92),rgba(242,234,215,.55)); --pk-nav:var(--fiber),#f2ead7; --pk-nav-sh:0 -1px 0 #2b2420;
+  --pk-th:#2b2420; --pk-th-c:#f2ead7; --pk-alt:rgba(43,36,32,.035); --pk-hov:rgba(193,39,45,.1); --pk-row-bd:1px dashed rgba(43,36,32,.3);
+  --pk-act:#c1272d; --pk-act-c:#fbf2dc; --pk-act-sh:none; --pk-ib-act:#c1272d; --pk-act-bc:#c1272d;
+  --pk-badge-r:3px; --pk-badge-bd:0; --pk-badge-sh:inset 0 0 0 2px #fbf6e9, inset 0 0 0 3px currentColor; --pk-badge-c:#fbf2dc;
+  --t-splus:#94702e; --t-s:#c1272d; --t-a:#264653; --t-b:#4a6b3a; --t-c:#c4872d; --t-d:#c4672d; --t-e:#8a1c1c; --t-f:#7a7266; --t-nd:transparent;
+  --t-splus-c:#fbf2dc; --t-c-c:#fbf2dc; --t-nd-c:#7a7266; --pk-bar:#c1272d; --pk-bar-r:0; --pk-gi:none; --pk-scrim:rgba(43,36,32,.5); --pk-tt-c:#c1272d;
+}
+html[data-pack="washi"].pk-dark{
+  --pk-block:linear-gradient(180deg,#1a2a46,#16223a); --pk-chip:#1a2a46; --pk-input:#101a2e; --pk-ib:#1a2a46;
+  --pk-sh:0 0 0 3px #16223a, 0 0 0 4px #c9b98f, 0 10px 24px -12px rgba(0,0,0,.7);
+  --pk-top:linear-gradient(180deg,rgba(14,22,38,.9),rgba(14,22,38,.4)); --pk-nav:#0e1626; --pk-nav-sh:0 -1px 0 #6b5f45;
+  --pk-th:#efe6d0; --pk-th-c:#0e1626; --pk-alt:rgba(239,230,208,.04); --pk-hov:rgba(224,71,76,.18); --pk-row-bd:1px dashed rgba(201,185,143,.3); --pk-bc:#6b5f45;
+  --pk-badge-sh:inset 0 0 0 2px #16223a, inset 0 0 0 3px currentColor; --pk-bar:#e0474c; --pk-tt-c:#e0474c; --t-nd-c:#a89f86; --pk-scrim:rgba(4,8,18,.7);
+  --t-splus-c:#2b1d05; --t-splus:#d7b36a; --t-s:#e0474c; --t-a:#4f7a99; --t-b:#6f9a5a; --t-c:#d79a45; --t-d:#d98046; --t-e:#b43a3a; --t-f:#8a8372;
+}
+html[data-pack="washi"] body::before{background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.5' numOctaves='3' seed='11'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .36  0 0 0 0 .25  0 0 0 .14 -.01'/></filter><rect width='100%' height='100%' filter='url(%23f)'/></svg>"),radial-gradient(130% 90% at 50% 40%,transparent 55%,rgba(60,45,25,.2))}
+html[data-pack="washi"].pk-dark body::before{background:radial-gradient(60% 40% at 80% 14%,rgba(239,230,208,.14),transparent 70%),radial-gradient(130% 90% at 50% 40%,transparent 50%,rgba(0,0,0,.4))}
+/* sole rosso (di sera: luna) che sorge dietro la carta + montagne a inchiostro in fondo */
+html[data-pack="washi"]::before{content:""; position:fixed; z-index:-2; pointer-events:none; width:44vw; max-width:300px; aspect-ratio:1; border-radius:50%; right:-8vw; top:23vh; background:radial-gradient(circle at 40% 38%,#d6343a,#c1272d 62%,#a31d23); opacity:.92}
+html[data-pack="washi"].pk-dark::before{background:radial-gradient(circle at 40% 38%,#fbf3dc,#efe6d0 62%,#cfc5aa); opacity:.9; box-shadow:0 0 60px 10px rgba(239,230,208,.25)}
+html[data-pack="washi"]::after{content:""; position:fixed; z-index:-2; pointer-events:none; left:0; right:0; bottom:0; height:34vh; background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300' preserveAspectRatio='none'><defs><linearGradient id='a' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23000' stop-opacity='.55'/><stop offset='1' stop-color='%23000' stop-opacity='0'/></linearGradient></defs><path d='M0 300V190Q60 120 120 170T230 130T340 180T450 110T570 170T690 120T800 170V300Z' fill='url(%23a)' opacity='.35'/><path d='M0 300V230Q90 170 170 215T330 190T480 230T640 180T800 220V300Z' fill='url(%23a)' opacity='.5'/><path d='M0 300V260Q120 225 240 255T520 245T800 262V300Z' fill='url(%23a)' opacity='.7'/></svg>") bottom/100% 100% no-repeat; opacity:.9}
+html[data-pack="washi"].pk-dark::after{filter:invert(1) opacity(.5)}
+html[data-pack="washi"]:not(.pk-still)::before{animation:wsSun 18s ease-in-out infinite alternate}
+@keyframes wsSun{from{transform:translateY(0)}to{transform:translateY(-14px)}}
+/* scritta verticale in giapponese sul bordo */
+html[data-pack="washi"] body::after{z-index:-1; inset:auto; right:6px; top:92px; width:20px; height:240px; writing-mode:vertical-rl; content:"冒険の書 · 遊戯"; color:#c1272d; font-size:13px; letter-spacing:.5em; opacity:.55; background:none}
+html[data-pack="washi"].pk-dark body::after{color:#e0474c; opacity:.65}
+html[data-pack="washi"] .brand-logo{filter:drop-shadow(0 2px 2px rgba(43,36,32,.35))}
+html[data-pack="washi"] .topbar{border-bottom:2px solid #2b2420 !important}
+html[data-pack="washi"].pk-dark .topbar{border-bottom-color:#c9b98f !important}
+html[data-pack="washi"] .badge:not(.outline){width:2em; height:2em; display:inline-grid; place-items:center; padding:0; font-size:.9rem; transform:rotate(-4deg)}
+html[data-pack="washi"] tbody tr:nth-child(even) .badge:not(.outline){transform:rotate(3deg)}
+html[data-pack="washi"] .badge.ND{box-shadow:inset 0 0 0 1px #7a7266 !important; background:transparent !important}
+html[data-pack="washi"] td.score{font-weight:700; font-size:1.02rem}
+html[data-pack="washi"] thead th{font-size:.68rem; letter-spacing:.06em}
+html[data-pack="washi"] .modal-title{font-size:1.25rem}
+html[data-pack="washi"] .vt-tx{font-size:.62rem !important} html[data-pack="washi"] .iconbtn.lbl .ib-lb{font-size:.58rem}
+html[data-pack="washi"] .list-chip.active, html[data-pack="washi"] .qf-chip.active{box-shadow:0 0 0 2px #fbf6e9, 0 0 0 3px #c1272d !important}

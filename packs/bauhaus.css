@@ -1,0 +1,41 @@
+/* ===== Bauhaus: cerchi, quadrati e colori primari — bordi neri netti, fasce colorate, tier come forme geometriche ===== */
+@font-face{font-family:"Jost";src:url(../fonts/jost.woff2) format("woff2");font-weight:100 900;font-display:swap}
+
+html[data-pack="bauhaus"]{
+  --pk-ff:"Jost",Futura,"Century Gothic",system-ui,sans-serif; --pk-fh:var(--pk-ff); --pk-fc:var(--pk-ff);
+  --pk-hfw:800; --pk-bfs:14.5px; --pk-hls:.07em; --pk-htt:uppercase; --pk-cls:.01em;
+  --pk-r:0px; --pk-r2:0px; --pk-rp:0px; --pk-rb:50%; --pk-bw:2px; --pk-bwc:2px; --pk-bc:#111;
+  --pk-block:#fffdf5; --pk-chip:#fffdf5; --pk-input:#fffdf5; --pk-ib:#fffdf5; --pk-top:transparent; --pk-nav:#f1ead8;
+  --pk-sh:none; --pk-shs:none; --pk-shc:none; --pk-nav-sh:none;
+  --pk-th:#111; --pk-th-c:#f5c518; --pk-alt:rgba(245,197,24,.14); --pk-hov:rgba(230,51,41,.14); --pk-row-bd:1px solid #111;
+  --pk-act:#e63329; --pk-act-c:#fff; --pk-act-sh:none; --pk-ib-act:#f5c518; --pk-act-bc:#111;
+  --pk-badge-r:0; --pk-badge-bd:3px solid #111; --pk-badge-sh:none; --pk-badge-c:#111;
+  --t-splus:#f5c518; --t-s:#e63329; --t-a:#1d4ed8; --t-b:#f5c518; --t-c:#e63329; --t-d:#1d4ed8; --t-e:#111; --t-f:#d9d4c4; --t-nd:#fffdf5;
+  --t-splus-c:#111; --t-c-c:#fff; --t-nd-c:#111; --pk-bar:#111; --pk-bar-r:0; --pk-gi:none; --pk-scrim:rgba(17,17,17,.55); --pk-tt-c:#e63329;
+}
+html[data-pack="bauhaus"].pk-dark{
+  --pk-block:#1c1c1c; --pk-chip:#1c1c1c; --pk-input:#141414; --pk-ib:#1c1c1c; --pk-nav:#141414; --pk-th:#f5f1e4; --pk-th-c:#111; --pk-alt:rgba(245,241,228,.04); --pk-hov:rgba(255,74,61,.2); --pk-row-bd:1px solid #3a3a3a;
+  --pk-badge-bd:3px solid #f5f1e4; --pk-bar:#f5c518; --t-f:#444; --t-nd:#1c1c1c; --t-nd-c:#f5f1e4; --t-e:#f5f1e4; --pk-scrim:rgba(0,0,0,.65);
+}
+html[data-pack="bauhaus"].pk-dark .badge.E{color:#111}
+html[data-pack="bauhaus"].pk-dark .badge.F{color:#f5f1e4}
+/* composizione geometrica: disco rosso, quarto di cerchio blu, triangolo giallo */
+html[data-pack="bauhaus"] body::before{background:radial-gradient(circle at 86% 27vh,#e63329 0 15vw,transparent calc(15vw + .5px)),radial-gradient(circle at 0 100%,#1d4ed8 0 26vw,transparent calc(26vw + .5px)),linear-gradient(225deg,#f5c518 50%,transparent 50%) right bottom/34vw 34vw no-repeat,repeating-linear-gradient(0deg,rgba(17,17,17,.045) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,rgba(17,17,17,.045) 0 1px,transparent 1px 24px)}
+html[data-pack="bauhaus"].pk-dark body::before{background:radial-gradient(circle at 86% 27vh,#ff4a3d 0 15vw,transparent calc(15vw + .5px)),radial-gradient(circle at 0 100%,#4d7cff 0 26vw,transparent calc(26vw + .5px)),linear-gradient(225deg,#ffd23a 50%,transparent 50%) right bottom/34vw 34vw no-repeat,repeating-linear-gradient(0deg,rgba(245,241,228,.05) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,rgba(245,241,228,.05) 0 1px,transparent 1px 24px)}
+/* le tre fasce primarie sotto la testata e sopra la barra in basso; bordi colorati sui blocchi */
+html[data-pack="bauhaus"] .topbar{border-bottom-width:7px !important; border-image:linear-gradient(90deg,#e63329 0 33.33%,#f5c518 33.33% 66.66%,#1d4ed8 66.66%) 1 !important}
+html[data-pack="bauhaus"] .view-tabs{border-top-width:7px !important; border-image:linear-gradient(90deg,#1d4ed8 0 33.33%,#f5c518 33.33% 66.66%,#e63329 66.66%) 1 !important}
+html[data-pack="bauhaus"] .table-wrap{border-left:12px solid #e63329 !important}
+html[data-pack="bauhaus"] .glabel{border-left:10px solid #1d4ed8 !important} html[data-pack="bauhaus"] .cover-block{border-top:10px solid #f5c518 !important}
+html[data-pack="bauhaus"] .metric{border-top:8px solid #f5c518 !important} html[data-pack="bauhaus"] .stat-chip{border-top:8px solid #1d4ed8 !important}
+html[data-pack="bauhaus"] .brand-logo{filter:none}
+html[data-pack="bauhaus"] thead th{font-size:.64rem; letter-spacing:.1em}
+/* i tier sono forme: cerchi per i migliori, quadrati per gli altri */
+html[data-pack="bauhaus"] .badge:not(.outline){width:2.15em; height:2.15em; display:inline-grid; place-items:center; padding:0; font-size:.9rem}
+html[data-pack="bauhaus"] :is(.badge.Splus,.badge.S,.badge.A){border-radius:50%}
+html[data-pack="bauhaus"] :is(.badge.S,.badge.A,.badge.C,.badge.D){color:#fff}
+html[data-pack="bauhaus"] .badge.E{color:#f5c518} html[data-pack="bauhaus"] .badge.F{color:#111} html[data-pack="bauhaus"] .badge.ND{border-style:dashed}
+html[data-pack="bauhaus"] td.score{font-weight:800; font-size:1.02rem}
+html[data-pack="bauhaus"] .modal-title{font-size:1.3rem; line-height:1.05; letter-spacing:.04em}
+html[data-pack="bauhaus"] .vt-tx{font-size:.54rem !important} html[data-pack="bauhaus"] .iconbtn.lbl .ib-lb{font-size:.54rem}
+html[data-pack="bauhaus"] .view-tab.active .vt-ic{box-shadow:none !important}

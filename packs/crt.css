@@ -1,0 +1,45 @@
+/* ===== Terminale: fosforo verde, linee di scansione, cursore che lampeggia, tutto in monocromo ===== */
+@font-face{font-family:"JetBrains Mono";src:url(../fonts/jetbrains-mono.woff2) format("woff2");font-weight:100 800;font-display:swap}
+@font-face{font-family:"VT323";src:url(../fonts/vt323-400.woff2) format("woff2");font-weight:400;font-display:swap}
+
+html[data-pack="crt"]{
+  --pk-ff:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; --pk-fh:"VT323","JetBrains Mono",ui-monospace,monospace; --pk-fc:"JetBrains Mono",ui-monospace,monospace;
+  --pk-hfw:400; --pk-bfs:12.5px; --pk-hls:.04em; --pk-htt:uppercase; --pk-cls:0;
+  --pk-r:2px; --pk-r2:2px; --pk-rp:2px; --pk-rb:2px; --pk-bw:1px; --pk-bwc:1px; --pk-bc:#1e7d40;
+  --pk-block:rgba(2,22,10,.82); --pk-chip:rgba(3,28,13,.85); --pk-input:#021208; --pk-ib:#031c0d;
+  --pk-sh:0 0 0 1px rgba(57,255,122,.12), 0 0 14px rgba(57,255,122,.18), inset 0 0 22px rgba(57,255,122,.06); --pk-shs:0 0 8px rgba(57,255,122,.22); --pk-shc:none;
+  --pk-top:rgba(1,10,3,.55); --pk-nav:#010a03; --pk-nav-sh:0 -1px 0 #1e7d40;
+  --pk-th:rgba(57,255,122,.12); --pk-th-c:#39ff7a; --pk-alt:rgba(57,255,122,.05); --pk-hov:rgba(57,255,122,.16); --pk-row-bd:1px dashed rgba(57,255,122,.22);
+  --pk-act:#39ff7a; --pk-act-c:#001a08; --pk-act-sh:0 0 14px rgba(57,255,122,.6); --pk-ib-act:#39ff7a;
+  --pk-badge-r:0; --pk-badge-bd:0; --pk-badge-sh:none; --pk-badge-c:currentColor;
+  --t-splus:transparent; --t-s:transparent; --t-a:transparent; --t-b:transparent; --t-c:transparent; --t-d:transparent; --t-e:transparent; --t-f:transparent; --t-nd:transparent;
+  --t-splus-c:#ffe36b; --t-c-c:#c8ff6b; --t-nd-c:#2a7a45;
+  --pk-bar:#39ff7a; --pk-bar-sh:0 0 6px #39ff7a; --pk-bar-r:0; --pk-gi:grayscale(1) sepia(1) hue-rotate(78deg) saturate(3.2) brightness(1.05) drop-shadow(0 0 4px rgba(57,255,122,.6)); --pk-scrim:rgba(0,8,2,.78); --pk-tt-c:#39ff7a;
+}
+html[data-pack="crt"] body{text-shadow:0 0 5px rgba(57,255,122,.4)}
+html[data-pack="crt"] img{filter:grayscale(1) sepia(1) hue-rotate(78deg) saturate(2.8) brightness(.95)}
+html[data-pack="crt"] :is(.list-chip.active,.qf-chip.active,.btn.primary,.x-toolbar button.active,.toast,.stat-chip.active,.view-tab.active .vt-ic,.upplus-line){text-shadow:none}
+/* sfondo: bagliore del tubo catodico */
+html[data-pack="crt"] body::before{background:radial-gradient(90% 70% at 50% 30%,#052a12 0%,#021a0a 55%,#010a03 100%)}
+/* sopra a tutto: linee di scansione, bordi scuri del vetro e un lieve tremolio */
+html[data-pack="crt"] body::after{z-index:99990;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px),radial-gradient(120% 100% at 50% 50%,transparent 60%,rgba(0,0,0,.55) 100%)}
+html[data-pack="crt"]:not(.pk-still) body::after{animation:crtFlick 6s steps(1) infinite}
+@keyframes crtFlick{0%,100%{opacity:1}7%{opacity:.86}9%{opacity:1}52%{opacity:.93}54%{opacity:1}}
+/* parentesi quadre per pillole e tier, prompt davanti ai titoli */
+html[data-pack="crt"] :is(.list-chip,.qf-chip)::before{content:"["; opacity:.65; margin-right:3px; order:-1}
+html[data-pack="crt"] :is(.list-chip,.qf-chip)::after{content:"]"; opacity:.65; margin-left:3px}
+html[data-pack="crt"] .badge:not(.outline){background:transparent !important; font-family:var(--pk-fh); font-size:1.15rem; line-height:1; padding:0 2px; text-shadow:0 0 8px currentColor}
+html[data-pack="crt"] .badge:not(.outline)::before{content:"["; opacity:.6} html[data-pack="crt"] .badge:not(.outline)::after{content:"]"; opacity:.6}
+html[data-pack="crt"] .badge.S{color:#c084fc} html[data-pack="crt"] .badge.A{color:#5ee7ff} html[data-pack="crt"] .badge.B{color:#39ff7a} html[data-pack="crt"] .badge.C{color:#c8ff6b} html[data-pack="crt"] .badge.D{color:#ffb000} html[data-pack="crt"] .badge.E{color:#ff5d5d} html[data-pack="crt"] .badge.F{color:#8aa896}
+html[data-pack="crt"] .badge.Splus{color:#ffe36b}
+html[data-pack="crt"] td.score{font-family:var(--pk-fh); font-size:1.25rem; color:#39ff7a}
+html[data-pack="crt"] thead th{font-size:1rem; letter-spacing:.06em}
+html[data-pack="crt"] .modal-title{font-size:1.7rem; line-height:1}
+html[data-pack="crt"] .modal-title::before{content:"> "; opacity:.7}
+html[data-pack="crt"] #countLine::after{content:"█"; margin-left:4px}
+html[data-pack="crt"]:not(.pk-still) #countLine::after{animation:crtCur 1s steps(1) infinite}
+@keyframes crtCur{50%{opacity:0}}
+html[data-pack="crt"] #search{caret-color:#39ff7a} html[data-pack="crt"] #search::placeholder{color:#2c9c55}
+html[data-pack="crt"] .ib-lb, html[data-pack="crt"] .vt-tx{font-size:.56rem !important; text-transform:uppercase}
+html[data-pack="crt"] :is(.iconbtn.lbl .ib-ic,.view-tab .vt-ic,.x-mic,.ask-fab,.scrolltop-fab){border-radius:3px !important}

@@ -263,7 +263,7 @@
   // =====================================================================
   // 20) TEMA DALLA COPERTINA: aprendo un gioco l'app prende i suoi colori (si toglie chiudendo la scheda)
   // =====================================================================
-  const TINT_ON = ()=> LS.get('jrpg_app_tint', true);
+  const TINT_ON = ()=> LS.get('jrpg_app_tint', true) && !document.documentElement.hasAttribute('data-pack');
   const wsrv = (u, w, fmt)=> 'https://wsrv.nl/?url=' + encodeURIComponent(u) + '&w=' + w + (fmt ? '&output=' + fmt : '&output=webp');
   function coverColors(url){
     return new Promise(res=>{

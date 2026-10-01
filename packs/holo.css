@@ -1,0 +1,39 @@
+/* ===== Olografico: bordi cangianti come le carte rare, riflessi arcobaleno, sfondo perlato che scivola ===== */
+@font-face{font-family:"Sora";src:url(../fonts/sora.woff2) format("woff2");font-weight:100 800;font-display:swap}
+
+html[data-pack="holo"]{
+  --pk-ff:"Sora",system-ui,sans-serif; --pk-fh:var(--pk-ff); --pk-fc:var(--pk-ff);
+  --pk-hfw:700; --pk-bfs:13.5px; --pk-hls:-.01em; --pk-cls:0;
+  --pk-r:20px; --pk-r2:14px; --pk-rp:999px; --pk-rb:50%; --pk-bw:2px; --pk-bwc:2px; --pk-bc:transparent;
+  --rb:conic-gradient(from 210deg,#ff9ad5,#9ad1ff,#a8ffd0,#fff59a,#ffb3a8,#c9a8ff,#ff9ad5);
+  --pk-block:linear-gradient(var(--card),var(--card)) padding-box,var(--rb) border-box; --pk-chip:linear-gradient(#ffffff,#ffffff) padding-box,var(--rb) border-box; --pk-input:linear-gradient(#ffffff,#ffffff) padding-box,var(--rb) border-box; --pk-ib:linear-gradient(#ffffff,#ffffff) padding-box,var(--rb) border-box;
+  --pk-sh:0 14px 30px -14px rgba(138,92,255,.4), 0 2px 8px -2px rgba(255,107,189,.22); --pk-shs:0 4px 10px -4px rgba(138,92,255,.35); --pk-shc:0 3px 8px -3px rgba(138,92,255,.3);
+  --pk-top:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,.2)); --pk-nav:rgba(255,255,255,.9); --pk-nav-sh:0 -1px 0 rgba(138,92,255,.2), 0 -10px 24px -12px rgba(138,92,255,.35);
+  --pk-th:linear-gradient(90deg,rgba(255,154,213,.3),rgba(154,209,255,.3) 50%,rgba(168,255,208,.3)); --pk-th-c:#3b2a7a; --pk-alt:rgba(138,92,255,.045); --pk-hov:rgba(255,107,189,.12); --pk-row-bd:1px solid rgba(138,92,255,.14);
+  --pk-act:linear-gradient(115deg,#ff9ad5,#9ad1ff 35%,#a8ffd0 65%,#fff59a); --pk-act-c:#2a1a5a; --pk-act-sh:0 6px 16px -4px rgba(255,107,189,.5); --pk-ib-act:linear-gradient(115deg,#ff9ad5,#9ad1ff 35%,#a8ffd0 65%,#fff59a); --pk-act-bc:#fff;
+  --pk-badge-r:10px; --pk-badge-bd:1px solid rgba(255,255,255,.9); --pk-badge-sh:0 2px 6px -1px rgba(138,92,255,.45), inset 0 1px 0 rgba(255,255,255,.8); --pk-badge-c:#2a1a5a;
+  --t-splus:linear-gradient(115deg,#ff9ad5,#ffd36b 25%,#a8ffd0 50%,#9ad1ff 75%,#c9a8ff); --t-s:linear-gradient(135deg,#ffb3e6,#c9a8ff); --t-a:linear-gradient(135deg,#a8dcff,#9ab6ff); --t-b:linear-gradient(135deg,#b8ffd8,#8ee8e0); --t-c:linear-gradient(135deg,#fff3a8,#ffd1a0); --t-d:linear-gradient(135deg,#ffd0a8,#ffa8b8); --t-e:linear-gradient(135deg,#ffb0b8,#ff8aa0); --t-f:linear-gradient(135deg,#dcd8ee,#bcb6d8); --t-nd:linear-gradient(135deg,#ece8f8,#d8d2ee);
+  --t-splus-c:#3a1a6a; --t-c-c:#5a3a00; --t-nd-c:#6a6590; --pk-bar:linear-gradient(90deg,#ff6bbd,#8a5cff,#27c6e8); --pk-bar-r:4px; --pk-gi:drop-shadow(0 2px 3px rgba(138,92,255,.35)); --pk-scrim:rgba(40,20,90,.5); --pk-tt-c:#8a5cff;
+}
+html[data-pack="holo"].pk-dark{
+  --rb:conic-gradient(from 210deg,#ff7ad0,#4fe0ff,#7dffc0,#fff08a,#ff9a8a,#a98cff,#ff7ad0);
+  --pk-block:linear-gradient(var(--card),var(--card)) padding-box,var(--rb) border-box; --pk-chip:linear-gradient(#1c1740,#1c1740) padding-box,var(--rb) border-box; --pk-input:linear-gradient(#120e2c,#120e2c) padding-box,var(--rb) border-box; --pk-ib:linear-gradient(#1c1740,#1c1740) padding-box,var(--rb) border-box;
+  --pk-sh:0 14px 30px -14px rgba(0,0,0,.8), 0 0 24px -6px rgba(169,140,255,.3); --pk-shs:0 4px 12px -4px rgba(0,0,0,.7); --pk-top:linear-gradient(180deg,rgba(12,10,29,.7),rgba(12,10,29,.2)); --pk-nav:rgba(12,10,29,.94); --pk-nav-sh:0 -1px 0 rgba(169,140,255,.3), 0 -10px 24px -12px rgba(169,140,255,.3);
+  --pk-th:linear-gradient(90deg,rgba(255,122,208,.22),rgba(79,224,255,.22) 50%,rgba(125,255,192,.2)); --pk-th-c:#f2eeff; --pk-alt:rgba(169,140,255,.06); --pk-hov:rgba(255,122,208,.16); --pk-row-bd:1px solid rgba(169,140,255,.18); --pk-scrim:rgba(5,3,20,.72); --pk-tt-c:#c9b8ff;
+}
+html[data-pack="holo"] body::before{inset:-20%; background:radial-gradient(40% 32% at 18% 14%,rgba(255,170,225,.75),transparent 70%),radial-gradient(38% 30% at 82% 22%,rgba(150,205,255,.75),transparent 70%),radial-gradient(42% 34% at 70% 88%,rgba(170,255,215,.7),transparent 70%),radial-gradient(36% 30% at 12% 80%,rgba(255,240,160,.6),transparent 70%)}
+html[data-pack="holo"].pk-dark body::before{background:radial-gradient(40% 32% at 18% 14%,rgba(255,90,200,.34),transparent 70%),radial-gradient(38% 30% at 82% 22%,rgba(60,190,255,.34),transparent 70%),radial-gradient(42% 34% at 70% 88%,rgba(90,255,190,.26),transparent 70%),radial-gradient(36% 30% at 12% 80%,rgba(255,230,120,.2),transparent 70%)}
+html[data-pack="holo"]:not(.pk-still) body::before{animation:hoDrift 26s ease-in-out infinite alternate}
+@keyframes hoDrift{from{transform:translate3d(-4%,-3%,0) rotate(0deg) scale(1)}to{transform:translate3d(5%,4%,0) rotate(12deg) scale(1.1)}}
+/* riflesso che passa sui selezionati e sui tier migliori */
+html[data-pack="holo"] :is(.list-chip.active,.btn.primary,.badge.Splus,.badge.S){background-size:260% 100%}
+html[data-pack="holo"]:not(.pk-still) :is(.list-chip.active,.badge.Splus){animation:hoSheen 4.5s linear infinite}
+@keyframes hoSheen{from{background-position:0% 0}to{background-position:260% 0}}
+html[data-pack="holo"] .brand-logo{filter:drop-shadow(0 3px 6px rgba(138,92,255,.4))}
+html[data-pack="holo"] h1, html[data-pack="holo"] .modal-title{background:linear-gradient(90deg,#8a5cff,#ff6bbd 50%,#27c6e8); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+html[data-pack="holo"] .modal-title{font-size:1.2rem; font-weight:800}
+html[data-pack="holo"] .badge:not(.outline){min-width:2.1em; text-align:center; font-size:.84rem}
+html[data-pack="holo"] td.score{font-weight:800; font-size:.98rem; background:linear-gradient(90deg,#8a5cff,#ff6bbd); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+html[data-pack="holo"] thead th{font-size:.66rem}
+html[data-pack="holo"] .toast{border:none}
+html[data-pack="holo"] .vt-tx{font-size:.6rem !important} html[data-pack="holo"] .iconbtn.lbl .ib-lb{font-size:.58rem}

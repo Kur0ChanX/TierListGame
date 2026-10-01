@@ -1,0 +1,47 @@
+/* ===== Fumetto: pop-art — retino a puntini, vignette con ombra dura, esplosione «POW!», tier a stella ===== */
+@font-face{font-family:"Bangers";src:url(../fonts/bangers-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Comic Neue";src:url(../fonts/comic-neue-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Comic Neue";src:url(../fonts/comic-neue-700.woff2) format("woff2");font-weight:700;font-display:swap}
+
+html[data-pack="fumetto"]{
+  --pk-ff:"Comic Neue","Comic Sans MS",cursive; --pk-fh:"Bangers","Comic Neue",Impact,cursive; --pk-fc:"Comic Neue","Comic Sans MS",cursive;
+  --pk-hfw:400; --pk-bfs:15px; --pk-hls:.06em; --pk-htt:uppercase; --pk-cls:.01em;
+  --pk-r:12px; --pk-r2:10px; --pk-rp:999px; --pk-rb:50%; --pk-bw:3px; --pk-bwc:2.5px; --pk-bc:#111;
+  --pk-block:#fff; --pk-chip:#fff; --pk-input:#fff; --pk-ib:#fff; --pk-top:transparent; --pk-nav:#fff;
+  --pk-sh:5px 5px 0 #111; --pk-shs:3px 3px 0 #111; --pk-shc:2px 2px 0 #111; --pk-nav-sh:none;
+  --pk-th:#111; --pk-th-c:#ffe14d; --pk-alt:rgba(230,57,70,.07); --pk-hov:rgba(0,180,216,.2); --pk-row-bd:2px solid #111;
+  --pk-act:#e63946; --pk-act-c:#fff; --pk-act-sh:3px 3px 0 #111; --pk-ib-act:#e63946; --pk-act-bc:#111;
+  --pk-badge-r:0; --pk-badge-bd:0; --pk-badge-sh:none; --pk-badge-c:#111;
+  --t-splus:transparent; --t-s:transparent; --t-a:transparent; --t-b:transparent; --t-c:transparent; --t-d:transparent; --t-e:transparent; --t-f:transparent; --t-nd:transparent;
+  --t-splus-c:#111; --t-c-c:#111; --t-nd-c:#fff; --pk-bar:#111; --pk-bar-r:0; --pk-gi:drop-shadow(1px 1px 0 #111); --pk-scrim:rgba(17,17,17,.6); --pk-tt-c:#e63946;
+  --dots:#e63946; --burst:#e63946; --burst-bg:#ffe14d;
+}
+html[data-pack="fumetto"].pk-dark{
+  --pk-block:#1b2255; --pk-sh:5px 5px 0 #27d3ff; --pk-shs:3px 3px 0 #27d3ff; --pk-shc:2px 2px 0 #27d3ff; --pk-chip:#1b2255; --pk-input:#1b2255; --pk-ib:#1b2255; --pk-nav:#1b2255;
+  --pk-th:#fff; --pk-th-c:#10163a; --pk-alt:rgba(255,255,255,.05); --pk-hov:rgba(255,77,94,.2); --pk-row-bd:2px solid #fff; --pk-act:#ff4d5e; --pk-act-sh:3px 3px 0 #27d3ff; --pk-bar:#ffd23f; --pk-act-bc:#fff;
+  --t-nd-c:#fff; --dots:#27d3ff; --burst:#ffd23f; --pk-gi:drop-shadow(1px 1px 0 #000); --pk-scrim:rgba(5,8,30,.7); --pk-tt-c:#ffd23f;
+}
+html[data-pack="fumetto"] body{font-weight:700}
+/* retino a mezzatinta che sfuma verso il basso */
+html[data-pack="fumetto"] body::before{background:radial-gradient(circle,var(--dots) 2.3px,transparent 2.9px) 0 0/16px 16px,radial-gradient(circle,var(--dots) 2.3px,transparent 2.9px) 8px 8px/16px 16px; opacity:.5;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,rgba(0,0,0,.35) 60%,rgba(0,0,0,.12)); mask-image:linear-gradient(180deg,#000 0,rgba(0,0,0,.35) 60%,rgba(0,0,0,.12))}
+/* l'esplosione «POW!» dietro alla pagina */
+html[data-pack="fumetto"]{--s:min(38vw,200px)}
+html[data-pack="fumetto"]::before{content:""; position:fixed; z-index:-2; pointer-events:none; width:var(--s); aspect-ratio:1; right:-5vw; top:19vh; background:#111; clip-path:polygon(50.0% 0.0%,57.4% 12.7%,69.1% 3.8%,71.1% 18.4%,85.4% 14.6%,81.6% 28.9%,96.2% 30.9%,87.3% 42.6%,100.0% 50.0%,87.3% 57.4%,96.2% 69.1%,81.6% 71.1%,85.4% 85.4%,71.1% 81.6%,69.1% 96.2%,57.4% 87.3%,50.0% 100.0%,42.6% 87.3%,30.9% 96.2%,28.9% 81.6%,14.6% 85.4%,18.4% 71.1%,3.8% 69.1%,12.7% 57.4%,0.0% 50.0%,12.7% 42.6%,3.8% 30.9%,18.4% 28.9%,14.6% 14.6%,28.9% 18.4%,30.9% 3.8%,42.6% 12.7%); transform:rotate(-8deg)}
+html[data-pack="fumetto"]::after{content:"POW!"; position:fixed; z-index:-2; pointer-events:none; width:calc(var(--s) * .9); aspect-ratio:1; right:calc(-5vw + var(--s) * .05); top:calc(19vh + var(--s) * .05); background:var(--burst); clip-path:polygon(50.0% 0.0%,57.4% 12.7%,69.1% 3.8%,71.1% 18.4%,85.4% 14.6%,81.6% 28.9%,96.2% 30.9%,87.3% 42.6%,100.0% 50.0%,87.3% 57.4%,96.2% 69.1%,81.6% 71.1%,85.4% 85.4%,71.1% 81.6%,69.1% 96.2%,57.4% 87.3%,50.0% 100.0%,42.6% 87.3%,30.9% 96.2%,28.9% 81.6%,14.6% 85.4%,18.4% 71.1%,3.8% 69.1%,12.7% 57.4%,0.0% 50.0%,12.7% 42.6%,3.8% 30.9%,18.4% 28.9%,14.6% 14.6%,28.9% 18.4%,30.9% 3.8%,42.6% 12.7%); transform:rotate(-8deg);
+  display:grid; place-items:center; font:400 calc(var(--s) * .2)/1 "Bangers",Impact,sans-serif; color:#fff; text-shadow:2px 2px 0 #111,-1px -1px 0 #111,1px -1px 0 #111,-1px 1px 0 #111; letter-spacing:.04em; padding-right:6%}
+html[data-pack="fumetto"]:not(.pk-still)::before, html[data-pack="fumetto"]:not(.pk-still)::after{animation:fmPow 1.5s ease-in-out infinite alternate}
+@keyframes fmPow{from{transform:rotate(-8deg) scale(1)}to{transform:rotate(-5deg) scale(1.07)}}
+html[data-pack="fumetto"] .brand-logo{filter:drop-shadow(2px 2px 0 #111)}
+html[data-pack="fumetto"] .topbar{border-bottom-width:4px !important}
+html[data-pack="fumetto"] thead th{font-size:.82rem; letter-spacing:.06em}
+html[data-pack="fumetto"] td.score{font-family:var(--pk-fh); font-size:1.3rem; line-height:1}
+html[data-pack="fumetto"] .modal-title{font-size:1.9rem; line-height:1; color:#fff; -webkit-text-stroke:1.4px #111; text-shadow:3px 3px 0 #111; paint-order:stroke fill}
+/* i tier sono stelle di fumetto: una nera dietro e una colorata davanti */
+html[data-pack="fumetto"] .badge:not(.outline){position:relative; z-index:0; display:inline-grid; place-items:center; width:2.4em; height:2.4em; padding:0; background:none !important; font-size:1.05rem; line-height:1; text-shadow:none; isolation:isolate}
+html[data-pack="fumetto"] .badge:not(.outline)::before{content:""; position:absolute; inset:-3px; background:#111; clip-path:polygon(50.0% 0.0%,59.3% 15.2%,75.0% 6.7%,75.5% 24.5%,93.3% 25.0%,84.8% 40.7%,100.0% 50.0%,84.8% 59.3%,93.3% 75.0%,75.5% 75.5%,75.0% 93.3%,59.3% 84.8%,50.0% 100.0%,40.7% 84.8%,25.0% 93.3%,24.5% 75.5%,6.7% 75.0%,15.2% 59.3%,0.0% 50.0%,15.2% 40.7%,6.7% 25.0%,24.5% 24.5%,25.0% 6.7%,40.7% 15.2%); z-index:-2}
+html[data-pack="fumetto"] .badge:not(.outline)::after{content:""; position:absolute; inset:0; background:var(--tc,#fff); clip-path:polygon(50.0% 0.0%,59.3% 15.2%,75.0% 6.7%,75.5% 24.5%,93.3% 25.0%,84.8% 40.7%,100.0% 50.0%,84.8% 59.3%,93.3% 75.0%,75.5% 75.5%,75.0% 93.3%,59.3% 84.8%,50.0% 100.0%,40.7% 84.8%,25.0% 93.3%,24.5% 75.5%,6.7% 75.0%,15.2% 59.3%,0.0% 50.0%,15.2% 40.7%,6.7% 25.0%,24.5% 24.5%,25.0% 6.7%,40.7% 15.2%); z-index:-1}
+html[data-pack="fumetto"] .badge.Splus{--tc:#ffe14d} html[data-pack="fumetto"] .badge.S{--tc:#ff6b81} html[data-pack="fumetto"] .badge.A{--tc:#4dc3ff} html[data-pack="fumetto"] .badge.B{--tc:#6be09a} html[data-pack="fumetto"] .badge.C{--tc:#ffc94d} html[data-pack="fumetto"] .badge.D{--tc:#ff9a5c} html[data-pack="fumetto"] .badge.E{--tc:#ff5c5c} html[data-pack="fumetto"] .badge.F{--tc:#d9d9d9} html[data-pack="fumetto"] .badge.ND{--tc:#fff}
+html[data-pack="fumetto"] .vt-tx{font-size:.7rem !important; letter-spacing:.04em; text-transform:uppercase} html[data-pack="fumetto"] .iconbtn.lbl .ib-lb{font-size:.72rem; letter-spacing:.04em; text-transform:uppercase}
+html[data-pack="fumetto"] .toast{font-family:var(--pk-fh); letter-spacing:.05em; font-size:1rem}
+html[data-pack="fumetto"] .list-chip.active{transform:rotate(-1.5deg)}
