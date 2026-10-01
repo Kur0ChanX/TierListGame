@@ -2,7 +2,7 @@
 
 App statica (si apre anche con doppio clic, file://), senza server né build. Utente italiano, non programmatore: rispondi in italiano, breve, senza gergo. Sito: https://kur0chanx.github.io/TierListGame/. Il Triple Triad è un progetto a parte: repository `kur0chanx/raccoon-triad` (qui resta solo il link nel menu ✨ e il reindirizzamento degli inviti `#tt=`).
 
-**Dettagli di ogni file, chiavi e funzioni: `docs/ARCHITETTURA.md` (non leggerlo tutto: Grep sulla voce che serve).**
+**Prima di tutto (nuova sessione o nuovo account): leggi `docs/PASSAGGIO-CONSEGNE.md` (utente, flusso di lavoro, errori già fatti, cose da fare). Dettagli di ogni file, chiavi e funzioni: `docs/ARCHITETTURA.md` (non leggerlo tutto: Grep sulla voce che serve). Prove automatiche: `tools/test/`.**
 
 ## Risparmio di token (priorità)
 - Una sessione per lavoro. Risposte corte, niente riassunti lunghi. Niente screenshot/prove che non servono.

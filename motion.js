@@ -248,4 +248,5 @@
 
   // all'avvio la classifica è già disegnata: la prima volta entra a cascata
   setTimeout(()=>{ try{ cascade(); }catch(e){} }, 0);
+  window.__rtReady = true; try{ if(window.__rtQ) window.__rtQ(); }catch(e){}      // v206: rifaccio il tocco fatto mentre il programma si caricava
 })();

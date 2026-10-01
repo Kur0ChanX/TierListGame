@@ -21,12 +21,13 @@
     if(closed) return; closed = true;
     el.classList.add('closing');
     document.documentElement.classList.remove('intro-on');
-    setTimeout(()=>{ el.remove(); }, 700);              // resta sopra per 0,7 s: il tocco non "cade" sul gioco sotto
+    setTimeout(()=>{ el.style.pointerEvents = 'none'; }, 350);     // v206: dopo 0,35 s non intercetta più nessun tocco (prima restava 0,7 s: News e le icone in alto sembravano bloccate)
+    setTimeout(()=>{ el.remove(); document.documentElement.classList.remove('intro-on'); }, 700);
     window.removeEventListener('keydown', onKey);
   }
   // dopo "Entra" ignoriamo per un attimo ogni tocco/click residuo, così non apre per sbaglio un gioco
   function swallow(e){ e.stopPropagation(); e.preventDefault(); }
-  function guardTaps(){ ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.addEventListener(n, swallow, true)); setTimeout(()=> ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.removeEventListener(n, swallow, true)), 750); }
+  function guardTaps(){ ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.addEventListener(n, swallow, true)); setTimeout(()=> ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.removeEventListener(n, swallow, true)), 330); }
   // il browser permette lo schermo intero solo dopo un tocco: il tocco su "ENTRA" lo attiva e apre il programma
   function enter(){
     if(closed) return;
@@ -51,8 +52,9 @@
   setTimeout(()=>{ timeUp = true; }, reduce ? 1200 : 2200);
   // v202: se dopo 9 secondi i giochi non ci sono, quasi sempre è GitHub che rifiuta (troppe richieste dalla tua rete):
   // lo dico chiaramente e riprovo da solo (al massimo 3 volte), invece di restare fermo su «Carico la tua collezione…»
+  let touched = false; window.addEventListener('pointerdown', ()=>{ touched = true; }, {capture: true, once: true});
   setTimeout(()=>{
-    if(closed || (typeof GAMES !== 'undefined' && GAMES.length)) return;
+    if(closed || touched || (typeof GAMES !== 'undefined' && GAMES.length)) return;       // mai ricaricare mentre stai toccando lo schermo
     let n = 0; try{ n = +(sessionStorage.getItem('rt_boot_retry') || 0); }catch(e){}
     if(msg) msg.textContent = n < 3 ? 'Il sito di GitHub è sovraccarico in questo momento: riprovo da solo…' : 'GitHub non risponde dalla tua rete. Prova a spegnere e riaccendere i dati (o il Wi-Fi) e riapri.';
     if(n < 3){ try{ sessionStorage.setItem('rt_boot_retry', String(n + 1)); }catch(e){} setTimeout(()=> location.reload(), 4000 + n * 6000); }
@@ -70,4 +72,6 @@
     for(let i = 0; i < 34; i++) h += `<u style="left:${R(0,100).toFixed(1)}%;--w2:${R(5,9).toFixed(0)}px;--h2:${R(8,15).toFixed(0)}px;--c:${colors[i%colors.length]};--dx:${R(-40,40).toFixed(0)}px;--d:${R(2.4,4.2).toFixed(2)}s;--w:-${R(0,4).toFixed(2)}s"></u>`;
     sp.innerHTML = h;
   }
+  // rete di sicurezza finale: se per qualsiasi motivo la schermata d'apertura resta in piedi con i giochi pronti, la tolgo (non deve mai coprire l'app)
+  setInterval(()=>{ const e = document.getElementById('intro'); if(e && !closed && typeof GAMES !== 'undefined' && GAMES.length && performance.now() > 20000){ close(); } if(!e) document.documentElement.classList.remove('intro-on'); }, 2000);
 })();

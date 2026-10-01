@@ -1,0 +1,12 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:412,height:915},colorScheme:'dark',isMobile:true,hasTouch:true});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await ctx.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort());
+await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html');await p.waitForTimeout(4000);
+await p.evaluate(()=>{ GAMES.filter(g=>/^Final Fantasy (VII|VIII|IX|VI)$|^Chrono Trigger$|Persona 5 Royal/.test(g.name)).forEach(g=>FAVS.add(g.id)); saveFavs(); openModal(GAMES.find(g=>g.name==='Final Fantasy X'));});
+await p.waitForTimeout(1500);
+await p.evaluate(()=>{const t=[...document.querySelectorAll('.modal-section-title')].find(x=>/colpo/.test(x.textContent));t.scrollIntoView();});
+await p.waitForTimeout(400);await p.screenshot({path:(process.env.SP||'/tmp')+'/h200-gl.png'});
+console.log(await p.evaluate(()=>[...document.querySelectorAll('.modal-section-title')].map(x=>x.textContent.trim().slice(0,20)).join(' | ')));
+console.log(await p.evaluate(()=>!!document.querySelector('.sim-lazy .similar-chip')));
+console.log('ERR',errs);await b.close();})();

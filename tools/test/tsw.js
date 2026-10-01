@@ -1,0 +1,15 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:412,height:915}});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+let mode='ok',count=0;
+await ctx.route('**/*',r=>{const u=r.request().url(); if(!u.startsWith('http://localhost')) return r.abort(); count++; if(mode==='429') return r.fulfill({status:429,body:'Rate limit exceeded'}); return r.continue();});
+const U='http://localhost:8765/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html';
+await p.goto(U);await p.waitForTimeout(6000);
+console.log('1° apertura richieste:',count,'giochi',await p.evaluate(()=>typeof GAMES!=='undefined'&&GAMES.length),'sw',await p.evaluate(()=>!!navigator.serviceWorker.controller));
+count=0; await p.reload(); await p.waitForTimeout(5000);
+console.log('2° apertura richieste:',count,'giochi',await p.evaluate(()=>typeof GAMES!=='undefined'&&GAMES.length));
+count=0; await p.reload(); await p.waitForTimeout(5000);
+console.log('3° apertura richieste:',count);
+mode='429'; count=0; await p.reload(); await p.waitForTimeout(6000);
+console.log('con GitHub che rifiuta: giochi',await p.evaluate(()=>typeof GAMES!=='undefined'&&GAMES.length),'richieste',count);
+console.log('ERR',errs.slice(0,5));await b.close();})();
