@@ -165,7 +165,7 @@
     const g = GAMES.find(x=> x.id === cur.id); d.querySelector('.rm-t small').textContent = g ? g.name + ' · ' + (cur.i + 1) + '/' + cur.list.length : '';
     paintBar();
   }
-  function paintBar(){ const mb = document.getElementById('mzBar'); if(mb && typeof currentModalGame !== 'undefined' && currentModalGame){ mb.outerHTML = barHtml(currentModalGame); wireBar(currentModalGame); } }
+  function paintBar(){ const mb = document.getElementById('mzBar'); if(mb && typeof currentModalGame !== 'undefined' && currentModalGame){ const l0 = mb.querySelector('.mz2-list'), open = !!(l0 && !l0.hidden); mb.outerHTML = barHtml(currentModalGame); wireBar(currentModalGame); if(open){ const l = document.querySelector('#mzBar .mz2-list'); if(l) l.hidden = false; } } }
   // ---- ricerca su YouTube: tre tentativi in ordine («triade») e, a mano, con le parole che vuoi ----
   const USER = 'rt_ost_user', MISS = 'rt_ost_miss', LIVE = 'rt_ost_live', STAT = {};
   const cleanN = n=> String(n).replace(/\s*\([^)]*\)/g, '').trim();
@@ -173,15 +173,24 @@
   const normT = t=> String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
   const STOPW = new Set(['the', 'of', 'and', 'a', 'an', 'in', 'to', 'for', 'edition', 'remastered', 'remake', 'definitive', 'complete', 'hd', 'game', 'collection']);
   const tokensOf = n=> normT(n).split(' ').filter(w=> w.length >= 2 && !STOPW.has(w));
-  const namesGame = (title, name)=>{ const t = ' ' + normT(title) + ' ', w = tokensOf(name); if(!w.length) return true; return w.filter(x=> t.includes(' ' + x)).length >= Math.max(1, Math.ceil(w.length / 2)); };
-  const queriesFor = name=>{ const n = cleanN(name), b = baseN(name), q = [n + ' OST music', n + ' soundtrack', n + ' playlist complete music']; if(b && b !== n) q.push(b + ' OST music', b + ' soundtrack'); return [...new Set(q)]; };
+  const namesGame0 = (title, name)=>{ const t = ' ' + normT(title) + ' ', w = tokensOf(name); if(!w.length) return true; return w.filter(x=> t.includes(' ' + x)).length >= Math.max(1, Math.ceil(w.length / 2)); };
+  // non deve essere un altro capitolo: «Final Fantasy X-2» non è «Final Fantasy X», «Kingdom Hearts II» non è «Kingdom Hearts»
+  const namesGame = (title, name)=>{
+    if(!namesGame0(title, name)) return false;
+    const t = normT(title), n = normT(cleanN(name)); const i = t.indexOf(n); if(i < 0) return true;
+    const after = t.slice(i + n.length);
+    return !/^\s?(2|3|4|ii|iii|iv|zero|origins|remix)\b/.test(after);
+  };
+  // le parole che usi tu (in quest'ordine): «soundtrack music», «soundtrack ost», «OST music», poi «playlist complete music»
+  const queriesFor = name=>{ const n = cleanN(name), b = baseN(name), q = [n + ' soundtrack music', n + ' soundtrack ost', n + ' OST music', n + ' playlist complete music']; if(b && b !== n) q.push(b + ' soundtrack music', b + ' soundtrack ost'); return [...new Set(q)]; };
   const secsOf = t=> String(t || '').split(':').reduce((a, x)=> a * 60 + (+x || 0), 0);
-  const BAD = /reaction|review|piano cover|tutorial|live stream|gameplay|walkthrough|let'?s play|trailer|rap by|remix|cover by/i;
+  // via tutto ciò che non è la musica ORIGINALE: lofi, relax, piano, cover, remix, mix di ore, ambienti, reazioni…
+  const BAD = /reaction|review|tutorial|live stream|gameplay|walkthrough|let'?s play|trailer|rap by|remix|cover|lo-?fi|relax|relaxing|sleep|study|chill|ambien|asmr|rain|beats|piano|guitar|violin|orchestra(l)? (version|arrangement)|arrange|8.?bit|chiptune|metal version|\b\d+ ?(hours?|ore)\b|mashup|medley|karaoke|nightcore|slowed|reverb|tribute|fan ?made|ai cover/i;
   const parseYT = html=>{
     const m = String(html).match(/var ytInitialData = (\{.*?\});<\/script>/s); if(!m) return [];
     let data; try{ data = JSON.parse(m[1]); }catch(e){ return []; }
     const out = [];
-    (function walk(o){ if(!o || typeof o !== 'object' || out.length >= 20) return; if(o.videoRenderer && o.videoRenderer.videoId){ const v = o.videoRenderer; out.push([v.videoId, ((v.title && v.title.runs && v.title.runs[0] && v.title.runs[0].text) || '').slice(0, 70), (v.lengthText && v.lengthText.simpleText) || '']); return; } for(const k in o) walk(o[k]); })(data);
+    (function walk(o){ if(!o || typeof o !== 'object' || out.length >= 20) return; if(o.videoRenderer && o.videoRenderer.videoId){ const v = o.videoRenderer; out.push([v.videoId, ((v.title && v.title.runs && v.title.runs[0] && v.title.runs[0].text) || '').slice(0, 70), (v.lengthText && v.lengthText.simpleText) || '', +String((v.viewCountText && (v.viewCountText.simpleText || (v.viewCountText.runs || []).map(r=> r.text).join(''))) || '').replace(/[^0-9]/g, '') || 0]); return; } for(const k in o) walk(o[k]); })(data);
     return out;
   };
   // tiene i brani veri: titolo giusto, nome del gioco, non reazioni/gameplay; prima le raccolte lunghe
@@ -190,7 +199,7 @@
   const searchYT = async q=> parseYT(await SearchHub.text('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), {timeout: 15000}));
   const setStat = (id, t)=>{ if(t) STAT[id] = t; else delete STAT[id]; paintBar(); };
   // ---- Internet Archive: album interi caricati dagli utenti, file mp3 diretti (niente pubblicità). Cache 30 giorni (anche i «non trovato»). ----
-  const IA = 'rt_ost_ia', SRC = 'jrpg_music_src';                 // fonte preferita: 'ia' (senza pubblicità, predefinita) | 'yt'
+  const IA = 'rt_ost_ia2', SRC = 'jrpg_music_src';                 // fonte preferita: 'ia' (senza pubblicità, predefinita) | 'yt'
   const IA_BAD = /piano|cover|remix|arrang|orchestra|8.?bit|lo-?fi|tribute|guitar|acoustic|metal version|karaoke|ringtone|medley|chiptune/i;
   const fmt = sec=>{ sec = Math.round(+sec || 0); return sec ? Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') : ''; };
   async function iaAlbum(g){
@@ -209,9 +218,20 @@
         if(files.length >= 3){ res = {all: files, album: d.title, id: d.identifier}; break; }
       }
     }catch(err){ return null; }                                     // rete/blocco: non salvo, riprovo la prossima volta
-    // 5 brani sparsi lungo l'album (non solo i primi), il resto resta come «alternative» per il tasto 🔁
+    // prima i brani PIÙ FAMOSI: confronto i titoli dell'album con i video più visti su YouTube («To Zanarkand», «Otherworld»…);
+    // se YouTube non risponde prendo 5 brani sparsi lungo l'album. Il resto resta come «alternative» per il tasto 🔁, in ordine di fama.
     let l = null;
-    if(res){ const n = res.all.length, idx = [...new Set([0, 1, 2, 3, 4].map(i=> Math.round(i * (n - 1) / 4)))]; l = idx.map(i=> res.all[i]); }
+    if(res){
+      try{
+        const yt = [].concat(await searchYT(cleanN(g.name) + ' soundtrack ost').catch(()=> []), await searchYT(cleanN(g.name) + ' soundtrack music').catch(()=> []));
+        const tl = yt.map(v=> [normT(v[1]), +v[3] || 1]);
+        res.all.forEach(x=>{ const k = normT(x[1]).replace(/^\d+\s*/, ''); x[3] = k.length >= 4 ? tl.filter(v=> (' ' + v[0] + ' ').includes(' ' + k + ' ')).reduce((a, v)=> a + v[1], 0) : 0; });
+      }catch(e){}
+      const famous = res.all.filter(x=> x[3] > 0).sort((a, b)=> b[3] - a[3]);
+      const n = res.all.length, spread = [...new Set([0, 1, 2, 3, 4].map(i=> Math.round(i * (n - 1) / 4)))].map(i=> res.all[i]);
+      l = famous.slice(0, 5); spread.forEach(x=>{ if(l.length < 5 && !l.includes(x)) l.push(x); });
+      res.all = famous.concat(res.all.filter(x=> !famous.includes(x)));
+    }
     c[g.id] = {t: Date.now(), l, alt: res ? res.all.slice(0, 60) : null, album: res && res.album};
     const ks = Object.keys(c); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k=> delete c[k]);
     LS.set(IA, c); return l ? c[g.id] : null;
@@ -265,7 +285,11 @@
     body.querySelector('#swAuto').addEventListener('click', ()=>{ const u = LS.get(USER, {}) || {}; delete u[g.id]; LS.set(USER, u); const sh = document.getElementById('xOstSwap'); if(sh) sh.classList.remove('show'); cur = {id: null, list: [], i: 0, playing: false}; playFor(g, true); toast('Brani di nuovo automatici', 2000); });
     const inList = new Set(cur.list.map(x=> x[0])), alts = [];
     try{ const a = await iaAlbum(g); if(a && a.alt) a.alt.filter(x=> !inList.has(x[0])).slice(0, 25).forEach(x=> alts.push(x)); }catch(e){}
-    try{ (await searchYT(queriesFor(g.name)[0])).filter(v=> !BAD.test(v[1]) && secsOf(v[2]) >= 60 && namesGame(v[1], g.name) && !inList.has(v[0])).slice(0, 10).forEach(v=> alts.push(v)); }catch(e){}
+    try{
+      const seen = new Set(), yt = [];
+      for(const q of queriesFor(g.name).slice(0, 2)){ (await searchYT(q).catch(()=> [])).forEach(v=>{ if(!seen.has(v[0])){ seen.add(v[0]); yt.push(v); } }); }
+      yt.filter(v=> !BAD.test(v[1]) && secsOf(v[2]) >= 60 && secsOf(v[2]) <= 15 * 60 && namesGame(v[1], g.name) && !inList.has(v[0])).sort((a, b)=> (b[3] || 0) - (a[3] || 0)).slice(0, 12).forEach(v=> alts.push(v));
+    }catch(e){}
     const res = body.querySelector('#swRes'); if(!res) return;
     if(!alts.length){ res.textContent = 'Non trovo alternative ora: prova con 🔎 e parole tue.'; return; }
     res.innerHTML = alts.map((v, i)=> `<button type="button" class="btn" data-i="${i}" style="display:block;width:100%;text-align:left;margin:4px 0">${isIA(v) ? '🚫📢' : '▶'} ${esc(v[1])}${v[2] ? ' <small>(' + esc(v[2]) + ')</small>' : ''}</button>`).join('');
@@ -308,20 +332,46 @@
   function stopAll(){ LS.set('jrpg_music', 'off'); try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Musica spenta ovunque: premi ▶ in una scheda per riaccenderla', 3000); }
   window.rtMusic = {playFor, stop: stopAll, on: ON, dock};
   // barra nella scheda del gioco
+  // ---- lettore nella scheda (v198): titolo grande, album/fonte, barra di avanzamento toccabile, ⏮ ⏯ ⏭, elenco dei brani, 🔁 cambia, 🔎 cerca ----
+  const albumOf = g=>{ try{ const e = (LS.get(IA, {}) || {})[g.id]; return e && e.album ? e.album : ''; }catch(e){ return ''; } };
   function barHtml(g){
-    const mine = cur.id === g.id && cur.list.length, t = mine ? cur.list[cur.i] : null;
-    const opts = mine ? cur.list.map((x, i)=> `<option value="${i}"${i === cur.i ? ' selected' : ''}>${esc(x[1])}${x[2] ? ' (' + esc(x[2]) + ')' : ''}</option>`).join('') : '';
-    return `<div class="mz-bar" id="mzBar"><button type="button" class="btn${ON() && mine && cur.playing ? ' primary' : ''}" data-mz="play">${ON() && mine && cur.playing ? '❚❚' : '▶'}</button><button type="button" class="btn" data-mz="stop" title="Ferma la musica ovunque">■</button><button type="button" class="btn" data-mz="next" title="Altro brano">⏭</button><button type="button" class="btn" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato)">🔁</button><button type="button" class="btn" data-mz="find" title="Cerca la colonna sonora con altre parole">🔎</button>${(LS.get(USER, {}) || {})[g.id] ? '<span class="mz-lock" title="Brani scelti da te: nessun aggiornamento li cambia">🔒</span>' : ''}${mine && isIA(t) ? '<span class="mz-noad" title="File musicale di Internet Archive: senza pubblicità">🚫📢</span>' : ''}
-      <div class="mz-t">${mine ? `<select data-mz="sel">${opts}</select>` : `<small>${STAT[g.id] || (cur.id === g.id && cur.none ? 'Non trovata: prova col tasto 🔎' : (ON() ? 'Cerco la colonna sonora…' : 'Colonna sonora: premi ▶ (resta accesa per tutti i giochi)'))}</small>`}</div></div>`;
+    const mine = cur.id === g.id && cur.list.length, t = mine ? cur.list[cur.i] : null, playing = ON() && mine && cur.playing;
+    const locked = !!(LS.get(USER, {}) || {})[g.id];
+    const src = t ? (isIA(t) ? '🚫📢 senza pubblicità · ' + (albumOf(g) || 'Internet Archive') : '▶ YouTube') : '';
+    const status = STAT[g.id] || (cur.id === g.id && cur.none ? 'Non trovata: prova col tasto 🔎' : (ON() ? 'Cerco la colonna sonora…' : 'Premi ▶: la musica resta accesa per tutti i giochi'));
+    const list = mine ? `<div class="mz2-list" hidden>${cur.list.map((x, i)=> `<button type="button" class="mz2-li${i === cur.i ? ' cur' : ''}" data-mz="pick" data-i="${i}"><span>${i + 1}</span><b>${esc(x[1])}</b><small>${esc(x[2] || '')}</small></button>`).join('')}</div>` : '';
+    return `<div class="mz2${playing ? ' on' : ''}" id="mzBar">
+      <div class="mz2-top"><div class="mz2-art${playing ? ' spin' : ''}">🎵</div><div class="mz2-info"><b class="mz2-title">${t ? esc(t[1]) : 'Colonna sonora'}</b><small>${t ? esc(src) + ' · ' + (cur.i + 1) + '/' + cur.list.length + (locked ? ' · 🔒 scelti da te' : '') : esc(status)}</small></div></div>
+      ${mine ? `<div class="mz2-prog"><span class="mz2-cur">0:00</span><div class="mz2-pb" data-mz="seek"><i></i></div><span class="mz2-dur">${esc(t[2] || '')}</span></div>` : ''}
+      <div class="mz2-ctl"><button type="button" data-mz="prev" title="Brano precedente" aria-label="Precedente">⏮</button><button type="button" class="mz2-play" data-mz="play" aria-label="Play o pausa">${playing ? '❚❚' : '▶'}</button><button type="button" data-mz="next" title="Brano successivo" aria-label="Successivo">⏭</button>
+        <span class="mz2-sep"></span><button type="button" data-mz="list" title="Elenco dei brani" aria-label="Elenco">☰</button><button type="button" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato 🔒)" aria-label="Cambia brano">🔁</button><button type="button" data-mz="find" title="Cerca con parole tue" aria-label="Cerca">🔎</button><button type="button" data-mz="stop" title="Ferma la musica ovunque" aria-label="Ferma">■</button></div>
+      ${list}</div>`;
   }
+  const mmss = x=>{ x = Math.max(0, Math.floor(+x || 0)); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); };
+  let progT = 0;
+  function progTick(){
+    const b = document.getElementById('mzBar'); if(!b){ clearInterval(progT); progT = 0; return; }
+    const t = cur.list[cur.i]; if(!t) return; let c = 0, d = 0;
+    try{ if(isIA(t) && au){ c = au.currentTime; d = au.duration; } else if(yt && yt.getCurrentTime){ c = yt.getCurrentTime(); d = yt.getDuration(); } }catch(e){}
+    const i = b.querySelector('.mz2-pb i'), ce = b.querySelector('.mz2-cur'), de = b.querySelector('.mz2-dur');
+    if(i && d) i.style.width = Math.min(100, 100 * c / d) + '%'; if(ce) ce.textContent = mmss(c); if(de && d) de.textContent = mmss(d);
+  }
+  function prev(){ if(!cur.list.length) return; cur.i = (cur.i - 1 + cur.list.length) % cur.list.length; const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); playTrack(); }
   function wireBar(g){
     const b = document.getElementById('mzBar'); if(!b) return;
-    b.addEventListener('click', e=>{ const x = e.target.closest('[data-mz]'); if(!x || x.tagName === 'SELECT') return; const m = x.dataset.mz;
-      if(m === 'play'){ if(cur.id === g.id && cur.list.length){ cur.playing ? pause() : resume(); } else { LS.set('jrpg_music', 'on'); playFor(g, true); } }
+    if(!progT) progT = setInterval(progTick, 1000);
+    b.addEventListener('click', e=>{ const x = e.target.closest('[data-mz]'); if(!x) return; const m = x.dataset.mz;
+      const mine = cur.id === g.id && cur.list.length;
+      if(m === 'play'){ if(mine){ cur.playing ? pause() : resume(); } else { LS.set('jrpg_music', 'on'); playFor(g, true); } }
       else if(m === 'find') openFind(g);
       else if(m === 'swap') openSwap(g);
-      else if(m === 'stop') stopAll(); else if(m === 'next'){ if(cur.id === g.id) next(); else { LS.set('jrpg_music', 'on'); playFor(g, true); } } });
-    const s = b.querySelector('select'); if(s) s.addEventListener('change', ()=>{ cur.i = +s.value; const p = LS.get(PICK, {}) || {}; p[g.id] = cur.i; LS.set(PICK, p); LS.set('jrpg_music', 'on'); playTrack(); });
+      else if(m === 'list'){ const l = b.querySelector('.mz2-list'); if(l) l.hidden = !l.hidden; else toast('Fai partire la musica per vedere i brani', 2000); }
+      else if(m === 'pick'){ cur.i = +x.dataset.i; const p = LS.get(PICK, {}) || {}; p[g.id] = cur.i; LS.set(PICK, p); LS.set('jrpg_music', 'on'); playTrack(); }
+      else if(m === 'seek'){ const r = x.getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), t = cur.list[cur.i]; try{ if(isIA(t) && au && au.duration) au.currentTime = f * au.duration; else if(yt && yt.getDuration) yt.seekTo(f * yt.getDuration(), true); }catch(err){} progTick(); }
+      else if(m === 'stop') stopAll();
+      else if(m === 'prev'){ if(mine) prev(); }
+      else if(m === 'next'){ if(mine) next(); else { LS.set('jrpg_music', 'on'); playFor(g, true); } } });
+    progTick();
   }
   const origOpen = window.openModal;
   window.openModal = function(g){

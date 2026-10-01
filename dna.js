@@ -14,36 +14,111 @@
   const MECH = ()=> window.rtMech || {};
   const mechOf = g=>{ try{ return window.rtMechOf ? window.rtMechOf(g) : []; }catch(e){ return []; } };
   const stOf = g=>{ try{ return (typeof STATUSES !== 'undefined' && STATUSES[g.id]) || ''; }catch(e){ return ''; } };
+  const U = window.XUI || {};
   const isFav = g=>{ try{ return typeof FAVS !== 'undefined' && FAVS.has(g.id); }catch(e){ return false; } };
 
-  // ---------- 1) cosa ti ha preso ----------
-  function whyHtml(g){
-    const M = MECH(), keys = Object.keys(M); if(!keys.length) return '';
+  // ---------- 1) cosa ti ha preso (v198: categorie, spiegazioni, parole tue) ----------
+  // i tratti raggruppati per tema: così trovi subito quello che cerchi, qualunque sia il genere del gioco
+  const CATS = [
+    ['⚔️', 'Combattimento', ['COMBAT', 'FEEL', 'TACT', 'CHALL', 'SUPERBOSS', 'SUMMON']],
+    ['📈', 'Crescita, build e ricompense', ['POWER', 'BUILD', 'PARTY', 'LOOT', 'DOPA', 'EFFORT', 'FARM', 'GACHA']],
+    ['🗺️', 'Mondo ed esplorazione', ['WORLD', 'LORE', 'EXPLO', 'JOURNEY', 'SAND', 'ATMO']],
+    ['📖', 'Storia e personaggi', ['STORY', 'CHAR', 'ROMANCE', 'VILLAIN', 'CHOICE', 'HUMOR', 'LIFE']],
+    ['🧩', 'Sistemi e attività', ['CRAFT', 'RES', 'BASE', 'PUZZ', 'MINI', 'PROC', 'DAILY']],
+    ['🏆', 'Completare e restare', ['COLL', 'ENDGAME', 'MUSIC', 'SOCIAL']]
+  ];
+  // cosa significano i termini (anche quelli in inglese dei giocatori): compare toccando un tratto
+  const XPL = {
+    BUILD: 'Build = la combinazione di abilità, equipaggiamento e statistiche del personaggio. Min-maxing = spingere al massimo ciò che serve e sacrificare il resto, per «rompere» il gioco. Job system / class tree / sphere grid = sistemi per costruirla.',
+    LOOT: 'Loot = oggetti che trovi o lasciano i nemici. Drop rate = probabilità che un oggetto cada. God roll = un oggetto uscito con le statistiche migliori possibili. Rarità a colori = grigio, verde, blu, viola, arancione…',
+    DOPA: 'La «scarica di dopamina»: ricompense frequenti e un po\' casuali (variable ratio reward) che ti fanno dire «ancora un turno» o «ancora una run».',
+    POWER: 'Vedere il personaggio diventare sempre più forte. Power trip = sentirsi onnipotenti; overleveled = più forte del necessario, a forza di livelli.',
+    CHALL: 'Sfide dure che si vincono preparandosi e ottimizzando, non solo con i riflessi.',
+    EFFORT: 'Più ti impegni e più vieni ricompensato: la fatica ripaga.',
+    FARM: 'Grinding / farming = ripetere un\'attività (battaglie, raccolta) per ottenere risorse o livelli. Qui solo quando porta un vantaggio concreto.',
+    GACHA: 'Gacha = estrazioni a caso di personaggi o oggetti (wish, banner, summon), spesso a pagamento. Pity = garanzia di un premio raro dopo tot tentativi.',
+    FEEL: 'Game feel / juiciness = quanto i comandi «si sentono»: colpi pesanti, impatti, vibrazioni, animazioni reattive.',
+    DAILY: 'Daily / weekly reset = attività che si rinnovano ogni giorno o settimana. Time sink = attività fatte per tenerti nel gioco a lungo.',
+    PROC: 'Procedurale = mappe e partite generate a caso: ogni run è diversa. Roguelite = si muore spesso ma si riparte più forti.',
+    SAND: 'Sandbox = libertà di fare le cose come vuoi, con sistemi che interagiscono tra loro.',
+    LORE: 'Lore = la storia profonda del mondo: miti, segreti, documenti, dettagli da scoprire.',
+    WORLD: 'World building = un mondo costruito con cura: culture, luoghi, regole proprie.',
+    TACT: 'Tattica = pensare prima di agire: posizioni, turni, ordine delle mosse.',
+    SUPERBOSS: 'Superboss = nemici opzionali molto più forti dei boss della storia (es. eoni oscuri e Penance in FFX, le Weapon in FFVII).',
+    SUMMON: 'Evocazioni = creature potenti chiamate in battaglia (eoni, esper, G.F.).',
+    ENDGAME: 'Endgame / post-game = tutto quello che c\'è da fare oltre la storia principale: sfide, armi finali, NG+ (rigiocare con i progressi).',
+    RES: 'Gestione delle risorse = amministrare cose limitate: cure, munizioni, soldi, spazio nell\'inventario.',
+    MINI: 'Minigiochi = giochi dentro il gioco (blitzball, carte, corse dei chocobo, pesca…).',
+    PARTY: 'Gestione della squadra = scegliere chi combatte, cambiare i personaggi, costruire un gruppo equilibrato.'
+  };
+  const CUST = 'jrpg_dna_custom';
+  function whyHtml(g, info){
+    const M = MECH(); if(!Object.keys(M).length) return '';
     const dw = (LSG(WHY, {}) || {})[g.id] || {}, det = new Set(mechOf(g));
     const known = isFav(g) || ['played', 'playing', 'dropped'].includes(stOf(g));
-    const chip = k=>{ const v = dw[k] || 0; return `<button type="button" class="dna-chip${v > 0 ? ' like' : v < 0 ? ' no' : ''}${det.has(k) && !v ? ' det' : ''}" data-dna="${k}" title="${esc(M[k].d)}">${M[k].ic} ${esc(M[k].n)}${v > 0 ? ' 👍' : v < 0 ? ' 👎' : ''}</button>`; };
-    const first = keys.filter(k=> det.has(k) || dw[k]), rest = keys.filter(k=> !first.includes(k));
+    const chip = k=>{ if(!M[k]) return ''; const v = dw[k] || 0; return `<button type="button" class="dna-chip${v > 0 ? ' like' : v < 0 ? ' no' : ''}${det.has(k) && !v ? ' det' : ''}" data-dna="${k}">${M[k].ic} ${esc(M[k].n)}${v > 0 ? ' 👍' : v < 0 ? ' 👎' : ''}</button>`; };
+    const inCat = new Set(CATS.flatMap(c=> c[2])), extra = Object.keys(M).filter(k=> !inCat.has(k));
+    const cats = CATS.map(c=> [c[0], c[1], c[2].concat(c[1] === 'Sistemi e attività' ? extra : [])]);
+    const mine = Object.entries(LSG(CUST, {}) || {});
     const nSet = Object.keys(dw).filter(k=> dw[k]).length;
-    return `<div class="dna-card" id="dnaWhy"><div class="dna-head">🧬 <b>${known ? 'Cosa ti ha preso di questo gioco?' : 'Cosa ti attira di questo gioco?'}</b></div>
-      <div class="dna-sub">${known ? 'Tocca ciò che ti è piaciuto davvero (anche una piccola parte: una meccanica, il mondo, la musica…): 👍 · di nuovo 👎 non mi piace · di nuovo niente.' : 'Se qualcosa ti incuriosisce o ti respinge, toccalo: 👍 / 👎.'} Così imparo il <b>perché</b> dei tuoi gusti, non solo il genere.${nSet ? ` <span class="dna-n">${nSet} ${nSet === 1 ? 'tratto segnato' : 'tratti segnati'}</span>` : ''}</div>
-      <div class="dna-chips">${first.map(chip).join('')}${rest.length ? `<button type="button" class="dna-more">＋ altri ${rest.length} tratti</button><span class="dna-rest" hidden>${rest.map(chip).join('')}</span>` : ''}</div>
-      ${first.length ? '<div class="dna-leg"><span class="dna-chip det mini">tratteggiato</span> = l\'ho riconosciuto io dalla scheda</div>' : ''}</div>`;
+    const detList = [...det].filter(k=> M[k]);
+    return `<div class="dna-card" id="dnaWhy"><div class="dna-head">🧬 <b>${known ? 'Cosa ti ha preso di questo gioco?' : 'Cosa ti attira di questo gioco?'}</b>${nSet ? ` <span class="dna-n">${nSet} ${nSet === 1 ? 'tratto segnato' : 'tratti segnati'}</span>` : ''}</div>
+      <div class="dna-sub">Tocca un tratto: 👍 mi piace · di nuovo 👎 non mi piace · di nuovo niente. Sotto ti spiego cosa significa. Più ne segni, più capisco il <b>perché</b> dei tuoi gusti.</div>
+      ${detList.length ? `<div class="dna-cat"><div class="dna-ct">🔎 Riconosciuti in questo gioco</div><div class="dna-chips">${detList.map(chip).join('')}</div></div>` : ''}
+      ${cats.map(([ic, n, ks])=> `<details class="dna-cat"${ks.some(k=> dw[k]) ? ' open' : ''}><summary class="dna-ct">${ic} ${esc(n)} <small>${ks.filter(k=> M[k]).length}</small></summary><div class="dna-chips">${ks.map(chip).join('')}</div></details>`).join('')}
+      ${mine.length ? `<details class="dna-cat" open><summary class="dna-ct">✍️ I tuoi tratti <small>${mine.length}</small></summary><div class="dna-chips">${mine.map(([k, c])=> `<button type="button" class="dna-chip${(c.by || []).includes(g.id) ? ' like' : ''}" data-mine="${esc(k)}">✍️ ${esc(c.n)}${(c.by || []).includes(g.id) ? ' 👍' : ''}</button>`).join('')}</div></details>` : ''}
+      <div class="dna-info" id="dnaInfo"${info ? '' : ' hidden'}>${info || ''}</div>
+      <div class="dna-free"><button type="button" class="btn" data-dna-free>✍️ Scrivilo con parole tue</button><small>Es. «adoro i dark eoni e la sphere grid, la storia di Tidus e Yuna, il blitzball»: l'AI lo trasforma in tratti (anche nuovi) che userò per TUTTI i giochi.</small></div></div>`;
+  }
+  function freeText(card, g){
+    if(!U.sheet){ return; }
+    const body = U.sheet('xDnaFree', '✍️ Con parole tue', `<div class="lp-sub">Cosa ti è piaciuto (o non piaciuto) di <b>${esc(g.name)}</b>? Scrivilo come lo diresti a un amico: anche una piccola parte, una meccanica, un personaggio, la musica. L'AI lo trasforma in tratti del tuo DNA (anche nuovi) e li userò per tutti i giochi.</div>
+      <textarea id="dfT" rows="5" style="width:100%;box-sizing:border-box;padding:10px;border-radius:12px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font:inherit" placeholder="Es. adoro i dark eoni e la sphere grid, la storia di Tidus e Yuna, il blitzball; non sopporto il backtracking"></textarea>
+      <div class="lp-tools"><button class="btn primary" id="dfGo" type="button">🧬 Capisci i miei gusti</button></div><div id="dfMsg" class="lp-sub"></div>`);
+    const go = body.querySelector('#dfGo');
+    go.addEventListener('click', async ()=>{ const t = body.querySelector('#dfT').value; if(!t.trim()) return; go.disabled = true; body.querySelector('#dfMsg').textContent = 'Ci penso…'; await freeRun(card, g, t); go.disabled = false; const sh = document.getElementById('xDnaFree'); if(sh) sh.classList.remove('show'); });
+    setTimeout(()=>{ try{ body.querySelector('#dfT').focus(); }catch(e){} }, 200);
+  }
+  async function freeRun(card, g, txt){
+    if(typeof askLLM !== 'function'){ U.toast && U.toast('Serve la chiave Gemini (⚙️ in Chiedi a Claude)'); return; }
+    const M = MECH(), cat = Object.keys(M).map(k=> k + ' = ' + M[k].n + ' (' + M[k].d + ')').join('\n');
+    const pr = `Un giocatore descrive cosa gli è piaciuto o no del videogioco "${g.name}". Trasforma le sue parole in tratti.
+TRATTI ESISTENTI (usa SOLO queste sigle):\n${cat}\n
+Rispondi SOLO con JSON: {"si":[sigle dei tratti che gli piacciono], "no":[sigle dei tratti che non gli piacciono], "nuovi":[{"nome":"nome breve in italiano di un tratto NON presente sopra","parole":["3-6 parole chiave in italiano e inglese per riconoscerlo in altri giochi"],"piace":true}]}. Al massimo 3 tratti nuovi; non inventare.
+TESTO: «${txt.trim().slice(0, 800)}»`;
+    let j = null;
+    try{ const r = await askLLM(pr, {}, {fast: true, label: 'Capisco cosa ti è piaciuto…'}); const m = String(r && r.text || '').match(/\{[\s\S]*\}/); j = m ? JSON.parse(m[0]) : null; }catch(e){ try{ showToast('L\'AI non risponde ora: riprova tra poco', 3000); }catch(x){} return; }
+    if(!j){ try{ showToast('Non ho capito: riprova con altre parole', 2500); }catch(x){} return; }
+    const all = LSG(WHY, {}) || {}, cur = all[g.id] || {}; let n = 0;
+    (j.si || []).forEach(k=>{ if(M[k]){ cur[k] = 1; n++; } }); (j.no || []).forEach(k=>{ if(M[k]){ cur[k] = -1; n++; } });
+    if(Object.keys(cur).length) all[g.id] = cur; LSS(WHY, all);
+    const cu = LSG(CUST, {}) || {}, made = [];
+    (j.nuovi || []).slice(0, 3).forEach(x=>{ if(!x || !x.nome) return; const k = String(x.nome).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').slice(0, 30); if(!k) return; const c = cu[k] || {n: String(x.nome).slice(0, 40), kw: [], by: []}; c.kw = [...new Set(c.kw.concat((x.parole || []).map(String).slice(0, 6)))]; if(x.piace !== false && !c.by.includes(g.id)) c.by.push(g.id); cu[k] = c; made.push(c.n); });
+    LSS(CUST, cu); try{ SIMC.clear(); }catch(x){}
+    redraw(card, g, `✅ Capito: ${n} tratti segnati${made.length ? ' · nuovi tratti tuoi: ' + made.map(esc).join(', ') : ''}.`);
+  }
+  function redraw(card, g, info){
+    const box = card.querySelector('#dnaWhy'); if(!box) return;
+    const open = [...box.querySelectorAll('details.dna-cat')].map(d=> d.open);
+    box.outerHTML = whyHtml(g, info); const nb = card.querySelector('#dnaWhy');
+    if(nb) [...nb.querySelectorAll('details.dna-cat')].forEach((d, i)=>{ if(open[i]) d.open = true; });
+    wire(card, g);
+    try{ const gs = card.querySelector('#gsCard'); const h = window.rtRadar && window.rtRadar(g); if(gs && h) gs.outerHTML = h; }catch(x){}
   }
   function wire(card, g){
     const box = card.querySelector('#dnaWhy'); if(!box || box.dataset.w) return; box.dataset.w = '1';
     box.addEventListener('click', e=>{
-      const more = e.target.closest('.dna-more'); if(more){ more.remove(); const r = box.querySelector('.dna-rest'); if(r) r.hidden = false; return; }
+      if(e.target.closest('[data-dna-free]')){ freeText(card, g); return; }
+      const mb = e.target.closest('[data-mine]');
+      if(mb){ const cu = LSG(CUST, {}) || {}, c = cu[mb.dataset.mine]; if(!c) return; c.by = c.by || []; if(c.by.includes(g.id)) c.by = c.by.filter(x=> x !== g.id); else c.by.push(g.id); LSS(CUST, cu); try{ SIMC.clear(); }catch(x){} redraw(card, g, '✍️ ' + esc(c.n) + ': parole che lo riconoscono negli altri giochi — ' + esc((c.kw || []).join(', '))); return; }
       const b = e.target.closest('[data-dna]'); if(!b) return;
       const all = LSG(WHY, {}) || {}, cur = all[g.id] || {}, k = b.dataset.dna, v = cur[k] || 0, nx = v === 0 ? 1 : v === 1 ? -1 : 0;
       if(nx) cur[k] = nx; else delete cur[k];
       if(Object.keys(cur).length) all[g.id] = cur; else delete all[g.id];
-      LSS(WHY, all);
+      LSS(WHY, all); try{ SIMC.clear(); }catch(x){}
       try{ if(navigator.vibrate) navigator.vibrate(8); }catch(x){}
-      // ridisegno il blocco e la sintonia (il modello dei gusti cambia subito)
-      const open = !(box.querySelector('.dna-rest') || {hidden: true}).hidden;
-      box.outerHTML = whyHtml(g); const nb = card.querySelector('#dnaWhy'); if(open && nb){ const r = nb.querySelector('.dna-rest'), m = nb.querySelector('.dna-more'); if(r) r.hidden = false; if(m) m.remove(); }
-      wire(card, g);
-      try{ const gs = card.querySelector('#gsCard'); const h = window.rtRadar && window.rtRadar(g); if(gs && h) gs.outerHTML = h; }catch(x){}
+      const M = MECH(), info = M[k] ? `<b>${M[k].ic} ${esc(M[k].n)}</b>${nx > 0 ? ' · 👍 ti piace' : nx < 0 ? ' · 👎 non ti piace' : ' · tolto'}<br>${esc(XPL[k] || (M[k].d.charAt(0).toUpperCase() + M[k].d.slice(1)) + '.')}` : '';
+      redraw(card, g, info);
     });
   }
 
@@ -100,6 +175,26 @@
     return {other: other.slice(0, 6), same: same.slice(0, 4)};
   }
   window.rtSimilar = similar;
+  // somiglianza 0..1 tra due giochi (per la Sintonia): tratti del DNA pesati per rarità, generi, struttura e simboli. Calcolata una volta per coppia.
+  const SIMC = new Map();
+  window.rtSimNorm = function(a, b){
+    const key = a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id; if(SIMC.has(key)) return SIMC.get(key);
+    const W = idf(), wsum = (arr, p)=> arr.reduce((s, k)=> s + (W[p + k] || 1), 0);
+    const am = new Set(mechOf(a)), bm = mechOf(b), shm = bm.filter(k=> am.has(k)), unim = [...new Set([...am, ...bm])];
+    const fJ = unim.length ? wsum(shm, 'm:') / (wsum(unim, 'm:') || 1) : 0;
+    const at = new Set(a.tags || []), bt = b.tags || [], sht = bt.filter(t=> at.has(t)), unit = [...new Set([...at, ...bt])];
+    const tJ = unit.length ? wsum(sht, 't:') / (wsum(unit, 't:') || 1) : 0;
+    const al = a.label || {}, bl = b.label || {}; let lc = 0, ln = 0;
+    ['d', 'g', 's'].forEach(k=>{ if(al[k] && bl[k]){ ln++; lc += Math.max(0, 1 - Math.abs(al[k] - bl[k]) / 2); } });
+    if(al.p && bl.p){ ln++; lc += al.p === bl.p ? 1 : 0; }
+    const ae = a.enrich || {}, be = b.enrich || {};
+    let v = fJ * .55 + tJ * .25 + (ln ? lc / ln : .5) * .2;
+    if(ae.storyTag && ae.storyTag === be.storyTag) v += .06;
+    if(ae.dopamine && be.dopamine) v += .04;
+    try{ const sk = typeof sagaKeyOf === 'function' ? sagaKeyOf(a) : ''; if(sk && sk === sagaKeyOf(b)) v += .12; }catch(e){}
+    try{ if(Object.keys(LSG(CUST, {}) || {}).length && window.rtFeats){ const fa = new Set(rtFeats(a).filter(x=> x.indexOf('mine:') === 0)); const shared = rtFeats(b).filter(x=> fa.has(x)).length; v += Math.min(.15, shared * .06); } }catch(e){}   // i tuoi tratti scritti a parole
+    v = Math.max(0, Math.min(1, v)); if(SIMC.size > 200000) SIMC.clear(); SIMC.set(key, v); return v;
+  };
   const tierB = x=>{ try{ return `<span class="badge ${TIER_LABEL[x.tier]}">${x.tier}</span>`; }catch(e){ return ''; } };
   function similarHtml(g){
     let r; try{ r = similar(g); }catch(e){ return ''; }
