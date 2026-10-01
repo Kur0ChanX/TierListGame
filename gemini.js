@@ -30,7 +30,11 @@ async function geminiFetch(body, signal, model){
     if(r.status === 429){
       // Google dice quanto aspettare (retryDelay «23s») e se è finita la quota del minuto o del GIORNO
       const rd = det.map(d=> d && d.retryDelay).filter(Boolean)[0]; err.retryMs = rd ? Math.round(parseFloat(rd) * 1000) : 0;
-      err.perDay = /PerDay|per day|daily/i.test(JSON.stringify(det) + ' ' + msg);
+      // «quota del GIORNO» solo se Google lo dice chiaramente: nessun limite al minuto citato e nessuna attesa breve indicata.
+      // (Google spesso elenca più limiti insieme: prima bastava la parola «PerDay» per mettere in pausa il modello per ore, anche quando bastava aspettare un minuto.)
+      const ids = []; det.forEach(d=> ((d && d.violations) || []).forEach(v=> ids.push(String(v.quotaId || v.quotaMetric || ''))));
+      const txt = ids.join(' ') + ' ' + msg;
+      err.perDay = /PerDay|per day|daily/i.test(txt) && !/PerMinute|per minute/i.test(txt) && !(err.retryMs && err.retryMs <= 120000);
     }
     err.code = r.status === 429 ? 'gemini_rate_limited' : r.status === 503 ? 'gemini_busy' : (r.status === 403 || (r.status === 400 && /api key/i.test(msg))) ? 'gemini_bad_key' : 'gemini_error';
     throw err;
@@ -50,7 +54,11 @@ function gemPace(){ const p = gemQ.then(async ()=>{ const w = gemLast + GEM_GAP 
 const gemBlocks = ()=>{ try{ return JSON.parse(localStorage.getItem('rt_gem_block') || '{}') || {}; }catch(e){ return {}; } };
 function gemBlock(model){ const b = gemBlocks(), t = new Date(); t.setUTCHours(24 + 8, 5, 0, 0); if(t - Date.now() > 30 * 3600e3) t.setTime(t - 24 * 3600e3); b[model] = +t; try{ localStorage.setItem('rt_gem_block', JSON.stringify(b)); }catch(e){} }   // la quota giornaliera riparte a mezzanotte di Los Angeles (circa le 9 in Italia)
 const gemBlocked = m=> (gemBlocks()[m] || 0) > Date.now();
-window.geminiStatus = ()=> ({blocked: Object.entries(gemBlocks()).filter(x=> x[1] > Date.now()).map(x=> x[0] + ' fino alle ' + new Date(x[1]).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})), gap: GEM_GAP});
+const itTime = t=>{ const d = new Date(t), same = d.toDateString() === new Date().toDateString(); return (same ? 'oggi' : 'domani') + ' alle ' + d.toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome'}) + ' (ora italiana)'; };
+try{ if(!localStorage.getItem('rt_gem_block_v2')){ localStorage.removeItem('rt_gem_block'); localStorage.setItem('rt_gem_block_v2', '1'); } }catch(e){}   // tolgo le pause messe per errore dalla v190-v192
+window.geminiUnblock = m=>{ const b = gemBlocks(); if(m) delete b[m]; else Object.keys(b).forEach(k=> delete b[k]); try{ localStorage.setItem('rt_gem_block', JSON.stringify(b)); }catch(e){} };
+window.geminiStatus = ()=> ({blocked: Object.entries(gemBlocks()).filter(x=> x[1] > Date.now()).map(x=> x[0] + ' a riposo fino a ' + itTime(x[1])), gap: GEM_GAP});
+window.geminiTestModel = async m=>{ const body = {contents: [{role: 'user', parts: [{text: 'Rispondi solo con: ok'}]}]}; await geminiFetch(body, null, m || GEMINI_MODEL); window.geminiUnblock(m || GEMINI_MODEL); return true; };
 // Se il modello è sovraccarico (503/500) riprova con calma, poi passa al modello più leggero; se è al limite (429) prova subito quello leggero
 async function callGemini(body, signal){
   let lastErr;
@@ -67,7 +75,7 @@ async function callGemini(body, signal){
         if((e.status === 404 || (e.status === 400 && /model|not found|not supported/i.test(e.message || ''))) && mi < chain.length - 1){ geminiBadModels.add(model); break; }   // modello inesistente: passo al successivo
         if(![429, 500, 503].includes(e.status)) throw e;
         if(e.status === 429){
-          if(e.perDay){ gemBlock(model); try{ DebugLog.add({kind: 'note', src: 'Gemini', ok: false, note: 'quota del giorno finita per ' + model + ': lo salto fino a domattina'}); }catch(x){} break; }
+          if(e.perDay){ gemBlock(model); try{ DebugLog.add({kind: 'note', src: 'Gemini', ok: false, note: 'quota del giorno finita per ' + model + ': uso il modello leggero fino a domattina (ore 10 circa, ora italiana)'}); }catch(x){} break; }
           // quota del minuto: se l'attesa è breve aspetto e riprovo lo stesso modello (una volta), altrimenti passo al leggero
           if(!waited && e.retryMs && e.retryMs <= 30000 && !(signal && signal.aborted)){ waited = true; await sleep(e.retryMs + 300); a--; continue; }
           break;

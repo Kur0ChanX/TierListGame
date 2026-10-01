@@ -494,7 +494,10 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       if(key === 'cheap'){ const r = await H.json('https://www.cheapshark.com/api/1.0/stores', {timeout: 12000}); if(!Array.isArray(r)) throw new Error('risposta vuota'); return ok(); }
       if(key === 'rawg'){ if(!(H && H.rawg && H.rawg.has())) return {s: 'off', why: 'chiave non impostata'}; await H.rawg.ping(); return ok(); }
       if(key === 'oc'){ if(!(H && H.opencritic && H.opencritic.has())) return {s: 'off', why: 'chiave non impostata'}; await H.opencritic.ping(); return ok(); }
-      if(key === 'gem'){ if(!(typeof geminiKey === 'function' && geminiKey())) return {s: 'off', why: 'chiave Gemini non impostata'}; await geminiGenerate('Rispondi solo con: ok', {}); return ok(); }
+      if(key === 'gem'){ if(!(typeof geminiKey === 'function' && geminiKey())) return {s: 'off', why: 'chiave Gemini non impostata'};
+        // provo DAVVERO il modello principale (anche se era in pausa): se risponde tolgo la pausa; se è al limite lo dico e verifico il leggero
+        try{ await window.geminiTestModel(); const r0 = ok(); r0.note = 'modello principale ok'; return r0; }
+        catch(e){ if(e.status !== 429) throw e; await window.geminiTestModel(typeof GEMINI_FALLBACK_MODEL !== 'undefined' ? GEMINI_FALLBACK_MODEL : 'gemini-flash-lite-latest'); const r0 = ok(); r0.note = 'il modello principale è al limite di richieste' + (e.perDay ? ' del giorno' : ' del minuto') + ': intanto uso quello leggero (funziona)'; return r0; } }
     }catch(e){ return {s: 'err', why: whyFail(e), raw: String((e && e.message) || e)}; }
     return {s: 'off', why: 'non controllabile'};
   }
@@ -536,7 +539,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{ const cs = H.cacheStats || {}; tech += '\n\n## Memoria delle risposte (questa sessione)\n- dalla memoria: ' + (cs.hit || 0) + ', risposte vecchie usate perché il sito non rispondeva: ' + (cs.stale || 0) + ', richieste nuove: ' + (cs.miss || 0); }catch(e){}
     try{ const gs = window.geminiStatus && geminiStatus(); if(gs) tech += '\n- Gemini: modelli in pausa per quota del giorno: ' + (gs.blocked.join(', ') || 'nessuno') + '; distanza minima tra richieste ' + gs.gap + ' ms'; }catch(e){}
     try{ const nr = JSON.parse(localStorage.getItem('rt_needs_relay') || '{}'); tech += '\n\n## Siti che richiedono un ponte\n' + (Object.keys(nr).join(', ') || 'nessuno'); }catch(e){}
-    try{ tech += '\n\n## Ultimi errori del registro\n' + DebugLog.all().filter(e=> e.ok === false).slice(-12).map(e=> '- ' + e.t.slice(11, 19) + ' ' + (e.src || e.kind) + ' ' + (e.err || e.note || '')).join('\n'); }catch(e){}
+    try{ tech += '\n\n## Ultimi errori del registro\n' + DebugLog.all().filter(e=> e.ok === false).slice(-12).map(e=> '- ' + new Date(e.t).toLocaleTimeString('it-IT', {timeZone: 'Europe/Rome'}) + ' ' + (e.src || e.kind) + ' ' + (e.err || e.note || '')).join('\n'); }catch(e){}
     return {easy, tech};
   }
   window.openSourceMap = function(autorun){
