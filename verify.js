@@ -35,6 +35,24 @@
       if(o.enrich){ g.enrich = g.enrich || {}; Object.assign(g.enrich, o.enrich); }
       if(o.label){ g.label = Object.assign({}, g.label || {}, o.label); }
     });
+    // giochi di base eliminati dall'utente: nascosti (il file dei dati non si tocca; la scelta viaggia con le correzioni sugli altri dispositivi)
+    for(let i = GAMES.length - 1; i >= 0; i--){ const o = ov[GAMES[i].id]; if(o && o.hide && !GAMES[i].custom) GAMES.splice(i, 1); }
+  };
+  // Elimina un gioco dalla tua lista. Aggiunto da te: lapide nel database locale (sparisce anche dagli altri dispositivi). Di base: viene nascosto.
+  window.rtDeleteGame = function(g){
+    if(!g) return false;
+    const id = g.id;
+    try{
+      if(g.custom){ if(typeof COVER_DB !== 'undefined' && COVER_DB) COVER_DB.doc('customGames/' + String(id)).delete(); }
+      else{ const ov = loadOv(); ov[id] = Object.assign({}, ov[id] || {}, {hide: 1}); saveOv(ov); applyGameOverrides(); }
+      try{ FAVS.delete(id); saveFavs(); }catch(e){}
+      try{ if(STATUSES[id] !== undefined){ delete STATUSES[id]; saveStatuses(); } }catch(e){}
+      try{ if(typeof MYTIER === 'object' && MYTIER && MYTIER[id] !== undefined){ delete MYTIER[id]; saveMyTier(); } }catch(e){}
+      try{ const w = JSON.parse(localStorage.getItem('jrpg_wishlist') || '{}'); if(w && w[id]){ delete w[id]; localStorage.setItem('jrpg_wishlist', JSON.stringify(w)); } }catch(e){}
+      try{ if(typeof compareList !== 'undefined'){ const i = compareList.indexOf(id); if(i >= 0) compareList.splice(i, 1); } }catch(e){}
+      try{ renderMetrics(); renderStats(); render(); renderListBar(); }catch(e){}
+      return true;
+    }catch(e){ return false; }
   };
 
   const fj = (u, o)=> window.SearchHub ? SearchHub.json(u, o) : fetch(u).then(r=>{ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });

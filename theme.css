@@ -1017,3 +1017,12 @@ html.mo-off .gs-poly, html.mo-off .gs-dot{animation:none}
 .vd-act{margin-top:8px}
 .x-wth{display:block; margin-top:4px} .x-wth .x-thb{padding:2px 8px; font-size:.74rem} .x-thok{color:#2f9e6b}
 .x-thin{width:5.2em; padding:4px 6px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font:inherit}
+
+/* ---- v180: player musicale fisso nella pagina (sotto la ricerca): non ti segue, non copre niente, sparisce con una scheda aperta ---- */
+#rtMusicSlot:empty{display:none}
+.rt-music.docked{position:relative; left:auto; bottom:auto; top:auto; z-index:auto; max-width:none; width:100%; box-sizing:border-box; margin:6px 0 4px; padding:5px 8px; border-radius:14px; background:rgba(var(--a1rgb),.14); color:inherit; border:1px solid rgba(var(--a1rgb),.3); box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; touch-action:auto; -webkit-user-select:auto; user-select:auto}
+.rt-music.docked .rm-g{display:none}
+.rt-music.docked .rm-b{background:rgba(var(--a1rgb),.24); color:inherit}
+.rt-music.docked.idle:not(.moving){opacity:1}
+body:has(#modalBackdrop.show) .rt-music.docked{display:none !important}
+.btn.danger{background:rgba(220,60,60,.2) !important; border-color:rgba(220,60,60,.7) !important; color:#ff9a9a}
