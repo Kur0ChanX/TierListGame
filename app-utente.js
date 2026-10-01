@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v211', date:'2026-10-01', time:'21:37', items:[
+    'I tuoi top in assoluto (👑 «Nei miei top») si riconoscono nella lista con una corona d\'oro accanto al nome e la riga bordata d\'oro; nella griglia la copertina ha la corona e la cornice dorata. Via il procione con gli occhi a cuore.',
+    'Cambio sezione nuovo: niente più pagine che arrivano da destra o da sinistra. La pagina vecchia arretra e sfuma, la nuova emerge e si posa. Nella barra in basso una bolla di luce scivola sotto la sezione APPENA tocchi (prima ancora che la pagina sia pronta) e l\'icona fa un piccolo salto a molla.',
+    'Nella scheda, passando tra «Per te», «Il gioco» e «Altro» i riquadri emergono morbidi invece di comparire di colpo. La pagina Saghe disegna solo quello che vedi: si apre più svelta.',
+    'Archivio grande: i giochi che aggiungi, le copertine e le foto ora stanno nella memoria grande del browser (centinaia di MB) e non più in quella piccola da 5 MB. Lo spostamento è automatico e sicuro: copio, ricontrollo e solo dopo libero la memoria vecchia; se una scheda vecchia del browser scrive ancora lì, al prossimo avvio unisco tutto senza perdere niente. Backup e sincronizzazione funzionano come prima.',
+    'Colonne sonore e schermate preparate dal server ogni notte ora arrivano a pezzi: l\'app scarica solo il pezzo del gioco che apri (lo prepara già al tocco), non più tutto il file. Pronto per 20.000 giochi.',
+    'DNA: «🤷 Ni» diventa «🫤 Mah» (c\'è, ma così così): stesso significato, non pesa sui tuoi gusti.'
+  ]},
   {version:'v210', date:'2026-10-01', time:'21:20', items:[
     'Scopri, Novità, Mia tier, Saghe e Statistiche ora sono pagine a tutto schermo: la parte alta della classifica (logo, ricerca, filtri, Oggi) sparisce, in cima c\'è il nome della sezione con «‹ Classifica» per tornare. Il tasto «indietro» del telefono riporta alla classifica, che riparte dal punto dove l\'avevi lasciata. Se in Saghe o Scopri ci sono filtri attivi, lo vedi in alto con «togli».',
     'Passaggio tra le sezioni sistemato: prima partivano due animazioni una dentro l\'altra e si annullavano (si vedeva solo una dissolvenza a metà); ora la pagina scivola davvero, una volta sola.',

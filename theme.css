@@ -1560,3 +1560,35 @@ html[data-vt]::view-transition-old(vtpage){animation:moPgOut .22s ease both}
   .cd-tabs .cd-ind{top:6px !important;bottom:6px !important}
   .cd-tabs.stuck{box-shadow:0 -64px 0 0 var(--card,#1c1c24),0 10px 20px -16px rgba(0,0,0,.7) !important}
 }
+/* v211: i tuoi top in assoluto: corona d'oro accanto al nome + riga bordata d'oro (al posto del procione con gli occhi a cuore) */
+.row-top{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-left:6px;vertical-align:-5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#f6c343 45%,#b7791f);box-shadow:0 0 0 1px rgba(255,214,102,.65),0 2px 8px -1px rgba(246,195,67,.75);color:#5b3a00;position:relative;overflow:hidden}
+.row-top svg{fill:currentColor;filter:drop-shadow(0 .5px 0 rgba(255,255,255,.6))}
+.row-top::after{content:'';position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.75) 50%,transparent 60%);transform:translateX(-120%);animation:rtGleam 4.5s ease-in-out infinite}
+@keyframes rtGleam{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+html.mo-off .row-top::after{animation:none;display:none}
+#tbody tr.is-top > td:first-child{box-shadow:inset 3px 0 0 #f6c343}
+#tbody tr.is-top{background:linear-gradient(90deg,rgba(246,195,67,.13),rgba(246,195,67,0) 55%)}
+.x-top{position:absolute;left:6px;top:6px;z-index:2;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#f6c343 45%,#b7791f);color:#5b3a00;box-shadow:0 2px 8px rgba(0,0,0,.45),0 0 0 1.5px rgba(255,236,170,.8)}
+.x-top svg{fill:currentColor}
+.x-card.is-top .x-cover{outline:2.5px solid #f6c343; outline-offset:1px; box-shadow:0 8px 24px -8px rgba(246,195,67,.75) !important}
+.x-cover:has(.x-top) .x-fav, .x-cover:has(.x-top) .x-plus{left:40px}
+.x-row.is-top{box-shadow:inset 3px 0 0 #f6c343}
+/* v211: passaggio tra le sezioni «a profondità» (niente più pagine che arrivano da destra/sinistra): la vecchia arretra e sfuma, la nuova emerge e si posa */
+html[data-vt="f"]::view-transition-old(root), html[data-vt="b"]::view-transition-old(root){animation:moVtOut .26s cubic-bezier(.4,0,1,1) both}
+html[data-vt="f"]::view-transition-new(root), html[data-vt="b"]::view-transition-new(root){animation:moVtIn .34s cubic-bezier(.2,.9,.25,1) both}
+@keyframes moVtOut{to{opacity:0; transform:scale(.965)}}
+@keyframes moVtIn{from{opacity:0; transform:scale(1.035)}}
+/* v211: bolla di luce della barra in basso (si sposta al tocco, prima ancora che la pagina sia pronta) */
+.vt-puck{display:none}
+@media (max-width:760px){
+  .view-tabs > .view-tab{position:relative; z-index:1}
+  .vt-puck{display:block; position:absolute; left:0; top:4px; width:56px; height:52px; border-radius:26px; pointer-events:none; z-index:0; opacity:0;
+    background:radial-gradient(closest-side, rgba(var(--a1rgb,124,92,255),.42), rgba(var(--a3rgb,255,110,199),.16) 62%, transparent);
+    transition:transform .44s cubic-bezier(.32,.72,0,1), opacity .25s; will-change:transform}
+  .vt-puck.on{opacity:1}
+  html.mo-off .vt-puck{transition:none}
+}
+/* v211: le saghe fuori dallo schermo non si disegnano finché non ci arrivi (pagina più pronta al tocco) */
+#sagaPanel .saga-section{content-visibility:auto; contain-intrinsic-size:auto 360px}
+html[data-vt] .vt-puck{view-transition-name:vtpuck}
+::view-transition-group(vtpuck){animation-duration:.4s; animation-timing-function:cubic-bezier(.32,.72,0,1)}

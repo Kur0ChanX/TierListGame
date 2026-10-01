@@ -49,6 +49,7 @@
   function localKeys(){
     const set = new Set(Object.keys(loadMeta()).filter(syncable));
     for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if(syncable(k)) set.add(k); }
+    try{ if(window.rtBig) rtBig.keys().forEach(k=>{ if(syncable(k)) set.add(k); }); }catch(e){}     // v211: le voci dell'archivio grande
     return Array.from(set);
   }
   function snapshot(){
@@ -124,6 +125,7 @@
     if(!token() || busy) return false;
     busy = true; setStatus('Sincronizzo…');
     try{
+      if(window.rtBig) await rtBig.ready;                                   // v211: prima di unire, l'archivio grande deve essere letto
       const id = await findOrCreateGist();
       const g = await gh('/gists/' + id);
       let remote = {};
@@ -141,7 +143,7 @@
       }
       try{ publishCatalog().catch(()=>{}); }catch(e){}
       setStatus('☁️ Sincronizzato ✓ ' + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}), true);
-      if(changed && !opts.noReload){ showToast('Dati aggiornati da un altro dispositivo: ricarico…', 2500); setTimeout(()=>location.reload(), 900); }
+      if(changed && !opts.noReload){ showToast('Dati aggiornati da un altro dispositivo: ricarico…', 2500); const fl = window.rtBig ? rtBig.flush() : Promise.resolve(); setTimeout(()=> fl.then(()=> location.reload(), ()=> location.reload()), 900); }
       return changed;
     }catch(e){
       const msg = e && e.status === 401 ? 'Token GitHub non valido o scaduto.' : e && e.status === 403 ? 'GitHub ha rifiutato il permesso: il token deve avere il permesso "gist".' : (e && e.status === 404) ? 'Archivio di sincronizzazione non trovato: premi Disattiva e poi Attiva di nuovo.' : 'Non riesco a contattare GitHub (rete assente o bloccata).';
@@ -197,7 +199,9 @@
     const r = await fetch('https://api.github.com/users/' + GH_USER + '/gists?per_page=100'); if(!r.ok) throw new Error('HTTP ' + r.status);
     const f = (await r.json()).find(g=> g.description === CAT_DESC); const file = f && f.files && f.files[CAT_FILE]; if(!file) return false;
     const j = await (await fetch(file.raw_url)).json();
+    if(window.rtBig) await rtBig.ready;
     const changed = mergeCatalog(j.keys || {}); ls.set('jrpg_catalog_at', String(Date.now()));
+    if(changed && window.rtBig) await rtBig.flush();
     return changed;
   }
   window.publishCatalog = publishCatalog; window.loadCatalog = loadCatalog;

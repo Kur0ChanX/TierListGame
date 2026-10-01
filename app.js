@@ -1168,8 +1168,10 @@ function render(){
     const tr = document.createElement('tr');
     tr.dataset.gid = g.id;
     const isFav = FAVS.has(g.id);
-    // v209: i giochi «Nel cuore» (😍, i tuoi top) mostrano il procione con gli occhi a cuore anche nella lista
-    const heartBadge = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return Array.isArray(t) && t.includes(g.id) ? '<img class="row-heart" src="icons/approved.webp" alt="Nel cuore" title="Nel cuore: uno dei giochi che ami di più" width="22" height="23" loading="lazy" decoding="async">' : ''; }catch(e){ return ''; } })();
+    // v211: i tuoi top in assoluto (👑 «Nei miei top») hanno una corona d'oro accanto al nome e la riga bordata d'oro (prima il procione con gli occhi a cuore)
+    const isTop = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return Array.isArray(t) && t.includes(g.id); }catch(e){ return false; } })();
+    if(isTop) tr.className = 'is-top';
+    const heartBadge = isTop ? '<span class="row-top" title="Nei tuoi top: uno dei giochi che ami di più in assoluto" aria-label="Nei tuoi top"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M2.5 8.2l4.6 3.6L12 4l4.9 7.8 4.6-3.6-1.9 10.3H4.4z"/><rect x="4.4" y="19.3" width="15.2" height="2" rx="1"/></svg></span>' : '';
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip${d.approved ? ' appr' : ''}" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};"${d.approved ? ' title="Approvato dal procione: sintonia altissima con i tuoi gusti"' : ''}>${d.approved ? '<img src="icons/approved.webp" alt="" width="16" height="17">' : ''}${d.pct}%</span>` : ''; })();
     tr.innerHTML = `
       <td class="fav" data-role="fav"><svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>

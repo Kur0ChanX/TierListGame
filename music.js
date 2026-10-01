@@ -240,8 +240,9 @@
   async function tracksFor(g){
     const u = (LS.get(USER, {}) || {})[g.id]; if(u && u.length) return u;                      // scelto da te (🔎 o 🔁): bloccato, nessun aggiornamento lo cambia
     if(LS.get(SRC, 'ia') === 'ia'){ setStat(g.id, 'Cerco l\'album senza pubblicità…'); const a = await iaAlbum(g); setStat(g.id, ''); if(a && a.l && a.l.length) return a.l; }
-    if(!ostP) ostP = load('ost.js').catch(()=>{});
-    await ostP;
+    // v211: solo il pezzo del gioco (dati/notte-ost-K.js); il file intero ost.js solo se i pezzi non ci sono
+    if(window.rtNight) await rtNight.ensure('ost', g.id);
+    else { if(!ostP) ostP = load('ost.js').catch(()=>{}); await ostP; }
     const t = (typeof OST !== 'undefined' && OST.games && OST.games[g.id]) || null;
     if(t && t.length) return t;
     const c = LS.get(LIVE, {}) || {}; if(c[g.id] && c[g.id].length) return c[g.id];
