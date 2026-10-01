@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v214', date:'2026-10-02', time:'01:52', items:[
+    'Memoria piena al 70%: spostati nell\'archivio grande anche gli archivi d\'appoggio più pesanti (diagnosi dei voti, controlli di Update+, album delle colonne sonore, nomi inglesi, schermate RAWG, registro…). La memoria normale torna quasi vuota e non si perde niente. Se mai si riempisse di nuovo, prima libero da solo quello che si può rigenerare.',
+    'Lettore musicale sempre al suo posto: nella Classifica resta visibile anche dopo Stop (con ▶ per ripartire); nella scheda sta in alto, sopra «Per te / Il gioco / Altro», e si vede in tutte e tre le parti (prima era dentro «Il gioco»).',
+    'Ingresso: la schermata aspetta SEMPRE il tuo tocco su «▶ INIZIA A FRUGARE» (anche nell\'app installata, prima si chiudeva da sola). Al tocco il pulsante fa «pop» con un anello di luce, un piccolo suono di tre note e la schermata si apre in avanti. Se tocchi prima che i giochi siano pronti, entra appena lo sono.',
+    'Scatto dopo l\'apertura di un gioco: circa 7 secondi dopo l\'avvio, quando arrivano i testi completi, il riquadro «Se ti è piaciuto…» ricalcolava i tratti di tutti i giochi in un colpo solo (un blocco ben visibile). Ora si ricalcolano a pezzetti nei momenti liberi.',
+    'Controllo onesto sulla struttura per 20.000 giochi (v209): stesso telefono simulato con il tuo profilo, v208 contro oggi. Oggi è più veloce quasi ovunque (sezioni 2–3 volte più rapide, scorrimento della scheda senza scatti contro 40 scatti); l\'unico peggioramento era lo scatto qui sopra, ora tolto.'
+  ]},
   {version:'v213', date:'2026-10-02', time:'01:36', items:[
     'Velocità: trovato il vero freno. 155 copertine della lista base puntavano a un indirizzo che esiste solo dentro Claude; nella griglia ogni copertina rotta veniva ritentata all\'infinito (centinaia di volte al secondo) e rallentava TUTTO: scorrimento della scheda, cambio sezione, apertura dei giochi. Ora la copertina rotta si prova una volta sola e quelle 155 vengono cercate da capo. Scorrimento nella scheda: da «frenato» a 60 fotogrammi al secondo.',
     'Apertura di un gioco più pulita: la scheda veniva riordinata due volte (e «saltava»); ora una volta sola, già completa. Anche dalla griglia parte l\'animazione veloce che si allarga dalla copertina toccata (prima no: si vedeva la scheda trasparente sopra la lista).',
