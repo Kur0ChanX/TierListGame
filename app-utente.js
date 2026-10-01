@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v206', date:'2026-10-01', time:'20:01', items:[
+    'Risolto «appena entro clicco News o le icone in alto e non apre»: la schermata d\'apertura copriva i tocchi per quasi un secondo dopo «Inizia a frugare». Ora smette dopo 0,35 secondi. In più, se tocchi un pulsante in alto mentre il programma si sta ancora caricando, il tocco non si perde più: viene rifatto appena è pronto.',
+    'Intro: se aspetti a lungo il programma non ricarica più la pagina mentre stai toccando lo schermo, e una rete di sicurezza toglie la schermata d\'apertura se resta ferma con i giochi già pronti.',
+    'Nuovo file di passaggio di consegne (docs/PASSAGGIO-CONSEGNE.md) con tutto quello che serve per continuare il lavoro da un altro account, più le prove automatiche in tools/test/.'
+  ]},
   {version:'v205', date:'2026-10-01', time:'19:50', items:[
     'Locandina di Dragon Quest XI S (finalmente): l\'immagine ufficiale di Steam c\'era, ma il telefono non può chiedere a Steam «qual è il numero di questo gioco» e ricadeva su RAWG, che sbagliava gioco. Ora il numero Steam arriva dal server per molti più giochi (il server ora cerca anche con il nome italiano), e le locandine sbagliate di RAWG già salvate si correggono da sole (ricontrollo ogni 3 giorni; mai se l\'hai caricata tu o bloccata 🔒).',
     'Valutazioni rifatte: via i cursori scomodi. Ora ogni voce ha i tasti 1–10 grandi (+½ per il mezzo punto, ✕ per togliere) e c\'è il tasto ✅ Fine: finché non lo premi vedi «Non ancora salvato», dopo vedi «🔒 Salvato». Se chiudi la scheda senza premere, le salvo io.',
