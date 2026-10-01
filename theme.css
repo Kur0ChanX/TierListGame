@@ -1379,3 +1379,24 @@ html.mo-off .rt-ghost{display:none}
 .br-todo{display:flex;flex-wrap:wrap;gap:6px}
 .rb-s{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:.74rem;line-height:1.15;padding:6px 2px}
 .rb-s span{font-size:1rem}
+/* v204: un solo pulsante «Locandina e foto»; gli strumenti restano nella pagina ma nascosti (li usa il menu) */
+#coverBlock.cv-compact .cover-tools, #coverBlock.cv-compact .cover-more:not(.cv-show), #coverBlock.cv-compact .cover-mini{display:none !important}
+#coverBlock.cv-compact:not(.cv-noimg) .x-autocover{display:none !important}
+.cv-menu-btn{display:flex;align-items:center;gap:6px;margin:8px auto 2px;padding:7px 14px;border-radius:999px;border:1px solid var(--glass-line,rgba(127,127,127,.3));background:rgba(127,127,127,.12);color:inherit;font:inherit;font-size:.82rem;cursor:pointer}
+.cv-menu-btn b{opacity:.6;font-size:.7rem}
+.cvm{display:grid;gap:6px}
+.cvm-i{display:flex;gap:12px;align-items:center;text-align:left;padding:10px 12px;border-radius:14px;border:1px solid var(--glass-line,rgba(127,127,127,.2));background:rgba(127,127,127,.08);color:inherit;font:inherit;cursor:pointer}
+.cvm-i .cvm-ic{font-size:1.3rem;width:30px;text-align:center}
+.cvm-i b{display:block;font-size:.92rem}
+.cvm-i small{display:block;opacity:.7;font-size:.75rem;margin-top:1px}
+/* v204: scheda in 3 parti */
+.cd-tabs{position:sticky;top:-1px;z-index:6;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:12px 0 10px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--card,#1c1c24) 92%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--glass-line,rgba(127,127,127,.2));box-shadow:0 6px 18px -10px rgba(0,0,0,.5)}
+.cd-tabs button{border:0;background:none;color:inherit;font:inherit;font-size:.86rem;font-weight:600;padding:9px 4px;border-radius:10px;cursor:pointer;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd-tabs button.on{opacity:1;background:rgba(var(--a1rgb,124,92,255),.22);box-shadow:inset 0 0 0 1px rgba(var(--a1rgb,124,92,255),.55)}
+.cd-tabs button[hidden]{display:none}
+#modalCard[data-ctab="perme"] > [data-tab]:not([data-tab="perme"]),
+#modalCard[data-ctab="gioco"] > [data-tab]:not([data-tab="gioco"]),
+#modalCard[data-ctab="altro"] > [data-tab]:not([data-tab="altro"]){display:none !important}
+#modalCard > [data-tab]{animation:cdTabIn .22s ease both}
+@keyframes cdTabIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.vd-chiprow .vd-chip{cursor:pointer}
