@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v201', date:'2026-10-01', time:'16:50', items:[
+    'Trovato perché locandine, foto e voti sbagliavano gioco: molti nomi sono in italiano («Echi di un\'era perduta») e i siti stranieri trovavano un altro gioco (es. Dragon Quest I) o «non trovato». Ora il programma ricava da Steam il nome inglese ufficiale di ogni gioco e lo usa per RAWG, OpenCritic, Metacritic, Wikidata e le locandine. Anche il controllo notturno sul server ora trova i giochi coi nomi italiani.',
+    '🎞️ Foto del carosello senza fine: quando finiscono quelle di Steam e RAWG, «Altre foto diverse» continua a cercarne di nuove dai video di gameplay (sempre del gioco giusto).',
+    'Apertura della scheda «stile iPhone»: al tocco parte subito un cartoncino che si allarga dalla riga, animato dalla scheda grafica (fluido a 60/120 Hz), e sfuma nella scheda vera appena pronta. Chiusura con la stessa curva morbida di iOS.'
+  ]},
   {version:'v200', date:'2026-10-01', time:'16:35', items:[
     'Scheda del gioco più fluida: prima si apriva scattando perché calcolava i «giochi simili» confrontando tutti i giochi durante l\'animazione. Ora la scheda si apre subito (3-4 volte più veloce la prima volta), l\'animazione parte solo quando è pronta e i simili arrivano un attimo dopo. Anche la chiusura scivola dolcemente.',
     'Nuovo «A colpo d\'occhio»: riquadri con una parola chiara (es. «Durissima», «Al centro di tutto»), una barra colorata, la durata in settimane a 1h30 al giorno, una frase che riassume tutto e il segno 💜 «come piace a te» (o ⚠️ «di solito non ti piace») preso dal tuo DNA.',

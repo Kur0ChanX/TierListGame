@@ -75,7 +75,7 @@
   let tap = null;
   document.addEventListener('pointerdown', e=>{
     const el = e.target.closest && e.target.closest('tr[data-gid], [data-gid]');
-    tap = {x: e.clientX, y: e.clientY, t: performance.now(), r: el ? el.getBoundingClientRect() : null};
+    tap = {x: e.clientX, y: e.clientY, t: performance.now(), r: el ? el.getBoundingClientRect() : null, el};
   }, true);
   let VW = innerWidth, VH = innerHeight;
   addEventListener('resize', ()=>{ VW = innerWidth; VH = innerHeight; }, {passive: true});
@@ -112,10 +112,61 @@
       });
     }, 460);
   }
+  // v201: apertura «stile iPhone». Al tocco parte SUBITO un cartoncino che si allarga dalla riga fino a tutto schermo:
+  // si muove solo con transform/opacity, quindi lo anima la scheda grafica a 60/120 Hz anche mentre il telefono costruisce la scheda vera.
+  // Quando la scheda vera è impaginata, il cartoncino sfuma e lascia il posto a lei. Niente attese, niente scatti.
+  const EASE = 'cubic-bezier(.32,.72,0,1)';          // la curva delle animazioni di iOS
+  function ghostOpen(R){
+    const W = VW, H = VH, r = R.r;
+    const gh = document.createElement('div'); gh.className = 'rt-ghost';
+    const panel = document.createElement('div'); panel.className = 'rt-ghost-p'; gh.appendChild(panel);
+    let im = null;
+    try{ const src = R.el && [...R.el.querySelectorAll('img')].find(x=>{ const b = x.getBoundingClientRect(); return b.width >= 40 && b.height >= b.width * 1.15; }); if(src && src.currentSrc){ /* solo una vera locandina (verticale), non le iconcine */ im = document.createElement('img'); im.className = 'rt-ghost-i'; im.src = src.currentSrc; im.decoding = 'sync'; gh.appendChild(im); im._r = src.getBoundingClientRect(); } }catch(e){}
+    document.body.appendChild(gh);
+    const sx = Math.max(.05, r.width / W), sy = Math.max(.02, r.height / H);
+    const anims = [panel.animate([{transform: `translate(${r.left}px, ${r.top}px) scale(${sx}, ${sy})`, opacity: .5}, {opacity: 1, offset: .35}, {transform: 'none', opacity: 1}], {duration: 380, easing: EASE, fill: 'both'})];
+    if(im && im._r && im._r.width > 4){
+      const fw = Math.min(W * .74, 340), fh = fw * 1.33, fx = (W - fw) / 2, fy = 120;       // dove starà più o meno la locandina
+      im.style.cssText = `left:${fx}px;top:${fy}px;width:${fw}px;height:${fh}px`;
+      const k = im._r.width / fw;
+      anims.push(im.animate([{transform: `translate(${im._r.left - fx}px, ${im._r.top - fy}px) scale(${k}, ${im._r.height / fh})`}, {transform: 'none'}], {duration: 380, easing: EASE, fill: 'both'}));
+    }
+    return {gh, done: Promise.all(anims.map(a=> a.finished.catch(()=>{})))};
+  }
+  function countUp(card){
+    setTimeout(()=>{
+      card.querySelectorAll('.badge.big').forEach(el=>{
+        const m = el.textContent.trim().match(/^(\d{1,3})(\/100)?$/);
+        if(m && !el.dataset.moCount){
+          el.dataset.moCount = '1'; const to = +m[1], suf = m[2] || '';
+          el.style.fontVariantNumeric = 'tabular-nums';
+          const t0 = performance.now();
+          const step = now=>{ const p = Math.min(1, (now - t0) / 650), v = Math.round(to * (1 - Math.pow(1 - p, 3))); el.textContent = v + suf; if(p < 1) requestAnimationFrame(step); };
+          requestAnimationFrame(step);
+        }
+      });
+    }, 120);
+  }
   if(typeof window.openModal === 'function'){
     const origOpen = window.openModal;
     window.openModal = function(){
       const bd = document.getElementById('modalBackdrop'), was = bd && bd.classList.contains('show');
+      const R = tap && performance.now() - tap.t < 900 && tap.r && tap.r.width > 60 ? tap : null;
+      if(!was && R && moOn() && VW <= 760 && document.body.animate){
+        tap = null; haptic('soft');
+        const self = this, args = arguments, G = ghostOpen(R);
+        // lascio partire il cartoncino (un fotogramma), poi costruisco la scheda vera sotto di lui
+        requestAnimationFrame(()=> setTimeout(()=>{
+          let card = null;
+          try{ origOpen.apply(self, args); card = document.getElementById('modalCard'); if(card) card.style.opacity = '0'; }catch(e){ G.gh.remove(); throw e; }
+          requestAnimationFrame(()=> requestAnimationFrame(async ()=>{
+            await G.done;
+            if(card){ card.style.opacity = ''; try{ card.animate([{opacity: 0}, {opacity: 1}], {duration: 160, easing: 'ease-out'}); }catch(e){} countUp(card); }
+            try{ G.gh.animate([{opacity: 1}, {opacity: 0}], {duration: 200, easing: 'ease-out', fill: 'forwards'}).finished.then(()=> G.gh.remove(), ()=> G.gh.remove()); }catch(e){ G.gh.remove(); }
+          }));
+        }, 0));
+        return;
+      }
       const r = origOpen.apply(this, arguments);
       try{ if(!was) reveal(); }catch(e){}
       return r;

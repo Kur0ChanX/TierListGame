@@ -32,17 +32,26 @@ const D = JSON.parse(raw), GAMES = D.games;
 let prev = {games: {}};
 try{ const t = fs.readFileSync(path.join(ROOT, 'facts.js'), 'utf8'); prev = JSON.parse(t.replace(/^const GAME_FACTS = /, '').replace(/;\s*$/, '')); }catch(e){}
 
+const tokSim = (a, b)=>{ const T = t=> new Set(String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[®™©]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w=> w && !['the', 'of', 'di', 'a', 'and', 'e', 'edition', 'edizione', 'definitive', 'definitiva'].includes(w))); const A = T(a), B = T(b); if(!A.size || !B.size) return 0; let n = 0; A.forEach(w=>{ if(B.has(w)) n++; }); return n / Math.min(A.size, B.size); };
 async function steamFacts(g){
   const base = baseName(g.name), tgt = norm(base);
   const s = await getJson('https://store.steampowered.com/api/storesearch/?term=' + encodeURIComponent(base) + '&cc=IT&l=english');
   const items = ((s && s.items) || []).filter(x=> x.type === 'app');
-  const hit = items.find(x=> norm(String(x.name).replace(/\s*\([^)]*\)/g, '')) === tgt) || items.find(x=> norm(x.name) === norm(g.name));
+  let hit = items.find(x=> norm(String(x.name).replace(/\s*\([^)]*\)/g, '')) === tgt) || items.find(x=> norm(x.name) === norm(g.name));
+  if(!hit){
+    // v201: molti nomi del catalogo sono italiani («Echi di un'era perduta»): Steam li conosce se cerco in italiano
+    await sleep(700);
+    const si = await getJson('https://store.steampowered.com/api/storesearch/?term=' + encodeURIComponent(g.name.replace(/[:™®]/g, ' ')) + '&cc=IT&l=italian');
+    const best = ((si && si.items) || []).filter(x=> x.type === 'app').map(x=> ({x, s: tokSim(g.name, x.name)})).sort((a, b)=> b.s - a.s)[0];
+    if(best && best.s >= .75) hit = best.x;
+  }
   if(!hit) return null;
   await sleep(900);
   const d = await getJson('https://store.steampowered.com/api/appdetails?appids=' + hit.id + '&cc=it&l=english&filters=basic,supported_languages,price_overview,release_date,metacritic,genres');
   const x = d && d[hit.id] && d[hit.id].success ? d[hit.id].data : null;
   const out = {id: hit.id};
   if(x){
+    if(x.name) out.en = String(x.name).replace(/[®™©]/g, '').replace(/\s+/g, ' ').trim();     // nome inglese ufficiale: l'app lo usa per cercare negli altri siti
     const lang = String(x.supported_languages || '');
     const it = /Italian(<strong>\*<\/strong>)?/i.exec(lang);
     if(lang) out.it = it ? (it[1] ? 'D' : 'S') : 'N';                     // D = testi+doppiaggio, S = solo testi, N = nessun italiano ufficiale su Steam

@@ -201,13 +201,15 @@
     const none = Promise.resolve(null);
     const needCheap = !(window.SearchHub && SearchHub.factsFor(g)) && window.SearchHub;
     const mcArch = window.SearchHub && SearchHub.votiFor(g);
-    const [wiki, wd, itw, steam, pcgw, rawg, cheap, mcl] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none, !mcArch && window.SearchHub && SearchHub.metacriticLive ? SearchHub.metacriticLive(g.name) : none]);
+    // v201: le ricerche nei siti stranieri usano il nome inglese ufficiale (preso da Steam): col nome italiano trovavano il gioco sbagliato
+    let ge = g; try{ if(window.SearchHub && SearchHub.enGame) ge = await SearchHub.enGame(g); }catch(e){}
+    const [wiki, wd, itw, steam, pcgw, rawg, cheap, mcl] = await Promise.allSettled([wikiPageTree(ge.name), wikidataGenreCodes(ge.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(ge.name), lite ? none : pcgwInfo(ge.name), rawgInfoFor(ge), needCheap ? SearchHub.cheapFacts(ge.name) : none, !mcArch && window.SearchHub && SearchHub.metacriticLive ? SearchHub.metacriticLive(ge.name) : none]);
     const mcOff = mcArch || (mcl.status === 'fulfilled' ? mcl.value : null);
     const cheapLive = cheap.status === 'fulfilled' ? cheap.value : null;
     // OpenCritic (poche richieste gratuite al giorno) si interroga solo se Metacritic non ha dato nessun voto (Wikipedia, Steam o CheapShark)
     const mcSeen = mcOff || (wiki.status === 'fulfilled' && wiki.value && wiki.value.mc) || (steam.status === 'fulfilled' && steam.value && steam.value.mc) || (cheapLive && cheapLive.mc) || (window.SearchHub && (f=> f && ((f.s && f.s.mc) || (f.c && f.c.mc)))(SearchHub.factsFor(g)));
     const needOc = !mcSeen;
-    const oc = needOc ? (await Promise.allSettled([ocInfoFor(g)]))[0] : {status: 'fulfilled', value: null};
+    const oc = needOc ? (await Promise.allSettled([ocInfoFor(ge)]))[0] : {status: 'fulfilled', value: null};
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
     // stato di ogni fonte del voto (per dire chiaramente se un sito è bloccato, la chiave non va o la quota è finita)
     const H = window.SearchHub, hasK = f=> { try{ return !!(H && f && f.has()); }catch(e){ return false; } };
@@ -861,7 +863,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const g = auNext(); if(!g) return auSchedule(6 * 3600e3);
     auBusy = true;
     try{
-      const [wiki, wd, itw, rawg, cheap, oc] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), itWikiLang(g.name), rawgInfoFor(g), SearchHub.factsFor(g) ? Promise.resolve(null) : SearchHub.cheapFacts(g.name), ocInfoFor(g)]);
+      let ge = g; try{ if(SearchHub.enGame) ge = await SearchHub.enGame(g); }catch(e){}
+      const [wiki, wd, itw, rawg, cheap, oc] = await Promise.allSettled([wikiPageTree(ge.name), wikidataGenreCodes(ge.name), itWikiLang(g.name), rawgInfoFor(ge), SearchHub.factsFor(g) ? Promise.resolve(null) : SearchHub.cheapFacts(ge.name), ocInfoFor(ge)]);
       const ok = x=> x.status === 'fulfilled' ? x.value : null;
       const src = {wiki: ok(wiki), wd: ok(wd), itw: ok(itw), rawg: ok(rawg), oc: ok(oc), facts: SearchHub.factsFor(g) || (ok(cheap) ? {c: ok(cheap)} : null)};
       if(wiki.status === 'rejected' && wd.status === 'rejected' && !useAI()) throw new Error('fonti');   // con Gemini si va avanti lo stesso: le fonti aperte sono solo un di più
