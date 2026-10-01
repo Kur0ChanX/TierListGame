@@ -24,20 +24,44 @@ self.addEventListener('install', e=>{
 self.addEventListener('activate', e=>{
   e.waitUntil(caches.keys().then(ks=> Promise.all(ks.filter(k=> k !== CACHE && k !== COVERS).map(k=> caches.delete(k)))).then(()=> self.clients.claim()));
 });
+// v199: GitHub Pages limita le richieste («Rate limit exceeded»). Prima ogni apertura chiedeva ~70 file al server.
+// Ora: immagini/caratteri/suoni dalla copia salvata (ricontrollati al massimo 1 volta al giorno);
+// codice e dati al massimo 1 richiesta al minuto per file; se il server rifiuta (429/5xx) uso la copia salvata.
+const STATIC = /\/(icons|packs|fonts)\/|\.(png|jpe?g|webp|gif|svg|woff2?|ttf|otf|mp3|ogg)(\?|$)/i;
+const lastNet = new Map(), DAY = 864e5, MIN = 6e4;
+async function fromCache(r){
+  const hit = await caches.match(r, {ignoreSearch: true}); if(hit) return hit;
+  if(r.mode === 'navigate'){ const home = await caches.match('./'); if(home) return home; }
+  return null;
+}
+async function netPut(r){
+  const res = await fetch(r, {cache: 'no-cache'});
+  if(res && res.ok){ lastNet.set(r.url, Date.now()); const c = await caches.open(CACHE); await c.put(r, res.clone()).catch(()=>{}); }
+  return res;
+}
 self.addEventListener('fetch', e=>{
   const r = e.request;
   // copertine in miniatura (wsrv.nl, con CORS): prima la copia salvata, così si vedono anche offline
   if(r.method === 'GET' && /^https:\/\/wsrv\.nl\//.test(r.url)){ e.respondWith(coverFetch(r)); return; }
   if(r.method !== 'GET' || new URL(r.url).origin !== self.location.origin) return;
+  if(/[?&]vchk/.test(r.url)) return;               // controllo nuova versione: sempre al server
+  const isStatic = STATIC.test(new URL(r.url).pathname);
   e.respondWith((async()=>{
+    const age = Date.now() - (lastNet.get(r.url) || 0);
+    if(isStatic || age < MIN){
+      const hit = await caches.match(r, {ignoreSearch: isStatic});
+      if(hit){
+        const d = Date.parse(hit.headers.get('date') || '') || 0;
+        if(isStatic && Date.now() - d > DAY && age > DAY) e.waitUntil(netPut(r).catch(()=>{}));
+        return hit;
+      }
+    }
     try{
-      const res = await fetch(r, {cache: 'no-cache'});
-      if(res && res.ok){ const c = await caches.open(CACHE); c.put(r, res.clone()).catch(()=>{}); }
-      return res;
+      const res = await netPut(r);
+      if(res && res.ok) return res;
+      return (await fromCache(r)) || res;           // 429 / errore del server: la copia salvata invece dell'errore
     }catch(err){
-      const hit = await caches.match(r, {ignoreSearch: true});
-      if(hit) return hit;
-      if(r.mode === 'navigate'){ const home = await caches.match('./'); if(home) return home; }
+      const hit = await fromCache(r); if(hit) return hit;
       throw err;
     }
   })());

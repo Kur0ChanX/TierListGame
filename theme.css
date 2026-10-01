@@ -1270,3 +1270,24 @@ details.dna-cat[open]>summary.dna-ct::after{transform:rotate(180deg)}
 .dna-info{margin:10px 0 6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--pk-accent,#6366f1) 14%,transparent);font-size:.84rem;line-height:1.45}
 .dna-free{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .dna-free small{color:var(--sub);font-size:.76rem;line-height:1.35}
+/* v199: 👑 I miei top */
+.gs2-topb{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.gs2-topb .btn{font-size:.82rem;padding:6px 10px}
+.gs2-topb .btn.on{background:rgba(234,179,8,.18);border-color:rgba(234,179,8,.6)}
+.tp-row{display:flex;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px solid var(--border,#444)}
+.tp-row b{min-width:24px;text-align:center;color:#eab308}
+.tp-row span{flex:1}
+.tp-row button{background:none;border:1px solid var(--border,#555);color:inherit;border-radius:8px;padding:3px 8px}
+.tp-row button:disabled{opacity:.3}
+.tp-add{display:block;width:100%;text-align:left;margin:4px 0;padding:8px 10px;border-radius:10px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit}
+/* v199: foto del carosello e anteprima grande */
+.cv-grid.sh.cur .cv-it{opacity:1}
+.cv-it.pick{border-color:var(--pk-accent,#f59e0b);box-shadow:0 0 0 3px rgba(245,158,11,.35)}
+.cv-it .cv-n{pointer-events:none;position:absolute;left:6px;top:6px;padding:1px 7px;border-radius:9px;background:rgba(0,0,0,.6);color:#fff;font-size:.72rem;font-weight:700}
+.cv-it.cv-plus{align-items:center;justify-content:center;font-size:1.8rem;min-height:80px;border:2px dashed var(--border,#666)}
+.cv-it.bad{display:none}
+.cv-it img{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.rt-prev{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px}
+.rt-prev.show{display:flex}
+.rt-prev img{max-width:100%;max-height:85vh;border-radius:12px;object-fit:contain}
+.rt-prev small{color:#ddd}

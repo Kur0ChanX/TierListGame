@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v199', date:'2026-10-01', time:'16:14', items:[
+    'Risolto l\'errore «Rate limit exceeded» di GitHub e Frugu che non partiva nel caricamento: immagini e caratteri ora vengono dalla memoria del telefono (ricontrollati al massimo una volta al giorno), il codice al massimo una richiesta al minuto, e se il sito rifiuta si usa la copia salvata.',
+    '👑 I miei top: nella Sintonia di ogni gioco c\'è «È tra i miei giochi top», e in «I miei top» li metti in ordine (il n. 1 è il tuo preferito di sempre). Pesano più di tutto nel tuo DNA: un gioco dei tuoi top è sempre al 97–100%, anche nei «giochi simili» e nella stessa saga.',
+    '🔒 La locandina bloccata non la cambia più niente: sparisce il vecchio «Aggiorna locandina», la lente e gli aggiornamenti automatici la lasciano stare.',
+    '🎞️ Foto del carosello: tocchi la foto che non ti piace, ti mostro tante alternative (Steam, trailer, RAWG), tocchi quella nuova e la sostituisce bloccata. «Altre foto diverse» per vederne altre, «＋» per aggiungerne, 🗑️ per toglierla.',
+    'Tieni premuto su una locandina o una foto per vederla in grande.'
+  ]},
   {version:'v198', date:'2026-10-01', time:'15:58', items:[
     '🎯 Sintonia rifatta: oltre ai tuoi gusti più forti ora conta quanto il gioco SOMIGLIA ai giochi che ami (i 3 più vicini, scritti nella scheda: «Somiglia a giochi che ami: …») e la qualità (un gioco mediocre non può risultare perfetto per te). Un gioco che ami già non viene «indovinato»: c\'è scritto «È uno dei giochi che ami» (es. FFX ora 94-98% invece di 71%). Prova: FF IX 89%, FF XII 88%, Chrono Cross 83%, Disgaea 34%.',
     'Sintonia più chiara: «✓ Ha queste cose che ami» e, a parte, «Cose che ami ma che qui non ci sono (non è un difetto del gioco)» — prima «difficoltà bassa» sembrava un giudizio sul gioco. Niente più doppioni («Storia che coinvolge» e «storia forte»), tutte le etichette con la maiuscola, e la durata usa le stesse ore della Longevità nella scheda.',

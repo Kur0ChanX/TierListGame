@@ -163,7 +163,7 @@
   function open(txt){
     clearTimeout(hideT);
     if(!el) build();
-    const img = el.querySelector('img'); if(!img.getAttribute('src')) img.src = GIF;
+    const img = el.querySelector('img'); if(!img.getAttribute('src')){ img.onerror = ()=>{ img.onerror = null; setTimeout(()=>{ img.src = 'icons/frugu.gif?r=' + Date.now(); }, 1500); }; img.src = GIF; }   // se il sito rifiuta la GIF grande, riprovo con quella piccola
     if(!el.classList.contains('show')){ pct = 0; target = 0; t0 = performance.now(); }
     if(txt) label = txt;
     el.classList.add('show'); el.classList.remove('done');
