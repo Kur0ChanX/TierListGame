@@ -52,23 +52,140 @@
     PARTY: 'Gestione della squadra = scegliere chi combatte, cambiare i personaggi, costruire un gruppo equilibrato.'
   };
   const CUST = 'jrpg_dna_custom';
+  // ---------- v207: «Cosa ti ha preso» rifatto ----------
+  // Un riquadro pulito: il tuo «filamento di DNA» con questo gioco (una striscia colorata), i motivi principali 💖, cosa ti è piaciuto 👍
+  // e cosa no 👎. Per decidere in fretta c'è il GIOCO VELOCE: una carta alla volta da scorrere (destra 👍, sinistra 👎, su 💖, o i tasti).
+  // Valori in jrpg_dna_why {id: {TRATTO: 2 💖 motivo principale | 1 👍 | -1 👎}}: il 💖 pesa il doppio nel modello dei gusti.
+  const MAXMAIN = 3;
+  const getDw = g=> (LSG(WHY, {}) || {})[g.id] || {};
+  function setDw(g, k, v){
+    const all = LSG(WHY, {}) || {}, cur = all[g.id] || {};
+    if(v) cur[k] = v; else delete cur[k];
+    if(Object.keys(cur).length) all[g.id] = cur; else delete all[g.id];
+    LSS(WHY, all); try{ SIMC.clear(); }catch(x){}
+    try{ window.rtHaptic ? rtHaptic(v === 2 ? 'success' : 'soft') : (navigator.vibrate && navigator.vibrate(8)); }catch(x){}
+    return cur;
+  }
+  const nMain = dw=> Object.values(dw).filter(v=> v === 2).length;
+  const explain = k=>{ const M = MECH(); return XPL[k] || (M[k] ? M[k].d.charAt(0).toUpperCase() + M[k].d.slice(1) + '.' : ''); };
+  const nameOf = k=>{ const M = MECH(); return M[k] ? M[k].n : k; };
+  const icOf = k=>{ const M = MECH(); return M[k] ? M[k].ic : '•'; };
+  // i tratti da proporre nel gioco veloce: prima quelli riconosciuti nel gioco, poi quelli che di solito ami, poi gli altri
+  function deckFor(g){
+    const M = MECH(), dw = getDw(g), det = mechOf(g).filter(k=> M[k]);
+    let tm = null; try{ tm = window.rtTasteModel && rtTasteModel(); }catch(e){}
+    const loved = Object.keys(M).filter(k=> !det.includes(k) && tm && (tm.wts['mech:' + k] || 0) > .3).sort((a, b)=> tm.wts['mech:' + b] - tm.wts['mech:' + a]);
+    const rest = CATS.flatMap(c=> c[2]).filter(k=> M[k] && !det.includes(k) && !loved.includes(k));
+    return [...det.map(k=> ({k, why: 'det'})), ...loved.map(k=> ({k, why: 'love'})), ...rest.map(k=> ({k, why: ''}))].filter(x=> !dw[x.k]);
+  }
+  const chip2 = (k, v)=> `<button type="button" class="d2-chip v${v < 0 ? 'n' : v}" data-dna="${k}"><span>${icOf(k)}</span>${esc(nameOf(k))}${v === 2 ? '<i>💖</i>' : ''}</button>`;
   function whyHtml(g, info){
     const M = MECH(); if(!Object.keys(M).length) return '';
-    const dw = (LSG(WHY, {}) || {})[g.id] || {}, det = new Set(mechOf(g));
-    const known = isFav(g) || ['played', 'playing', 'dropped'].includes(stOf(g));
-    const chip = k=>{ if(!M[k]) return ''; const v = dw[k] || 0; return `<button type="button" class="dna-chip${v > 0 ? ' like' : v < 0 ? ' no' : ''}${det.has(k) && !v ? ' det' : ''}" data-dna="${k}">${M[k].ic} ${esc(M[k].n)}${v > 0 ? ' 👍' : v < 0 ? ' 👎' : ''}</button>`; };
-    const inCat = new Set(CATS.flatMap(c=> c[2])), extra = Object.keys(M).filter(k=> !inCat.has(k));
-    const cats = CATS.map(c=> [c[0], c[1], c[2].concat(c[1] === 'Sistemi e attività' ? extra : [])]);
+    const dw = getDw(g), known = isFav(g) || ['played', 'playing', 'dropped'].includes(stOf(g));
+    const ks = Object.keys(dw).filter(k=> M[k] && dw[k]);
+    const main = ks.filter(k=> dw[k] === 2), like = ks.filter(k=> dw[k] === 1), no = ks.filter(k=> dw[k] < 0);
+    const todo = deckFor(g), det = mechOf(g).filter(k=> M[k] && !dw[k]).length;
     const mine = Object.entries(LSG(CUST, {}) || {});
-    const nSet = Object.keys(dw).filter(k=> dw[k]).length;
-    const detList = [...det].filter(k=> M[k]);
-    return `<div class="dna-card" id="dnaWhy"><div class="dna-head">🧬 <b>${known ? 'Cosa ti ha preso di questo gioco?' : 'Cosa ti attira di questo gioco?'}</b>${nSet ? ` <span class="dna-n">${nSet} ${nSet === 1 ? 'tratto segnato' : 'tratti segnati'}</span>` : ''}</div>
-      <div class="dna-sub">Tocca un tratto: <b>👍 mi piace</b> → <b>👎 non mi piace</b> → niente. Apri una categoria per vedere gli altri. Ogni tocco insegna al cervello 🧠 cosa ami davvero.</div>
-      ${detList.length ? `<div class="dna-cat"><div class="dna-ct">🔎 Riconosciuti in questo gioco</div><div class="dna-chips">${detList.map(chip).join('')}</div></div>` : ''}
-      ${cats.map(([ic, n, ks])=> `<details class="dna-cat"><summary class="dna-ct"><span>${ic} ${esc(n)}</span><small>${ks.filter(k=> dw[k]).length ? '<b>' + ks.filter(k=> dw[k]).length + ' segnati</b> · ' : ''}${ks.filter(k=> M[k]).length}</small></summary><div class="dna-chips">${ks.map(chip).join('')}</div></details>`).join('')}
-      ${mine.length ? `<details class="dna-cat" open><summary class="dna-ct">✍️ I tuoi tratti <small>${mine.length}</small></summary><div class="dna-chips">${mine.map(([k, c])=> `<button type="button" class="dna-chip${(c.by || []).includes(g.id) ? ' like' : (c.no || []).includes(g.id) ? ' no' : ''}" data-mine="${esc(k)}">✍️ ${esc(c.n)}${(c.by || []).includes(g.id) ? ' 👍' : (c.no || []).includes(g.id) ? ' 👎' : ''}</button>`).join('')}</div></details>` : ''}
+    // la striscia: un segmento per ogni tratto deciso (rosa = motivo principale, verde = piaciuto, rosso = no)
+    const strip = ks.length ? `<div class="d2-strip" aria-hidden="true">${[...main, ...like, ...no].map(k=> `<i class="s${dw[k] < 0 ? 'n' : dw[k]}"></i>`).join('')}</div>` : '<div class="d2-strip empty" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
+    const say = ks.length
+      ? `${main.length ? `Ti ha preso soprattutto per <b>${main.map(k=> esc(nameOf(k).toLowerCase())).join('</b>, <b>')}</b>` : (like.length === 1 ? 'Ti è piaciuto per una cosa' : `Ti è piaciuto per ${like.length} cose`)}${main.length && like.length ? (like.length === 1 ? ' e un\'altra cosa' : ` e altre ${like.length} cose`) : ''}${no.length ? (no.length === 1 ? ' · una non ti è piaciuta' : ` · ${no.length} non ti sono piaciute`) : ''}.`
+      : (known ? 'Dimmi cosa ti ha preso: in 30 secondi il cervello impara il <b>perché</b> dei tuoi gusti.' : 'Dimmi cosa ti attira: capirò meglio cosa cerchi nei giochi.');
+    const go = todo.length ? (ks.length ? `▶ Continua il gioco veloce <small>${det ? det + ' riconosciuti qui · ' : ''}${todo.length} da decidere</small>` : `▶ Scopri cosa ti ha preso <small>gioco veloce · 30 secondi</small>`) : '';
+    const sec = (t, list)=> list.length ? `<div class="d2-sec"><div class="d2-st">${t}</div><div class="d2-chips">${list.map(k=> chip2(k, dw[k])).join('')}</div></div>` : '';
+    return `<div class="dna-card dna2" id="dnaWhy">
+      <div class="d2-head"><span class="d2-logo" aria-hidden="true">🧬</span><div class="d2-ht"><b>${known ? 'Cosa ti ha preso di questo gioco?' : 'Cosa ti attira di questo gioco?'}</b><small>${ks.length ? ks.length + (ks.length === 1 ? ' tratto deciso' : ' tratti decisi') : 'Il tuo DNA di giocatore con ' + esc(g.name)}</small></div></div>
+      ${strip}
+      <div class="d2-say">${say}</div>
+      ${go ? `<button type="button" class="d2-go" data-dna-deck>${go}</button>` : ''}
+      ${sec('💖 I motivi principali', main)}${sec('👍 Ti è piaciuto', like)}${sec('👎 Non ti è piaciuto', no)}
+      ${ks.length ? '<div class="d2-hint">Tocca un tratto per cambiarlo: 👍 → 💖 → 👎 → via</div>' : ''}
+      ${mine.length ? `<div class="d2-sec"><div class="d2-st">✍️ I tuoi tratti</div><div class="d2-chips">${mine.map(([k, c])=> { const v = (c.by || []).includes(g.id) ? 1 : (c.no || []).includes(g.id) ? -1 : 0; return `<button type="button" class="d2-chip v${v < 0 ? 'n' : v}" data-mine="${esc(k)}"><span>✍️</span>${esc(c.n)}</button>`; }).join('')}</div></div>` : ''}
       <div class="dna-info" id="dnaInfo"${info ? '' : ' hidden'}>${info || ''}</div>
-      <div class="dna-free"><button type="button" class="btn" data-dna-free>✍️ Scrivilo con parole tue</button><small>Es. «adoro i dark eoni e la sphere grid, la storia di Tidus e Yuna, il blitzball»: l'AI lo trasforma in tratti (anche nuovi) che userò per TUTTI i giochi.</small></div></div>`;
+      <div class="d2-tools"><button type="button" class="btn" data-dna-all>🔎 Tutti i tratti <small>${Object.keys(M).length}</small></button><button type="button" class="btn" data-dna-free>✍️ Con parole tue</button></div>
+    </div>`;
+  }
+  // ---------- il GIOCO VELOCE: una carta alla volta ----------
+  function openDeck(card, g){
+    if(!U.sheet) return;
+    const deck = deckFor(g).slice(0, 14); if(!deck.length){ U.toast && U.toast('Hai già deciso tutti i tratti di questo gioco 👏'); return; }
+    let i = 0; const done = {like: 0, main: 0, no: 0};
+    const body = U.sheet('xDnaDeck', '🧬 Gioco veloce', `<div class="dk"><div class="dk-top"><span id="dkN"></span><div class="dk-prog"><i id="dkP"></i></div></div><div class="dk-stage" id="dkStage"></div>
+      <div class="dk-btns"><button type="button" class="dk-b no" data-dk="-1" aria-label="Non mi è piaciuto">👎<small>No</small></button><button type="button" class="dk-b skip" data-dk="0" aria-label="Non c'è o salta">⏭️<small>Non c'è</small></button><button type="button" class="dk-b yes" data-dk="1" aria-label="Mi è piaciuto">👍<small>Sì</small></button><button type="button" class="dk-b main" data-dk="2" aria-label="È il motivo principale">💖<small>Il motivo!</small></button></div>
+      <div class="dk-help">Scorri la carta: <b>→</b> mi piace · <b>←</b> no · <b>↑</b> è il motivo principale</div></div>`);
+    const stage = body.querySelector('#dkStage');
+    const tag = w=> w === 'det' ? '<span class="dk-tag det">🔎 Riconosciuto in questo gioco</span>' : w === 'love' ? '<span class="dk-tag love">💜 Di solito ti piace: c\'è anche qui?</span>' : '<span class="dk-tag">❓ C\'è in questo gioco?</span>';
+    function show(){
+      body.querySelector('#dkN').textContent = Math.min(i + 1, deck.length) + ' / ' + deck.length;
+      body.querySelector('#dkP').style.width = Math.round(i / deck.length * 100) + '%';
+      if(i >= deck.length){ finish(); return; }
+      const {k, why} = deck[i];
+      stage.innerHTML = `<div class="dk-card" id="dkCard"><div class="dk-stamp yes">MI PIACE</div><div class="dk-stamp no">NO</div><div class="dk-stamp main">💖 IL MOTIVO</div>
+        ${tag(why)}<div class="dk-ic">${icOf(k)}</div><b class="dk-name">${esc(nameOf(k))}</b><p class="dk-x">${esc(explain(k))}</p></div>`;
+      const c = stage.querySelector('#dkCard');
+      try{ c.animate([{transform: 'translateY(18px) scale(.94)', opacity: 0}, {transform: 'none', opacity: 1}], {duration: 260, easing: 'cubic-bezier(.32,.72,0,1)'}); }catch(e){}
+      drag(c);
+    }
+    function decide(v){
+      if(i >= deck.length) return;
+      const {k} = deck[i], dw = getDw(g);
+      if(v === 2 && nMain(dw) >= MAXMAIN){ v = 1; U.toast && U.toast('Hai già 3 motivi principali: lo segno come 👍', 2200); }
+      if(v) setDw(g, k, v);
+      if(v === 2) done.main++; else if(v === 1) done.like++; else if(v < 0) done.no++;
+      const c = stage.querySelector('#dkCard');
+      const to = v === 2 ? 'translateY(-130%) rotate(-4deg)' : v === 1 ? 'translateX(130%) rotate(16deg)' : v < 0 ? 'translateX(-130%) rotate(-16deg)' : 'translateY(40%) scale(.85)';
+      i++;
+      if(c){ c.classList.add('dk-' + (v === 2 ? 'main' : v === 1 ? 'yes' : v < 0 ? 'no' : 'skip')); try{ c.animate([{transform: c.style.transform || 'none', opacity: 1}, {transform: to, opacity: 0}], {duration: 240, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards'}).finished.then(show, show); return; }catch(e){} }
+      show();
+    }
+    function drag(c){
+      let x0 = 0, y0 = 0, dx = 0, dy = 0, on = false;
+      c.addEventListener('pointerdown', e=>{ on = true; x0 = e.clientX; y0 = e.clientY; dx = dy = 0; try{ c.setPointerCapture(e.pointerId); }catch(x){} c.style.transition = 'none'; });
+      c.addEventListener('pointermove', e=>{ if(!on) return; dx = e.clientX - x0; dy = e.clientY - y0; c.style.transform = `translate(${dx}px, ${Math.min(0, dy)}px) rotate(${dx / 18}deg)`;
+        c.classList.toggle('t-yes', dx > 50); c.classList.toggle('t-no', dx < -50); c.classList.toggle('t-main', dy < -70 && Math.abs(dx) < 60); });
+      const end = ()=>{ if(!on) return; on = false;
+        if(dy < -90 && Math.abs(dx) < 80) decide(2); else if(dx > 90) decide(1); else if(dx < -90) decide(-1);
+        else { c.style.transition = 'transform .25s cubic-bezier(.32,.72,0,1)'; c.style.transform = ''; c.classList.remove('t-yes', 't-no', 't-main'); } };
+      c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+    }
+    function finish(){
+      const tot = done.like + done.main + done.no;
+      stage.innerHTML = `<div class="dk-end"><div class="dk-end-ic">🧬</div><b>${tot ? 'Il tuo DNA è cresciuto!' : 'Fatto!'}</b><p>${tot ? `${done.main ? `💖 ${done.main} ${done.main === 1 ? 'motivo principale' : 'motivi principali'} · ` : ''}👍 ${done.like} · 👎 ${done.no}<br>Il cervello ora sa meglio <b>perché</b> ti piace un gioco come questo.` : 'Nessun tratto segnato questa volta.'}</p><button type="button" class="btn primary" id="dkClose">Chiudi</button></div>`;
+      body.querySelector('.dk-btns').hidden = true; body.querySelector('.dk-help').hidden = true;
+      try{ window.rtHaptic && rtHaptic('success'); }catch(e){}
+      body.querySelector('#dkClose').addEventListener('click', ()=>{ const sh = document.getElementById('xDnaDeck'); if(sh) sh.classList.remove('show'); });
+    }
+    body.querySelectorAll('[data-dk]').forEach(b=> b.addEventListener('click', ()=> decide(+b.dataset.dk)));
+    // alla chiusura del foglio aggiorno il riquadro nella scheda (sul posto, senza far saltare la pagina)
+    const sh = document.getElementById('xDnaDeck');
+    if(sh && !sh._dk){ sh._dk = 1; new MutationObserver(()=>{ if(!sh.classList.contains('show')){ const c2 = document.getElementById('modalCard'), g2 = typeof currentModalGame !== 'undefined' ? currentModalGame : null; if(c2 && g2) redraw(c2, g2, ''); } }).observe(sh, {attributes: true, attributeFilter: ['class']}); }
+    show();
+  }
+  // ---------- tutti i tratti, con la ricerca ----------
+  function openAll(card, g){
+    if(!U.sheet) return;
+    const M = MECH(), inCat = new Set(CATS.flatMap(c=> c[2])), extra = Object.keys(M).filter(k=> !inCat.has(k));
+    const cats = CATS.map(c=> [c[0], c[1], c[2].concat(c[1] === 'Sistemi e attività' ? extra : []).filter(k=> M[k])]);
+    const body = U.sheet('xDnaAll', '🔎 Tutti i tratti', `<input type="search" id="daQ" class="d2-search" placeholder="Cerca: loot, lore, minigiochi, superboss…" autocomplete="off">
+      <div class="d2-hint">Tocca per cambiare: 👍 → 💖 → 👎 → via</div><div id="daL"></div>`);
+    const L = body.querySelector('#daL'), Q = body.querySelector('#daQ');
+    const det = new Set(mechOf(g));
+    const draw = ()=>{
+      const q = Q.value.trim().toLowerCase(), dw = getDw(g);
+      const hit = k=> !q || (nameOf(k) + ' ' + (M[k].d || '') + ' ' + (XPL[k] || '')).toLowerCase().includes(q);
+      L.innerHTML = cats.map(([ic, n, ks])=>{ const list = ks.filter(hit); if(!list.length) return ''; return `<div class="d2-sec"><div class="d2-st">${ic} ${esc(n)}</div><div class="d2-chips">${list.map(k=> chip2(k, dw[k] || 0).replace('class="d2-chip', 'class="d2-chip' + (det.has(k) && !dw[k] ? ' det' : ''))).join('')}</div></div>`; }).join('') || '<div class="lp-sub">Nessun tratto con queste parole. Prova «✍️ Con parole tue»: l\'AI può crearne uno nuovo.</div>';
+    };
+    L.addEventListener('click', e=>{ const b = e.target.closest('[data-dna]'); if(!b) return; cycle(g, b.dataset.dna); draw(); });
+    Q.addEventListener('input', draw); draw();
+    const sh = document.getElementById('xDnaAll');
+    if(sh && !sh._da){ sh._da = 1; new MutationObserver(()=>{ if(!sh.classList.contains('show')){ const c2 = document.getElementById('modalCard'), g2 = typeof currentModalGame !== 'undefined' ? currentModalGame : null; if(c2 && g2) redraw(c2, g2, ''); } }).observe(sh, {attributes: true, attributeFilter: ['class']}); }
+  }
+  // 👍 → 💖 → 👎 → via
+  function cycle(g, k){
+    const dw = getDw(g), v = dw[k] || 0;
+    let nx = v === 0 ? 1 : v === 1 ? 2 : v === 2 ? -1 : 0;
+    if(nx === 2 && nMain(dw) >= MAXMAIN){ nx = -1; U.toast && U.toast('Massimo 3 motivi principali', 1800); }
+    setDw(g, k, nx); return nx;
   }
   function freeText(card, g){
     if(!U.sheet){ return; }
@@ -141,36 +258,33 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
   }
   function redraw(card, g, info){
     const box = card.querySelector('#dnaWhy'); if(!box) return;
-    const open = [...box.querySelectorAll('details.dna-cat')].map(d=> d.open), y = card.scrollTop;
-    box.outerHTML = whyHtml(g, info); const nb = card.querySelector('#dnaWhy');
+    const open = [...box.querySelectorAll('details.dna-cat')].map(d=> d.open), y = card.scrollTop, tb = box.dataset.tab;
+    box.outerHTML = whyHtml(g, info); const nb = card.querySelector('#dnaWhy'); if(nb && tb) nb.dataset.tab = tb;      // resta nella sua linguetta (niente lampeggi)
     if(nb) [...nb.querySelectorAll('details.dna-cat')].forEach((d, i)=>{ if(open[i]) d.open = true; });
     wire(card, g);
-    try{ const gs = card.querySelector('#gsCard'); const h = window.rtRadar && window.rtRadar(g); if(gs && h) gs.outerHTML = h; }catch(x){}
+    try{ const gs = card.querySelector('#gsCard'); const h = window.rtRadar && window.rtRadar(g); if(gs && h){ const t2 = gs.dataset.tab; gs.outerHTML = h; const n2 = card.querySelector('#gsCard'); if(n2 && t2) n2.dataset.tab = t2; } }catch(x){}
     card.scrollTop = y; requestAnimationFrame(()=>{ card.scrollTop = y; });
   }
   function wire(card, g){
     const box = card.querySelector('#dnaWhy'); if(!box || box.dataset.w) return; box.dataset.w = '1';
     box.addEventListener('click', e=>{
       if(e.target.closest('[data-dna-free]')){ freeText(card, g); return; }
+      if(e.target.closest('[data-dna-deck]')){ openDeck(card, g); return; }
+      if(e.target.closest('[data-dna-all]')){ openAll(card, g); return; }
       const mb = e.target.closest('[data-mine]');
-      if(mb){ const cu = LSG(CUST, {}) || {}, c = cu[mb.dataset.mine]; if(!c) return; c.by = c.by || []; c.no = c.no || []; if(c.by.includes(g.id)){ c.by = c.by.filter(x=> x !== g.id); c.no.push(g.id); } else if(c.no.includes(g.id)) c.no = c.no.filter(x=> x !== g.id); else c.by.push(g.id); LSS(CUST, cu); try{ SIMC.clear(); }catch(x){} const info = '✍️ <b>' + esc(c.n) + '</b>' + (c.d ? '<br>' + esc(c.d) : '') + (c.games ? '<br>Presente in ' + c.games.length + ' tuoi giochi.' : '<br>Parole che lo riconoscono: ' + esc((c.kw || []).join(', ')));
-        redraw(card, g, info);
-        if(!c.games && typeof askLLM === 'function') gamesWith(c).then(ids=>{ if(!ids) return; const cu2 = LSG(CUST, {}) || {}, k = mb.dataset.mine; if(!cu2[k]) return; cu2[k].games = ids; LSS(CUST, cu2); try{ SIMC.clear(); }catch(x){} if(card.isConnected) redraw(card, g, '✍️ <b>' + esc(cu2[k].n) + '</b>: trovato in ' + ids.length + ' tuoi giochi.'); });
+      if(mb){ const cu = LSG(CUST, {}) || {}, c = cu[mb.dataset.mine]; if(!c) return; c.by = c.by || []; c.no = c.no || []; if(c.by.includes(g.id)){ c.by = c.by.filter(x=> x !== g.id); c.no.push(g.id); } else if(c.no.includes(g.id)) c.no = c.no.filter(x=> x !== g.id); else c.by.push(g.id); LSS(CUST, cu); try{ SIMC.clear(); }catch(x){}
+        const v = c.by.includes(g.id) ? 1 : c.no.includes(g.id) ? -1 : 0; mb.className = 'd2-chip v' + (v < 0 ? 'n' : v);
+        const inf = box.querySelector('#dnaInfo'); if(inf){ inf.innerHTML = '✍️ <b>' + esc(c.n) + '</b>' + (c.d ? '<br>' + esc(c.d) : '') + (c.games ? '<br>Presente in ' + c.games.length + ' tuoi giochi.' : ''); inf.hidden = false; }
+        if(!c.games && typeof askLLM === 'function') gamesWith(c).then(ids=>{ if(!ids) return; const cu2 = LSG(CUST, {}) || {}, k = mb.dataset.mine; if(!cu2[k]) return; cu2[k].games = ids; LSS(CUST, cu2); try{ SIMC.clear(); }catch(x){} });
         return; }
       const b = e.target.closest('[data-dna]'); if(!b) return;
-      const all = LSG(WHY, {}) || {}, cur = all[g.id] || {}, k = b.dataset.dna, v = cur[k] || 0, nx = v === 0 ? 1 : v === 1 ? -1 : 0;
-      if(nx) cur[k] = nx; else delete cur[k];
-      if(Object.keys(cur).length) all[g.id] = cur; else delete all[g.id];
-      LSS(WHY, all); try{ SIMC.clear(); }catch(x){}
-      try{ if(navigator.vibrate) navigator.vibrate(8); }catch(x){}
-      const M = MECH(), info = M[k] ? `<b>${M[k].ic} ${esc(M[k].n)}</b>${nx > 0 ? ' · 👍 ti piace' : nx < 0 ? ' · 👎 non ti piace' : ' · tolto'}<br>${esc(XPL[k] || (M[k].d.charAt(0).toUpperCase() + M[k].d.slice(1)) + '.')}` : '';
-      // v205: aggiorno SUL POSTO (prima rifacevo tutto il riquadro e la pagina saltava in fondo)
-      box.querySelectorAll('[data-dna="' + k + '"]').forEach(c=>{ c.classList.toggle('like', nx > 0); c.classList.toggle('no', nx < 0); c.innerHTML = M[k].ic + ' ' + esc(M[k].n) + (nx > 0 ? ' 👍' : nx < 0 ? ' 👎' : ''); });
-      const inf = box.querySelector('#dnaInfo'); if(inf){ inf.innerHTML = info; inf.hidden = !info; }
-      const nSet = Object.keys(cur).filter(x=> cur[x]).length, hd = box.querySelector('.dna-head');
-      if(hd){ let nn = hd.querySelector('.dna-n'); if(!nn && nSet){ nn = document.createElement('span'); nn.className = 'dna-n'; hd.appendChild(nn); } if(nn){ if(nSet) nn.textContent = nSet + (nSet === 1 ? ' tratto segnato' : ' tratti segnati'); else nn.remove(); } }
-      box.querySelectorAll('details.dna-cat').forEach(d=>{ const sm = d.querySelector('summary small'); if(!sm) return; const tot = d.querySelectorAll('.dna-chip').length, set = [...d.querySelectorAll('.dna-chip')].filter(c=> c.classList.contains('like') || c.classList.contains('no')).length; sm.innerHTML = (set ? '<b>' + set + ' segnati</b> · ' : '') + tot; });
-      clearTimeout(box._gt); box._gt = setTimeout(()=>{ try{ const gs = card.querySelector('#gsCard'), h = window.rtRadar && window.rtRadar(g); if(gs && h){ const y = card.scrollTop; gs.outerHTML = h; card.scrollTop = y; } }catch(x){} }, 500);
+      const k = b.dataset.dna, nx = cycle(g, k);
+      // aggiorno il chip sul posto, poi ridisegno il riquadro quando smetti di toccare (i tratti cambiano gruppo) — lo scorrimento resta fermo
+      b.className = 'd2-chip v' + (nx < 0 ? 'n' : nx); b.innerHTML = `<span>${icOf(k)}</span>${esc(nameOf(k))}${nx === 2 ? '<i>💖</i>' : ''}`;
+      try{ b.animate([{transform: 'scale(1)'}, {transform: 'scale(1.12)'}, {transform: 'scale(1)'}], {duration: 260}); }catch(x){}
+      const info = `<b>${icOf(k)} ${esc(nameOf(k))}</b> · ${nx === 2 ? '💖 il motivo principale' : nx > 0 ? '👍 ti è piaciuto' : nx < 0 ? '👎 non ti è piaciuto' : 'tolto'}<br>${esc(explain(k))}`;
+      const inf = box.querySelector('#dnaInfo'); if(inf){ inf.innerHTML = info; inf.hidden = false; }
+      clearTimeout(box._rt); box._rt = setTimeout(()=> redraw(card, g, info), 1400);
     });
   }
 

@@ -3,7 +3,7 @@
 Questo file serve a un'altra istanza di Claude Code (altro account) per continuare **esattamente** dove ci siamo fermati, come se la sessione fosse la stessa.
 Leggi PRIMA questo file, poi `CLAUDE.md` (regole fisse) e, solo quando serve, `docs/ARCHITETTURA.md` (con Grep sulla voce, mai tutto).
 
-Ultimo aggiornamento: v206 (1 ottobre 2026). Sito: https://kur0chanx.github.io/TierListGame/ · Repo: `kur0chanx/TierListGame`.
+Ultimo aggiornamento: v207 (1 ottobre 2026). Sito: https://kur0chanx.github.io/TierListGame/ · Repo: `kur0chanx/TierListGame`.
 
 ---------------------------------------------------------------------
 
@@ -62,11 +62,11 @@ App **statica** (si apre anche con doppio clic, `file://`), niente server né bu
 - Il workflow notturno riscrive `facts.js`, `voti.js` ecc.: unisci con `tools/merge-facts.js`.
 
 ## 6. Cronologia utile (v195 → v206)
-v195 DNA del giocatore e giochi simili · v196 locandina/schermate con blocco, 5 canzoni · v197 griglia senza sfarfallio · v198 sintonia con somiglianza ai giochi amati, DNA a categorie, canzoni originali, lettore nuovo · v199 anti rate-limit (SW), 👑 top, locandina bloccata ovunque, carosello una foto alla volta, anteprima a pressione lunga · v200 scheda fluida, «A colpo d'occhio» a riquadri, tratti DNA nuovi cercati nel catalogo · v201 nome inglese da Steam per tutte le ricerche, carosello infinito, apertura stile iOS · v202 service worker a versioni, avvio con nuovi tentativi · v203 cervello dei gusti + barra icone + valutazioni · v204 scheda in 3 parti, un solo pulsante locandina · v205 locandine da Steam (id dal server), valutazioni a tasti + Fine, riordino ↕️, riquadri storia/dopamina, DNA senza salti · v206 intro/tocchi robusti, questo file.
+v195 DNA del giocatore e giochi simili · v196 locandina/schermate con blocco, 5 canzoni · v197 griglia senza sfarfallio · v198 sintonia con somiglianza ai giochi amati, DNA a categorie, canzoni originali, lettore nuovo · v199 anti rate-limit (SW), 👑 top, locandina bloccata ovunque, carosello una foto alla volta, anteprima a pressione lunga · v200 scheda fluida, «A colpo d'occhio» a riquadri, tratti DNA nuovi cercati nel catalogo · v201 nome inglese da Steam per tutte le ricerche, carosello infinito, apertura stile iOS · v202 service worker a versioni, avvio con nuovi tentativi · v203 cervello dei gusti + barra icone + valutazioni · v204 scheda in 3 parti, un solo pulsante locandina · v205 locandine da Steam (id dal server), valutazioni a tasti + Fine, riordino ↕️, riquadri storia/dopamina, DNA senza salti · v206 intro/tocchi robusti, questo file · v207 «Cosa ti ha preso» rifatto con gioco veloce a carte e 💖 motivi principali, linguette più in alto con evidenziatore.
 
 ## 7. Cose ancora da fare (backlog, in ordine di valore)
 1. **Verificare sul telefono vero** (l'utente prova): fluidità a 120 Hz dell'apertura scheda, intro/News, locandina di Dragon Quest XI S, riordino ↕️, valutazioni.
-2. **«Cosa ti ha preso» davvero plug-and-play**: es. «scegli i tuoi 3 tratti più forti» in un colpo, ricerca nei tratti, suggerimenti automatici dal gioco. Oggi è solo ordinato meglio.
+2. «Cosa ti ha preso»: fatto in v207 (gioco veloce). Idea successiva: proporre il gioco veloce in automatico quando segni un gioco come Giocato o 😍.
 3. **Unire gli osservatori della scheda** (13 moduli agganciano `openModal`, altri 10 `MutationObserver`): un'unica pipeline di montaggio; lavoro delicato, prima scrivere test.
 4. Pulizia doppioni residui: radar vecchio vs Sintonia, `dna-box`, chiavi di stato; `docs/ARCHITETTURA.md` da compattare (il file è lungo).
 5. Scalabilità a 10.000 giochi: il giro notturno ha tetti per notte (`--cap`); `facts-chk.json` tiene le date.
