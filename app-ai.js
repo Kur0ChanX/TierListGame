@@ -542,13 +542,30 @@ async function novitaVerifyScores(list, say, isStopped){
       let r = null;
       try{ r = await Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 15000))]); }catch(e){}
       try{ if(r && r.st) Object.keys(r.st).forEach(k=>{ const x = r.st[k]; if(x && (x.state === 'err' || x.state === 'off')) probs.set(x.name, x.why); }); }catch(e){}
-      if(r && r.score != null){ c.aiScore = c.score; c.score = r.score; c.tier = novitaTierOf(r.score); c.m = 'V'; c.vs = r.vs; }
-      else { c.m = 'S'; c.vs = ''; c.aiScore = c.score; c.score = Math.min(c.score == null ? NOVITA_UNVERIFIED_MAX : c.score, NOVITA_UNVERIFIED_MAX); c.tier = 'ND'; }
+      if(r || !(isStopped && isStopped())) novitaApplyCheck(c, r);
     }
   };
   await Promise.all([one(), one(), one(), one()]);
   for(let k = list.length - 1; k >= 0; k--) if(list[k].m === 'V' && list[k].score < 50) list.splice(k, 1);
   if(probs.size){ try{ showToast('⚠️ Fonti del voto con problemi — ' + Array.from(probs).map(p=> p[0] + ': ' + p[1]).join(' · '), 10000); }catch(e){} }      // il voto vero è sotto il 5/10: spazzatura
+}
+// v212: applica il risultato del controllo a una proposta (verificato → voto e rank veri; nessuna fonte → stima, rank ND, voto mai sopra 79)
+function novitaApplyCheck(c, r){
+  if(r && r.score != null){ if(c.aiScore == null) c.aiScore = c.score; c.score = r.score; c.tier = novitaTierOf(r.score); c.m = 'V'; c.vs = r.vs; }
+  else { c.m = 'S'; c.vs = ''; if(c.aiScore == null) c.aiScore = c.score; c.score = Math.min(c.aiScore == null ? NOVITA_UNVERIFIED_MAX : c.aiScore, NOVITA_UNVERIFIED_MAX); c.tier = 'ND'; }
+  try{ if(r && r.info && r.info.year && (!c.year || Math.abs(+c.year - +r.info.year) > 1)){ c.aiYear = c.year; c.year = String(r.info.year); } }catch(e){}
+  if(r && r.info && r.info.ocReviews) c.ocReviews = r.info.ocReviews;
+  c._chk = true;
+}
+// v212: la proposta che stai guardando, se non è ancora stata controllata (ricerca fermata prima, controllo scaduto), la controllo subito
+function novitaCheckShown(c, rerender, isCurrent){
+  if(!c || c._chk || typeof rtScoreCheck !== 'function') return;
+  c._chk = 'run';
+  Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 20000))]).catch(()=> null).then(r=>{
+    novitaApplyCheck(c, r);
+    if(r === null) c._chkTimeout = true;
+    try{ if(isCurrent() === c) rerender(); }catch(e){}
+  });
 }
 const novitaTierOf = s=> s >= 95 ? 'S+' : s >= 90 ? 'S' : s >= 85 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : s >= 40 ? 'E' : 'F';
 function buildNovitaPrompt(count, excludeNames){
@@ -777,7 +794,7 @@ function novitaCardHtml(c, ids){
     <div class="novita-meta">
       <span>${escHtml(c.year || '?')}</span> · <span>${escHtml(c.plat||'?')}</span>
       <span class="badge ${TIER_LABEL[c.tier]}">${c.tier}</span>${c.score!=null ? `<span class="badge outline">${c.score}/100</span>` : ''}
-      ${c.m === 'V' ? `<span class="badge outline" title="Voto reale">✔ ${escHtml(c.vs || 'Verificato')}</span>` : `<span class="badge outline" title="Nessuna fonte ha confermato il voto">⚠️ stima · nessun Metacritic</span>`}
+      ${c._chk !== true ? `<span class="badge outline nv-chk" title="Controllo Metacritic, OpenCritic e RAWG">⏳ controllo il voto vero…</span>` : c.m === 'V' ? `<span class="badge outline nv-ok" title="Voto reale${c.aiScore != null && c.aiScore !== c.score ? ' (l\'AI aveva stimato ' + c.aiScore + ')' : ''}">✔ ${escHtml(c.vs || 'Verificato')}${c.ocReviews ? ' · ' + c.ocReviews + ' recensioni' : ''}</span>` : `<span class="badge outline" title="Nessuna fonte ha confermato il voto">⚠️ stima${c.aiScore != null && c.aiScore > c.score ? ' (l\'AI diceva ' + c.aiScore + ')' : ''} · ${c._chkTimeout ? 'le fonti non rispondono' : 'nessun Metacritic'}</span>`}${c.aiYear ? `<span class="badge outline" title="Anno corretto con RAWG">📅 anno vero ${escHtml(c.year)} (l'AI diceva ${escHtml(c.aiYear)})</span>` : ''}
     </div>
     <div class="modal-tags">${c.tags.slice(0,3).map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${c.fitIf ? `<div class="novita-why novita-clamp"><b>Potrebbe piacerti perché</b> ${escHtml(c.fitIf)}</div>` : ''}
@@ -888,6 +905,7 @@ function renderNovitaCard(){
     <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaQueue)}${novitaFilterHtml(novitaQueue)}
   </div>`;
   wireNovitaCard(); wireNovitaTopbar(); wireNovitaAccept(panel, 'novita', renderNovitaCard);
+  novitaCheckShown(c, renderNovitaCard, currentNovitaGame);
 }
 function novitaAdvanceSkip(){
   const c = currentNovitaGame(); if(!c) return;
@@ -1004,6 +1022,7 @@ function renderNovitaGenreCard(){
     <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaGenreQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaGenreQueue)}${novitaFilterHtml(novitaGenreQueue)}
   </div>`;
   wireNovitaGenreCard(); wireNovitaGenreTopbar(); wireNovitaAccept(panel, 'genre', renderNovitaGenreCard);
+  novitaCheckShown(c, renderNovitaGenreCard, currentNovitaGenreGame);
 }
 function novitaGenreAdvanceSkip(){
   const c = currentNovitaGenreGame(); if(!c) return;
@@ -1055,8 +1074,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-10-01';
-const DATA_BUILD_VERSION = 'v211';
+const DATA_BUILD_DATE = '2026-10-02';
+const DATA_BUILD_VERSION = 'v212';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

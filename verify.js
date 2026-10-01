@@ -743,7 +743,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   // voto reale di un titolo (per la ricerca di nuovi giochi): Metacritic da Wikipedia → Metacritic da RAWG → OpenCritic. null = nessuna fonte lo conferma
   window.rtScoreCheck = async function(c){
     const src = await gather({name: c.name, plat: c.plat || '', year: c.year || '', tags: [], custom: true}, true);
-    const base = {st: src.st};
+    const base = {st: src.st, info: {year: (src.rawg && src.rawg.year) || null, ocReviews: (src.oc && src.oc.reviews) || null}};      // v212: anche l'anno vero (RAWG) per le proposte di Novità
     if(src.voti && src.voti.s) return Object.assign(base, {score: src.voti.s, vs: 'Metacritic (sito ufficiale)'});
     if(src.wiki && src.wiki.mc) return Object.assign(base, {score: src.wiki.mc, vs: 'Metacritic (da Wikipedia)'});
     if(src.facts && src.facts.c && src.facts.c.mc) return Object.assign(base, {score: src.facts.c.mc, vs: 'Metacritic (da CheapShark)'});

@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v212', date:'2026-10-02', time:'00:50', items:[
+    'Sezioni in basso fulminee: si cambiano appena il dito tocca l\'icona (prima solo quando lo alzavi, più un\'animazione che doveva «fotografare» la pagina: da lì il ritardo). Niente più animazioni di passaggio, niente scorrimenti automatici: ogni sezione, Classifica compresa, si apre sempre in cima, di colpo. Tornando alla Classifica le righe non «scendono» più.',
+    'Chiedi si apre di colpo e la barra in basso resta visibile: tocchi un\'altra sezione e Chiedi si chiude da solo.',
+    'I tuoi top in assoluto: nella lista c\'è il tuo stemma del procione con gli occhi a cuore, a sinistra della stella (ritagliato rotondo e stretto sul muso per leggerlo anche piccolo); nella griglia sulla copertina. Ho ristretto un po\' le colonne Anno, Tier e Voto per fargli posto.',
+    'Novità: ogni proposta che guardi viene controllata subito su Metacritic, OpenCritic e RAWG (prima solo a fine ricerca: se la fermavi prima restava il voto inventato dall\'AI, tipo 98 S+). Vedi «⏳ controllo il voto vero…», poi il voto verificato con la fonte, oppure «stima» con rank ND e quanto diceva l\'AI. Se l\'anno è sbagliato lo corregge con RAWG.'
+  ]},
   {version:'v211', date:'2026-10-01', time:'21:37', items:[
     'I tuoi top in assoluto (👑 «Nei miei top») si riconoscono nella lista con una corona d\'oro accanto al nome e la riga bordata d\'oro; nella griglia la copertina ha la corona e la cornice dorata. Via il procione con gli occhi a cuore.',
     'Cambio sezione nuovo: niente più pagine che arrivano da destra o da sinistra. La pagina vecchia arretra e sfuma, la nuova emerge e si posa. Nella barra in basso una bolla di luce scivola sotto la sezione APPENA tocchi (prima ancora che la pagina sia pronta) e l\'icona fa un piccolo salto a molla.',

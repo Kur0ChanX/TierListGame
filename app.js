@@ -1168,13 +1168,16 @@ function render(){
     const tr = document.createElement('tr');
     tr.dataset.gid = g.id;
     const isFav = FAVS.has(g.id);
-    // v211: i tuoi top in assoluto (👑 «Nei miei top») hanno una corona d'oro accanto al nome e la riga bordata d'oro (prima il procione con gli occhi a cuore)
-    const isTop = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return Array.isArray(t) && t.includes(g.id); }catch(e){ return false; } })();
+    // v212: i tuoi top in assoluto (👑 «Nei miei top») hanno lo stemma del procione con gli occhi a cuore (disegnato da Mario) a sinistra della stella e la riga bordata d'oro
+    const topIds = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return Array.isArray(t) ? t : []; }catch(e){ return []; } })();
+    const isTop = topIds.includes(g.id);
     if(isTop) tr.className = 'is-top';
-    const heartBadge = isTop ? '<span class="row-top" title="Nei tuoi top: uno dei giochi che ami di più in assoluto" aria-label="Nei tuoi top"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M2.5 8.2l4.6 3.6L12 4l4.9 7.8 4.6-3.6-1.9 10.3H4.4z"/><rect x="4.4" y="19.3" width="15.2" height="2" rx="1"/></svg></span>' : '';
+    try{ const tb = document.getElementById('gameTable'); if(tb && tb.classList.contains('has-top') !== !!topIds.length) tb.classList.toggle('has-top', !!topIds.length); }catch(e){}
+    const topBadge = isTop ? '<img class="row-badge" src="icons/top-procione-mini-72.webp" srcset="icons/top-procione-mini-72.webp 1x, icons/top-procione-mini-144.webp 2x" alt="Nei tuoi top" title="Nei tuoi top: uno dei giochi che ami di più in assoluto" width="24" height="24" decoding="async">' : '';
+    const heartBadge = '';
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip${d.approved ? ' appr' : ''}" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};"${d.approved ? ' title="Approvato dal procione: sintonia altissima con i tuoi gusti"' : ''}>${d.approved ? '<img src="icons/approved.webp" alt="" width="16" height="17">' : ''}${d.pct}%</span>` : ''; })();
     tr.innerHTML = `
-      <td class="fav" data-role="fav"><svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>
+      <td class="fav" data-role="fav">${topBadge}<svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>
       <td class="rank mobhide">${g.id}</td>
       <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${miniIcons(g)}${g.name}${heartBadge}${dnaBadge}</td>
       <td class="plat mobhide">${g.plat}</td>
@@ -1184,6 +1187,7 @@ function render(){
       <td class="method" title="${methodLabel(g.m)}${g.m==='V' && freshInfo(g) && !freshInfo(g).m ? ' · aggiornato con Update+' : ''}">${srcIcon(g)}</td>
       <td class="storyicon">${itBadge(g)}</td>
     `;
+    { const rb = tr.querySelector('.row-badge'); if(rb) rb.addEventListener('click', ev=>{ ev.stopPropagation(); try{ showToast('😍 È nei tuoi top in assoluto (lo togli dalla scheda: «Nei miei top»)', 2600); }catch(x){} }); }
     tr.querySelector('[data-role="fav"]').addEventListener('click', (ev)=>{
       ev.stopPropagation();
       if(FAVS.has(g.id)){ FAVS.delete(g.id); showToast('Rimosso dai preferiti'); }

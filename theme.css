@@ -1592,3 +1592,28 @@ html[data-vt="f"]::view-transition-new(root), html[data-vt="b"]::view-transition
 #sagaPanel .saga-section{content-visibility:auto; contain-intrinsic-size:auto 360px}
 html[data-vt] .vt-puck{view-transition-name:vtpuck}
 ::view-transition-group(vtpuck){animation-duration:.4s; animation-timing-function:cubic-bezier(.32,.72,0,1)}
+/* v212: stemma «nei tuoi top» (procione con gli occhi a cuore) a sinistra della stella; spazi della tabella ricalcolati per farcelo stare */
+td.fav{white-space:nowrap}
+.row-badge{width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:2px;box-shadow:0 0 0 1.5px rgba(246,195,67,.9),0 2px 6px rgba(0,0,0,.45);cursor:pointer}
+#gameTable.has-top thead th:nth-child(1){width:54px !important}
+.x-top{position:absolute;left:6px;top:6px;z-index:2;width:30px;height:30px;border-radius:50%;box-shadow:0 0 0 2px #f6c343,0 2px 8px rgba(0,0,0,.5)}
+.row-top-i{width:22px;height:22px;border-radius:50%;vertical-align:-5px;margin-left:6px;box-shadow:0 0 0 1.5px #f6c343}
+@media (max-width:560px){
+  #gameTable.has-top th, #gameTable.has-top td{padding-left:3px;padding-right:3px}
+  #gameTable.has-top th:nth-child(5){width:46px} #gameTable.has-top th:nth-child(6){width:40px} #gameTable.has-top th:nth-child(7){width:38px}
+  #gameTable.has-top thead th:not(:nth-child(8)){font-size:.72rem}
+  #gameTable.has-top thead th:nth-child(1){width:56px !important}
+  #gameTable.has-top td.fav{padding-left:2px; padding-right:2px}
+  #gameTable.has-top td.fav svg.gi{width:18px; height:18px}
+  .row-badge{width:22px; height:22px; margin-right:1px}
+  #gameTable.has-top td.year{font-size:.68rem}
+}
+/* v212: «Chiedi» si apre di colpo (niente scivolamento) e lascia visibile la barra in basso, come le altre sezioni */
+@media (max-width:760px){
+  #askBackdrop{bottom:var(--navh,60px) !important; transition:opacity .1s linear !important}
+  #askBackdrop .modal-card{transition:none !important; transform:none !important}
+  html:not(.mo-off) #askBackdrop:not(.show) .modal-card{transform:none !important}
+  body:has(#askBackdrop.show) #viewTabs{z-index:101}
+  body:has(#askBackdrop.show) .ask-fab, body:has(#askBackdrop.show) .scrolltop-fab{display:none !important}
+}
+#gameTable.has-top td.fav{text-align:right}

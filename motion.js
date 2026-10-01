@@ -52,7 +52,7 @@
   // ---------------------------------------------------------------- righe a cascata
   let lastKey = null;
   function cascade(){
-    if(!moOn()) return;
+    if(!moOn() || window.__rtViewSwitch) return;                      // v212: tornando alla classifica dalla barra in basso niente righe che scendono
     const tb = document.getElementById('tbody'); if(!tb || !tb.children.length) return;
     const k = typeof lastViewKey !== 'undefined' ? lastViewKey : String(tb.children.length);
     if(k === lastKey) return; lastKey = k;
@@ -180,20 +180,27 @@
     try{ openModal = window.openModal; }catch(e){}
   }
 
-  // ---------------------------------------------------------------- la pagina scivola tra le sezioni
+  // ---------------------------------------------------------------- v212: cambio sezione FULMINEO
+  // Prima: passaggio animato (View Transition) che partiva al «click», cioè dopo che il dito si alzava, e doveva prima fotografare la pagina:
+  // ritardo ben visibile. Ora la sezione cambia appena il dito TOCCA la barra (pointerdown), senza animazioni né scorrimenti: la pagina compare
+  // già in cima. Il «click» che arriva dopo viene ignorato (la sezione è già quella giusta).
   const bar = document.getElementById('viewTabs');
-  if(bar && document.startViewTransition){
-    bar.addEventListener('click', e=>{
-      const tab = e.target.closest && e.target.closest('.view-tab[data-view]'); if(!tab || !moOn()) return;
+  if(bar){
+    let swallowUntil = 0, swallowTab = null;
+    bar.addEventListener('pointerdown', e=>{
+      if(e.button > 0 || e.isPrimary === false) return;
+      const tab = e.target.closest && e.target.closest('.view-tab'); if(!tab) return;
       if(typeof state === 'undefined' || typeof setView !== 'function') return;
-      const v = tab.dataset.view; if(v === state.view) return;
-      const order = [...bar.querySelectorAll('.view-tab[data-view]')].map(t=> t.dataset.view);
-      const dir = order.indexOf(v) > order.indexOf(state.view) ? 'f' : 'b';
-      e.stopImmediatePropagation(); e.preventDefault();
-      html.setAttribute('data-vt', dir);
-      let t; try{ t = document.startViewTransition(()=>{ setView(v); }); }catch(err){ html.removeAttribute('data-vt'); setView(v); return; }
-      const done = ()=> html.removeAttribute('data-vt');
-      if(t && t.finished) t.finished.then(done, done); else setTimeout(done, 600);
+      swallowTab = tab; swallowUntil = performance.now() + 900;
+      const ab = document.getElementById('askBackdrop');
+      if(tab.dataset.view && ab && ab.classList.contains('show')){ const cb = document.getElementById('askCloseBtn'); if(cb) cb.click(); else ab.classList.remove('show'); }      // da «Chiedi» a un'altra sezione: chiudo Chiedi
+      if(tab.dataset.view){ if(tab.dataset.view !== state.view) setView(tab.dataset.view); else { try{ scrollTo({top: 0, behavior: 'instant'}); }catch(x){} } }
+      else if(tab.dataset.ask && typeof openAsk === 'function') openAsk();
+      haptic('tick');
+    }, true);
+    bar.addEventListener('click', e=>{
+      const tab = e.target.closest && e.target.closest('.view-tab'); if(!tab) return;
+      if(tab === swallowTab && performance.now() < swallowUntil){ swallowTab = null; e.stopImmediatePropagation(); e.preventDefault(); }
     }, true);
   }
 
@@ -266,7 +273,7 @@
       puck.style.transform = 'translate3d(' + x + 'px,0,0)'; puck.classList.add('on');
       if(instant){ void puck.offsetWidth; puck.style.transition = ''; }
     };
-    const activeTab = ()=> bar.querySelector('.view-tab.active');
+    const activeTab = ()=>{ const ab = document.getElementById('askBackdrop'); return ab && ab.classList.contains('show') ? (document.getElementById('askTab') || bar.querySelector('.view-tab.active')) : bar.querySelector('.view-tab.active'); };
     let pending = null, pendT = 0;
     bar.addEventListener('pointerdown', e=>{
       const tab = e.target.closest && e.target.closest('.view-tab[data-view]'); if(!tab || !moOn()) return;
@@ -283,7 +290,8 @@
       try{ ic && ic.animate([{transform: 'scale(.78)'}, {transform: 'scale(1.18)', offset: .45}, {transform: 'scale(.96)', offset: .75}, {transform: 'scale(1)'}], {duration: 460, easing: 'ease-out'}); }catch(err){}
     }, true);
     // la sezione può cambiare anche da altri comandi (indietro, ‹ Classifica, link interni): la bolla la segue
-    new MutationObserver(()=>{ if(!pending) placeOn(activeTab()); }).observe(document.body, {attributes: true, attributeFilter: ['data-view']});
+    new MutationObserver(()=> requestAnimationFrame(()=>{ if(!pending) placeOn(activeTab()); })).observe(document.body, {attributes: true, attributeFilter: ['data-view']});
+    { const ab = document.getElementById('askBackdrop'); if(ab) new MutationObserver(()=>{ if(!pending) placeOn(activeTab()); }).observe(ab, {attributes: true, attributeFilter: ['class']}); }
     addEventListener('resize', ()=> placeOn(activeTab(), true), {passive: true});
     requestAnimationFrame(()=> placeOn(activeTab(), true));
   }
