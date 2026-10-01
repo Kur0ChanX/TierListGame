@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v175', date:'2026-10-01', time:'02:57', items:[
+    'Nuovi «🧩 Set di icone» (✨ → Set di icone, o dal selettore dei temi): 20 stili per tutte le icone dell\'app (bottoni, barra in basso, liste, schede), ridisegnati al volo da quelle di prima. Fantasy (oro inciso), Sci-fi (mirino HUD), Horror (inchiostro e sangue), Retro (pixel 8-bit), Cyberpunk (neon), Steampunk (ottone), Anime (adesivo), Fumetto (pop-art); tre minimal (linea sottile, linea spessa, solido); duotone, schizzo a pennarello, gessetto, vetrata, olografico, carta ritagliata, blueprint, timbro ed emoji.',
+    '«Automatico» (predefinito) abbina le icone al tema grafico scelto (Pixel Quest → pixel, Retrowave → neon, Fumetto → pop-art, Grimorio → oro…); «Originale» riporta il gel lucido di sempre. Le anteprime del selettore sono le icone vere di ogni stile. Il pixel 8-bit si prepara una volta sola e poi resta salvato.'
+  ]},
   {version:'v174', date:'2026-10-01', time:'02:46', items:[
     'Nuovi «🎭 Temi grafici» (✨ → Temi grafici, oppure dal pulsante in 🎨 Palette colori): 20 stili completi, ognuno con colori, forme, scritte, sfondo animato e aspetto dei tier tutti suoi. Videogiochi retro: Pixel Quest, Finestre JRPG, Sala giochi, Terminale, Retrowave. Fantasy: Grimorio, Taverna, Vapore, Washi. Carta e design: Quaderno, Bauhaus, Art Déco, Fumetto, Noir, Brutale. Luci e mondi: Aero, Olografico, Abissi, Nebulosa, HUD tattico.',
     'Il selettore mostra l\'anteprima vera di ogni tema (chiaro o scuro, come ce l\'ha il tuo telefono) e si cambia con un tocco. Molti temi hanno sia chiaro sia scuro e seguono il pulsante Tema; gli altri hanno un solo aspetto e te lo dicono. «Originale» riporta il vetro lucido con le palette di sempre.',
