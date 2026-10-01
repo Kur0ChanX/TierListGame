@@ -1,0 +1,56 @@
+/* ===== Pixel Quest: 8-bit — cielo a fasce, stelle a scatti, nuvole a pixel, bordi con gli angoli «mangiati» ===== */
+@font-face{font-family:"Pixelify Sans";src:url(../fonts/pixelify-sans.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Press Start 2P";src:url(../fonts/press-start-2p-400.woff2) format("woff2");font-weight:400;font-display:swap}
+
+html[data-pack="pixel"]{
+  --pk-ff:"Pixelify Sans",ui-monospace,monospace; --pk-fh:"Press Start 2P","Pixelify Sans",monospace; --pk-fc:"Pixelify Sans",ui-monospace,monospace;
+  --pk-hfw:400; --pk-bfs:15px; --pk-hls:0; --pk-cls:.01em;
+  --pk-r:0px; --pk-r2:0px; --pk-rp:0px; --pk-rb:0px; --pk-bw:4px; --pk-bwc:3px; --pk-bc:#e8e8ff;
+  --pk-sh:inset -4px -4px 0 0 rgba(0,0,0,.38), inset 4px 4px 0 0 rgba(255,255,255,.1); --pk-shs:inset -3px -3px 0 0 rgba(0,0,0,.4), inset 3px 3px 0 0 rgba(255,255,255,.16); --pk-shc:var(--pk-shs);
+  --pk-top:transparent; --pk-nav:#15153f; --pk-chip:#1d1d58; --pk-input:#0b0b24; --pk-ib:#1d1d58;
+  --pk-th:#e8e8ff; --pk-th-c:#15153f; --pk-alt:rgba(255,255,255,.04); --pk-hov:rgba(255,210,63,.16); --pk-row-bd:2px solid #25256b;
+  --pk-act:#ffd23f; --pk-act-c:#15153f; --pk-act-sh:inset -3px -3px 0 0 rgba(0,0,0,.28), inset 3px 3px 0 0 rgba(255,255,255,.5); --pk-ib-act:#ffd23f;
+  --pk-badge-r:0px; --pk-badge-bd:3px solid #0b0b24; --pk-badge-sh:inset -3px -3px 0 rgba(0,0,0,.3), inset 3px 3px 0 rgba(255,255,255,.35); --pk-badge-c:#fff;
+  --t-splus:#ffd23f; --t-s:#ee4266; --t-a:#3b8bff; --t-b:#2fbf71; --t-c:#ffa62b; --t-d:#ff7b3a; --t-e:#c0392b; --t-f:#8d93b8; --t-nd:#3a3a6a;
+  --t-splus-c:#15153f; --t-c-c:#15153f;
+  --pk-bar:repeating-linear-gradient(90deg,#ffd23f 0 4px,transparent 4px 6px); --pk-bar-r:0; --pk-gi:none; --pk-press:translate(2px,2px); --pk-scrim:rgba(5,5,24,.7);
+  --pkx4:polygon(0 4px,4px 4px,4px 0,calc(100% - 4px) 0,calc(100% - 4px) 4px,100% 4px,100% calc(100% - 4px),calc(100% - 4px) calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,4px calc(100% - 4px),0 calc(100% - 4px));
+  --pkx3:polygon(0 3px,3px 3px,3px 0,calc(100% - 3px) 0,calc(100% - 3px) 3px,100% 3px,100% calc(100% - 3px),calc(100% - 3px) calc(100% - 3px),calc(100% - 3px) 100%,3px 100%,3px calc(100% - 3px),0 calc(100% - 3px));
+}
+/* angoli «mangiati» da un pixel: blocchi grandi e piccoli */
+html[data-pack="pixel"] :is(.table-wrap,.lp-card,.glabel,.cover-block,.filters-more,.x-row,.ask-card,.metric,.linkbox,.dualscore-box,.vd-card,.gd-card,.thermo,.mz-bar){clip-path:var(--pkx4)}
+html[data-pack="pixel"] :is(.list-chip,.qf-chip,.tagchip,.genre-chip,.btn,.cover-pill,.stat-chip,#search,select,textarea,.iconbtn.lbl .ib-ic,.view-tab.active .vt-ic,.x-toolbar,.x-mic,.ask-fab,.scrolltop-fab,.badge:not(.outline),.toast,.upplus-line,.modal-close){clip-path:var(--pkx3)}
+@media (max-width:760px){ html[data-pack="pixel"] .modal-card{clip-path:none} }
+
+/* cielo a fasce dure (come i vecchi schermi a poca grafica) */
+html[data-pack="pixel"] body::before{z-index:-3; background:linear-gradient(180deg,#10124a 0 10%,#161a62 10% 20%,#1d2278 20% 30%,#252c90 30% 40%,#2f37a6 40% 50%,#3a43bb 50% 60%,#4650cc 60% 70%,#545fd8 70% 80%,#6571e2 80% 90%,#7c88ee 90% 100%)}
+/* stelle che lampeggiano a scatti + luna */
+html[data-pack="pixel"] body::after{inset:auto; top:0; left:0; width:4px; height:4px; background:#fff; z-index:-1;
+  box-shadow:6vw 5vh #fff, 22vw 9vh #cfe0ff, 38vw 4vh #fff, 52vw 11vh #ffe9a8, 67vw 6vh #fff, 81vw 13vh #cfe0ff, 93vw 4vh #fff, 12vw 21vh #cfe0ff, 31vw 26vh #fff, 47vw 19vh #cfe0ff, 61vw 28vh #fff, 76vw 22vh #ffe9a8, 90vw 30vh #fff, 4vw 38vh #fff, 19vw 44vh #cfe0ff, 35vw 40vh #fff, 58vw 46vh #cfe0ff, 72vw 41vh #fff, 88vw 48vh #cfe0ff,
+    calc(86vw + 0px) calc(21vh + 0px) 0 0.5px #fff3b0, calc(86vw + 5px) calc(21vh + 0px) 0 0.5px #fff3b0, calc(86vw + 10px) calc(21vh + 0px) 0 0.5px #fff3b0, calc(86vw + -5px) calc(21vh + 5px) 0 0.5px #fff3b0, calc(86vw + 0px) calc(21vh + 5px) 0 0.5px #fff3b0, calc(86vw + -5px) calc(21vh + 10px) 0 0.5px #fff3b0, calc(86vw + 0px) calc(21vh + 10px) 0 0.5px #fff3b0, calc(86vw + -5px) calc(21vh + 15px) 0 0.5px #fff3b0, calc(86vw + 0px) calc(21vh + 15px) 0 0.5px #fff3b0, calc(86vw + -5px) calc(21vh + 20px) 0 0.5px #fff3b0, calc(86vw + 0px) calc(21vh + 20px) 0 0.5px #fff3b0, calc(86vw + 0px) calc(21vh + 25px) 0 0.5px #fff3b0, calc(86vw + 5px) calc(21vh + 25px) 0 0.5px #fff3b0, calc(86vw + 10px) calc(21vh + 25px) 0 0.5px #fff3b0}
+html[data-pack="pixel"]:not(.pk-still) body::after{animation:pxTwinkle 1.6s steps(1) infinite}
+@keyframes pxTwinkle{0%{opacity:1}35%{opacity:.35}50%{opacity:1}80%{opacity:.5}}
+/* nuvole di pixel che attraversano il cielo */
+html[data-pack="pixel"]::before{content:""; position:fixed; z-index:-2; pointer-events:none; left:0; top:0; width:8px; height:8px; background:#e9efff; opacity:.9;
+  box-shadow:16px 0 #e9efff,24px 0 #e9efff,32px 0 #e9efff, 8px 8px #e9efff,16px 8px #e9efff,24px 8px #e9efff,32px 8px #e9efff,40px 8px #e9efff, 0 16px #b9c6ff,8px 16px #b9c6ff,16px 16px #b9c6ff,24px 16px #b9c6ff,32px 16px #b9c6ff,40px 16px #b9c6ff,48px 16px #b9c6ff;
+  transform:translate(-90px,9vh)}
+html[data-pack="pixel"]::after{content:""; position:fixed; z-index:-2; pointer-events:none; left:0; top:0; width:6px; height:6px; background:#e9efff; opacity:.8;
+  box-shadow:12px 0 #e9efff,18px 0 #e9efff, 6px 6px #e9efff,12px 6px #e9efff,18px 6px #e9efff,24px 6px #e9efff, 0 12px #b9c6ff,6px 12px #b9c6ff,12px 12px #b9c6ff,18px 12px #b9c6ff,24px 12px #b9c6ff,30px 12px #b9c6ff;
+  transform:translate(-90px,25vh)}
+html[data-pack="pixel"]:not(.pk-still)::before{animation:pxCloud 70s linear infinite}
+html[data-pack="pixel"]:not(.pk-still)::after{animation:pxCloud 95s linear -40s infinite}
+@keyframes pxCloud{to{transform:translate(110vw,var(--cy,18vh))}}
+html[data-pack="pixel"]::after{--cy:25vh}
+html[data-pack="pixel"]::before{--cy:9vh}
+
+html[data-pack="pixel"] .topbar{border-bottom-width:4px !important}
+html[data-pack="pixel"] .iconbtn.lbl .ib-lb{font-size:.62rem; text-transform:uppercase; letter-spacing:0}
+html[data-pack="pixel"] thead th{font-size:.5rem; line-height:1.4; padding-top:9px; padding-bottom:9px}
+html[data-pack="pixel"] .badge:not(.outline){font-size:.62rem; min-width:2.2em; text-align:center; padding:6px 4px}
+html[data-pack="pixel"] td.score{font-family:var(--pk-fh); font-size:.62rem}
+html[data-pack="pixel"] .vt-tx{font-size:.6rem !important; text-transform:uppercase}
+html[data-pack="pixel"] .view-tab.active .vt-ic{box-shadow:var(--pk-act-sh) !important; transform:translateY(-3px)}
+html[data-pack="pixel"] .modal-title{font-size:.8rem; line-height:1.5}
+html[data-pack="pixel"] .glabel-title,.pk-x{font-size:.62rem}
+html[data-pack="pixel"] img, html[data-pack="pixel"] .modal-cover, html[data-pack="pixel"] .srcico{image-rendering:pixelated}
+html[data-pack="pixel"] .toast{font-size:.9rem}

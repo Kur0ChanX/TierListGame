@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v174', date:'2026-10-01', time:'02:46', items:[
+    'Nuovi «🎭 Temi grafici» (✨ → Temi grafici, oppure dal pulsante in 🎨 Palette colori): 20 stili completi, ognuno con colori, forme, scritte, sfondo animato e aspetto dei tier tutti suoi. Videogiochi retro: Pixel Quest, Finestre JRPG, Sala giochi, Terminale, Retrowave. Fantasy: Grimorio, Taverna, Vapore, Washi. Carta e design: Quaderno, Bauhaus, Art Déco, Fumetto, Noir, Brutale. Luci e mondi: Aero, Olografico, Abissi, Nebulosa, HUD tattico.',
+    'Il selettore mostra l\'anteprima vera di ogni tema (chiaro o scuro, come ce l\'ha il tuo telefono) e si cambia con un tocco. Molti temi hanno sia chiaro sia scuro e seguono il pulsante Tema; gli altri hanno un solo aspetto e te lo dicono. «Originale» riporta il vetro lucido con le palette di sempre.',
+    'Con un tema attivo i colori restano quelli del tema (il colore dalla copertina si mette in pausa) e la barra del telefono prende il colore del tema. Gli sfondi si muovono (stelle, bolle, griglia neon, braci, ingranaggi…): si fermano con l\'interruttore in fondo al selettore o da soli con «riduci animazioni» del telefono. I font sono dentro il sito (nessun servizio esterno) e si scaricano solo quando scegli quel tema.'
+  ]},
   {version:'v173', date:'2026-10-01', time:'01:50', items:[
     'Nuova «🚀 Come iniziare al meglio» in ogni scheda: una guida breve e senza spoiler, preparata dalle fonti e dalla ricerca web (Gemini) una volta sola per gioco: impostazioni da scegliere prima di cominciare, scelte iniziali, errori da evitare, «quando ingrana» (con una barra che mostra dopo quante ore) e quanto provarlo prima di decidere. Resta salvata e si condivide con gli altri dispositivi.',
     'Nuovo «🦝 Compagno di gioco» per i giochi «In corso»: scrivi a che punto sei e cosa ti blocca, scegli quanto aiuto vuoi (💡 un indizio, 🧭 una strategia, 📖 la soluzione) e la risposta resta sfocata finché non la tocchi, per non rovinarti la sorpresa. Tiene un diario delle ultime domande.',

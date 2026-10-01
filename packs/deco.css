@@ -1,0 +1,40 @@
+/* ===== Art Déco: oro su blu notte — raggi di sole, cornici con angoli a squadra, tier come medaglioni (di giorno: avorio) ===== */
+@font-face{font-family:"Poiret One";src:url(../fonts/poiret-one-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Josefin Sans";src:url(../fonts/josefin-sans.woff2) format("woff2");font-weight:100 700;font-display:swap}
+
+html[data-pack="deco"]{
+  --pk-ff:"Josefin Sans","Gill Sans",system-ui,sans-serif; --pk-fh:"Poiret One","Josefin Sans",sans-serif; --pk-fc:"Josefin Sans",system-ui,sans-serif;
+  --pk-hfw:400; --pk-bfs:14px; --pk-hls:.14em; --pk-htt:uppercase; --pk-cls:.05em;
+  --pk-r:0px; --pk-r2:0px; --pk-rp:0px; --pk-rb:50%; --pk-bw:1px; --pk-bwc:1px; --pk-bc:#a8863a;
+  --br:linear-gradient(#a8863a,#a8863a) left 7px top 7px/18px 1px no-repeat,linear-gradient(#a8863a,#a8863a) left 7px top 7px/1px 18px no-repeat,linear-gradient(#a8863a,#a8863a) right 7px top 7px/18px 1px no-repeat,linear-gradient(#a8863a,#a8863a) right 7px top 7px/1px 18px no-repeat,linear-gradient(#a8863a,#a8863a) left 7px bottom 7px/18px 1px no-repeat,linear-gradient(#a8863a,#a8863a) left 7px bottom 7px/1px 18px no-repeat,linear-gradient(#a8863a,#a8863a) right 7px bottom 7px/18px 1px no-repeat,linear-gradient(#a8863a,#a8863a) right 7px bottom 7px/1px 18px no-repeat;
+  --pk-block:var(--br),linear-gradient(180deg,#fbf5e3,#f3ead2); --pk-chip:#fbf5e3; --pk-input:#fffaf0; --pk-ib:radial-gradient(circle at 35% 30%,#fff8e2,#efe3c0);
+  --pk-sh:inset 0 0 0 3px #fbf5e3, inset 0 0 0 4px rgba(168,134,58,.55), 0 10px 22px -12px rgba(60,40,0,.45); --pk-shs:inset 0 0 0 2px #fbf5e3, inset 0 0 0 3px rgba(168,134,58,.45); --pk-shc:none;
+  --pk-top:linear-gradient(180deg,rgba(243,234,210,.9),rgba(243,234,210,.5)); --pk-nav:#f3ead2; --pk-nav-sh:0 -1px 0 #a8863a;
+  --pk-th:linear-gradient(180deg,#1a1a1a,#0f0f0f); --pk-th-c:#d4af37; --pk-alt:rgba(168,134,58,.07); --pk-hov:rgba(168,134,58,.16); --pk-row-bd:1px solid rgba(168,134,58,.4);
+  --pk-act:linear-gradient(180deg,#e6c864,#b8963e); --pk-act-c:#1a1204; --pk-act-sh:inset 0 1px 0 rgba(255,255,255,.5); --pk-ib-act:linear-gradient(180deg,#e6c864,#b8963e); --pk-act-bc:#8a6d1f;
+  --pk-badge-r:50%; --pk-badge-bd:2px solid #b8963e; --pk-badge-sh:inset 0 0 0 2px #fbf5e3, inset 0 0 0 3px #b8963e; --pk-badge-c:#fff;
+  --t-splus:radial-gradient(circle at 35% 30%,#fff3b8,#d4af37 60%,#8a6d1f); --t-s:#1f6f66; --t-a:#2e4f8a; --t-b:#4e7a3e; --t-c:radial-gradient(circle at 35% 30%,#f3dc8a,#c9a03a 70%); --t-d:#b8672e; --t-e:#8f2f2f; --t-f:#7a7466; --t-nd:#2a2a2a;
+  --t-splus-c:#3a2800; --t-c-c:#3a2800; --t-nd-c:#c9b98a; --pk-bar:linear-gradient(90deg,#a8863a,#e6c864); --pk-bar-r:0; --pk-gi:drop-shadow(0 1px 1px rgba(60,40,0,.4)); --pk-scrim:rgba(20,14,0,.55); --pk-tt-c:#8a6d1f;
+}
+html[data-pack="deco"].pk-dark{
+  --br:linear-gradient(#d4af37,#d4af37) left 7px top 7px/18px 1px no-repeat,linear-gradient(#d4af37,#d4af37) left 7px top 7px/1px 18px no-repeat,linear-gradient(#d4af37,#d4af37) right 7px top 7px/18px 1px no-repeat,linear-gradient(#d4af37,#d4af37) right 7px top 7px/1px 18px no-repeat,linear-gradient(#d4af37,#d4af37) left 7px bottom 7px/18px 1px no-repeat,linear-gradient(#d4af37,#d4af37) left 7px bottom 7px/1px 18px no-repeat,linear-gradient(#d4af37,#d4af37) right 7px bottom 7px/18px 1px no-repeat,linear-gradient(#d4af37,#d4af37) right 7px bottom 7px/1px 18px no-repeat;
+  --pk-block:var(--br),linear-gradient(180deg,#131b30,#0c1222); --pk-chip:#0f1626; --pk-input:#0a0f1c; --pk-ib:radial-gradient(circle at 35% 30%,#1b2640,#0c1222); --pk-bc:#b8963e;
+  --pk-sh:inset 0 0 0 3px #0c1222, inset 0 0 0 4px rgba(212,175,55,.5), 0 12px 28px -12px rgba(0,0,0,.9); --pk-shs:inset 0 0 0 2px #0f1626, inset 0 0 0 3px rgba(212,175,55,.4);
+  --pk-top:linear-gradient(180deg,rgba(8,11,20,.7),rgba(8,11,20,.2)); --pk-nav:#080b14; --pk-nav-sh:0 -1px 0 #b8963e;
+  --pk-th:linear-gradient(180deg,#1b2338,#10172a); --pk-alt:rgba(212,175,55,.045); --pk-hov:rgba(212,175,55,.14); --pk-row-bd:1px solid rgba(184,150,62,.35); --pk-badge-sh:inset 0 0 0 2px #080b14, inset 0 0 0 3px #d4af37; --pk-badge-bd:2px solid #d4af37;
+  --t-s:#1f8f82; --t-a:#3a64b4; --t-b:#5a9a48; --t-d:#cc7a38; --t-e:#b13d3d; --t-f:#8a8a8a; --t-nd:#1a2030; --pk-tt-c:#d4af37; --pk-scrim:rgba(2,4,10,.72); --pk-gi:drop-shadow(0 1px 2px rgba(0,0,0,.7));
+}
+/* raggi di sole dalla cima della pagina */
+html[data-pack="deco"] body::before{background:repeating-conic-gradient(from -90deg at 50% -2%,rgba(168,134,58,.2) 0 3deg,transparent 3deg 9deg); -webkit-mask-image:radial-gradient(90% 60% at 50% 0%,#000 0,transparent 100%); mask-image:radial-gradient(90% 60% at 50% 0%,#000 0,transparent 100%)}
+html[data-pack="deco"].pk-dark body::before{background:repeating-conic-gradient(from -90deg at 50% -2%,rgba(212,175,55,.22) 0 3deg,transparent 3deg 9deg)}
+/* cornice d'oro sul bordo dello schermo */
+html[data-pack="deco"] body::after{z-index:99970; inset:5px; border:1px solid rgba(168,134,58,.7); box-shadow:inset 0 0 0 4px transparent, inset 0 0 0 5px rgba(168,134,58,.3)}
+html[data-pack="deco"].pk-dark body::after{border-color:rgba(212,175,55,.6); box-shadow:inset 0 0 0 4px transparent, inset 0 0 0 5px rgba(212,175,55,.28)}
+html[data-pack="deco"] .brand-logo{filter:drop-shadow(0 2px 3px rgba(60,40,0,.4))}
+html[data-pack="deco"] .topbar{border-bottom:3px double #a8863a !important} html[data-pack="deco"].pk-dark .topbar{border-bottom-color:#b8963e !important}
+html[data-pack="deco"] thead th{font-size:.7rem; letter-spacing:.16em}
+html[data-pack="deco"] .badge:not(.outline){width:2.1em; height:2.1em; display:inline-grid; place-items:center; padding:0; font-size:.9rem; font-family:"Josefin Sans",sans-serif; font-weight:700}
+html[data-pack="deco"] td.score{font-family:"Josefin Sans",sans-serif; font-weight:700; font-size:1rem; color:#8a6d1f} html[data-pack="deco"].pk-dark td.score{color:#e6c864}
+html[data-pack="deco"] .modal-title{font-size:1.45rem; letter-spacing:.1em; color:#8a6d1f} html[data-pack="deco"].pk-dark .modal-title{color:#e6c864}
+html[data-pack="deco"] .vt-tx{font-size:.52rem !important; letter-spacing:.08em} html[data-pack="deco"] .iconbtn.lbl .ib-lb{font-size:.5rem; letter-spacing:.08em}
+html[data-pack="deco"] .list-chip, html[data-pack="deco"] .qf-chip{letter-spacing:.07em; text-transform:uppercase; font-size:.76rem}

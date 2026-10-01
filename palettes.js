@@ -100,10 +100,13 @@
     let el = document.getElementById('xPalette');
     if(!el){ el = document.createElement('div'); el.id = 'xPalette'; el.className = 'dup-backdrop x-sheet'; document.body.appendChild(el);
       el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-x-close]')) el.classList.remove('show');
+        if(e.target.closest('[data-pk-open]')){ el.classList.remove('show'); if(window.openPackPicker) window.openPackPicker(); return; }
         const b = e.target.closest('[data-pal]'); if(b){ apply(b.dataset.pal); el.querySelectorAll('[data-pal]').forEach(x=> x.classList.toggle('on', x.dataset.pal === cur)); } }); }
     const groups = [...new Set(P.map(p=> p.g))];
     el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🎨 Palette colori</b><button class="btn" data-x-close>Fatto</button></div>
       <div class="lp-sub">Tocca una palette: la vedi subito su tutta l'app, con sfumature, trasparenze e bagliori. Funziona sia col tema chiaro che scuro (pulsante Tema).</div>
+      <button type="button" class="btn" data-pk-open style="width:100%;margin:2px 0 8px">🎭 Temi grafici completi <small>(20 stili con font, sfondi animati e tier diversi)</small></button>
+      ${window.currentPack && window.currentPack() ? '<div class="lp-sub">🎭 Adesso è attivo un tema grafico con i suoi colori: le palette tornano a valere scegliendo «Originale» nei temi grafici.</div>' : ''}
       ${groups.map(g=> `<div class="pal-group">${g}</div><div class="pal-grid">${P.filter(p=> p.g === g).map(p=> `<button type="button" class="pal${p.id === cur ? ' on' : ''}" data-pal="${p.id}">
         ${preview(p)}<span class="pal-n">${p.n}</span></button>`).join('')}</div>`).join('')}</div>`;
     el.classList.add('show');
