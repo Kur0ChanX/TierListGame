@@ -66,6 +66,7 @@ jobs:
         run: node tools/check-data.js
         continue-on-error: true
       - name: Salva e ripubblica il sito
+        if: always()   # salva quello che è stato raccolto anche se un passo lungo si ferma o va oltre il tempo
         run: |
           git config user.name "raccoon-bot"
           git config user.email "raccoon-bot@users.noreply.github.com"
