@@ -318,4 +318,40 @@
     });
   }
   menu('📷 Screenshot nell\'album (riconosco il gioco)', openShots);
+
+  // =====================================================================
+  // ⭐ IMPORTA I PREFERITI DA UN ELENCO (per «allenare» i gusti in un colpo solo)
+  // =====================================================================
+  const ROM = {1: 'i', 2: 'ii', 3: 'iii', 4: 'iv', 5: 'v', 6: 'vi', 7: 'vii', 8: 'viii', 9: 'ix', 10: 'x', 11: 'xi', 12: 'xii', 13: 'xiii', 14: 'xiv', 15: 'xv', 16: 'xvi'};
+  const toks = t=> norm(t).split(' ').filter(Boolean).map(w=> ROM[+w] && /^\d+$/.test(w) ? ROM[+w] : w).filter(w=> !['the', 'of', 'and', 'a', 'di', 'il', 'la', 'e'].includes(w));
+  const DEFAULT_FAVS = 'Final Fantasy VIII, Final Fantasy VII, Final Fantasy X, Final Fantasy VI, Ultima Online, Sekiro, The Division 2, Uncharted*, Metal Gear Solid, Elden Ring, Lies of P, World of Warcraft, StarCraft II, Age of Empires*, Nier Automata, Grand Theft Auto*, Fallout*, MediEvil, Mega Man X*, Ape Escape*, Detroit Become Human, Kingdom Hearts II, SSX Tricky, Chrono Trigger, Clair Obscur Expedition 33, Warcraft III, Ori*, Silent Hill 2, Ghost of Tsushima, Bully, Sonic*, Tomb Raider*, Arc Raiders, Onimusha 3, Metal Slug*, South Park, Crash Bandicoot*, The Last of Us, Balatro, Dave the Diver';
+  function matchFav(entry){
+    const multi = /\*\s*$/.test(entry), q = toks(entry.replace(/\*+\s*$/, '')); if(!q.length) return {entry, hits: []};
+    let hits = GAMES.filter(g=>{ const gt = new Set(toks(clean(g.name))); return q.every(w=> gt.has(w) || [...gt].some(x=> w.length >= 5 && x.startsWith(w))); });
+    if(!multi && hits.length){ const exact = hits.filter(g=> toks(clean(g.name)).length === q.length); hits = (exact.length ? exact : hits).sort((a, b)=> a.name.length - b.name.length).slice(0, 3); }
+    else hits = hits.sort((a, b)=> (a.ysort || 0) - (b.ysort || 0)).slice(0, 14);
+    return {entry: entry.replace(/\*+\s*$/, '').trim(), hits};
+  }
+  function openFavImport(){
+    const body = sheet('xFavImp', '⭐ Importa i miei preferiti', `<div class="lp-sub">Scrivi i giochi che ami (uno per riga o separati da virgole): li cerco nel database e li segno tra i preferiti, così «I tuoi gusti» impara subito. Con un asterisco (es. «Tomb Raider*») segno tutta la saga. Questo è il tuo elenco: puoi cambiarlo.</div>
+      <textarea id="fiTxt" rows="7" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font-size:.95rem">${esc(DEFAULT_FAVS)}</textarea>
+      <div class="lp-tools"><button type="button" class="btn primary" id="fiGo">🔎 Cerca nel database</button></div><div id="fiRes"></div>`);
+    const res = body.querySelector('#fiRes');
+    body.querySelector('#fiGo').addEventListener('click', ()=>{
+      const list = body.querySelector('#fiTxt').value.split(/[\n,;]+/).map(x=> x.replace(/[♥️❤️]/g, '').trim()).filter(Boolean).map(matchFav);
+      const found = list.filter(x=> x.hits.length), miss = list.filter(x=> !x.hits.length);
+      res.innerHTML = `<div class="lp-sub">Trovati <b>${found.reduce((n, x)=> n + x.hits.length, 0)}</b> giochi per ${found.length} voci${miss.length ? ` · ${miss.length} non sono nel database` : ''}. Togli la spunta a quelli che non vuoi.</div>
+        ${found.map(x=> `<div class="fi-g"><b>${esc(x.entry)}</b>${x.hits.map(g=> `<label class="ask-toggle"><input type="checkbox" data-id="${g.id}" ${FAVS.has(g.id) ? '' : 'checked'}> ${esc(g.name)} <small>${esc(g.year || '')}${FAVS.has(g.id) ? ' · già preferito' : ''}</small></label>`).join('')}</div>`).join('')}
+        ${miss.length ? `<div class="fi-g"><b>Non nel database</b>${miss.map((x, i)=> `<div class="fi-m"><span>${esc(x.entry)}</span><button type="button" class="btn" data-add="${i}">＋ Aggiungi</button></div>`).join('')}</div>` : ''}
+        <div class="lp-tools"><button type="button" class="btn primary" id="fiSave">⭐ Segna come preferiti</button></div>`;
+      res.querySelectorAll('[data-add]').forEach(b=> b.addEventListener('click', ()=>{ const x = miss[+b.dataset.add]; try{ if(typeof sagaQuietAdd === 'function' && sagaQuietAdd({name: x.entry})){ b.textContent = '✓ Aggiunto'; b.disabled = true; toast('Aggiunto: si completa da solo, poi segnalo come preferito', 3200); } else { b.textContent = 'Già presente'; b.disabled = true; } }catch(e){ toast('Non aggiunto', 2000); } }));
+      res.querySelector('#fiSave').addEventListener('click', ()=>{
+        const ids = [...res.querySelectorAll('input[data-id]:checked')].map(i=> +i.dataset.id); ids.forEach(id=> FAVS.add(id));
+        try{ saveFavs(); renderMetrics(); renderStats(); render(); }catch(e){}
+        const sh = document.getElementById('xFavImp'); if(sh) sh.classList.remove('show');
+        toast('⭐ ' + ids.length + ' giochi segnati tra i preferiti: «I tuoi gusti» sta imparando', 4200);
+      });
+    });
+  }
+  menu('⭐ Importa i miei preferiti da un elenco', openFavImport);
 })();

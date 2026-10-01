@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v187', date:'2026-10-01', time:'10:34', items:[
+    'Corretto il «loop» di etichette in cima alla scheda (Capire il gioco, Giocarlo bene, Il tuo stato…): quando la scheda veniva ridisegnata (per esempio da Update V+) le etichette vecchie si accumulavano. Ora ce n\'è una sola per strato e non spariscono più solo premendo Update V+.',
+    'Popup «Aggiornare la password?» di Google: i quattro campi delle chiavi sono testo a pallini già nel file della pagina (non più campi password trasformati dopo), così Chrome non li riconosce. Se compare ancora, cancella la voce salvata in Chrome → Gestore password → raccoon/kur0chanx.github.io.',
+    'Nuovo «⭐ Importa i miei preferiti da un elenco» (✨ → Il tuo gusto): scrivi i giochi che ami (c\'è già il tuo elenco), li cerca nel database, segni tra i preferiti quelli trovati (con * tutta la saga) e puoi aggiungere con ＋ quelli che mancano. Serve ad allenare subito «I tuoi gusti».',
+    'La sincronizzazione con GitHub ora aspetta 15 secondi dopo l\'ultima modifica (prima 4): durante Update V+ faceva decine di chiamate al gist, ora ne fa poche. Il link «↗ Metacritic ufficiale» ora si legge anche sul tema scuro.'
+  ]},
   {version:'v186', date:'2026-10-01', time:'10:11', items:[
     'Riquadro «🌅 Oggi» sotto la barra di ricerca e UN SOLO avviso all\'avvio: i palloncini sparsi dei primi secondi (Radar, prezzi sotto soglia, uscite, backup) vengono raccolti in un unico «🌅 Oggi: N novità per te. Tocca per vederle». Dentro trovi gli avvisi con il pulsante Apri, «Cosa è cambiato mentre non c\'eri» (modifiche automatiche ai tuoi giochi dall\'ultima volta e novità del programma), i giochi che stai giocando, la wishlist (prossime uscite e prezzi sotto soglia) e il gioco più adatto a te ora con le meccaniche che tocca. Con «✎ Scegli cosa vedere» decidi quali riquadri mostrare e in che ordine.',
     'Nuovo «🧩 Moduli» (✨ → Moduli): interruttori per Musica e suoni, Anteprima cinematografica, Guida e Compagno, Radar di gusto, Blocchi extra della scheda, Frugu e Animazioni. Le funzioni spente non partono al prossimo avvio; i dati restano. Qui accendi o spegni anche la scheda in ordine di importanza, il menu in stanze e il riquadro Oggi, e togli le pulci.',
