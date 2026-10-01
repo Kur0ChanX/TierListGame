@@ -344,7 +344,10 @@
     if(id === 'consiglio'){
       if(typeof window.tasteScore !== 'function') return '';
       const ts = window.rtTasteModel && window.rtTasteModel(); if(!ts || ts.n < 3) return '';
-      const g = GAMES.filter(x=> !STATUSES[x.id] && !FAVS.has(x.id) && x.tier !== 'ND').map(x=> ({x, s: window.tasteScore(x)})).sort((a, b)=> b.s - a.s)[0]; if(!g) return '';
+      // il consiglio del giorno si calcola una volta sola finché i tuoi gusti non cambiano
+      const ver = (window.rtTasteVer ? rtTasteVer() : 0) + ':' + GAMES.length;
+      if(!widget._c || widget._c.ver !== ver){ const best = GAMES.filter(x=> !STATUSES[x.id] && !FAVS.has(x.id) && x.tier !== 'ND').map(x=> ({x, s: window.tasteScore(x)})).sort((a, b)=> b.s - a.s)[0]; widget._c = {ver, id: best ? best.x.id : null}; }
+      const gx = widget._c.id != null ? GAMES.find(x=> x.id === widget._c.id) : null; const g = gx ? {x: gx} : null; if(!g) return '';
       const mm = (window.rtMechOf ? window.rtMechOf(g.x) : []).slice(0, 3).map(k=> window.rtMech[k].ic + ' ' + window.rtMech[k].n).join(' · ');
       return `<div class="td-chips">${chip(g.x)}</div>${mm ? `<div class="lp-sub">Tocca: ${esc(mm)}</div>` : ''}`;
     }
@@ -370,6 +373,7 @@
       box.addEventListener('toggle', ()=> LS.set('jrpg_today_open', box.open));
       box.open = !!LS.get('jrpg_today_open', false);
     }
+    if(!box._filled){ box._filled = true; box.open = !!LS.get('jrpg_today_open', false); }
     const {html, n} = bodyHtml();
     box.innerHTML = `<summary>🌅 <b>Oggi</b> <span class="td-n">${n ? n + (n === 1 ? ' cosa' : ' cose') : 'niente di nuovo'}</span></summary><div class="td-body">${html}<div class="td-foot"><button type="button" class="btn" data-edit="1">✎ Scegli cosa vedere</button></div></div>`;
     if(openIt && n) box.open = true;
@@ -392,7 +396,12 @@
   }
   menu('🌅 Oggi: le novità per te', openToday);
   window.rtToday = {render: renderToday, open: openToday};
-  setTimeout(()=>{ try{ renderToday(); }catch(e){} }, 1200);
+  // v208: il posto del riquadro «Oggi» lo riservo SUBITO (vuoto): se comparisse dopo, spingerebbe giù la lista mentre tocchi
+  setTimeout(()=>{ try{ if(!todayOn() || document.getElementById('todayBox')) return; const slot = document.getElementById('rtMusicSlot') || document.getElementById('buildLine'); if(!slot) return;
+    const box = document.createElement('details'); box.id = 'todayBox'; box.className = 'today-box'; box.innerHTML = '<summary>🌅 <b>Oggi</b> <span class="td-n">…</span></summary>'; slot.insertAdjacentElement('afterend', box);
+    box.addEventListener('toggle', ()=> LS.set('jrpg_today_open', box.open)); }catch(e){} }, 0);
+  // v208: «Oggi» si prepara quando il telefono è libero (prima partiva a 1,2 s e poteva bloccare i primi tocchi dopo l'intro)
+  setTimeout(()=>{ const run = ()=>{ try{ renderToday(); }catch(e){} }; if(window.requestIdleCallback) requestIdleCallback(run, {timeout: 6000}); else setTimeout(run, 50); }, 4500);
   setTimeout(()=>{ try{ const cl = (typeof CHANGELOG !== 'undefined' && CHANGELOG[0]); if(cl) LS.set('rt_last_ver', cl.version); }catch(e){} }, 60000);
 
   // =====================================================================

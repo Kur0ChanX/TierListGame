@@ -31,7 +31,9 @@
     AXtm = tm; AXc = {tm, ax: e.map(([k, w])=> ({k, w: .36 + .64 * ((w - lo) / span), full: labOf(k), icon: iconOf(k)}))}; return AXc;
   }
   // i giochi che ami (per la somiglianza): preferiti, voti alti, in cima alla tua tier
-  const loved = tm=> tm.sig.filter(x=> x.w >= .9).sort((a, b)=> b.w - a.w).slice(0, 60);
+  // i 30 giochi che ami di più bastano per trovare i 3 più vicini (prima 60: il doppio dei confronti)
+  let LVc = null, LVtm = null;
+  const loved = tm=>{ if(LVtm === tm && LVc) return LVc; LVtm = tm; LVc = tm.sig.filter(x=> x.w >= .9).sort((a, b)=> b.w - a.w).slice(0, 30); return LVc; };
   window.rtSintonia = function(g){
     let r; try{ r = axes(); }catch(e){ return null; } if(!r || !g) return null;
     if(SINT.has(g.id)) return SINT.get(g.id);

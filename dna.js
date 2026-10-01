@@ -343,22 +343,35 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
   window.rtSimilar = similar;
   // somiglianza 0..1 tra due giochi (per la Sintonia): tratti del DNA pesati per rarità, generi, struttura e simboli. Calcolata una volta per coppia.
   const SIMC = new Map();
+  // v208: per ogni gioco preparo UNA volta i suoi insiemi (tratti, generi, saga, tratti tuoi) e li riuso: prima si ricalcolavano
+  // a ogni confronto (con l'ordine «Più adatti a te» erano decine di migliaia di confronti → 10+ secondi di blocco)
+  const PREP = new Map();
+  const prep = g=>{
+    const ver = (window.rtTasteVer ? rtTasteVer() : 0);
+    const c = PREP.get(g.id); if(c && c.ver === ver && c.n === g.name) return c;
+    const ma = mechOf(g), ta = g.tags || [];
+    let sk = ''; try{ sk = typeof sagaKeyOf === 'function' ? sagaKeyOf(g) : ''; }catch(e){}
+    let mine = null; try{ const cu = window.rtLSro ? rtLSro(CUST, {}) : LSG(CUST, {}); if(cu && Object.keys(cu).length && window.rtFeats) mine = new Set(rtFeats(g).filter(x=> x.indexOf('mine:') === 0)); }catch(e){}
+    const o = {ver, n: g.name, ma, am: new Set(ma), ta, at: new Set(ta), sk, mine};
+    if(PREP.size > 20000) PREP.clear(); PREP.set(g.id, o); return o;
+  };
   window.rtSimNorm = function(a, b){
     const key = a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id; if(SIMC.has(key)) return SIMC.get(key);
-    const W = idf(), wsum = (arr, p)=> arr.reduce((s, k)=> s + (W[p + k] || 1), 0);
-    const am = new Set(mechOf(a)), bm = mechOf(b), shm = bm.filter(k=> am.has(k)), unim = [...new Set([...am, ...bm])];
-    const fJ = unim.length ? wsum(shm, 'm:') / (wsum(unim, 'm:') || 1) : 0;
-    const at = new Set(a.tags || []), bt = b.tags || [], sht = bt.filter(t=> at.has(t)), unit = [...new Set([...at, ...bt])];
-    const tJ = unit.length ? wsum(sht, 't:') / (wsum(unit, 't:') || 1) : 0;
+    const W = idf(), wsum = (arr, p)=>{ let s = 0; for(const k of arr) s += (W[p + k] || 1); return s; };
+    const A = prep(a), B = prep(b);
+    let shm = 0, unm = 0; for(const k of A.ma){ const w = W['m:' + k] || 1; unm += w; if(B.am.has(k)) shm += w; } for(const k of B.ma) if(!A.am.has(k)) unm += (W['m:' + k] || 1);
+    const fJ = unm ? shm / unm : 0;
+    let sht = 0, unt = 0; for(const k of A.ta){ const w = W['t:' + k] || 1; unt += w; if(B.at.has(k)) sht += w; } for(const k of B.ta) if(!A.at.has(k)) unt += (W['t:' + k] || 1);
+    const tJ = unt ? sht / unt : 0;
     const al = a.label || {}, bl = b.label || {}; let lc = 0, ln = 0;
-    ['d', 'g', 's'].forEach(k=>{ if(al[k] && bl[k]){ ln++; lc += Math.max(0, 1 - Math.abs(al[k] - bl[k]) / 2); } });
+    if(al.d && bl.d){ ln++; lc += Math.max(0, 1 - Math.abs(al.d - bl.d) / 2); } if(al.g && bl.g){ ln++; lc += Math.max(0, 1 - Math.abs(al.g - bl.g) / 2); } if(al.s && bl.s){ ln++; lc += Math.max(0, 1 - Math.abs(al.s - bl.s) / 2); }
     if(al.p && bl.p){ ln++; lc += al.p === bl.p ? 1 : 0; }
     const ae = a.enrich || {}, be = b.enrich || {};
     let v = fJ * .55 + tJ * .25 + (ln ? lc / ln : .5) * .2;
     if(ae.storyTag && ae.storyTag === be.storyTag) v += .06;
     if(ae.dopamine && be.dopamine) v += .04;
-    try{ const sk = typeof sagaKeyOf === 'function' ? sagaKeyOf(a) : ''; if(sk && sk === sagaKeyOf(b)) v += .12; }catch(e){}
-    try{ if(Object.keys(LSG(CUST, {}) || {}).length && window.rtFeats){ const fa = new Set(rtFeats(a).filter(x=> x.indexOf('mine:') === 0)); const shared = rtFeats(b).filter(x=> fa.has(x)).length; v += Math.min(.15, shared * .06); } }catch(e){}   // i tuoi tratti scritti a parole
+    if(A.sk && A.sk === B.sk) v += .12;
+    if(A.mine && B.mine && A.mine.size){ let shared = 0; B.mine.forEach(x=>{ if(A.mine.has(x)) shared++; }); v += Math.min(.15, shared * .06); }   // i tuoi tratti scritti a parole
     v = Math.max(0, Math.min(1, v)); if(SIMC.size > 200000) SIMC.clear(); SIMC.set(key, v); return v;
   };
   const tierB = x=>{ try{ return `<span class="badge ${TIER_LABEL[x.tier]}">${x.tier}</span>`; }catch(e){ return ''; } };

@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v208', date:'2026-10-01', time:'20:36', items:[
+    '🛠️ STABILITÀ — trovato e tolto il vero blocco: con tanti giochi e tanti dati (come i tuoi) il telefono restava occupato fino a 40 secondi subito dopo l\'avvio. Per questo si bloccava la foto del procione, poi i tocchi in alto, poi i giochi (lo scorrimento invece andava). La causa: il calcolo dei tuoi gusti veniva rifatto da capo per ogni gioco, rileggendo tutti i dati ogni volta (era peggiorato dalla v203, colpa mia). Ora si calcola una volta e si rifà solo quando cambi davvero qualcosa: da 40 secondi a meno di 1.',
+    'Stesso problema con l\'ordine «Più adatti a te»: 12 secondi di blocco → meno di 1.',
+    'Il riquadro «Oggi» si prepara quando il telefono è libero e il suo posto è riservato subito, così la lista non si sposta più sotto il dito.',
+    'Reti di sicurezza: l\'animazione di apertura di un gioco non può più restare sopra l\'app; il «ricorda il tocco» dell\'avvio si spegne da solo.',
+    'Torna il pulsante «Schermo intero» (spariva quando l\'app è installata) e l\'intro attiva di nuovo lo schermo intero.'
+  ]},
   {version:'v207', date:'2026-10-01', time:'20:16', items:[
     '🧬 «Cosa ti ha preso di questo gioco» rifatto da zero. In alto c\'è il tuo «filamento di DNA» con il gioco (una striscia colorata), poi in tre gruppi: 💖 i motivi principali (al massimo 3, pesano il doppio), 👍 cosa ti è piaciuto, 👎 cosa no.',
     'Nuovo GIOCO VELOCE: un tratto alla volta su una carta grande, con la spiegazione. Scorri a destra = mi piace, a sinistra = no, in su = è il motivo principale (o usa i 4 tasti). Prima i tratti riconosciuti nel gioco, poi quelli che di solito ami. In 30 secondi il cervello impara il perché dei tuoi gusti.',

@@ -3,7 +3,7 @@
 Questo file serve a un'altra istanza di Claude Code (altro account) per continuare **esattamente** dove ci siamo fermati, come se la sessione fosse la stessa.
 Leggi PRIMA questo file, poi `CLAUDE.md` (regole fisse) e, solo quando serve, `docs/ARCHITETTURA.md` (con Grep sulla voce, mai tutto).
 
-Ultimo aggiornamento: v207 (1 ottobre 2026). Sito: https://kur0chanx.github.io/TierListGame/ · Repo: `kur0chanx/TierListGame`.
+Ultimo aggiornamento: v208 (1 ottobre 2026). Sito: https://kur0chanx.github.io/TierListGame/ · Repo: `kur0chanx/TierListGame`.
 
 ---------------------------------------------------------------------
 
@@ -61,8 +61,11 @@ App **statica** (si apre anche con doppio clic, `file://`), niente server né bu
 - Un `git add -A` con la variabile `SP` non impostata nei test aveva creato una cartella `undefined/` con screenshot (rimossa): imposta sempre `SP`.
 - Il workflow notturno riscrive `facts.js`, `voti.js` ecc.: unisci con `tools/merge-facts.js`.
 
+- **BLOCCO DI 40 SECONDI (v203–v207, risolto in v208)**: il modello dei gusti (`tasteModel`) per sapere se era «ancora valido» ricalcolava `signals()` a ogni chiamata, e il cervello rileggeva (JSON.parse) i dati per OGNI gioco; il riquadro «Oggi» chiama `tasteScore` per centinaia di giochi → O(N²) con letture → 41 s di telefono bloccato (intro ferma, tocchi in alto morti, solo lo scorrimento funzionava). Regole: (1) `tasteModel` si invalida SOLO con il contatore `rtTasteVer()` (cresce quando si scrive una chiave di gusto, vedi `TASTE_RX` in extras3.js); (2) nei percorsi caldi leggi con `rtLSro(chiave)` (niente JSON.parse se il testo non cambia), mai `LS.get` per ogni gioco; (3) `feats()` e `rtSimNorm` hanno cache per gioco; (4) PROVA SEMPRE con `tools/test/theavy.js` e `theavy2.js` (profilo pesante + CPU 4×): nessun blocco > 1 s.
+- I test «leggeri» (profilo vuoto) NON trovano questi problemi: l'utente ha 1.300 giochi e tanti dati. Usa i profili pesanti dei test.
+
 ## 6. Cronologia utile (v195 → v206)
-v195 DNA del giocatore e giochi simili · v196 locandina/schermate con blocco, 5 canzoni · v197 griglia senza sfarfallio · v198 sintonia con somiglianza ai giochi amati, DNA a categorie, canzoni originali, lettore nuovo · v199 anti rate-limit (SW), 👑 top, locandina bloccata ovunque, carosello una foto alla volta, anteprima a pressione lunga · v200 scheda fluida, «A colpo d'occhio» a riquadri, tratti DNA nuovi cercati nel catalogo · v201 nome inglese da Steam per tutte le ricerche, carosello infinito, apertura stile iOS · v202 service worker a versioni, avvio con nuovi tentativi · v203 cervello dei gusti + barra icone + valutazioni · v204 scheda in 3 parti, un solo pulsante locandina · v205 locandine da Steam (id dal server), valutazioni a tasti + Fine, riordino ↕️, riquadri storia/dopamina, DNA senza salti · v206 intro/tocchi robusti, questo file · v207 «Cosa ti ha preso» rifatto con gioco veloce a carte e 💖 motivi principali, linguette più in alto con evidenziatore.
+v195 DNA del giocatore e giochi simili · v196 locandina/schermate con blocco, 5 canzoni · v197 griglia senza sfarfallio · v198 sintonia con somiglianza ai giochi amati, DNA a categorie, canzoni originali, lettore nuovo · v199 anti rate-limit (SW), 👑 top, locandina bloccata ovunque, carosello una foto alla volta, anteprima a pressione lunga · v200 scheda fluida, «A colpo d'occhio» a riquadri, tratti DNA nuovi cercati nel catalogo · v201 nome inglese da Steam per tutte le ricerche, carosello infinito, apertura stile iOS · v202 service worker a versioni, avvio con nuovi tentativi · v203 cervello dei gusti + barra icone + valutazioni · v204 scheda in 3 parti, un solo pulsante locandina · v205 locandine da Steam (id dal server), valutazioni a tasti + Fine, riordino ↕️, riquadri storia/dopamina, DNA senza salti · v206 intro/tocchi robusti, questo file · v207 «Cosa ti ha preso» rifatto con gioco veloce a carte e 💖 motivi principali, linguette più in alto con evidenziatore · v208 STABILITÀ: via il blocco di 40 s all'avvio e di 12 s con «Più adatti a te», reti di sicurezza (cartoncino, tocchi in attesa), schermo intero anche nell'app installata.
 
 ## 7. Cose ancora da fare (backlog, in ordine di valore)
 1. **Verificare sul telefono vero** (l'utente prova): fluidità a 120 Hz dell'apertura scheda, intro/News, locandina di Dragon Quest XI S, riordino ↕️, valutazioni.

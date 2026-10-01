@@ -5,6 +5,21 @@
   'use strict';
   const U = window.XUI; if(!U) return;
   const {sheet, toast, esc, LS, TIER_COL} = U;
+  // v208: BLOCCHI DI 40 SECONDI all'avvio — il modello dei gusti si ricalcolava per OGNI gioco (rileggendo tutti i dati ogni volta).
+  // Ora c'è un contatore di versione: cambia solo quando cambia davvero un dato dei gusti (preferiti, stati, voti, cuori, icone, valutazioni, DNA…).
+  // Finché non cambia, il modello è già pronto e costa zero. Le letture «solo per guardare» non rifanno il JSON.parse se il testo è uguale.
+  let TVER = 1;
+  const TASTE_RX = /jrpg_(favs|status|mytier|myvote|top|react|rate|dna_why|dna_custom|taste|active_profile)/;
+  (function(){
+    const _s = Storage.prototype.setItem, _r = Storage.prototype.removeItem;
+    Storage.prototype.setItem = function(k, v){ const r = _s.apply(this, arguments); try{ if(TASTE_RX.test(k)) TVER++; }catch(e){} return r; };
+    Storage.prototype.removeItem = function(k){ const r = _r.apply(this, arguments); try{ if(TASTE_RX.test(k)) TVER++; }catch(e){} return r; };
+  })();
+  window.rtTasteVer = ()=> TVER;
+  window.rtTasteDirty = ()=>{ TVER++; };
+  const RO = new Map();       // lettura senza modifiche: chiave -> {raw, val}
+  const LSro = (k, d)=>{ let raw = null; try{ raw = localStorage.getItem(k); }catch(e){} if(raw == null) return d; const c = RO.get(k); if(c && c.raw === raw) return c.val; let val = d; try{ val = JSON.parse(raw); }catch(e){} RO.set(k, {raw, val}); return val; };
+  window.rtLSro = LSro;
   const gi = n=> (typeof giIcon === 'function') ? giIcon(n) : '';
   const menu = (html, run)=>{ (window.XMENU = window.XMENU || []).push({html, run}); };
   const nrm = s=> String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -174,8 +189,8 @@
   function signals(){
     const out = [];
     let MT = {}; try{ MT = MYTIER || {}; }catch(e){}
-    const MV = LS.get('jrpg_myvote', {}) || {};
-    const TOP = LS.get('jrpg_top', []) || [];        // v199: «👑 I miei top» in ordine: il n.1 pesa più di tutti
+    const MV = LSro('jrpg_myvote', {}) || {};
+    const TOP = LSro('jrpg_top', []) || [];        // v199: «👑 I miei top» in ordine: il n.1 pesa più di tutti
     GAMES.forEach(g=>{
       let w = 0; const s = STATUSES[g.id], ti = TOP.indexOf(g.id);
       if(ti >= 0) w += Math.max(2.4, 4 - ti * .08);
@@ -275,7 +290,7 @@
   const mnrm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const MC = new Map();
   function mechOf(g){
-    const e = g.enrich || {}, c = MC.get(g.id), dwS = (()=>{ try{ return JSON.stringify((LS.get('jrpg_dna_why', {}) || {})[g.id] || ''); }catch(x){ return ''; } })(), sig = (g.tags || []).join(',') + '|' + (e.whyLikeIt || '').length + '|' + ((e.pros || []).length) + '|' + ((g.label || {}).d || 0) + '|' + String(g.story || '').length + '|' + dwS;
+    const e = g.enrich || {}, c = MC.get(g.id), dwS = (()=>{ try{ const v = (LSro('jrpg_dna_why', {}) || {})[g.id]; return v ? JSON.stringify(v) : ''; }catch(x){ return ''; } })(), sig = (g.tags || []).join(',') + '|' + (e.whyLikeIt || '').length + '|' + ((e.pros || []).length) + '|' + ((g.label || {}).d || 0) + '|' + String(g.story || '').length + '|' + dwS;
     if(c && c.sig === sig) return c.list;
     const dop = e.dopa || {}, txt = mnrm([e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (dop.loop || []).join(' '), dop.hook, (g.label || {}).ok].join(' . ')), out = new Set(), tg = g.tags || [], l = g.label || {};
     const STORYK = new Set(['LORE', 'WORLD', 'CHAR', 'CHOICE', 'ATMO', 'HUMOR']), txtS = mnrm([g.story, e.agingNote].join(' . '));
@@ -294,7 +309,7 @@
     if(out.has('SUPERBOSS')) out.add('CHALL');
     if(tg.includes('GACHA')){ out.add('GACHA'); out.add('DAILY'); }
     if(tg.includes('MUD') || tg.includes('MMO')) out.add('DAILY');
-    try{ const dw = (LS.get('jrpg_dna_why', {}) || {})[g.id] || {}; Object.keys(dw).forEach(k=>{ if(dw[k] > 0) out.add(k); else if(dw[k] < 0) out.delete(k); }); }catch(x){}   // quello che hai detto tu di questo gioco vale più dei testi
+    try{ const dw = (LSro('jrpg_dna_why', {}) || {})[g.id] || {}; Object.keys(dw).forEach(k=>{ if(dw[k] > 0) out.add(k); else if(dw[k] < 0) out.delete(k); }); }catch(x){}   // quello che hai detto tu di questo gioco vale più dei testi
     if(e.dopamine === true) out.add('DOPA');
     if(tg.includes('MON')) out.add('COLL');
     if(tg.includes('CARD')){ out.add('COLL'); out.add('BUILD'); }
@@ -309,7 +324,14 @@
   window.rtMech = MECH; window.rtMechOf = mechOf;
   const DECL = 'jrpg_taste_mech';                                  // le meccaniche che dici tu: 1 = mi piace, -1 = evito
   const declared = ()=> LS.get(DECL, {}) || {};
+  // v208: i tratti di un gioco si calcolano una volta e si riusano finché non cambiano i tuoi dati o quelli del gioco
+  const FC = new Map();
   function feats(g){
+    const l0 = g.label || {}, ck = TVER + '|' + (g.tags || []).join(',') + '|' + (l0.d || 0) + (l0.g || 0) + (l0.s || 0) + (l0.p || '') + (l0.h || 0) + '|' + ((g.enrich && g.enrich.hoursMain) || 0) + '|' + (g.ysort || 0);
+    const c = FC.get(g.id); if(c && c.k === ck) return c.v;
+    const v = feats0(g); if(FC.size > 20000) FC.clear(); FC.set(g.id, {k: ck, v}); return v;
+  }
+  function feats0(g){
     const l = g.label || {}, h = (g.enrich && g.enrich.hoursMain) || l.h || 0, f = [];      // stesse ore della «Longevità» nella scheda
     (g.tags || []).forEach(t=> f.push('tag:' + t));
     if(l.d) f.push('diff:' + (l.d >= 4 ? 'alta' : l.d <= 2 ? 'bassa' : 'media'));
@@ -319,14 +341,16 @@
     if(h) f.push('ore:' + (h < 20 ? 'brevi' : h <= 50 ? 'medie' : 'lunghe'));
     if(g.ysort) f.push('epoca:' + (Math.floor(g.ysort / 10) * 10));
     try{ mechOf(g).forEach(m=> f.push('mech:' + m)); }catch(e){}
-    try{ const cu = LS.get('jrpg_dna_custom', {}) || {}, ks = Object.keys(cu); if(ks.length){ const e = g.enrich || {}, txt = mnrm([g.story, e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (g.label || {}).ok].join(' . ')); ks.forEach(k=>{ const c = cu[k]; if((c.no || []).includes(g.id)) return; if((c.by || []).includes(g.id) || (c.games || []).includes(g.id) || (c.kw || []).some(w=> w && w.length >= 4 && txt.includes(mnrm(w)))) f.push('mine:' + k); }); } }catch(e){}
+    try{ const cu = LSro('jrpg_dna_custom', {}) || {}, ks = Object.keys(cu); if(ks.length){ const e = g.enrich || {}, txt = mnrm([g.story, e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (g.label || {}).ok].join(' . ')); ks.forEach(k=>{ const c = cu[k]; if((c.no || []).includes(g.id)) return; if((c.by || []).includes(g.id) || (c.games || []).includes(g.id) || (c.kw || []).some(w=> w && w.length >= 4 && txt.includes(mnrm(w)))) f.push('mine:' + k); }); } }catch(e){}
     return f;
   }
   const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mine'){ const c = (LS.get('jrpg_dna_custom', {}) || {})[b]; return c ? c.n : b; } if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
   let TM = null, TMkey = '';
+  let TMver = 0, TMn = 0;
   function tasteModel(){
-    const sig = signals(), dc = declared(), dw = LS.get('jrpg_dna_why', {}) || {}, key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc) + ':' + JSON.stringify(dw) + ':' + JSON.stringify(LS.get('jrpg_dna_custom', {}) || {}) + ':' + (window.rtBrain ? rtBrain.key() : '');
-    if(TM && TMkey === key) return TM;
+    if(TM && TMver === TVER && TMn === (typeof GAMES !== 'undefined' ? GAMES.length : 0)) return TM;      // v208: niente è cambiato → pronto subito
+    const sig = signals(), dc = declared(), dw = LSro('jrpg_dna_why', {}) || {}, key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc) + ':' + JSON.stringify(dw) + ':' + JSON.stringify(LS.get('jrpg_dna_custom', {}) || {}) + ':' + (window.rtBrain ? rtBrain.key() : '');
+    if(TM && TMkey === key){ TMver = TVER; TMn = GAMES.length; return TM; }
     const sum = {}, cnt = {};
     sig.forEach(({g, w})=> feats(g).forEach(k=>{ sum[k] = (sum[k] || 0) + w; cnt[k] = (cnt[k] || 0) + 1; }));
     const wts = {}; Object.keys(sum).forEach(k=> wts[k] = sum[k] / (cnt[k] + 2));
@@ -338,7 +362,7 @@
     // v200: i tratti che hai creato a parole contano subito (come quelli che segni con 👍/👎)
     try{ const cu = LS.get('jrpg_dna_custom', {}) || {}; Object.keys(cu).forEach(m=>{ const c = cu[m], v = (c.by || []).length - (c.no || []).length; if(!v) return; const k = 'mine:' + m; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .7 + .3 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); }); }catch(e){}
     try{ if(window.rtBrain) rtBrain.adjust(wts, cnt); }catch(e){}
-    TM = {n: sig.length, wts, cnt, sig, dc, dw}; TMkey = key; return TM;
+    TM = {n: sig.length, wts, cnt, sig, dc, dw}; TMkey = key; TMver = TVER; TMn = GAMES.length; return TM;
   }
   function tasteScore(g){
     const m = tasteModel(); if(m.n < 3 && !Object.keys(m.dc || {}).some(k=> m.dc[k])) return 0;
