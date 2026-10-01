@@ -213,14 +213,19 @@
     SOCIAL: {ic: '👥', n: 'Gioco con gli altri', d: 'cooperativa, multiplayer, comunità, MMO'},
     PUZZ:   {ic: '🧠', n: 'Enigmi e ingegno', d: 'rompicapi, meccanismi da capire, soluzioni intelligenti'},
     HUMOR:  {ic: '😄', n: 'Umorismo e leggerezza', d: 'ironia, situazioni assurde, toni scanzonati'},
-    LIFE:   {ic: '📅', n: 'Vita quotidiana e legami', d: 'calendario, routine, tempo libero, rapporti da coltivare giorno per giorno'}
+    LIFE:   {ic: '📅', n: 'Vita quotidiana e legami', d: 'calendario, routine, tempo libero, rapporti da coltivare giorno per giorno'},
+    // v197 — i termini dei giocatori (lista di Mario): così si distingue meglio anche ciò che NON piace
+    PROC:   {ic: '🎲', n: 'Rigiocabilità procedurale («ancora una run»)', d: 'mappe e partite generate a caso, run diverse ogni volta, permadeath'},
+    GACHA:  {ic: '🎰', n: 'Gacha, wish e pity', d: 'evocazioni casuali, banner, sistema pity, personaggi da «pescare»'},
+    FEEL:   {ic: '💥', n: 'Game feel (colpi pesanti, juiciness)', d: 'ogni colpo si sente: impatto, feedback, controlli reattivi'},
+    DAILY:  {ic: '🗓️', n: 'Routine giornaliere e time sink', d: 'daily e weekly reset, missioni giornaliere, endgame infinito che chiede tempo'}
   };
   const MRX = {
-    LOOT: /\b(loot\w*|drop|drop rate|bottin\w*|oggetti rari|oggetti leggendari|equipaggiament\w* (raro|rari|unico|unici|leggendari\w*|casuali)|item world|tesori|casse|ricompense casuali|looter|rarita|reliquie|artefatti|armi (rare|uniche|leggendarie)|dungeon generat\w*|generazion\w* procedural\w*)/,
-    BUILD: /(\bbuild\b|min-?max\w*|sinergi\w*|ottimizz\w* (le |la |il |l.)?(build|equipaggiament\w*|party|squadra|personagg\w*|abilita)|sperimentaz\w* (con|nelle|delle|di) (build|combinazion\w*|abilita|materia|classi|equipaggiament\w*)|premia la sperimentazione|albero (di )?(abilita|talent\w*)|sistema (materia|job|classi|licenze|sfera|di classi|di creazione|di fusione)|multiclasse|crafting|artigianato|fusione (di|dei|delle) (demoni|mostri|persona|armi|abilita|creature)|assemblaggio|personalizzazione (profonda|estrema|totale|quasi infinita|ampia|delle armi|dell.equipaggiamento|del party|dei personaggi|del personaggio|di build)|liberta di (personalizzare|costruire|creare))/,
-    POWER: /(potenziament\w*|progressione|crescita (del|dei|di)|diventare (sempre )?piu forte|piu forte|livellare|statistiche|numeri (di danno|enormi|esagerati|giganti)|potenza|upgrade|evoluzion\w*|sviluppo del personaggio|power fantasy)/,
+    LOOT: /\b(loot\w*|drop|drop rate|randomi[sz]ed loot|loot casuale|god ?roll|affix\w*|affiss\w*|rarita (a colori|per colore|a gradi|a livelli)|oggetti (viola|arancioni|dorati|leggendari)|bottin\w*|oggetti rari|oggetti leggendari|equipaggiament\w* (raro|rari|unico|unici|leggendari\w*|casuali)|item world|tesori|casse|ricompense casuali|looter|rarita|reliquie|artefatti|armi (rare|uniche|leggendarie)|dungeon generat\w*|generazion\w* procedural\w*)/,
+    BUILD: /(\bbuild\b|min-?max\w*|job system|sistema (di )?(job|lavori|mestieri)|class tree|albero delle classi|cross[- ]?class|multiclass\w*|build diversity|varieta di build|sphere grid|griglia (delle )?sfere|license board|sinergi\w*|ottimizz\w* (le |la |il |l.)?(build|equipaggiament\w*|party|squadra|personagg\w*|abilita)|sperimentaz\w* (con|nelle|delle|di) (build|combinazion\w*|abilita|materia|classi|equipaggiament\w*)|premia la sperimentazione|albero (di )?(abilita|talent\w*)|sistema (materia|job|classi|licenze|sfera|di classi|di creazione|di fusione)|multiclasse|crafting|artigianato|fusione (di|dei|delle) (demoni|mostri|persona|armi|abilita|creature)|assemblaggio|personalizzazione (profonda|estrema|totale|quasi infinita|ampia|delle armi|dell.equipaggiamento|del party|dei personaggi|del personaggio|di build)|liberta di (personalizzare|costruire|creare))/,
+    POWER: /(power ?trip|overlevel\w*|sovralivell\w*|onnipotent\w*|potenziament\w*|progressione|crescita (del|dei|di)|diventare (sempre )?piu forte|piu forte|livellare|statistiche|numeri (di danno|enormi|esagerati|giganti)|potenza|upgrade|evoluzion\w*|sviluppo del personaggio|power fantasy)/,
     CHALL: /(sfida (appagante|punitiva|estrema|impegnativa|dura|esigente|che premia)|boss (opzional\w*|segret\w*|superboss)|superboss|punitiv\w*|premia (la|i|il|lo|le|chi) (strateg\w*|prepar\w*|rifless\w*|ottimizz\w*|padronanza)|padronanza|preparazione|curva di difficolta|soulslike|roguelike|difficolta (elevata|estrema|alta))/,
-    DOPA: /(dopamin\w*|ancora un turno|ricompens\w* (continu\w*|frequent\w*)|gratificazion\w*|loop (coinvolgent\w*|appagant\w*)|incollat\w*|assuefa\w*|dipendenza)/,
+    DOPA: /(dopamin\w*|dopamine hit|variable ratio|ricompens\w* variabil\w*|one more (turn|run)|ancora (un turno|una run|una partita)|ricompens\w* (continu\w*|frequent\w*)|gratificazion\w*|loop (coinvolgent\w*|appagant\w*)|incollat\w*|assuefa\w*|dipendenza)/,
     EFFORT: /(premia (l.?impegno|la dedizione|lo sforzo|la pazienza|la perseveranza|la padronanza|l.?ottimizzazione)|gratificant\w*|appagant\w*|soddisfazion\w*|dedizione|sforzo|perseveranz\w*|ricompensa chi)/,
     FARM: /(\bfarm\w*|\bgrind\w*|ripetere|ripetizion\w*|raccolta (di )?risorse|coltivazion\w*|allevament\w*)/,
     COLL: /(collezion\w*|completist\w*|catturare (mostri|creature|pokemon)|cattura di (mostri|creature)|bestiario|reclutare|tutti i (personaggi|mostri)|trofei|oggetti nascosti)/,
@@ -240,6 +245,10 @@
     MUSIC: /(colonna sonora (memorabile|splendida|eccellente|indimenticabile|epica|iconica|straordinaria|bellissima|stupenda)|musiche (memorabili|splendide|iconiche|indimenticabili|epiche|bellissime|stupende)|soundtrack (memorabile|iconica)|compost\w* da|uematsu|shimomura|mitsuda|sakimoto|kondo)/,
     SOCIAL: /(cooperativ\w*|\bco-?op\b|multigiocatore|multiplayer|online con|comunita|\bmmo\w*|giocare con (gli )?amici|raid|gilda|pvp)/,
     PUZZ: /(enigm\w*|rompicap\w*|puzzle|indovinell\w*|meccanismi da (capire|risolvere)|logica|ingegno)/,
+    PROC: /(procedural\w*|generat\w* (casualmente|proceduralmente|a caso)|roguelit\w*|roguelike|one more run|ancora una run|run (diverse|sempre diverse)|rigiocabil\w*|permadeath|morte permanente)/,
+    GACHA: /(gacha|\bwish\b|\bpity\b|banner|evocazion\w* (casual\w*|a pagamento)|\bsummon\w*|estrazion\w* casual\w*|loot ?box)/,
+    FEEL: /(game ?feel|juic\w*|feedback (dei colpi|tattile|appagante|soddisfacente)|pesantezza (dei )?colpi|colpi (pesanti|che si sentono)|impatto (dei colpi|fisico)|hit ?stop|controlli (reattivi|precisi|fluidi)|fisicita)/,
+    DAILY: /(time ?sink|\bdaily\b|\bweekly\b|reset (giornalier\w*|settimanal\w*)|(missioni|attivita) giornalier\w*|login giornalier\w*|endgame (infinito|senza fine)|impegno quotidiano)/,
     LIFE: /(calendari\w*|vita (scolastica|quotidiana|di tutti i giorni)|routine|tempo libero|gestione del tempo|legami social\w*|social link|confidant|confidenti|attivita (quotidiane|del giorno)|simulazione (di vita|sociale)|giorno dopo giorno)/,
     HUMOR: /(umoris\w*|ironi\w*|divertente|comic\w*|scanzonat\w*|esilarant\w*|assurd\w*|parodi\w*|battute)/
   };
@@ -260,6 +269,9 @@
     if(tg.includes('VN')){ out.add('STORY'); }
     if(tg.includes('HOR')) out.add('ATMO');
     if(tg.includes('LIFE')) out.add('BASE');
+    if(tg.includes('ROG')) out.add('PROC');
+    if(tg.includes('GACHA')){ out.add('GACHA'); out.add('DAILY'); }
+    if(tg.includes('MUD') || tg.includes('MMO')) out.add('DAILY');
     try{ const dw = (LS.get('jrpg_dna_why', {}) || {})[g.id] || {}; Object.keys(dw).forEach(k=>{ if(dw[k] > 0) out.add(k); else if(dw[k] < 0) out.delete(k); }); }catch(x){}   // quello che hai detto tu di questo gioco vale più dei testi
     if(e.dopamine === true) out.add('DOPA');
     if(tg.includes('MON')) out.add('COLL');

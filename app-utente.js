@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v197', date:'2026-10-01', time:'15:20', items:[
+    'Corretto lo sfarfallio delle copertine nella vista a griglia (il tuo video): ogni aggiornamento in background (Update+, voti…) ridisegnava da zero tutta la griglia, le immagini ripartivano e compariva l\'icona «rotta». Ora si ridisegnano solo le schede cambiate e un\'immagine che non si carica resta invisibile (si vede lo sfondo colorato col nome).',
+    '🧬 DNA più ricco con i termini dei giocatori: drop rate, loot casuale, god roll, rarità a colori/gradi (→ loot); dopamine hit, variable ratio, one more turn/run (→ dopamina); power trip, overlevel (→ potenza); job system, class tree, cross-class, build diversity, sphere grid (→ build). Quattro tratti nuovi da segnare 👍/👎 nelle schede: 🎲 rigiocabilità procedurale («ancora una run»), 🎰 gacha/wish/pity, 💥 game feel (colpi pesanti, juiciness), 🗓️ routine giornaliere e time sink (daily/weekly reset). Servono anche a capire cosa NON ti piace.',
+  ]},
   {version:'v196', date:'2026-10-01', time:'15:10', items:[
     '🔄 «Cambia locandina» nella scheda (sopra, negli strumenti della copertina): ti mostro TUTTE le locandine ufficiali che trovo (Steam verticale e HD, Steam orizzontale, Libretro in tutte le regioni, Wikipedia, Wikimedia, RAWG). Tocchi quella bella e resta bloccata 🔒: nessun aggiornamento automatico la cambia più (la sblocchi dallo stesso pannello).',
     '🎞️ «Schermate»: vedi tutte le schermate disponibili (Steam completo, fino a 24, più RAWG) e spunti quelle che vuoi nel carosello; «Salva e blocca» e restano quelle 🔒.',
