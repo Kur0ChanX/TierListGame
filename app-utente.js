@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v209', date:'2026-10-01', time:'21:00', items:[
+    '🏗️ Nuova struttura dei dati, pronta per 20.000+ giochi. All\'avvio arriva solo un «indice» leggero (nomi, voti, generi, i tratti già riconosciuti per i tuoi gusti); i testi lunghi (trama, analisi, pro e contro) arrivano a pezzi quando servono: quando apri un gioco (anzi, già quando lo sfiori col dito) e in sottofondo quando il telefono è libero. L\'indice dei tuoi giochi è passato da 713 KB a 178 KB. Provato con un catalogo finto di 20.000 giochi: si apre in mezzo secondo, usa 4 volte meno memoria e non si blocca. I tuoi gusti e la Sintonia restano identici (verificato gioco per gioco).',
+    '😍 Nella lista e nella griglia i giochi «Nel cuore» mostrano il procione con gli occhi a cuore.',
+    '🧬 «Cosa ti ha preso»: c\'è anche 🤷 Ni (c\'è ma così così: non pesa né in positivo né in negativo). Tocca un tratto: 👍 → 💖 → 🤷 Ni → 👎 → via; nel gioco veloce c\'è il tasto Ni.'
+  ]},
   {version:'v208', date:'2026-10-01', time:'20:36', items:[
     '🛠️ STABILITÀ — trovato e tolto il vero blocco: con tanti giochi e tanti dati (come i tuoi) il telefono restava occupato fino a 40 secondi subito dopo l\'avvio. Per questo si bloccava la foto del procione, poi i tocchi in alto, poi i giochi (lo scorrimento invece andava). La causa: il calcolo dei tuoi gusti veniva rifatto da capo per ogni gioco, rileggendo tutti i dati ogni volta (era peggiorato dalla v203, colpa mia). Ora si calcola una volta e si rifà solo quando cambi davvero qualcosa: da 40 secondi a meno di 1.',
     'Stesso problema con l\'ordine «Più adatti a te»: 12 secondi di blocco → meno di 1.',

@@ -59,6 +59,7 @@
   }
   async function askOracle(q, out){
     out.innerHTML = '<div class="lp-sub">🦝 Frugu Frugu annusa il tuo desiderio…</div>';
+    try{ if(window.rtTexts && rtTexts.loaded && GAMES.length <= 6000) await rtTexts.ensureAll(); }catch(e){}       // v209: l'Oracolo cerca nei testi di tutti i giochi
     const local = localOracle(q);
     let picks = [];
     if(hasAI()){

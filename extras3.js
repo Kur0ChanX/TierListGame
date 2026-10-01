@@ -247,60 +247,22 @@
     MINI:   {ic: '🃏', n: 'Minigiochi', d: 'giochi nel gioco: carte, sport, corse, pesca, casinò'},
     ENDGAME: {ic: '🏁', n: 'Endgame ricco', d: 'tanto da fare dopo la fine o fuori dalla storia: post-game, NG+, sfide opzionali'}
   };
-  const MRX = {
-    LOOT: /\b(loot\w*|drop|drop rate|randomi[sz]ed loot|loot casuale|god ?roll|affix\w*|affiss\w*|rarita (a colori|per colore|a gradi|a livelli)|oggetti (viola|arancioni|dorati|leggendari)|bottin\w*|oggetti rari|oggetti leggendari|equipaggiament\w* (raro|rari|unico|unici|leggendari\w*|casuali)|item world|tesori|casse|ricompense casuali|looter|rarita|reliquie|artefatti|armi (rare|uniche|leggendarie)|dungeon generat\w*|generazion\w* procedural\w*)/,
-    BUILD: /(\bbuild\b|min-?max\w*|job system|sistema (di )?(job|lavori|mestieri)|class tree|albero delle classi|cross[- ]?class|multiclass\w*|build diversity|varieta di build|sphere grid|griglia (delle )?sfere|license board|sinergi\w*|ottimizz\w* (le |la |il |l.)?(build|equipaggiament\w*|party|squadra|personagg\w*|abilita)|sperimentaz\w* (con|nelle|delle|di) (build|combinazion\w*|abilita|materia|classi|equipaggiament\w*)|premia la sperimentazione|albero (di )?(abilita|talent\w*)|sistema (materia|job|classi|licenze|sfera|di classi|di creazione|di fusione)|multiclasse|crafting|artigianato|fusione (di|dei|delle) (demoni|mostri|persona|armi|abilita|creature)|assemblaggio|personalizzazione (profonda|estrema|totale|quasi infinita|ampia|delle armi|dell.equipaggiamento|del party|dei personaggi|del personaggio|di build)|liberta di (personalizzare|costruire|creare))/,
-    POWER: /(power ?trip|overlevel\w*|sovralivell\w*|onnipotent\w*|potenziament\w*|progressione|crescita (del|dei|di)|diventare (sempre )?piu forte|piu forte|livellare|statistiche|numeri (di danno|enormi|esagerati|giganti)|potenza|upgrade|evoluzion\w*|sviluppo del personaggio|power fantasy)/,
-    CHALL: /(sfida (appagante|punitiva|estrema|impegnativa|dura|esigente|che premia)|boss (opzional\w*|segret\w*|superboss)|superboss|punitiv\w*|premia (la|i|il|lo|le|chi) (strateg\w*|prepar\w*|rifless\w*|ottimizz\w*|padronanza)|padronanza|preparazione|curva di difficolta|soulslike|roguelike|difficolta (elevata|estrema|alta))/,
-    DOPA: /(dopamin\w*|dopamine hit|variable ratio|ricompens\w* variabil\w*|one more (turn|run)|ancora (un turno|una run|una partita)|ricompens\w* (continu\w*|frequent\w*)|gratificazion\w*|loop (coinvolgent\w*|appagant\w*)|incollat\w*|assuefa\w*|dipendenza)/,
-    EFFORT: /(premia (l.?impegno|la dedizione|lo sforzo|la pazienza|la perseveranza|la padronanza|l.?ottimizzazione)|gratificant\w*|appagant\w*|soddisfazion\w*|dedizione|sforzo|perseveranz\w*|ricompensa chi)/,
-    FARM: /(\bfarm\w*|\bgrind\w*|ripetere|ripetizion\w*|raccolta (di )?risorse|coltivazion\w*|allevament\w*)/,
-    COLL: /(collezion\w*|completist\w*|catturare (mostri|creature|pokemon)|cattura di (mostri|creature)|bestiario|reclutare|tutti i (personaggi|mostri)|trofei|oggetti nascosti)/,
-    LORE: /(\blore\b|mitologi\w*|leggend\w* (del mondo|antich\w*)|storia del mondo|segreti del mondo|documenti|descrizioni degli oggetti|narrazione ambientale|criptic\w*|frammenti di storia|retroscena)/,
-    WORLD: /(world ?building|mondo (vivo|coerente|ricco|dettagliato|vasto|affascinante|credibile|unico|originale)|ambientazione (ricca|originale|unica|dettagliata)|culture|fazioni|nazioni|regni|cosmologi\w*|universo (narrativo|coerente|ricco))/,
-    EXPLO: /(esplorazion\w*|esplorare|segreti|aree (nascoste|segrete|opzionali)|scorciatoie|metroidvania|scoperta|scoprire|mappa (aperta|vasta)|open world|mondo aperto|dungeon (opzionali|segreti|nascosti))/,
-    CRAFT: /(crafting|craft\w*|creare (oggetti|armi|equipaggiament\w*)|forgiare|fabbricare|alchimia|sintesi|ricette|forgia|potenziare (le )?armi)/,
-    RES: /(gestione (delle )?risorse|risorse (limitate|scarse)|scarsita|munizioni (limitate|scarse)|inventario (limitato|ristretto)|economia (del gioco|interna)|survival|sopravvivenza|razion\w*)/,
-    SAND: /(sandbox|liberta (totale|di approccio|d.azione)|approcci (diversi|multipli|liberi)|sistemi(c\w*)? (emergent\w*|liber\w*)|emergent\w*|fai (quello|cio) che vuoi|immersive sim|mondo aperto sistemico)/,
-    BASE: /(costruzion\w* (della|di una|di) (base|citta|villaggio|accampamento|fortezza)|gestionale|gestire (la|il|un|una) (citta|base|villaggio|squadra|regno|economia)|base operativa|quartier generale|insediament\w*|colonia)/,
-    TACT: /(tattic\w*|posizionament\w*|pianific\w*|strategia profonda|profondita strategica|scacchi|formazion\w* (della|di) squadra|sinergie di squadra)/,
-    COMBAT: /(combattiment\w* (fluido|appagante|frenetico|profondo|tecnico|spettacolare|preciso|reattivo|stratificato)|parat\w*|parry|schivat\w*|combo|tempismo|sistema di combattimento (eccellente|profondo|appagante|tecnico)|action (fluido|frenetico|tecnico))/,
-    STORY: /(trama (avvincente|coinvolgente|memorabile|profonda|emozionante|epica|intricata|matura)|colpi di scena|narrativa (forte|eccellente|matura|coinvolgente|memorabile)|storia (coinvolgente|emozionante|memorabile|epica|toccante|profonda|matura)|finale (memorabile|emozionante|toccante))/,
-    CHAR: /(personaggi (carismatic\w*|memorabil\w*|ben scritt\w*|indimenticabil\w*|caratterizzat\w*|profond\w*)|cast (memorabile|carismatico|eccellente|ben scritto|indimenticabile)|legam\w* tra (i )?personaggi|compagni (di viaggio|memorabili)|rapporti tra (i )?personaggi)/,
-    CHOICE: /(scelte (morali|che contano|con conseguenze|importanti)|conseguenze|finali multipli|diversi finali|piu finali|bivi|decisioni (che contano|morali)|ramificat\w*)/,
-    ATMO: /(atmosfer\w*|direzione artistica|stile (artistico|visivo|unico|inconfondibile)|ambientazione (suggestiva|cupa|onirica|evocativa|gotica)|suggestiv\w*|evocativ\w*|onirico|malinconic\w*|inquietant\w*)/,
-    MUSIC: /(colonna sonora (memorabile|splendida|eccellente|indimenticabile|epica|iconica|straordinaria|bellissima|stupenda)|musiche (memorabili|splendide|iconiche|indimenticabili|epiche|bellissime|stupende)|soundtrack (memorabile|iconica)|compost\w* da|uematsu|shimomura|mitsuda|sakimoto|kondo)/,
-    SOCIAL: /(cooperativ\w*|\bco-?op\b|multigiocatore|multiplayer|online con|comunita|\bmmo\w*|giocare con (gli )?amici|raid|gilda|pvp)/,
-    PUZZ: /(enigm\w*|rompicap\w*|puzzle|indovinell\w*|meccanismi da (capire|risolvere)|logica|ingegno)/,
-    PROC: /(procedural\w*|generat\w* (casualmente|proceduralmente|a caso)|roguelit\w*|roguelike|one more run|ancora una run|run (diverse|sempre diverse)|rigiocabil\w*|permadeath|morte permanente)/,
-    GACHA: /(gacha|\bwish\b|\bpity\b|banner|evocazion\w* (casual\w*|a pagamento)|\bsummon\w*|estrazion\w* casual\w*|loot ?box)/,
-    FEEL: /(game ?feel|juic\w*|feedback (dei colpi|tattile|appagante|soddisfacente)|pesantezza (dei )?colpi|colpi (pesanti|che si sentono)|impatto (dei colpi|fisico)|hit ?stop|controlli (reattivi|precisi|fluidi)|fisicita)/,
-    DAILY: /(time ?sink|\bdaily\b|\bweekly\b|reset (giornalier\w*|settimanal\w*)|(missioni|attivita) giornalier\w*|login giornalier\w*|endgame (infinito|senza fine)|impegno quotidiano)/,
-    SUPERBOSS: /(superboss|boss (segret\w*|opzional\w*|nascost\w*|facoltativ\w*)|eoni oscuri|dark aeon|weapon (emerald|ruby|omega)|nemici (opzionali|leggendari)|boss piu (duri|difficili))/,
-    SUMMON: /(evocazion\w*|\bsummon\w*|\besper\b|\beoni\b|\baeon\w*|guardian force|\bg\.?f\.?\b|evocare)/,
-    PARTY: /(gestione (del|della) (party|squadra|gruppo)|cambiare (i )?personaggi|personaggi intercambiabili|composizione (del|della) (party|squadra)|party di \d|squadra di \d|scambiare (i )?membri)/,
-    JOURNEY: /(viaggio|pellegrinaggio|avventura epica|odissea|attraverso (il|un) mondo|di tappa in tappa)/,
-    ROMANCE: /(storia d.amore|romance|romantic\w*|relazione amorosa|innamorat\w*)/,
-    VILLAIN: /(antagonist\w* (memorabil\w*|carismatic\w*|iconic\w*|indimenticabil\w*)|cattivo (memorabile|carismatico|iconico)|villain)/,
-    MINI: /(minigioch\w*|mini-gioch\w*|blitzball|triple triad|gioco di carte|corse (dei|di) chocobo|chocobo|casino|gold saucer|pesca)/,
-    ENDGAME: /(endgame|post-?game|new game ?\+|ng\+|contenuti (opzionali|extra|post)|dopo la fine|sfide opzionali|attivita secondarie)/,
-    LIFE: /(calendari\w*|vita (scolastica|quotidiana|di tutti i giorni)|routine|tempo libero|gestione del tempo|legami social\w*|social link|confidant|confidenti|attivita (quotidiane|del giorno)|simulazione (di vita|sociale)|giorno dopo giorno)/,
-    HUMOR: /(umoris\w*|ironi\w*|divertente|comic\w*|scanzonat\w*|esilarant\w*|assurd\w*|parodi\w*|battute)/
-  };
+  // v209: le parole-chiave dei tratti stanno in tratti.js (le usa anche il server per preparare l'indice)
+  const TR = ()=> window.RT_TRATTI;
   const mnrm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const MC = new Map();
   function mechOf(g){
-    const e = g.enrich || {}, c = MC.get(g.id), dwS = (()=>{ try{ const v = (LSro('jrpg_dna_why', {}) || {})[g.id]; return v ? JSON.stringify(v) : ''; }catch(x){ return ''; } })(), sig = (g.tags || []).join(',') + '|' + (e.whyLikeIt || '').length + '|' + ((e.pros || []).length) + '|' + ((g.label || {}).d || 0) + '|' + String(g.story || '').length + '|' + dwS;
+    const e = g.enrich || {}, c = MC.get(g.id), dwS = (()=>{ try{ const v = (LSro('jrpg_dna_why', {}) || {})[g.id]; return v ? JSON.stringify(v) : ''; }catch(x){ return ''; } })(), sig = (e._lite ? 'L' : 'F') + (g.tags || []).join(',') + '|' + (e.whyLikeIt || '').length + '|' + ((e.pros || []).length) + '|' + ((g.label || {}).d || 0) + '|' + String(g.story || '').length + '|' + dwS;
     if(c && c.sig === sig) return c.list;
-    const dop = e.dopa || {}, txt = mnrm([e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (dop.loop || []).join(' '), dop.hook, (g.label || {}).ok].join(' . ')), out = new Set(), tg = g.tags || [], l = g.label || {};
-    const STORYK = new Set(['LORE', 'WORLD', 'CHAR', 'CHOICE', 'ATMO', 'HUMOR']), txtS = mnrm([g.story, e.agingNote].join(' . '));
-    Object.keys(MRX).forEach(k=>{ if(MRX[k].test(txt) || (STORYK.has(k) && MRX[k].test(txtS))) out.add(k); });
+    // tratti dai testi: se i testi lunghi del gioco non sono ancora caricati uso quelli calcolati dal server (e.mx), identici
+    const tt = e._lite ? {mx: e.mx || [], cbt: e.cbt || 0} : (TR() ? TR().textTraits(g) : {mx: [], cbt: 0});
+    const out = new Set(tt.mx), tg = g.tags || [], l = g.label || {};
     // indizi dai dati della scheda (generi, etichette, simboli)
     if(l.s >= 4 || e.storyTag === 'wow') out.add('STORY');
     if(e.storyTag === 'affinity' || e.storyTag === 'romance') out.add('CHAR');
     if(tg.includes('TAC') || tg.includes('WAR')) out.add('TACT');
     if(tg.includes('METR')) out.add('EXPLO');
-    if(tg.includes('SOUL') || tg.includes('ACT')){ if(/(combattiment|parat|schivat|combo)/.test(txt)) out.add('COMBAT'); }
+    if(tg.includes('SOUL') || tg.includes('ACT')){ if(tt.cbt) out.add('COMBAT'); }
     if(tg.includes('VN')){ out.add('STORY'); }
     if(tg.includes('HOR')) out.add('ATMO');
     if(tg.includes('LIFE')) out.add('BASE');
@@ -357,7 +319,7 @@
     // quello che dici tu pesa subito (anche con pochi giochi segnati); il resto lo imparo dai tuoi giochi
     Object.keys(dc).forEach(m=>{ if(!MECH[m] || !dc[m]) return; const k = 'mech:' + m; wts[k] = (wts[k] || 0) + dc[m] * 1.1; cnt[k] = Math.max(cnt[k] || 0, 2); });
     // «cosa ti ha preso di questo gioco» (🧬 nella scheda): ogni tratto che indichi tu su un gioco pesa come un segnale forte
-    const dwc = {}; Object.keys(dw).forEach(id=> Object.keys(dw[id] || {}).forEach(m=>{ if(MECH[m] && dw[id][m]) dwc[m] = (dwc[m] || 0) + dw[id][m]; }));
+    const dwc = {}; Object.keys(dw).forEach(id=> Object.keys(dw[id] || {}).forEach(m=>{ if(MECH[m] && dw[id][m] && Math.abs(dw[id][m]) >= 1) dwc[m] = (dwc[m] || 0) + dw[id][m]; })      /* 🤷 Ni (0.5) = neutro */);
     Object.keys(dwc).forEach(m=>{ const k = 'mech:' + m, v = dwc[m]; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .55 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); });
     // v200: i tratti che hai creato a parole contano subito (come quelli che segni con 👍/👎)
     try{ const cu = LS.get('jrpg_dna_custom', {}) || {}; Object.keys(cu).forEach(m=>{ const c = cu[m], v = (c.by || []).length - (c.no || []).length; if(!v) return; const k = 'mine:' + m; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .7 + .3 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); }); }catch(e){}

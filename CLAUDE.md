@@ -6,8 +6,9 @@ App statica (si apre anche con doppio clic, file://), senza server né build. Ut
 
 ## Risparmio di token (priorità)
 - Una sessione per lavoro. Risposte corte, niente riassunti lunghi. Niente screenshot/prove che non servono.
-- MAI leggere per intero `giochi.js`, `giochi-dettagli-*.js`, `ost.js`, `discoveries.js`, `facts.js`, `radar.js`, `quality.js`, `backup-aurora/` (il Read è bloccato in `.claude/settings.json`). Per i dati: script Node con `tools/data-io.js` (`load()`/`save(D)`) o `jq` (vedi ARCHITETTURA, voce giochi.js). Prima di toccare i dati indica quali id/chiavi; non stampare oggetti interi.
-- Codice: Grep la funzione in `app*.js`/`verify.js`, poi Read solo di quell'intervallo (mai Read senza `limit` su file >300 righe).
+- MAI leggere per intero `giochi.js`, `dati/testi-*.js`, `ost.js`, `discoveries.js`, `facts.js`, `radar.js`, `quality.js`, `backup-aurora/` (il Read è bloccato in `.claude/settings.json`). Per i dati: script Node con `tools/data-io.js` (`load()`/`save(D)`) o `jq` (vedi ARCHITETTURA, voce giochi.js). Prima di toccare i dati indica quali id/chiavi; non stampare oggetti interi.
+- Codice: `node tools/mappa.js FILE [parola]` (funzioni con numero di riga) o Grep, poi Read solo di quell'intervallo (mai Read senza `limit` su file >300 righe).
+- Dati (formato v3, dalla v209): `giochi.js` = INDICE «a tabella» (enc t1) e `dati/testi-K.js` = testi lunghi a pezzi da 250 giochi. Non fare mai il parse a mano di giochi.js: SOLO `tools/data-io.js` (`load()` dà il vecchio formato completo, `save(D)` riscrive indice + pezzi + tratti `mx`). Nell'app i testi di un gioco arrivano con `rtTexts.ensure(g)`; finché non ci sono `g.enrich._lite` è vero. Se cambi le parole-chiave dei tratti (`tratti.js`) rigenera con load()+save().
 - Non riscrivere, semplificare o rimuovere funzioni esistenti se non richiesto.
 - Modifiche di routine (testi, colori, dati): modello leggero. Logica nuova o bug: Sonnet.
 

@@ -579,15 +579,113 @@ const WIZARD_QUESTIONS = [
   ]}
 ];
 
+// v209: indice «a tabella» (enc 't1'): una riga per gioco → oggetti come prima (stesso codice di tools/data-io.js decodeT1)
+(function decodeIndex(D){
+  if(!D || D.enc !== 't1' || !D.t) return;
+  const NUL = '\u2205', dec = v=> v === NUL ? null : v, T = D.t, gc = T.cols.g, lc = T.cols.l, ec = T.cols.e, games = [], labels = {}, lite = {};
+  for(const r of T.rows){
+    const g = {}; let i = 0;
+    for(const c of gc){ const v = r[i++]; if(v !== null && v !== undefined) g[c] = dec(v); }
+    const hasL = r[i++], l = {}; for(const c of lc){ const v = r[i++]; if(v !== null && v !== undefined) l[c] = dec(v); }
+    const hasE = r[i++], e = {}; for(const c of ec){ const v = r[i++]; if(v !== null && v !== undefined) e[c] = dec(v); }
+    const x = r[i] || null;
+    if(x){ for(const k in x){ if(k !== 'l' && k !== 'e') g[k] = x[k]; } if(x.l) Object.assign(l, x.l); if(x.e) Object.assign(e, x.e); }
+    games.push(g); if(hasL) labels[g.id] = l; if(hasE) lite[g.id] = e;
+  }
+  D.games = games; D.labels = labels; D.lite = lite; delete D.t;
+})(typeof GIOCHI_DATA !== 'undefined' ? GIOCHI_DATA : null);
 const GAMES = GIOCHI_DATA.games;
-// Analisi, trame, pro/contro e «dopamina» stanno in giochi-dettagli.js (~1,2 MB), caricato a parte e in differita: la lista compare subito.
-// Appena il file arriva, applyDetails() li aggancia ai giochi, riapplica le correzioni approvate e ridisegna. Fino ad allora g.enrich è null.
-GAMES.forEach(g=>{ g.enrich = null; });
-let DETAILS_READY = false;
+// ---- DATI v3 (v209): INDICE LEGGERO + TESTI A PEZZI (pensato per 20.000+ giochi) ----
+// giochi.js ha solo l'indice: nome, generi, voto, tier, etichetta in numeri e un «lite» per gioco (storyTag, dopamina, ore,
+// punteggi, locandina e i tratti già riconosciuti nei testi, mx). I testi lunghi (trama, analisi, pro/contro, «fa per te se»,
+// dopamina) stanno in dati/testi-K.js (250 giochi a pezzo) e arrivano quando servono: apri un gioco, Update+, Oracolo…
+// Se il catalogo non è enorme li carico anche in sottofondo, un pezzo alla volta, quando il telefono è libero.
+// Fino all'arrivo dei testi g.enrich è il «lite» (con _lite: true) e g.story manca: il codice lo gestisce già (come prima, in attesa dei dettagli).
+const DATA_V3 = GIOCHI_DATA.v === 3, TEXT_SH = GIOCHI_DATA.sh || 250;
+const LITE = GIOCHI_DATA.lite || {};
+GAMES.forEach(g=>{ g.enrich = DATA_V3 && LITE[g.id] ? Object.assign({_lite: true}, LITE[g.id]) : null; });
+let DETAILS_READY = DATA_V3;            // con l'indice i dati per lista, filtri e gusti ci sono subito
 function detailsReady(){ return DETAILS_READY; }
-// i dettagli arrivano in 4 pezzi (giochi-dettagli-1..4.js): quando ci sono tutti li unisco e li applico
+const RT_TEXT = {have: new Set(), wait: new Map(), loading: new Map(), byId: null};
+const textShard = id=> Math.floor(+id / TEXT_SH);
+function textMerge(pack){
+  if(!pack || !pack.g) return;
+  if(!RT_TEXT.byId || RT_TEXT.byId.size !== GAMES.length){ RT_TEXT.byId = new Map(GAMES.map(x=> [String(x.id), x])); }
+  Object.keys(pack.g).forEach(id=>{
+    const g = RT_TEXT.byId.get(String(id)), x = pack.g[id]; if(!g || g.custom) return;
+    if(x.story != null) g.story = x.story;
+    if(x.lab) g.label = Object.assign({}, g.label || {}, x.lab);
+    if(x.enrich){ const lite = g.enrich || {}; const e = Object.assign({}, x.enrich); if(x.dopa) e.dopa = x.dopa; ['coverUrl'].forEach(k=>{ if(lite[k] && !e[k]) e[k] = lite[k]; }); g.enrich = e; }
+    else if(g.enrich && g.enrich._lite){ delete g.enrich._lite; }
+  });
+  RT_TEXT.have.add(pack.k);
+}
+// ogni file di testi, quando arriva, chiama questa funzione (o si mette in coda se l'app non è ancora pronta)
+window.rtTestiArrived = function(){
+  const Q = window.rtTestiArrivati || []; window.rtTestiArrivati = [];
+  const ks = [];
+  Q.forEach(p=>{ try{ textMerge(p); ks.push(p.k); }catch(e){} });
+  if(!ks.length) return;
+  try{ if(typeof applyGameOverrides === 'function') applyGameOverrides(); }catch(e){}       // le tue correzioni approvate valgono sempre sopra i testi di base
+  // NIENTE ricalcolo dei gusti: i tratti dell'indice (mx) sono identici a quelli dei testi (verificato da tools/test/tv3.js)
+  ks.forEach(k=>{ const w = RT_TEXT.wait.get(k); if(w){ RT_TEXT.wait.delete(k); w.forEach(f=>{ try{ f(); }catch(e){} }); } RT_TEXT.loading.delete(k); });
+  try{ window.dispatchEvent(new CustomEvent('rt-texts', {detail: ks})); }catch(e){}
+};
+function textLoad(k){
+  if(RT_TEXT.have.has(k)) return Promise.resolve();
+  return new Promise(res=>{
+    const w = RT_TEXT.wait.get(k) || []; w.push(res); RT_TEXT.wait.set(k, w);
+    if(RT_TEXT.loading.has(k)) return;
+    let tries = 0;
+    const go = ()=>{
+      const s = document.createElement('script'); s.src = 'dati/testi-' + k + '.js'; s.async = true;
+      s.onerror = ()=>{ s.remove(); if(++tries < 3) setTimeout(go, 1200 * tries); else { RT_TEXT.loading.delete(k); const ww = RT_TEXT.wait.get(k) || []; RT_TEXT.wait.delete(k); ww.forEach(f=> f()); } };   // niente rete: vado avanti con l'indice
+      document.head.appendChild(s);
+    };
+    RT_TEXT.loading.set(k, true); go();
+  });
+}
+// API per tutto il programma: rtTexts.has(g) · rtTexts.ensure(g | [g…] | id) → Promise · rtTexts.ensureAll(progress) → Promise
+window.rtTexts = {
+  has: g=> !DATA_V3 || !g || g.custom || RT_TEXT.have.has(textShard(g.id)) || !(g.enrich && g.enrich._lite) && g.story != null,
+  ensure(x){
+    if(!DATA_V3) return Promise.resolve();
+    const list = (Array.isArray(x) ? x : [x]).map(v=> typeof v === 'object' && v ? v : {id: v}).filter(v=> v && v.id != null && !v.custom);
+    const ks = [...new Set(list.map(v=> textShard(v.id)))].filter(k=> !RT_TEXT.have.has(k));
+    return Promise.all(ks.map(textLoad)).then(()=>{});
+  },
+  async ensureAll(progress){
+    if(!DATA_V3) return;
+    const ks = [...new Set(GAMES.filter(g=> !g.custom).map(g=> textShard(g.id)))].filter(k=> !RT_TEXT.have.has(k));
+    for(let i = 0; i < ks.length; i++){ await textLoad(ks[i]); try{ progress && progress(i + 1, ks.length); }catch(e){} }
+  },
+  loaded: ()=> RT_TEXT.have.size, shard: textShard
+};
+// i testi dei giochi «vicini» al dito arrivano prima del tocco: inizio a caricarli appena lo appoggi
+document.addEventListener('pointerdown', e=>{
+  try{ const el = e.target.closest && e.target.closest('[data-gid],[data-id],[data-open],[data-brg],[data-sp]'); if(!el) return;
+    const id = el.dataset.gid || el.dataset.id || el.dataset.open || el.dataset.brg || el.dataset.sp; if(id && /^\d+$/.test(id)) rtTexts.ensure(+id); }catch(x){}
+}, {capture: true, passive: true});
+// in sottofondo, quando il telefono è libero: con un catalogo normale carico tutti i testi (un pezzo ogni ~0,6 s),
+// con uno enorme solo quelli dei giochi che contano per i tuoi gusti (preferiti, giocati, nel cuore, votati)
+setTimeout(function fill(){
+  if(!DATA_V3) return;
+  const idle = f=> (window.requestIdleCallback ? requestIdleCallback(f, {timeout: 4000}) : setTimeout(f, 200));
+  const total = GAMES.length;
+  let ks;
+  if(total <= 6000) ks = [...new Set(GAMES.filter(g=> !g.custom).map(g=> textShard(g.id)))];
+  else { let mine = []; try{ mine = GAMES.filter(g=> FAVS.has(g.id) || STATUSES[g.id]); }catch(e){} ks = [...new Set(mine.map(g=> textShard(g.id)))]; }
+  ks = ks.filter(k=> !RT_TEXT.have.has(k));
+  let i = 0;
+  const step = ()=>{ if(i >= ks.length) return; if(document.hidden){ setTimeout(step, 3000); return; } const k = ks[i++]; textLoad(k).then(()=> setTimeout(()=> idle(step), 600)); };
+  idle(step);
+}, 7000);
+// compatibilità: chi aspettava «i dettagli» li ha già (indice)
+if(DATA_V3) setTimeout(()=>{ try{ window.dispatchEvent(new Event('details-ready')); }catch(e){} }, 0);
+// ---- formato vecchio (fino alla v208): dettagli in 4 pezzi, se qualcuno li ha ancora ----
 const DETAILS_N = 4;
 function detailsPart(){
+  if(DATA_V3) return false;
   const P = window.GIOCHI_DETAILS_PARTS || [], seen = new Set(P.map(x=> x.part));
   if(seen.size < DETAILS_N || DETAILS_READY) return false;
   const all = {enrich: {}, dopa: {}};
@@ -599,7 +697,7 @@ function applyDetails(){
   if(DETAILS_READY || typeof GIOCHI_DETAILS === 'undefined' || !GIOCHI_DETAILS) return false;
   const EN = GIOCHI_DETAILS.enrich || {}, DP = GIOCHI_DETAILS.dopa || {};
   GAMES.forEach(g=>{
-    if(g.custom) return;                                       // i giochi aggiunti da te hanno già la loro analisi
+    if(g.custom) return;
     g.enrich = EN[g.id] || null;
     if(g.enrich && DP[g.id]) g.enrich.dopa = DP[g.id];
   });
@@ -610,24 +708,7 @@ function applyDetails(){
   try{ window.dispatchEvent(new Event('details-ready')); }catch(e){}
   return true;
 }
-// se il file dei dettagli non arriva (rete che cade) riprova da solo, fino a 3 volte
-let detailsTries = 0;
-function retryDetails(){
-  if(DETAILS_READY) return;
-  if(detailsTries >= 3){ try{ showToast('I dettagli dei giochi non si sono caricati: controlla la connessione e ricarica la pagina', 6000); }catch(e){} return; }
-  detailsTries++;
-  setTimeout(()=>{
-    const have = new Set((window.GIOCHI_DETAILS_PARTS || []).map(x=> x.part));
-    for(let k = 1; k <= DETAILS_N; k++){
-      if(have.has(k)) continue;
-      const s = document.createElement('script');
-      s.src = 'giochi-dettagli-' + k + '.js?r=' + Date.now();
-      s.onload = ()=> detailsPart();
-      s.onerror = retryDetails;
-      document.head.appendChild(s);
-    }
-  }, 1500 * detailsTries);
-}
+function retryDetails(){}
 const LABELS = GIOCHI_DATA.labels;
 GAMES.forEach(g=>{ g.label = LABELS[g.id] || null; });
 const MARKET = GIOCHI_DATA.market;
@@ -827,7 +908,7 @@ function renderMetrics(){
   const median = scores[Math.floor(scores.length/2)];
   const years = GAMES.map(g=>g.ysort).filter(Boolean);
   const minY = Math.min(...years), maxY = Math.max(...years);
-  const withStory = GAMES.filter(g=>g.story).length;
+  const withStory = GAMES.filter(g=> g.story || g.hs).length;
   const playedCount = Object.values(STATUSES).filter(s=>s==='played').length;
   const pct = GAMES.length ? Math.round((playedCount/GAMES.length)*100) : 0;
   const withCover = GAMES.filter(g=>effectiveCover(g)).length;
@@ -1015,7 +1096,7 @@ function applyFilters(){
     list = list.filter(g=> g.score >= ms);
   }
   if(state.onlyFavs) list = list.filter(g=> FAVS.has(g.id));
-  if(state.onlyStory) list = list.filter(g=> !!g.story);
+  if(state.onlyStory) list = list.filter(g=> !!(g.story || g.hs));
   if(state.tags.size>0) list = list.filter(g=> g.tags.some(t=> state.tags.has(t)));
   if(state.mood){
     const moodPreset = MOOD_PRESETS.find(m=>m.key===state.mood);
@@ -1087,11 +1168,13 @@ function render(){
     const tr = document.createElement('tr');
     tr.dataset.gid = g.id;
     const isFav = FAVS.has(g.id);
+    // v209: i giochi «Nel cuore» (😍, i tuoi top) mostrano il procione con gli occhi a cuore anche nella lista
+    const heartBadge = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return Array.isArray(t) && t.includes(g.id) ? '<img class="row-heart" src="icons/approved.webp" alt="Nel cuore" title="Nel cuore: uno dei giochi che ami di più" width="22" height="23" loading="lazy" decoding="async">' : ''; }catch(e){ return ''; } })();
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip${d.approved ? ' appr' : ''}" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};"${d.approved ? ' title="Approvato dal procione: sintonia altissima con i tuoi gusti"' : ''}>${d.approved ? '<img src="icons/approved.webp" alt="" width="16" height="17">' : ''}${d.pct}%</span>` : ''; })();
     tr.innerHTML = `
       <td class="fav" data-role="fav"><svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>
       <td class="rank mobhide">${g.id}</td>
-      <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${miniIcons(g)}${g.name}${dnaBadge}</td>
+      <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${miniIcons(g)}${g.name}${heartBadge}${dnaBadge}</td>
       <td class="plat mobhide">${g.plat}</td>
       <td class="year">${g.year || g.ysort || ''}</td>
       <td><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span></td>

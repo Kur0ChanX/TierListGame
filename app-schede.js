@@ -766,8 +766,18 @@ const modalCard = document.getElementById('modalCard');
 const wizardBackdrop = document.getElementById('wizardBackdrop');
 const wizardCard = document.getElementById('wizardCard');
 
+// v209: con il catalogo a pezzi, finché i testi lunghi di un gioco non sono arrivati g.enrich è il «lite» dell'indice.
+// La scheda lo mostra come «analisi in arrivo» (come prima dell'arrivo dei dettagli) e si ridisegna da sola appena arrivano i testi.
 function openModal(g){
+  const lite = g && g.enrich && g.enrich._lite ? g.enrich : null;
+  if(lite){ const v = {_lite: true}; ['coverUrl', 'storyTag', 'dopamine', 'hoursMain', 'hoursCompletionist'].forEach(k=>{ if(lite[k] != null) v[k] = lite[k]; }); g.enrich = v; }
+  try{ return openModalBody(g); }
+  finally{ if(lite && g.enrich && g.enrich._lite) g.enrich = lite; }
+}
+function openModalBody(g){
   currentModalGame = g;
+  // v209: testi lunghi non ancora arrivati (catalogo a pezzi)? apro subito con l'indice e, appena arrivano, aggiorno la scheda
+  try{ if(window.rtTexts && !rtTexts.has(g)){ const id = g.id; rtTexts.ensure(g).then(()=>{ if(currentModalGame && currentModalGame.id === id && modalBackdrop.classList.contains('show') && rtTexts.has(currentModalGame)){ const y = modalCard.scrollTop; openModal(GAMES.find(x=> x.id === id) || currentModalGame); modalCard.scrollTop = y; } }); } }catch(e){}
   modalCard.classList.remove('wide');
   const isFav = FAVS.has(g.id);
   const storyHtml = g.story

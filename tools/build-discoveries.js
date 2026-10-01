@@ -22,8 +22,7 @@ async function get(url, json = true, tries = 3){
   }
   return null;
 }
-const raw = fs.readFileSync(path.join(ROOT, 'giochi.js'), 'utf8').replace(/^const GIOCHI_DATA = /, '').replace(/;\s*$/, '');
-const KNOWN = new Set(JSON.parse(raw).games.map(g=> norm(g.name)));
+const KNOWN = new Set(require('./data-io').load().games.map(g=> norm(g.name)));      // v209: indice letto da data-io
 
 const NAME2CODE = {'JRPG': 'JRPG', 'RPG': 'WRPG', 'Action RPG': 'ACT', 'Turn-Based Combat': 'TUR', 'Turn-Based': 'TUR', 'Strategy RPG': 'TAC', 'Tactical RPG': 'TAC', 'Roguelike': 'ROG', 'Roguelite': 'ROG', 'Metroidvania': 'METR', 'Souls-like': 'SOUL',
   'Horror': 'HOR', 'Survival Horror': 'SURV', 'Survival': 'SAND', 'Platformer': 'PLAT', 'Precision Platformer': 'PLAT', '3D Platformer': 'PLAT3D', 'Puzzle': 'PUZ', 'Fighting': 'FIGHT', "Beat 'em up": 'BEAT', 'FPS': 'FPS', "Shoot 'Em Up": 'SHMUP',
