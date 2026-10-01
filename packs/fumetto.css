@@ -13,13 +13,13 @@ html[data-pack="fumetto"]{
   --pk-act:#e63946; --pk-act-c:#fff; --pk-act-sh:3px 3px 0 #111; --pk-ib-act:#e63946; --pk-act-bc:#111;
   --pk-badge-r:0; --pk-badge-bd:0; --pk-badge-sh:none; --pk-badge-c:#111;
   --t-splus:transparent; --t-s:transparent; --t-a:transparent; --t-b:transparent; --t-c:transparent; --t-d:transparent; --t-e:transparent; --t-f:transparent; --t-nd:transparent;
-  --t-splus-c:#111; --t-c-c:#111; --t-nd-c:#fff; --pk-bar:#111; --pk-bar-r:0; --pk-gi:drop-shadow(1px 1px 0 #111); --pk-scrim:rgba(17,17,17,.6); --pk-tt-c:#e63946;
+  --t-splus-c:#111; --t-c-c:#111; --t-nd-c:#111; --pk-bar:#111; --pk-bar-r:0; --pk-gi:drop-shadow(1px 1px 0 #111); --pk-scrim:rgba(17,17,17,.6); --pk-tt-c:#e63946;
   --dots:#e63946; --burst:#e63946; --burst-bg:#ffe14d;
 }
 html[data-pack="fumetto"].pk-dark{
   --pk-block:#1b2255; --pk-sh:5px 5px 0 #27d3ff; --pk-shs:3px 3px 0 #27d3ff; --pk-shc:2px 2px 0 #27d3ff; --pk-chip:#1b2255; --pk-input:#1b2255; --pk-ib:#1b2255; --pk-nav:#1b2255;
   --pk-th:#fff; --pk-th-c:#10163a; --pk-alt:rgba(255,255,255,.05); --pk-hov:rgba(255,77,94,.2); --pk-row-bd:2px solid #fff; --pk-act:#ff4d5e; --pk-act-sh:3px 3px 0 #27d3ff; --pk-bar:#ffd23f; --pk-act-bc:#fff;
-  --t-nd-c:#fff; --dots:#27d3ff; --burst:#ffd23f; --pk-gi:drop-shadow(1px 1px 0 #000); --pk-scrim:rgba(5,8,30,.7); --pk-tt-c:#ffd23f;
+  --t-nd-c:#111; --dots:#27d3ff; --burst:#ffd23f; --pk-gi:drop-shadow(1px 1px 0 #000); --pk-scrim:rgba(5,8,30,.7); --pk-tt-c:#ffd23f;
 }
 html[data-pack="fumetto"] body{font-weight:700}
 /* retino a mezzatinta che sfuma verso il basso */

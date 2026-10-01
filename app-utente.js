@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v178', date:'2026-10-01', time:'03:26', items:[
+    'Temi grafici: le scritte dei contatori attivi (Tutti, S, A…) nei filtri ora si leggono bene in ogni tema, e il tier ND del tema Fumetto ha di nuovo il testo scuro sulla stella bianca. Controllo automatico dei contrasti su 15 schermate per tutti i 20 temi, chiaro e scuro.'
+  ]},
   {version:'v177', date:'2026-10-01', time:'03:13', items:[
     'Avvisi di prezzo a soglia: nella wishlist ogni gioco ha «🔔 Avvisami sotto X €» (Imposta/Cambia/Togli) e nel Verdetto d\'acquisto «Aspetta uno sconto» c\'è il pulsante «🔔 Avvisami a X €» con il prezzo giusto già calcolato. All\'apertura dell\'app (e dopo ogni controllo dei prezzi) compare il palloncino «🔔 … costa X €: sotto i tuoi Y €», che toccato apre la wishlist; con le notifiche attive arriva anche quella del telefono. Prezzi Steam dai dati settimanali dei server (CheapShark in dollari: conversione indicativa).',
     'Nuovo «🕸️ Radar di gusto»: i tuoi 8 gusti più forti disegnati a ragnatela (animata), dentro «I tuoi gusti» e, nella scheda di ogni gioco, sotto il verdetto: i punti si accendono sui gusti che quel gioco tocca e una riga dice quanti sono e se ha anche cose che di solito eviti. Calcolato sul dispositivo dal modello dei gusti, senza AI; compare quando hai segnato almeno 3 giochi.'
