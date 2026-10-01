@@ -495,9 +495,10 @@ function attachDbListeners(){
 })();
 function highlightsHtml(g){
   const e = g.enrich; if(!e || (!e.storyTag && !e.dopamine)) return '';
-  let out = '<div class="enrich-highlights">';
-  if(e.storyTag && STORY_TAG_INFO[e.storyTag]) out += `<span class="enrich-chip ${e.storyTag}">${STORY_TAG_INFO[e.storyTag].icon} ${STORY_TAG_INFO[e.storyTag].label}${e.storyTagNote ? ' — ' + e.storyTagNote : ''}</span>`;
-  if(e.dopamine) out += `<button type="button" class="enrich-chip dopamine dopa-toggle" aria-expanded="false" aria-controls="dopaPanel">💉 Loop molto coinvolgente <span class="dopa-chev" aria-hidden="true">▾</span></button>`;
+  // v205: due riquadri leggibili (icona grande, titolo, spiegazione) al posto delle pillole minuscole
+  let out = '<div class="enrich-highlights hl2">';
+  if(e.storyTag && STORY_TAG_INFO[e.storyTag]) out += `<div class="hl-card hl-${escHtml(e.storyTag)}"><span class="hl-ic" aria-hidden="true">${STORY_TAG_INFO[e.storyTag].icon}</span><div class="hl-tx"><b>${escHtml(STORY_TAG_INFO[e.storyTag].label)}</b>${e.storyTagNote ? `<p>${escHtml(e.storyTagNote)}</p>` : ''}</div></div>`;
+  if(e.dopamine) out += `<button type="button" class="hl-card hl-dopa dopa-toggle" aria-expanded="false" aria-controls="dopaPanel"><span class="hl-ic" aria-hidden="true">💉</span><div class="hl-tx"><b>Loop molto coinvolgente</b><p>Tocca per scoprire cosa ti tiene incollato</p></div><span class="dopa-chev" aria-hidden="true">▾</span></button>`;
   out += '</div>';
   if(e.dopamine) out += dopaPanelHtml(g);
   return out;
@@ -506,7 +507,7 @@ function dopaPanelHtml(g){
   const d = g.enrich && g.enrich.dopa;
   const def = `<p class="dopa-def"><b>Cosa vuol dire «dopamina»:</b> il gioco ti premia spesso e ti spinge a dire «ancora un turno». Non misura la qualità, misura quanto è difficile staccarsi.</p>`;
   if(!d) return `<div class="dopa-panel" id="dopaPanel" hidden>${def}</div>`;
-  const steps = (d.loop||[]).map(s=>`<span class="dopa-step">${escHtml(s)}</span>`).join('<span class="dopa-arrow" aria-hidden="true">→</span>');
+  const steps = (d.loop||[]).map((s, i)=>`<span class="dopa-step"><i>${i + 1}</i>${escHtml(s)}</span>`).join('<span class="dopa-arrow" aria-hidden="true">→</span>');
   return `<div class="dopa-panel" id="dopaPanel" hidden>
     ${def}
     <span class="dopa-k">Il ciclo che ti tiene incollato</span>

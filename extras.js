@@ -555,8 +555,23 @@
   };
   // scheda del gioco senza copertina: pulsante "Trova copertina" e (se attivo) ricerca automatica all'apertura
   let assistToken = 0;
+  // v205: locandine «deboli» già salvate (da RAWG, che può scambiare i giochi con lo stesso nome): ricontrollate una volta ogni 3 giorni
+  // con le fonti migliori (Steam col numero del server, Libretro, Wikipedia). Cambio solo se trovo di meglio; mai se hai bloccato o caricato tu.
+  const CCHK = 'jrpg_cover_chk2';
+  function recheckWeakCover(g){
+    try{
+      const u = coverOf(g); if(!u || coverLocked(g) || !/media\.rawg\.io|rawg\.io\/media/i.test(u)) return;
+      if(typeof USER_COVER_IDS !== 'undefined' && USER_COVER_IDS[String(g.id)]) return;
+      const done = LS.get(CCHK, {}) || {}; if(done[g.id] && Date.now() - done[g.id] < 3 * 864e5) return;
+      findCover(g, {quick: true}).then(async r=>{
+        const d2 = LS.get(CCHK, {}) || {}; d2[g.id] = Date.now(); LS.set(CCHK, d2);
+        if(r && r.source !== 'RAWG' && r.url !== u){ await saveAutoCover(g, r.url); try{ if(typeof refreshCover === 'function') refreshCover(g); }catch(e){} try{ renderWhenIdle({list: true}); }catch(e){} }
+      }).catch(()=>{});
+    }catch(e){}
+  }
   function coverAssist(g){
     if(!g) return;
+    recheckWeakCover(g);
     const block = document.getElementById('coverBlock'); if(!block) return;
     const my = ++assistToken;
     if(coverOf(g)){                                   // ha già una locandina: pulsante per riscaricarla dalle fonti online (mai in automatico)

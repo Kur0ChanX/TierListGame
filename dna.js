@@ -63,9 +63,9 @@
     const nSet = Object.keys(dw).filter(k=> dw[k]).length;
     const detList = [...det].filter(k=> M[k]);
     return `<div class="dna-card" id="dnaWhy"><div class="dna-head">🧬 <b>${known ? 'Cosa ti ha preso di questo gioco?' : 'Cosa ti attira di questo gioco?'}</b>${nSet ? ` <span class="dna-n">${nSet} ${nSet === 1 ? 'tratto segnato' : 'tratti segnati'}</span>` : ''}</div>
-      <div class="dna-sub">Tocca un tratto: 👍 mi piace · di nuovo 👎 non mi piace · di nuovo niente. Sotto ti spiego cosa significa. Più ne segni, più capisco il <b>perché</b> dei tuoi gusti.</div>
+      <div class="dna-sub">Tocca un tratto: <b>👍 mi piace</b> → <b>👎 non mi piace</b> → niente. Apri una categoria per vedere gli altri. Ogni tocco insegna al cervello 🧠 cosa ami davvero.</div>
       ${detList.length ? `<div class="dna-cat"><div class="dna-ct">🔎 Riconosciuti in questo gioco</div><div class="dna-chips">${detList.map(chip).join('')}</div></div>` : ''}
-      ${cats.map(([ic, n, ks])=> `<details class="dna-cat"${ks.some(k=> dw[k]) ? ' open' : ''}><summary class="dna-ct">${ic} ${esc(n)} <small>${ks.filter(k=> M[k]).length}</small></summary><div class="dna-chips">${ks.map(chip).join('')}</div></details>`).join('')}
+      ${cats.map(([ic, n, ks])=> `<details class="dna-cat"><summary class="dna-ct"><span>${ic} ${esc(n)}</span><small>${ks.filter(k=> dw[k]).length ? '<b>' + ks.filter(k=> dw[k]).length + ' segnati</b> · ' : ''}${ks.filter(k=> M[k]).length}</small></summary><div class="dna-chips">${ks.map(chip).join('')}</div></details>`).join('')}
       ${mine.length ? `<details class="dna-cat" open><summary class="dna-ct">✍️ I tuoi tratti <small>${mine.length}</small></summary><div class="dna-chips">${mine.map(([k, c])=> `<button type="button" class="dna-chip${(c.by || []).includes(g.id) ? ' like' : (c.no || []).includes(g.id) ? ' no' : ''}" data-mine="${esc(k)}">✍️ ${esc(c.n)}${(c.by || []).includes(g.id) ? ' 👍' : (c.no || []).includes(g.id) ? ' 👎' : ''}</button>`).join('')}</div></details>` : ''}
       <div class="dna-info" id="dnaInfo"${info ? '' : ' hidden'}>${info || ''}</div>
       <div class="dna-free"><button type="button" class="btn" data-dna-free>✍️ Scrivilo con parole tue</button><small>Es. «adoro i dark eoni e la sphere grid, la storia di Tidus e Yuna, il blitzball»: l'AI lo trasforma in tratti (anche nuovi) che userò per TUTTI i giochi.</small></div></div>`;
@@ -141,11 +141,12 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
   }
   function redraw(card, g, info){
     const box = card.querySelector('#dnaWhy'); if(!box) return;
-    const open = [...box.querySelectorAll('details.dna-cat')].map(d=> d.open);
+    const open = [...box.querySelectorAll('details.dna-cat')].map(d=> d.open), y = card.scrollTop;
     box.outerHTML = whyHtml(g, info); const nb = card.querySelector('#dnaWhy');
     if(nb) [...nb.querySelectorAll('details.dna-cat')].forEach((d, i)=>{ if(open[i]) d.open = true; });
     wire(card, g);
     try{ const gs = card.querySelector('#gsCard'); const h = window.rtRadar && window.rtRadar(g); if(gs && h) gs.outerHTML = h; }catch(x){}
+    card.scrollTop = y; requestAnimationFrame(()=>{ card.scrollTop = y; });
   }
   function wire(card, g){
     const box = card.querySelector('#dnaWhy'); if(!box || box.dataset.w) return; box.dataset.w = '1';
@@ -163,7 +164,13 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
       LSS(WHY, all); try{ SIMC.clear(); }catch(x){}
       try{ if(navigator.vibrate) navigator.vibrate(8); }catch(x){}
       const M = MECH(), info = M[k] ? `<b>${M[k].ic} ${esc(M[k].n)}</b>${nx > 0 ? ' · 👍 ti piace' : nx < 0 ? ' · 👎 non ti piace' : ' · tolto'}<br>${esc(XPL[k] || (M[k].d.charAt(0).toUpperCase() + M[k].d.slice(1)) + '.')}` : '';
-      redraw(card, g, info);
+      // v205: aggiorno SUL POSTO (prima rifacevo tutto il riquadro e la pagina saltava in fondo)
+      box.querySelectorAll('[data-dna="' + k + '"]').forEach(c=>{ c.classList.toggle('like', nx > 0); c.classList.toggle('no', nx < 0); c.innerHTML = M[k].ic + ' ' + esc(M[k].n) + (nx > 0 ? ' 👍' : nx < 0 ? ' 👎' : ''); });
+      const inf = box.querySelector('#dnaInfo'); if(inf){ inf.innerHTML = info; inf.hidden = !info; }
+      const nSet = Object.keys(cur).filter(x=> cur[x]).length, hd = box.querySelector('.dna-head');
+      if(hd){ let nn = hd.querySelector('.dna-n'); if(!nn && nSet){ nn = document.createElement('span'); nn.className = 'dna-n'; hd.appendChild(nn); } if(nn){ if(nSet) nn.textContent = nSet + (nSet === 1 ? ' tratto segnato' : ' tratti segnati'); else nn.remove(); } }
+      box.querySelectorAll('details.dna-cat').forEach(d=>{ const sm = d.querySelector('summary small'); if(!sm) return; const tot = d.querySelectorAll('.dna-chip').length, set = [...d.querySelectorAll('.dna-chip')].filter(c=> c.classList.contains('like') || c.classList.contains('no')).length; sm.innerHTML = (set ? '<b>' + set + ' segnati</b> · ' : '') + tot; });
+      clearTimeout(box._gt); box._gt = setTimeout(()=>{ try{ const gs = card.querySelector('#gsCard'), h = window.rtRadar && window.rtRadar(g); if(gs && h){ const y = card.scrollTop; gs.outerHTML = h; card.scrollTop = y; } }catch(x){} }, 500);
     });
   }
 

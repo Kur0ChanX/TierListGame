@@ -230,7 +230,13 @@
     </div>`;
   }
   function pop(el){ try{ el.animate([{transform: 'scale(1)'}, {transform: 'scale(1.28)'}, {transform: 'scale(1)'}], {duration: 320, easing: 'cubic-bezier(.32,.72,0,1)'}); }catch(e){} try{ window.rtHaptic && rtHaptic('soft'); }catch(e){} }
-  function refreshBar(g){ const old = document.getElementById('rtBar'); if(old){ old.outerHTML = barHtml(g); } }
+  // aggiorno la barra «sul posto» (senza rifare l'HTML): niente salti di pagina
+  function refreshBar(g){
+    const bar = document.getElementById('rtBar'); if(!bar) return;
+    const r = reactOf(g), st = stOf(g), on = {fav: isFav(g), heart: inHeart(g)}; REACT.forEach(x=> on[x.k] = !!r[x.k]);
+    bar.querySelectorAll('[data-rb]').forEach(b=>{ const o = !!on[b.dataset.rb]; b.classList.toggle('on', o); b.setAttribute('aria-pressed', o ? 'true' : 'false'); });
+    bar.querySelectorAll('[data-rs]').forEach(b=> b.classList.toggle('on', st === b.dataset.rs));
+  }
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('#rtBar [data-rb], #rtBar [data-rs]'); if(!b) return;
     const g = typeof currentModalGame !== 'undefined' ? currentModalGame : null; if(!g) return;
@@ -258,56 +264,86 @@
     }
   }, true);
 
-  // ---------------------------------------------------------------- valutazioni nella scheda
+  // ---------------------------------------------------------------- valutazioni nella scheda (v205: tasti 1–10 grandi + «Fine», niente cursori)
+  // Le modifiche restano in una «bozza» finché non premi «✅ Fine»: così sai che sono al sicuro. Se chiudi la scheda senza premere, le salvo io (non si perde niente).
+  let DRAFT = null;                  // {id, f, v:{voce:valore}, dirty}
+  const draftOf = g=>{
+    if(DRAFT && DRAFT.id === g.id) return DRAFT;
+    const r = rateOf(g); DRAFT = {id: g.id, f: (r && r.f) || famOf(g), v: Object.assign({}, (r && r.v) || {}), dirty: false}; return DRAFT;
+  };
+  const dAvg = d=>{ const v = Object.values(d.v).filter(x=> typeof x === 'number'); return v.length ? v.reduce((a, b)=> a + b, 0) / v.length : null; };
+  const fmt = v=> String(v).replace('.', ',');
+  function rowHtml(k, label, help, v){
+    const has = typeof v === 'number', base = has ? Math.floor(v) : 0, half = has && v % 1 !== 0;
+    return `<div class="rr${has ? ' set' : ''}" data-k="${k}">
+      <div class="rr-h"><b>${esc(label)}</b><span class="rr-v">${has ? fmt(v) : '—'}</span></div>
+      <div class="rr-n" role="radiogroup" aria-label="${esc(label)}">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" role="radio" data-n="${n}" aria-checked="${has && base === n ? 'true' : 'false'}" class="${has && base === n ? 'on' : (has && n < base ? 'lo' : '')}">${n}</button>`).join('')}</div>
+      <div class="rr-f"><small>${esc(help)}</small><span class="rr-act"><button type="button" class="rr-half${half ? ' on' : ''}"${has && base < 10 ? '' : ' disabled'} title="Aggiungi mezzo punto">+½</button><button type="button" class="rr-x"${has ? '' : ' disabled'} title="Togli il voto">✕</button></span></div>
+    </div>`;
+  }
   function rateHtml(g, open){
-    const fk = (rateOf(g) || {}).f || famOf(g), fam = FAM[fk] || FAM.rpg, r = rateOf(g) || {v: {}}, avg = avgOf(r);
-    const n = Object.keys(r.v || {}).length;
-    const rows = fam.v.map(([k, label, dim, help])=>{
-      const v = r.v[k];
-      return `<div class="rr${typeof v === 'number' ? ' set' : ''}" data-k="${k}">
-        <div class="rr-h"><b>${esc(label)}</b><span class="rr-v">${typeof v === 'number' ? String(v).replace('.', ',') : '—'}</span></div>
-        <input type="range" min="1" max="10" step="0.5" value="${typeof v === 'number' ? v : 6}" aria-label="${esc(label)}">
-        <div class="rr-f"><small>${esc(help)}</small>${typeof v === 'number' ? '<button type="button" class="rr-x" title="Togli">✕</button>' : ''}</div>
-      </div>`;
-    }).join('');
-    const famSel = `<select class="rr-fam" aria-label="Famiglia">${Object.keys(FAM).map(k=> `<option value="${k}"${k === fk ? ' selected' : ''}>${FAM[k].ic} ${FAM[k].n}</option>`).join('')}</select>`;
-    return `<details class="rr-card" id="rtRate"${open ? ' open' : ''}><summary>🎚️ <b>Le tue valutazioni</b> <span class="rr-sum">${n ? `${n}/6 voci · media <b>${avg.toFixed(1).replace('.', ',')}</b>` : '6 voci da 1 a 10: aiutano il cervello a capirti'}</span></summary>
+    const d = draftOf(g), fam = FAM[d.f] || FAM.rpg, n = Object.keys(d.v).length, avg = dAvg(d);
+    const famSel = `<select class="rr-fam" aria-label="Famiglia">${Object.keys(FAM).map(k=> `<option value="${k}"${k === d.f ? ' selected' : ''}>${FAM[k].ic} ${FAM[k].n}</option>`).join('')}</select>`;
+    return `<details class="rr-card" id="rtRate"${open ? ' open' : ''}><summary>🎚️ <b>Le tue valutazioni</b> <span class="rr-sum">${sumText(n, avg)}</span></summary>
       <div class="rr-top"><small>Voci per</small>${famSel}</div>
-      ${rows}
+      ${fam.v.map(([k, label, , help])=> rowHtml(k, label, help, d.v[k])).join('')}
       <div class="rr-learn" id="rrLearn">${learnLine()}</div>
+      <div class="rr-end"><span class="rr-state" id="rrState">${savedText(d)}</span><button type="button" class="btn primary rr-done" id="rrDone"${d.dirty ? '' : ' disabled'}>✅ Fine</button></div>
     </details>`;
   }
+  const sumText = (n, avg)=> n ? `${n}/6 voci · media <b>${fmt(avg.toFixed(1))}</b>` : '6 voci da 1 a 10: aiutano il cervello a capirti';
+  const savedText = d=> d.dirty ? '✏️ Non ancora salvato: premi «Fine»' : (Object.keys(d.v).length ? '🔒 Salvato' : '');
   function learnLine(){
     const imp = importance(), top = Object.entries(imp).filter(([, x])=> x.imp != null && x.imp > .25).sort((a, b)=> b[1].imp - a[1].imp).slice(0, 2);
     if(top.length) return `🧠 Ho capito che per te conta di più <b>${top.map(([d])=> DIMN[d] || d).join('</b> e <b>')}</b>: è lì che si decide il tuo voto.`;
     const nRated = Object.keys(rates()).length;
     return nRated < 3 ? `🧠 Valuta almeno 3 giochi e capirò quali voci contano di più per te (ora: ${nRated}).` : '🧠 Sto ancora capendo quali voci contano di più per te: continua a valutare.';
   }
-  const rateT = {};          // un timer per ogni voce: muovendo in fretta due cursori diversi non se ne perde nessuno
-  document.addEventListener('input', e=>{
-    const inp = e.target.closest && e.target.closest('#rtRate input[type=range]'); if(!inp) return;
-    const row = inp.closest('.rr'), v = +inp.value, k = row.dataset.k; row.classList.add('set'); row.querySelector('.rr-v').textContent = String(v).replace('.', ',');
-    const g = currentModalGame; clearTimeout(rateT[k]);
-    rateT[k] = setTimeout(()=>{ delete rateT[k]; setRate(g, k, v); paintRateSummary(g); }, 250);
+  function paintDraft(){
+    const box = document.getElementById('rtRate'); if(!box || !DRAFT) return;
+    const d = DRAFT, n = Object.keys(d.v).length, avg = dAvg(d);
+    box.querySelector('.rr-sum').innerHTML = sumText(n, avg);
+    box.querySelectorAll('.rr').forEach(row=>{
+      const v = d.v[row.dataset.k], has = typeof v === 'number', base = has ? Math.floor(v) : 0, half = has && v % 1 !== 0;
+      row.classList.toggle('set', has); row.querySelector('.rr-v').textContent = has ? fmt(v) : '—';
+      row.querySelectorAll('[data-n]').forEach(b=>{ const k = +b.dataset.n, on = has && base === k; b.classList.toggle('on', on); b.classList.toggle('lo', has && k < base); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+      const h = row.querySelector('.rr-half'); h.classList.toggle('on', half); h.disabled = !(has && base < 10);
+      row.querySelector('.rr-x').disabled = !has;
+    });
+    box.querySelector('#rrState').textContent = savedText(d);
+    const done = box.querySelector('#rrDone'); done.disabled = !d.dirty;
+  }
+  function commitDraft(silent){
+    const d = DRAFT; if(!d || !d.dirty) return;
+    const g = (typeof GAMES !== 'undefined' && GAMES.find(x=> x.id === d.id)); if(!g){ DRAFT = null; return; }
+    const all = rates();
+    if(Object.keys(d.v).length) all[g.id] = {f: d.f, v: Object.assign({}, d.v), t: Date.now()}; else delete all[g.id];
+    LSS(RTK, all); d.dirty = false; changed();
+    const box = document.getElementById('rtRate');
+    if(box && currentModalGame && currentModalGame.id === g.id){ paintDraft(); const l = box.querySelector('#rrLearn'); if(l) l.innerHTML = learnLine(); }
+    if(!silent) toast('✅ Valutazioni salvate — il cervello ha imparato', 2200);
+  }
+  document.addEventListener('click', e=>{
+    const t = e.target; if(!t.closest) return;
+    const box = t.closest('#rtRate'); if(!box) return;
+    const g = currentModalGame; if(!g) return;
+    const d = draftOf(g);
+    const nb = t.closest('.rr-n [data-n]');
+    if(nb){ const k = nb.closest('.rr').dataset.k; d.v[k] = +nb.dataset.n; d.dirty = true; paintDraft(); try{ window.rtHaptic && rtHaptic('tick'); }catch(x){} return; }
+    const hb = t.closest('.rr-half');
+    if(hb && !hb.disabled){ const k = hb.closest('.rr').dataset.k, cur = d.v[k]; if(typeof cur === 'number'){ d.v[k] = cur % 1 ? Math.floor(cur) : Math.min(10, cur + .5); d.dirty = true; paintDraft(); } return; }
+    const xb = t.closest('.rr-x');
+    if(xb && !xb.disabled){ delete d.v[xb.closest('.rr').dataset.k]; d.dirty = true; paintDraft(); return; }
+    if(t.closest('#rrDone')){ commitDraft(false); try{ box.open = false; }catch(x){} return; }
   });
   document.addEventListener('change', e=>{
     const sel = e.target.closest && e.target.closest('#rtRate .rr-fam'); if(!sel) return;
-    const g = currentModalGame, all = rates(), r = all[g.id] || {v: {}};
-    r.f = sel.value; r.v = {}; r.t = Date.now(); all[g.id] = r; LSS(RTK, all);
-    const box = document.getElementById('rtRate'); if(box) box.outerHTML = rateHtml(g, true);
+    const g = currentModalGame; if(!g) return; const d = draftOf(g);
+    d.f = sel.value; d.v = {}; d.dirty = true;
+    const box = document.getElementById('rtRate'), wasOpen = box.open; box.outerHTML = rateHtml(g, wasOpen);
   });
-  document.addEventListener('click', e=>{
-    const x = e.target.closest && e.target.closest('#rtRate .rr-x'); if(!x) return;
-    const g = currentModalGame, row = x.closest('.rr'); setRate(g, row.dataset.k, null);
-    const box = document.getElementById('rtRate'); if(box) box.outerHTML = rateHtml(g, true);
-  });
-  function paintRateSummary(g){
-    const box = document.getElementById('rtRate'); if(!box) return;
-    const r = rateOf(g) || {v: {}}, n = Object.keys(r.v || {}).length, avg = avgOf(r);
-    const s = box.querySelector('.rr-sum'); if(s) s.innerHTML = n ? `${n}/6 voci · media <b>${avg.toFixed(1).replace('.', ',')}</b>` : '6 voci da 1 a 10: aiutano il cervello a capirti';
-    const l = box.querySelector('#rrLearn'); if(l) l.innerHTML = learnLine();
-    box.querySelectorAll('.rr').forEach(row=>{ if(typeof (r.v || {})[row.dataset.k] === 'number' && !row.querySelector('.rr-x')) row.querySelector('.rr-f').insertAdjacentHTML('beforeend', '<button type="button" class="rr-x" title="Togli">✕</button>'); });
-  }
+  // se chiudi la scheda con valutazioni non salvate, le salvo io
+  try{ const bd = document.getElementById('modalBackdrop'); if(bd) new MutationObserver(()=>{ if(!bd.classList.contains('show')) commitDraft(false); }).observe(bd, {attributes: true, attributeFilter: ['class']}); }catch(e){}
 
   // ---------------------------------------------------------------- «🧠 Cosa ho imparato di te»
   const FL = k=> { try{ return window.rtFLAB ? rtFLAB(k) : k; }catch(e){ return k; } };
@@ -359,6 +395,7 @@
   // ---------------------------------------------------------------- aggancio alla scheda
   function mount(g){
     const card = document.getElementById('modalCard'); if(!card || !g) return;
+    if(DRAFT && DRAFT.id !== g.id) commitDraft(true);          // passo a un altro gioco senza chiudere: salvo le valutazioni in sospeso
     card.querySelectorAll('#rtBar, #rtRate').forEach(n=> n.remove());
     const anchor = card.querySelector('#coverBlock') || card.querySelector('.modal-head');
     if(anchor) anchor.insertAdjacentHTML('afterend', barHtml(g) + rateHtml(g, false));
