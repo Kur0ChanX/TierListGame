@@ -139,7 +139,7 @@
       const ids = String((d.t || {})[t] || '').split('.').filter(Boolean).map(x=> parseInt(x, 36));
       const gs = ids.map(id=> GAMES.find(g=> g.id === id)).filter(Boolean), cs = (d.c || []).filter(x=> x[1] === t);
       if(!gs.length && !cs.length) return '';
-      return `<div class="tlv-row"><b class="tlv-t badge ${TIER_LABEL[t]}">${t}</b><div class="tlv-g">${gs.map(g=>{ const u = effectiveCover(g); return `<div class="tlv-c" title="${esc(g.name)}">${u ? `<img src="${esc(coverThumb(u, 200))}" data-orig="${esc(u)}" onerror="if(this.src!==this.dataset.orig)this.src=this.dataset.orig;else this.remove()" alt="">` : ''}<span>${esc(g.name)}</span></div>`; }).join('')}${cs.map(c=> `<div class="tlv-c"><span>${esc(c[0])}</span></div>`).join('')}</div></div>`;
+      return `<div class="tlv-row"><b class="tlv-t badge ${TIER_LABEL[t]}">${t}</b><div class="tlv-g">${gs.map(g=>{ const u = effectiveCover(g); return `<div class="tlv-c" title="${esc(g.name)}">${u ? `<img src="${esc(coverThumb(u, 200))}" data-orig="${esc(u)}" onerror="if(this.dataset.orig&amp;&amp;!this.dataset.tr){this.dataset.tr=1;this.src=this.dataset.orig}else{this.onerror=null;this.remove()}" alt="">` : ''}<span>${esc(g.name)}</span></div>`; }).join('')}${cs.map(c=> `<div class="tlv-c"><span>${esc(c[0])}</span></div>`).join('')}</div></div>`;
     }).join('');
     el.innerHTML = `<div class="tlv-head"><b>🦝 La tier list di ${esc(d.n || 'un amico')}</b><button class="btn" type="button" id="tlvClose">Chiudi</button></div><div class="lp-sub">Sola lettura: niente viene salvato sul tuo telefono.</div>${rows}<div class="lp-tools"><button class="btn primary" type="button" id="tlvApp">Crea la tua con Raccoon Tier</button></div>`;
     const close = ()=>{ el.remove(); history.replaceState(null, '', location.pathname + location.search); };
@@ -168,7 +168,11 @@
   // 11) PREVISIONE DEL VOTO  +  16) RECENSIONE A VOCE (nella scheda del gioco)
   // =====================================================================
   const MV = 'jrpg_myvote', PR = 'jrpg_prediction', RV = 'jrpg_reviews';
+  // v213: la previsione usa la Sintonia (lo stesso «cervello» dei consigli: gusti, giochi che ami, qualità), non più il vecchio profilo DNA che dava voti bassissimi.
+  // Quella che vedi prima di votare è quella che si «congela» al voto (anche se nel frattempo hai dato le 6 valutazioni o un 👍 che cambiano la Sintonia).
+  const SHOWN = new Map();
   function predict(g){
+    try{ const s = window.rtSintonia && rtSintonia(g); if(s && typeof s.pct === 'number' && s.n > 0) return Math.max(1, Math.min(10, Math.round(1 + s.pct / 100 * 9))); }catch(e){}
     let pct = 55;
     try{ const d = dnaForGame(g, buildTasteProfile()); if(d) pct = d.pct; else if(window.tasteScore) pct = 50 + tasteScore(g) * 40; }catch(e){}
     const q = (g.score - 70) / 30;                      // un gioco molto votato parte avvantaggiato
@@ -176,11 +180,12 @@
   }
   window.rtPredict = predict;
   function voteHtml(g){
-    const my = (LS.get(MV, {}) || {})[g.id], pr = (LS.get(PR, {}) || {})[g.id], now = predict(g), st = STATUSES[g.id];
+    const my = (LS.get(MV, {}) || {})[g.id], pr = (LS.get(PR, {}) || {})[g.id], st = STATUSES[g.id];
+    let now = SHOWN.get(g.id); if(now == null || my != null){ now = predict(g); if(my == null) SHOWN.set(g.id, now); }
     const words = n=> n >= 9 ? 'lo adorerai' : n >= 7 ? 'ti piacerà' : n >= 5 ? 'potrebbe piacerti' : 'probabilmente non fa per te';
     let h = `<div class="pv-box"><div class="pv-top">${gi('orb')} <b>Previsione:</b> ${my != null ? (pr != null ? pr : now) : now}/10 · <small>${esc(words(my != null && pr != null ? pr : now))}</small></div>`;
     if(my != null){ const p = pr != null ? pr : now, d = my - p; h += `<div class="pv-res">Il tuo voto: <b>${my}/10</b> · ${Math.abs(d) <= 1 ? '🎯 previsione azzeccata' : d > 0 ? 'ti è piaciuto più del previsto (+' + d + ')' : 'ti è piaciuto meno del previsto (' + d + ')'}</div>`; }
-    if(st === 'played' || st === 'dropped' || st === 'playing' || my != null) h += `<div class="pv-votes">${my != null ? '<small>Cambia voto:</small>' : '<small>Quanto ti è piaciuto?</small>'} ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}" data-vote="${n}">${n}</button>`).join('')}</div>`;
+    h += `<div class="pv-votes">${my != null ? '<small>Cambia voto:</small>' : '<small>' + (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : 'L\'hai giocato? Il tuo voto:') + '</small>'} ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}" data-vote="${n}">${n}</button>`).join('')}</div>`;
     return h + '</div>';
   }
   function reviewHtml(g){
@@ -218,7 +223,7 @@
       if(own) own.insertAdjacentHTML('afterend', voteHtml(g) + reviewHtml(g));
       card.querySelectorAll('[data-vote]').forEach(b=> b.addEventListener('click', ()=>{
         const v = +b.dataset.vote, mv = LS.get(MV, {}) || {}, pr = LS.get(PR, {}) || {};
-        if(pr[g.id] == null) pr[g.id] = predict(g);          // la previsione si «congela» al primo voto, così il confronto è onesto
+        if(pr[g.id] == null) pr[g.id] = SHOWN.has(g.id) ? SHOWN.get(g.id) : predict(g);          // la previsione si «congela» al primo voto, così il confronto è onesto
         mv[g.id] = v; LS.set(MV, mv); LS.set(PR, pr); try{ window.rtSfx && rtSfx('fav'); }catch(e){} openModal(g);
       }));
       const box = card.querySelector('.rv-edit');

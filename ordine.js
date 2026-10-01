@@ -56,7 +56,7 @@
     const card = document.getElementById('modalCard'); if(!card || !card.children.length) return;
     if(!cardOrderOn()){ card.querySelectorAll('.cd-layer, .cd-pin, .cd-tabs').forEach(n=> n.remove()); delete card.dataset.ctab; card.querySelectorAll('[data-tab]').forEach(n=> n.removeAttribute('data-tab')); return; }
     const g = (typeof currentModalGame !== 'undefined') ? currentModalGame : null;
-    const kids = Array.from(card.children).filter(el=> !el.classList.contains('cd-layer') && !el.classList.contains('cd-tabs'));
+    const kids = Array.from(card.children).filter(el=> !el.classList.contains('cd-layer') && !el.classList.contains('cd-tabs') && !el.classList.contains('cd-mvrow'));
     const top = [], bottom = [], blocks = new Map();
     let cur = null, inBottom = false;
     kids.forEach(el=>{
@@ -75,6 +75,17 @@
     const prevL = {}; card.querySelectorAll(':scope > .cd-layer').forEach(n=>{ if(prevL[n.dataset.l]) n.remove(); else prevL[n.dataset.l] = n; });
     const label = (id, text)=>{ let d = prevL[id]; if(!d){ d = document.createElement('div'); d.className = 'cd-layer'; d.dataset.l = id; } d.textContent = text; return d; };
     const known = new Set(LAYERS.flatMap(l=> l.keys));
+    // v213: riga sottile con ▲▼ sopra i riquadri senza titolo (quelli col titolo hanno le frecce nel titolo)
+    const prevMv = {}; card.querySelectorAll(':scope > .cd-mvrow').forEach(n=>{ if(prevMv[n.dataset.k]) n.remove(); else prevMv[n.dataset.k] = n; });
+    const usedMv = new Set(), mvEls = {};
+    const pushBlock = (k, tid)=>{
+      const els = blocks.get(k) || [], el0 = els[0];
+      if(el0 && !(el0.classList && el0.classList.contains('modal-section-title'))){
+        let r = prevMv[k]; if(!r){ r = document.createElement('div'); r.className = 'cd-mvrow'; r.dataset.k = k; r.innerHTML = '<small></small><span class="cd-mv"><button type="button" data-cmv="up" aria-label="Sposta più su">▲</button><button type="button" data-cmv="down" aria-label="Sposta più giù">▼</button></span>'; }
+        r.firstChild.textContent = KEY_NAMES[k] || ''; r.dataset.tab = tid; usedMv.add(k); mvEls[k] = r; out.push(r);
+      }
+      els.forEach(el=>{ el.dataset.tab = tid; out.push(el); });
+    };
     // tutto ciò che sta sopra le linguette (identità, locandina, la tua barra) si vede sempre
     out.forEach(el=> el.removeAttribute && el.removeAttribute('data-tab'));
     let bar = card.querySelector(':scope > .cd-tabs');
@@ -87,19 +98,37 @@
       if(l.id === 'altro') blocks.forEach((v, k)=>{ if(!known.has(k) && !used.has(k) && !ks.includes(k)) ks.push(k); });         // blocchi nuovi/sconosciuti: in «Altro»
       ks.forEach(k=>{ byTab[l.tab].push({k, l}); used.add(k); });
     });
-    const co = customOrder(), firstOfTab = {};
+    const co = customOrder(), firstOfTab = {}, ordered = {};
     TABS.forEach(([tid])=>{
       let items = byTab[tid]; if(!items.length) return; firstOfTab[tid] = true;
       const mine = co[tid];
       if(mine && mine.length){
         items = items.map((x, i)=> [x, mine.indexOf(x.k) >= 0 ? mine.indexOf(x.k) : 1000 + i]).sort((a, b)=> a[1] - b[1]).map(x=> x[0]);       // il tuo ordine (i blocchi nuovi in fondo)
-        items.forEach(({k})=> blocks.get(k).forEach(el=>{ el.dataset.tab = tid; out.push(el); }));
+        ordered[tid] = items.map(x=> x.k);
+        items.forEach(({k})=> pushBlock(k, tid));
       } else {
+        ordered[tid] = items.map(x=> x.k);
         let lastL = null;
-        items.forEach(({k, l})=>{ if(lastL && lastL !== l.id){ const lb = label(l.id, l.n); lb.dataset.tab = tid; out.push(lb); } lastL = l.id; blocks.get(k).forEach(el=>{ el.dataset.tab = tid; out.push(el); }); });
+        items.forEach(({k, l})=>{ if(lastL && lastL !== l.id){ const lb = label(l.id, l.n); lb.dataset.tab = tid; out.push(lb); } lastL = l.id; pushBlock(k, tid); });
       }
     });
     window.__rtTabKeys = Object.fromEntries(TABS.map(([tid])=> [tid, (byTab[tid] || []).map(x=> x.k)]));
+    Object.keys(prevMv).forEach(k=>{ if(!usedMv.has(k)){ if(obs) obs.disconnect(); arranging = true; prevMv[k].remove(); arranging = false; } });
+    window.__rtTabOrder = ordered;
+    // v213: su ogni riquadro (accanto al titolo) le frecce ▲▼ per spostarlo più su o più giù, senza aprire «↕️ Riordina»
+    try{
+      Object.keys(ordered).forEach(tid=>{
+        const ks = ordered[tid];
+        ks.forEach((k, i)=>{
+          const el0 = (blocks.get(k) || [])[0]; if(!el0 || !el0.classList) return;
+          let m = el0.classList.contains('modal-section-title') ? el0.querySelector(':scope > .cd-mv') : (mvEls[k] ? mvEls[k].querySelector('.cd-mv') : null);
+          if(!m && !el0.classList.contains('modal-section-title')) return;
+          if(!m){ m = document.createElement('span'); m.className = 'cd-mv'; m.innerHTML = '<button type="button" data-cmv="up" aria-label="Sposta più su">▲</button><button type="button" data-cmv="down" aria-label="Sposta più giù">▼</button>'; el0.appendChild(m); }
+          m.dataset.k = k; m.dataset.t = tid;
+          m.children[0].disabled = i === 0; m.children[1].disabled = i === ks.length - 1;
+        });
+      });
+    }catch(e){}
     bottom.forEach(el=> el.removeAttribute('data-tab'));
     out.push(...bottom);
     const t = tabNow(); if(card.dataset.ctab !== t) card.dataset.ctab = t; bar.style.setProperty('--i', TABS.findIndex(x=> x[0] === t));
@@ -112,9 +141,12 @@
     if(now.length === out.length && now.every((e, i)=> e === out[i])){ watch(); return; }
     if(obs) obs.disconnect();
     arranging = true;
-    const sy = card.scrollTop;                       // spostando i blocchi il browser potrebbe far saltare la pagina: rimetto lo scorrimento dov'era
+    // spostando i blocchi il browser potrebbe far saltare la pagina: rimetto lo scorrimento dov'era.
+    // v213: la posizione la so già (evento scroll) — leggerla qui costringeva il telefono a impaginare la scheda intera a metà apertura (~40 ms)
+    if(!card._syW){ card._syW = 1; card._sy = 0; card.addEventListener('scroll', ()=>{ card._sy = card.scrollTop; }, {passive: true}); }
+    const sy = card.closest('.show') ? card._sy || 0 : 0;
     out.forEach(el=> card.appendChild(el));
-    if(card.scrollTop !== sy) card.scrollTop = sy;
+    if(sy > 0) card.scrollTop = sy;
     arranging = false;
     watch();
   }
@@ -132,6 +164,19 @@
     try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
     const bar = card.querySelector('.cd-tabs'); if(bar && bar.getBoundingClientRect().top < 0){ try{ card.scrollTo({top: bar.offsetTop - 6, behavior: 'smooth'}); }catch(x){} }
   });
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('[data-cmv]'); if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const m = b.parentNode, k = m.dataset.k, tid = m.dataset.t, list = ((window.__rtTabOrder || {})[tid] || []).slice(), i = list.indexOf(k);
+    const to = b.dataset.cmv === 'up' ? i - 1 : i + 1; if(i < 0 || to < 0 || to >= list.length) return;
+    list.splice(i, 1); list.splice(to, 0, k);
+    const c = customOrder(); c[tid] = list; LS.set(OK2, c);
+    const card = document.getElementById('modalCard'), title = m.parentNode, before = title.getBoundingClientRect().top;
+    arrange();
+    try{ const after = title.getBoundingClientRect().top; card.scrollTop += after - before; }catch(x){}     // il riquadro resta sotto il dito: si sposta la scheda, non lui
+    try{ title.animate([{background: 'rgba(124,92,255,.28)'}, {background: 'transparent'}], {duration: 700, easing: 'ease-out'}); }catch(x){}
+    try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
+  }, true);
   // ---------- «↕️ Riordina la scheda»: scegli tu cosa va al 1°, 2°, 3° posto… e cosa in fondo (vale per tutti i giochi) ----------
   document.addEventListener('click', e=>{
     const rb = e.target.closest && e.target.closest('[data-creorder]'); if(!rb) return;
@@ -169,8 +214,13 @@
   if(typeof window.openModal === 'function'){
     const prev = window.openModal;
     window.openModal = function(g){
+      try{ const c = document.getElementById('modalCard'), bd = document.getElementById('modalBackdrop'); const same = c && bd && bd.classList.contains('show') && typeof currentModalGame !== 'undefined' && currentModalGame && g && currentModalGame.id === g.id; if(c && !same) c._sy = 0; }catch(e){}
+      if(obs) obs.disconnect();
       const r = prev.apply(this, arguments);
-      try{ if(obs){ obs.disconnect(); } arrange(); watch(); }catch(e){ try{ console.error(e); }catch(x){} }
+      // v213: riordino UNA volta, quando tutta la catena di apertura ha finito (barra icone, valutazioni, DNA… si aggiungono dopo di me):
+      // prima riordinavo subito e poi di nuovo 90 ms dopo, e la scheda appena aperta «saltava»
+      const run = ()=>{ try{ clearTimeout(tm); if(obs) obs.disconnect(); arrange(); watch(); }catch(e){ try{ console.error(e); }catch(x){} } };
+      try{ queueMicrotask(run); }catch(e){ Promise.resolve().then(run); }
       return r;
     };
     try{ openModal = window.openModal; }catch(e){}

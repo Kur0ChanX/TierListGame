@@ -36,7 +36,9 @@
   // 8) EREDI E RADICI SPIRITUALI (da Wikipedia: frasi «spiritual successor to …»)
   // =====================================================================
   async function findHeirs(g){
-    const name = clean(g.name), out = {heirs: [], roots: []}, nre = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // v213: su Wikipedia inglese uso il nome inglese ufficiale (es. «Yakuza: Like a Dragon» e non il nome italiano)
+    let en = g.name; try{ if(window.SearchHub && SearchHub.enName) en = (await SearchHub.enName(g)) || g.name; }catch(e){}
+    const name = clean(en), out = {heirs: [], roots: []}, nre = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const j = await wp({action: 'query', list: 'search', srsearch: '"spiritual successor" "' + name + '" video game', srlimit: '15', srprop: 'snippet'});
     const re = new RegExp('spiritual (?:successor|sequel|follow-?up)[^.]{0,100}' + nre + '|' + nre + '[^.]{0,80}spiritual (?:successor|sequel)', 'i');
     ((j.query && j.query.search) || []).forEach(x=>{
@@ -44,11 +46,20 @@
       if(norm(x.title).includes(norm(name)) || /^(list of|characters of)/i.test(x.title)) return;
       if(re.test(sn)) out.heirs.push({title: x.title.replace(/\s*\([^)]*\)$/, ''), url: wpUrl(x.title), why: firstChars(sn, 170)});
     });
-    const t = await wpTitle(g.name);
+    const t = (await wpTitle(en)) || (en !== g.name ? await wpTitle(g.name) : null);
     if(t){
       const txt = await wpText(t, true);
       const m = /spiritual (?:successor|sequel|follow-?up)(?: (?:of|to))? (?:the )?(?:\d{4} (?:video )?game )?([A-Z][^.,;()]{2,70}?)(?= (?:series|franchise)|[.,;()]|$)/.exec(txt);
       if(m) out.roots.push({title: m[1].trim(), url: wpUrl(t), why: firstChars(txt.slice(Math.max(0, m.index - 60), m.index + 160), 190)});
+      // v213: anche le «radici» dichiarate in altro modo: «inspired by / influenced by / homage to …» (es. Like a Dragon → Dragon Quest)
+      const rx = /(?:was |were |is )?(?:heavily |largely |partly |directly )?(?:inspired|influenced) by (?:the )?(?:(?:classic|older|earlier|role-playing|video|japanese) )*(?:games? |series )?([A-Z][\w'’:&!\- ]{2,50}?)(?= (?:series|franchise|games?)\b|[.,;()]| and | as | in |$)|homage to (?:the )?([A-Z][\w'’:&!\- ]{2,50}?)(?= (?:series|franchise)\b|[.,;()]| and |$)/g;
+      let mm, k = 0; const seen = new Set(out.roots.map(r=> norm(r.title)));
+      while((mm = rx.exec(txt)) && k < 4){
+        const ti = String(mm[1] || mm[2] || '').trim();
+        if(!ti || ti.length < 3 || norm(ti) === norm(name) || seen.has(norm(ti)) || /^(?:Japanese|American|Western|Eastern|Toriyama|Akira|Ryu|Sega|Square|Nintendo)$/i.test(ti)) continue;
+        seen.add(norm(ti)); k++;
+        out.roots.push({title: ti, url: wpUrl(t), why: firstChars(txt.slice(Math.max(0, mm.index - 50), mm.index + 170), 200), kind: 'ispirato'});
+      }
     }
     return out;
   }
@@ -198,7 +209,12 @@
     const c = cget('heir:' + g.id, 90); if(c) paintHeirs(hh, g, c);
     else hh.querySelector('[data-heir]').addEventListener('click', async e=>{
       const b = e.currentTarget; b.disabled = true; b.textContent = 'Cerco…';
-      try{ const d = await findHeirs(g); cset('heir:' + g.id, d); paintHeirs(hh, g, d); }catch(x){ b.disabled = false; b.textContent = 'Non riuscito: riprova'; }
+      try{
+        let d = await findHeirs(g);
+        // v213: se Wikipedia non dice niente, cerco subito anche sul web (Gemini, se c'è la chiave) invece di lasciarti a mani vuote
+        if(!d.heirs.length && !d.roots.length && llmOk()){ b.textContent = 'Wikipedia non dice niente: cerco sul web…'; try{ const r = await heirsAI(g); if(r && (r.heirs.length || r.roots.length)) d = r; }catch(x){} }
+        cset('heir:' + g.id, d); paintHeirs(hh, g, d);
+      }catch(x){ b.disabled = false; b.textContent = 'Non riuscito: riprova'; }
     });
     wireBackstage(card.querySelector('#idBack'), g);
     const ex = card.querySelector('#idExit'); if(ex) wireExit(ex, g);

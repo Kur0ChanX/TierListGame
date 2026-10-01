@@ -1173,7 +1173,7 @@ function render(){
     const isTop = topIds.includes(g.id);
     if(isTop) tr.className = 'is-top';
     try{ const tb = document.getElementById('gameTable'); if(tb && tb.classList.contains('has-top') !== !!topIds.length) tb.classList.toggle('has-top', !!topIds.length); }catch(e){}
-    const topBadge = isTop ? '<img class="row-badge" src="icons/top-procione-mini-72.webp" srcset="icons/top-procione-mini-72.webp 1x, icons/top-procione-mini-144.webp 2x" alt="Nei tuoi top" title="Nei tuoi top: uno dei giochi che ami di più in assoluto" width="24" height="24" decoding="async">' : '';
+    const topBadge = isTop ? '<img class="row-badge" src="icons/top-procione-64.webp" srcset="icons/top-procione-64.webp 1x, icons/top-procione-128.webp 2x" alt="Nei tuoi top" title="Nei tuoi top: uno dei giochi che ami di più in assoluto" width="24" height="24" decoding="async">' : '';
     const heartBadge = '';
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip${d.approved ? ' appr' : ''}" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};"${d.approved ? ' title="Approvato dal procione: sintonia altissima con i tuoi gusti"' : ''}>${d.approved ? '<img src="icons/approved.webp" alt="" width="16" height="17">' : ''}${d.pct}%</span>` : ''; })();
     tr.innerHTML = `

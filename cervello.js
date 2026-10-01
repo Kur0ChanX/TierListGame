@@ -227,7 +227,7 @@
     return `<div class="rb" id="rtBar">
       <div class="rb-row">
         ${b('fav', '⭐', 'Preferito', isFav(g))}
-        ${b('heart', '<img src="icons/approved.webp" alt="" width="26" height="27">', 'Nel cuore', inHeart(g))}
+        ${b('heart', '<img src="icons/top-procione-64.webp" srcset="icons/top-procione-64.webp 1x, icons/top-procione-128.webp 2x" alt="" width="28" height="28" style="border-radius:50%">', 'Nel cuore', inHeart(g))}
         ${REACT.map(x=> b(x.k, x.ic, x.n, !!r[x.k])).join('')}
       </div>
       <div class="rb-st">${ST.map(([k, ic, n])=> `<button type="button" class="rb-s${st === k ? ' on' : ''}" data-rs="${k}"><span>${ic}</span>${n}</button>`).join('')}</div>

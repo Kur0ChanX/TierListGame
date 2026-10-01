@@ -20,7 +20,10 @@ function coverFitApply(frame, mode, img){
   frame.style.setProperty('--rn', rn.toFixed(3)); frame.dataset.fit = mode;
 }
 function coverFitLoad(img){ const fr = img.closest('.cover-frame'); if(fr && fr.dataset.fit === 'auto') coverFitApply(fr, 'auto', img); }
-function effectiveCover(g){ return USER_COVERS[String(g.id)] || (g.enrich && g.enrich.coverUrl) || null; }
+// v213: gli indirizzi «/_blob/…» esistono solo dentro Claude: altrove non si caricano mai (155 giochi della lista base). Li considero mancanti,
+// così si cerca la copertina vera, e non si prova più a caricarli (prima ogni copertina rotta nella griglia veniva ritentata all'infinito).
+const isDeadCover = u=> !u || /^\/?_blob\//.test(String(u));
+function effectiveCover(g){ const u = USER_COVERS[String(g.id)], e = g.enrich && g.enrich.coverUrl; return (!isDeadCover(u) && u) || (!isDeadCover(e) && e) || null; }
 function coverPlaceholderHtml(g){
   const platShort = (g.plat||'').split('/')[0].trim();
   return `<div class="modal-cover placeholder-cover"><div class="pc-row"><span class="pc-plat">${escHtml(platShort)}</span><span class="pc-tier ${TIER_LABEL[g.tier]}">${g.tier}</span></div></div>`;
@@ -1278,6 +1281,14 @@ let discoverHistory = [];
 function buildDiscoverQueue(){
   const profile = buildTasteProfile();
   const pool = GAMES.filter(g=> !FAVS.has(g.id) && !STATUSES[g.id] && !DISCOVER_SKIPPED.has(g.id));
+  // v213: prima una stima veloce su tutti (tasteScore, già in memoria), poi la Sintonia fine (lenta) solo sui 80 migliori:
+  // prima la Sintonia si calcolava per TUTTI i giochi (≈1500) e la prima apertura di Scopri bloccava il telefono quasi mezzo secondo
+  let rest = [];
+  if(typeof window.tasteScore === 'function' && pool.length > 180){
+    const quick = pool.map(g=>{ let t = 0; try{ t = tasteScore(g) || 0; }catch(e){} return {g, t: t + (g.score || 0) / 400}; }).sort((a, b)=> b.t - a.t);
+    rest = quick.slice(80).map(o=> o.g);
+    pool.length = 0; quick.slice(0, 80).forEach(o=> pool.push(o.g));
+  }
   const scored = pool.map(g=>({g, dna: dnaForGame(g, profile)}));
   scored.sort((a,b)=>{
     if(a.dna && b.dna) return b.dna.pct - a.dna.pct;
@@ -1285,7 +1296,7 @@ function buildDiscoverQueue(){
     if(!a.dna && b.dna) return 1;
     return b.g.score - a.g.score;
   });
-  return scored.map(o=>o.g);
+  return scored.map(o=>o.g).concat(rest);
 }
 function currentDiscoverGame(){ return discoverQueue[discoverIdx] || null; }
 function discoverCoverMedia(g){
