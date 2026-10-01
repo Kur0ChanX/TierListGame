@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v210', date:'2026-10-01', time:'21:20', items:[
+    'Scopri, Novità, Mia tier, Saghe e Statistiche ora sono pagine a tutto schermo: la parte alta della classifica (logo, ricerca, filtri, Oggi) sparisce, in cima c\'è il nome della sezione con «‹ Classifica» per tornare. Il tasto «indietro» del telefono riporta alla classifica, che riparte dal punto dove l\'avevi lasciata. Se in Saghe o Scopri ci sono filtri attivi, lo vedi in alto con «togli».',
+    'Passaggio tra le sezioni sistemato: prima partivano due animazioni una dentro l\'altra e si annullavano (si vedeva solo una dissolvenza a metà); ora la pagina scivola davvero, una volta sola.',
+    'Scheda del gioco: aperta nei primi secondi si costruiva due volte (prima senza testi, poi di nuovo, con un salto). Ora aspetta i testi mentre si allarga e si disegna una volta sola, già completa.',
+    'La barra «Per te / Il gioco / Altro», quando resta ferma in alto, sale fin quasi al bordo dello schermo (lascia libero solo lo spazio della fotocamera) e lo spazio sopra è coperto, senza buchi.'
+  ]},
   {version:'v209', date:'2026-10-01', time:'21:00', items:[
     '🏗️ Nuova struttura dei dati, pronta per 20.000+ giochi. All\'avvio arriva solo un «indice» leggero (nomi, voti, generi, i tratti già riconosciuti per i tuoi gusti); i testi lunghi (trama, analisi, pro e contro) arrivano a pezzi quando servono: quando apri un gioco (anzi, già quando lo sfiori col dito) e in sottofondo quando il telefono è libero. L\'indice dei tuoi giochi è passato da 713 KB a 178 KB. Provato con un catalogo finto di 20.000 giochi: si apre in mezzo secondo, usa 4 volte meno memoria e non si blocca. I tuoi gusti e la Sintonia restano identici (verificato gioco per gioco).',
     '😍 Nella lista e nella griglia i giochi «Nel cuore» mostrano il procione con gli occhi a cuore.',

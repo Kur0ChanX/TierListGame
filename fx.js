@@ -65,6 +65,9 @@
   if(typeof window.setView === 'function' && document.startViewTransition){
     const orig = window.setView;
     window.setView = function(v){
+      // v210: se il passaggio animato l'ha già avviato motion.js (barra in basso, data-vt), NON ne avvio un secondo dentro il primo:
+      // si annullavano a vicenda e lo scivolamento tra le sezioni saltava o si vedeva a metà
+      if(document.documentElement.hasAttribute('data-vt') || document.documentElement.classList.contains('mo-off')) return orig(v);
       try{ document.startViewTransition(()=> orig(v)); }catch(e){ orig(v); }
     };
   }
