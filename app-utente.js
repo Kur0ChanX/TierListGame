@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v192', date:'2026-10-01', time:'13:09', items:[
+    'Diagnostica: per il ponte personale da aggiornare il rapporto diceva per errore «LIMITE» e non mostrava il pulsante «🌉 Copia il codice nuovo del ponte». Ora dice «PONTE da aggiornare» e il pulsante compare.',
+  ]},
   {version:'v191', date:'2026-10-01', time:'11:54', items:[
     'Controllo generale: tutte le viste, 15 schede aperte e riaperte, le 28 voci del menu ✨ e la Diagnostica, su telefono e computer, anche con 1365 giochi: nessun errore, avvio in circa 0,3 secondi.',
     '«Aggiorna info» senza rete diceva «non ho trovato questo titolo»: ora dice chiaramente che le fonti non rispondono (rete assente o bloccata) e di riprovare.',

@@ -518,7 +518,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{ const ev = DebugLog.all().slice(n0); const via = ev.filter(e=> e.kind === 'relay' && e.ok).map(e=> e.src).pop(); r.via = via || 'diretto'; r.log = ev.filter(e=> e.ok === false).slice(-4).map(e=> (e.src || '') + ': ' + (e.err || e.note || '') + (e.status != null ? ' [HTTP ' + e.status + ']' : '')); }catch(e){}
     if(r.s === 'err'){
       const m = (r.raw || '') + ' ' + (r.log || []).join(' ');
-      r.layer = r.layer || /429|quota|troppe richieste/i.test(m) ? 'LIMITE: il sito/la chiave ha finito le richieste' : /401|403|chiave|accesso negato/i.test(m) ? 'CHIAVE o permessi' : /CORS|Failed to fetch|rete|nessuna via/i.test(m) ? 'BROWSER: blocco CORS e ponti non raggiungibili' : /5\d\d|problema/i.test(m) ? 'SITO: errore del server remoto' : 'DA CAPIRE';
+      r.layer = r.layer || (/429|quota|troppe richieste/i.test(m) ? 'LIMITE: il sito/la chiave ha finito le richieste' : /401|403|chiave|accesso negato/i.test(m) ? 'CHIAVE o permessi' : /CORS|Failed to fetch|rete|nessuna via/i.test(m) ? 'BROWSER: blocco CORS e ponti non raggiungibili' : /5\d\d|problema/i.test(m) ? 'SITO: errore del server remoto' : 'DA CAPIRE');
     }
     return r;
   }
