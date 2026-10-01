@@ -77,16 +77,26 @@
     const el = e.target.closest && e.target.closest('tr[data-gid], [data-gid]');
     tap = {x: e.clientX, y: e.clientY, t: performance.now(), r: el ? el.getBoundingClientRect() : null};
   }, true);
+  let VW = innerWidth, VH = innerHeight;
+  addEventListener('resize', ()=>{ VW = innerWidth; VH = innerHeight; }, {passive: true});
   function reveal(){
-    if(!moOn() || innerWidth > 760) return;
+    if(!moOn() || VW > 760) return;
     const card = document.getElementById('modalCard'), bd = document.getElementById('modalBackdrop');
     if(!card || !bd || !bd.classList.contains('show') || !card.animate) return;
-    const R = tap && performance.now() - tap.t < 1200 ? tap : null, W = innerWidth, H = innerHeight;
+    const R = tap && performance.now() - tap.t < 1200 ? tap : null, W = VW, H = VH;      // misure già pronte: leggerle qui costringerebbe il telefono a impaginare la scheda a metà
     let l, t, rr, b, rad = 18;
     if(R && R.r && R.r.width > 60 && R.r.height > 20){ l = R.r.left; t = R.r.top; rr = W - R.r.right; b = H - R.r.bottom; rad = 14; }
     else { const x = R ? R.x : W / 2, y = R ? R.y : H * .62; l = x - 80; t = y - 26; rr = W - x - 80; b = H - y - 26; rad = 26; }
     l = Math.max(0, l); rr = Math.max(0, rr); t = Math.max(0, t); b = Math.max(0, b);
-    card.animate([{clipPath: `inset(${t}px ${rr}px ${b}px ${l}px round ${rad}px)`}, {clipPath: 'inset(0px 0px 0px 0px round 0px)'}], {duration: 460, easing: 'cubic-bezier(.16,1,.3,1)'});
+    // v200: niente più «ritaglio» (pesante da disegnare a ogni fotogramma su una scheda lunga): la scheda sale e si allarga
+    // dal punto toccato muovendo solo il livello (scorrevole anche sui telefoni lenti)
+    const cy = Math.round((t + (H - b)) / 2), cx = Math.round((l + (W - rr)) / 2);
+    card.style.transformOrigin = cx + 'px ' + Math.max(0, cy) + 'px'; card.style.opacity = '0';
+    // aspetto che il telefono abbia impaginato la scheda (primo fotogramma, scheda ancora invisibile): poi l'animazione parte pulita, senza salti
+    requestAnimationFrame(()=> requestAnimationFrame(()=>{
+      card.style.opacity = '';
+      try{ card.animate([{transform: 'translateY(18px) scale(.92)', opacity: 0}, {transform: 'none', opacity: 1}], {duration: 340, easing: 'cubic-bezier(.2,.9,.25,1)'}).finished.then(()=>{ card.style.transformOrigin = ''; }).catch(()=>{}); }catch(e){}
+    }));
     haptic('soft');
     // il voto «salta» e conta fino al valore
     setTimeout(()=>{
@@ -100,7 +110,7 @@
           requestAnimationFrame(step);
         }
       });
-    }, 180);
+    }, 460);
   }
   if(typeof window.openModal === 'function'){
     const origOpen = window.openModal;

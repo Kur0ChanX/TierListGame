@@ -1291,3 +1291,31 @@ details.dna-cat[open]>summary.dna-ct::after{transform:rotate(180deg)}
 .rt-prev.show{display:flex}
 .rt-prev img{max-width:100%;max-height:85vh;border-radius:12px;object-fit:contain}
 .rt-prev small{color:#ddd}
+/* v200: simili caricati dopo l'apertura (segnaposto che non fa saltare la pagina) e chiusura morbida della scheda */
+.sim-skel{display:grid;gap:8px;margin:6px 0 12px}
+.sim-skel i{display:block;height:46px;border-radius:12px;background:linear-gradient(90deg,rgba(127,127,127,.10),rgba(127,127,127,.20),rgba(127,127,127,.10));background-size:200% 100%;animation:simSk 1.2s linear infinite}
+@keyframes simSk{to{background-position:-200% 0}}
+.sim-lazy.in{animation:simIn .35s ease both}
+@keyframes simIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (max-width:760px){
+  html:not(.mo-off) .modal-backdrop{transition:opacity .22s ease !important}
+  html:not(.mo-off) .modal-card,html:not(.mo-off) .modal-card.wide{transition:opacity .2s ease, transform .24s cubic-bezier(.4,0,.2,1) !important}
+  html:not(.mo-off) .modal-backdrop:not(.show) .modal-card{transform:translateY(22px) scale(.985) !important}
+}
+/* v200: la parte bassa della scheda si disegna solo quando ci arrivi scorrendo: apertura più leggera */
+#modalCard > .modal-section-title, #modalCard > .modal-note, #modalCard > .proscons, #modalCard > .glabel, #modalCard > #dnaWhy, #modalCard > .sp-box, #modalCard > .rv-box, #modalCard > .modal-links, #modalCard > .modal-actions, #modalCard > .dualscore-row, #modalCard > .modal-story{content-visibility:auto; contain-intrinsic-size:auto 120px}
+/* v200: «A colpo d'occhio» a riquadri */
+.gl2{padding:12px !important}
+.gl-sum{font-size:.95rem;line-height:1.45;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:rgba(var(--a1rgb,124,92,255),.12)}
+.gl-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+@media (min-width:640px){ .gl-grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
+.gl-t{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:14px;background:rgba(127,127,127,.09);border:1px solid var(--glass-line,rgba(127,127,127,.2));min-width:0}
+.gl-k{font-size:.72rem;letter-spacing:.02em;text-transform:uppercase;opacity:.75}
+.gl-t b{font-size:1.02rem;line-height:1.2}
+.gl-t b small{font-weight:500;opacity:.7;font-size:.75rem}
+.gl-m{display:flex;gap:3px;margin-top:2px}
+.gl-m i{flex:1;height:6px;border-radius:4px;background:rgba(127,127,127,.22)}
+.gl-m i.on{background:hsl(var(--h,260) 75% 55%)}
+.gl-s{font-size:.74rem;opacity:.75;line-height:1.3}
+.gl-t em{font-style:normal;font-size:.72rem;font-weight:600;margin-top:2px}
+.gl-yes{color:#c084fc}.gl-no{color:#f59e0b}

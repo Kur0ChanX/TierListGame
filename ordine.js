@@ -20,10 +20,10 @@
     {id: 'simili', n: '🔁 Altri giochi', keys: ['simili']},
     {id: 'altro', n: '📚 Per approfondire', keys: ['eredi', 'quinte', 'uscita', 'album', 'cronologia']}
   ];
-  const KEY_NAMES = {verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'Etichetta del gioco', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
+  const KEY_NAMES = {verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'A colpo d\'occhio', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
   const titleKey = t=>{
     t = norm(t);
-    if(/etichetta/.test(t)) return 'etichetta'; if(/prima di comprarlo/.test(t)) return 'comprare'; if(/quale versione/.test(t)) return 'versioni'; if(/il tuo stato/.test(t)) return 'stato';
+    if(/etichetta|colpo d.?occhio/.test(t)) return 'etichetta'; if(/prima di comprarlo/.test(t)) return 'comprare'; if(/quale versione/.test(t)) return 'versioni'; if(/il tuo stato/.test(t)) return 'stato';
     if(/recensione/.test(t)) return 'recensione'; if(/voto nel tempo/.test(t)) return 'tempo'; if(/storia/.test(t)) return 'storia'; if(/gameplay/.test(t)) return 'gameplay'; if(/perche potrebbe/.test(t)) return 'piace';
     if(/pro contro|pro e contro/.test(t)) return 'proscons'; if(/longevit/.test(t)) return 'longevita'; if(/dettagli/.test(t)) return 'dettagli'; if(/se ti e piaciuto/.test(t)) return 'simili';
     if(/colonna sonora/.test(t)) return 'colonna'; if(/cast/.test(t)) return 'cast'; if(/approfondimento/.test(t)) return 'approfondimento'; if(/eredi/.test(t)) return 'eredi'; if(/dietro le quinte/.test(t)) return 'quinte';
@@ -33,7 +33,7 @@
   function startKey(el){
     if(el.classList.contains('cd-layer')) return null;
     if(el.classList.contains('modal-section-title')) return titleKey(el.textContent);
-    if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
+    if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
     if(el.classList.contains('modal-tags')) return 'generi'; if(el.classList.contains('enrich-highlights')) return 'simboli'; if(el.classList.contains('ds-chip')) return 'affidabilita';
     if(el.classList.contains('saga-note')) return 'saga'; if(el.matches('details.hist')) return 'cronologia';
     return null;

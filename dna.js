@@ -66,7 +66,7 @@
       <div class="dna-sub">Tocca un tratto: 👍 mi piace · di nuovo 👎 non mi piace · di nuovo niente. Sotto ti spiego cosa significa. Più ne segni, più capisco il <b>perché</b> dei tuoi gusti.</div>
       ${detList.length ? `<div class="dna-cat"><div class="dna-ct">🔎 Riconosciuti in questo gioco</div><div class="dna-chips">${detList.map(chip).join('')}</div></div>` : ''}
       ${cats.map(([ic, n, ks])=> `<details class="dna-cat"${ks.some(k=> dw[k]) ? ' open' : ''}><summary class="dna-ct">${ic} ${esc(n)} <small>${ks.filter(k=> M[k]).length}</small></summary><div class="dna-chips">${ks.map(chip).join('')}</div></details>`).join('')}
-      ${mine.length ? `<details class="dna-cat" open><summary class="dna-ct">✍️ I tuoi tratti <small>${mine.length}</small></summary><div class="dna-chips">${mine.map(([k, c])=> `<button type="button" class="dna-chip${(c.by || []).includes(g.id) ? ' like' : ''}" data-mine="${esc(k)}">✍️ ${esc(c.n)}${(c.by || []).includes(g.id) ? ' 👍' : ''}</button>`).join('')}</div></details>` : ''}
+      ${mine.length ? `<details class="dna-cat" open><summary class="dna-ct">✍️ I tuoi tratti <small>${mine.length}</small></summary><div class="dna-chips">${mine.map(([k, c])=> `<button type="button" class="dna-chip${(c.by || []).includes(g.id) ? ' like' : (c.no || []).includes(g.id) ? ' no' : ''}" data-mine="${esc(k)}">✍️ ${esc(c.n)}${(c.by || []).includes(g.id) ? ' 👍' : (c.no || []).includes(g.id) ? ' 👎' : ''}</button>`).join('')}</div></details>` : ''}
       <div class="dna-info" id="dnaInfo"${info ? '' : ' hidden'}>${info || ''}</div>
       <div class="dna-free"><button type="button" class="btn" data-dna-free>✍️ Scrivilo con parole tue</button><small>Es. «adoro i dark eoni e la sphere grid, la storia di Tidus e Yuna, il blitzball»: l'AI lo trasforma in tratti (anche nuovi) che userò per TUTTI i giochi.</small></div></div>`;
   }
@@ -79,23 +79,65 @@
     go.addEventListener('click', async ()=>{ const t = body.querySelector('#dfT').value; if(!t.trim()) return; go.disabled = true; body.querySelector('#dfMsg').textContent = 'Ci penso…'; await freeRun(card, g, t); go.disabled = false; const sh = document.getElementById('xDnaFree'); if(sh) sh.classList.remove('show'); });
     setTimeout(()=>{ try{ body.querySelector('#dfT').focus(); }catch(e){} }, 200);
   }
+  // v200: i tratti nuovi non finiscono in «altro»: l'AI crea il tratto preciso (es. «Attacchi a tempo» di Legend of Dragoon)
+  // e poi cerca nel TUO catalogo quali giochi ce l'hanno. Così il tratto funziona davvero per sintonia e giochi simili.
+  const slugOf = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30);
+  async function gamesWith(c){
+    const list = GAMES.map(x=> x.id + '|' + x.name).join('\n');
+    const pr = `Tratto di gioco: «${c.n}»${(c.kw || []).length ? ' (parole chiave: ' + c.kw.join(', ') + ')' : ''}${c.d ? ' — ' + c.d : ''}.
+Qui sotto c'è un catalogo di videogiochi, una riga per gioco nel formato id|nome. Indica SOLO i giochi in cui questo tratto è presente in modo chiaro e riconoscibile (non vago). Se non sei sicuro, escludilo.
+Rispondi SOLO con JSON: {"ids":[numeri id]}.
+CATALOGO:
+${list}`;
+    try{ const r = await askLLM(pr, {}, {fast: true, label: 'Cerco «' + c.n + '» nei tuoi giochi…'}); const m = String(r && r.text || '').match(/\{[\s\S]*\}/); const j = m ? JSON.parse(m[0]) : null;
+      const ok = new Set(GAMES.map(x=> x.id)); return ((j && j.ids) || []).map(Number).filter(id=> ok.has(id)).slice(0, 150);
+    }catch(e){ return null; }
+  }
+  window.rtDnaGamesWith = gamesWith;
   async function freeRun(card, g, txt){
     if(typeof askLLM !== 'function'){ U.toast && U.toast('Serve la chiave Gemini (⚙️ in Chiedi a Claude)'); return; }
     const M = MECH(), cat = Object.keys(M).map(k=> k + ' = ' + M[k].n + ' (' + M[k].d + ')').join('\n');
-    const pr = `Un giocatore descrive cosa gli è piaciuto o no del videogioco "${g.name}". Trasforma le sue parole in tratti.
-TRATTI ESISTENTI (usa SOLO queste sigle):\n${cat}\n
-Rispondi SOLO con JSON: {"si":[sigle dei tratti che gli piacciono], "no":[sigle dei tratti che non gli piacciono], "nuovi":[{"nome":"nome breve in italiano di un tratto NON presente sopra","parole":["3-6 parole chiave in italiano e inglese per riconoscerlo in altri giochi"],"piace":true}]}. Al massimo 3 tratti nuovi; non inventare.
-TESTO: «${txt.trim().slice(0, 800)}»`;
+    const cu0 = LSG(CUST, {}) || {}, mineList = Object.keys(cu0).map(k=> k + ' = ' + cu0[k].n).join('\n');
+    const pr = `Un giocatore descrive cosa gli è piaciuto o no del videogioco "${g.name}". Trasforma le sue parole in tratti del suo DNA di giocatore.
+TRATTI GENERALI (sigle):\n${cat}\n${mineList ? `\nTRATTI GIÀ CREATI DA LUI (sigle):\n${mineList}\n` : ''}
+Regole:
+- "si"/"no": sigle dei tratti generali che corrispondono DAVVERO a quello che dice.
+- "suoi_si"/"suoi_no": sigle dei tratti già creati da lui che corrispondono.
+- "nuovi": se cita qualcosa di SPECIFICO che nessun tratto descrive con precisione (una meccanica particolare, es. «combattimento con attacchi a tempo da premere al momento giusto», un tipo di minigioco, uno stile di musica, un tipo di personaggio), crea un tratto nuovo preciso. Meglio un tratto nuovo preciso che forzarlo in uno generico. Massimo 4.
+Rispondi SOLO con JSON: {"si":[], "no":[], "suoi_si":[], "suoi_no":[], "nuovi":[{"nome":"nome breve e chiaro in italiano","descrizione":"cosa significa, in una frase semplice","parole":["4-8 parole chiave in italiano e inglese, anche nomi tecnici (es. timed hits, QTE, additions)"],"piace":true}]}
+TESTO: «${txt.trim().slice(0, 1200)}»`;
     let j = null;
     try{ const r = await askLLM(pr, {}, {fast: true, label: 'Capisco cosa ti è piaciuto…'}); const m = String(r && r.text || '').match(/\{[\s\S]*\}/); j = m ? JSON.parse(m[0]) : null; }catch(e){ try{ showToast('L\'AI non risponde ora: riprova tra poco', 3000); }catch(x){} return; }
     if(!j){ try{ showToast('Non ho capito: riprova con altre parole', 2500); }catch(x){} return; }
     const all = LSG(WHY, {}) || {}, cur = all[g.id] || {}; let n = 0;
     (j.si || []).forEach(k=>{ if(M[k]){ cur[k] = 1; n++; } }); (j.no || []).forEach(k=>{ if(M[k]){ cur[k] = -1; n++; } });
     if(Object.keys(cur).length) all[g.id] = cur; LSS(WHY, all);
-    const cu = LSG(CUST, {}) || {}, made = [];
-    (j.nuovi || []).slice(0, 3).forEach(x=>{ if(!x || !x.nome) return; const k = String(x.nome).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').slice(0, 30); if(!k) return; const c = cu[k] || {n: String(x.nome).slice(0, 40), kw: [], by: []}; c.kw = [...new Set(c.kw.concat((x.parole || []).map(String).slice(0, 6)))]; if(x.piace !== false && !c.by.includes(g.id)) c.by.push(g.id); cu[k] = c; made.push(c.n); });
+    const cu = LSG(CUST, {}) || {}, made = [], todo = [];
+    (j.suoi_si || []).forEach(k=>{ const c = cu[k]; if(!c) return; c.by = c.by || []; if(!c.by.includes(g.id)) c.by.push(g.id); c.no = (c.no || []).filter(x=> x !== g.id); n++; });
+    (j.suoi_no || []).forEach(k=>{ const c = cu[k]; if(!c) return; c.no = c.no || []; if(!c.no.includes(g.id)) c.no.push(g.id); c.by = (c.by || []).filter(x=> x !== g.id); n++; });
+    (j.nuovi || []).slice(0, 4).forEach(x=>{
+      if(!x || !x.nome) return; const k = slugOf(x.nome); if(!k) return;
+      const c = cu[k] || {n: String(x.nome).slice(0, 48), kw: [], by: [], no: []};
+      if(x.descrizione && !c.d) c.d = String(x.descrizione).slice(0, 160);
+      c.kw = [...new Set((c.kw || []).concat((x.parole || []).map(String).slice(0, 8)))];
+      c.by = c.by || []; c.no = c.no || [];
+      if(x.piace === false){ if(!c.no.includes(g.id)) c.no.push(g.id); } else if(!c.by.includes(g.id)) c.by.push(g.id);
+      cu[k] = c; made.push(c.n); if(!c.games) todo.push(k);
+    });
     LSS(CUST, cu); try{ SIMC.clear(); }catch(x){}
-    redraw(card, g, `✅ Capito: ${n} tratti segnati${made.length ? ' · nuovi tratti tuoi: ' + made.map(esc).join(', ') : ''}.`);
+    redraw(card, g, `✅ Capito: ${n} tratti segnati${made.length ? ' · nuovi tratti tuoi: ' + made.map(esc).join(', ') + ' — ora cerco quali tuoi giochi li hanno…' : ''}.`);
+    // per ogni tratto nuovo: quali giochi del catalogo ce l'hanno
+    const found = [];
+    for(const k of todo){
+      const c = (LSG(CUST, {}) || {})[k]; if(!c) continue;
+      const ids = await gamesWith(c); if(!ids) continue;
+      const cu2 = LSG(CUST, {}) || {}; if(!cu2[k]) continue;
+      if(!ids.includes(g.id) && (cu2[k].by || []).includes(g.id)) ids.push(g.id);
+      cu2[k].games = ids; LSS(CUST, cu2); try{ SIMC.clear(); }catch(x){}
+      const names = ids.filter(id=> id !== g.id).slice(0, 5).map(id=> (GAMES.find(x=> x.id === id) || {}).name).filter(Boolean);
+      found.push(`<b>${esc(c.n)}</b>: in ${ids.length} tuoi giochi${names.length ? ' (' + names.map(esc).join(', ') + (ids.length > 6 ? '…' : '') + ')' : ''}`);
+    }
+    if(found.length && card.isConnected) redraw(card, g, '✅ ' + found.join('<br>✅ ') + '<br><small>Ora contano nella Sintonia e nei giochi simili.</small>');
   }
   function redraw(card, g, info){
     const box = card.querySelector('#dnaWhy'); if(!box) return;
@@ -110,7 +152,10 @@ TESTO: «${txt.trim().slice(0, 800)}»`;
     box.addEventListener('click', e=>{
       if(e.target.closest('[data-dna-free]')){ freeText(card, g); return; }
       const mb = e.target.closest('[data-mine]');
-      if(mb){ const cu = LSG(CUST, {}) || {}, c = cu[mb.dataset.mine]; if(!c) return; c.by = c.by || []; if(c.by.includes(g.id)) c.by = c.by.filter(x=> x !== g.id); else c.by.push(g.id); LSS(CUST, cu); try{ SIMC.clear(); }catch(x){} redraw(card, g, '✍️ ' + esc(c.n) + ': parole che lo riconoscono negli altri giochi — ' + esc((c.kw || []).join(', '))); return; }
+      if(mb){ const cu = LSG(CUST, {}) || {}, c = cu[mb.dataset.mine]; if(!c) return; c.by = c.by || []; c.no = c.no || []; if(c.by.includes(g.id)){ c.by = c.by.filter(x=> x !== g.id); c.no.push(g.id); } else if(c.no.includes(g.id)) c.no = c.no.filter(x=> x !== g.id); else c.by.push(g.id); LSS(CUST, cu); try{ SIMC.clear(); }catch(x){} const info = '✍️ <b>' + esc(c.n) + '</b>' + (c.d ? '<br>' + esc(c.d) : '') + (c.games ? '<br>Presente in ' + c.games.length + ' tuoi giochi.' : '<br>Parole che lo riconoscono: ' + esc((c.kw || []).join(', ')));
+        redraw(card, g, info);
+        if(!c.games && typeof askLLM === 'function') gamesWith(c).then(ids=>{ if(!ids) return; const cu2 = LSG(CUST, {}) || {}, k = mb.dataset.mine; if(!cu2[k]) return; cu2[k].games = ids; LSS(CUST, cu2); try{ SIMC.clear(); }catch(x){} if(card.isConnected) redraw(card, g, '✍️ <b>' + esc(cu2[k].n) + '</b>: trovato in ' + ids.length + ' tuoi giochi.'); });
+        return; }
       const b = e.target.closest('[data-dna]'); if(!b) return;
       const all = LSG(WHY, {}) || {}, cur = all[g.id] || {}, k = b.dataset.dna, v = cur[k] || 0, nx = v === 0 ? 1 : v === 1 ? -1 : 0;
       if(nx) cur[k] = nx; else delete cur[k];
@@ -207,7 +252,35 @@ TESTO: «${txt.trim().slice(0, 800)}»`;
       ${r.other.length ? `<div class="similar-games sim2-list">${r.other.map(o=> chip(o)).join('')}</div>` : '<div class="dna-sub">Nessun gioco abbastanza simile nel tuo database: meglio niente che un consiglio sbagliato.</div>'}
       ${r.same.length ? `<div class="sim2-saga">📚 <b>Della stessa saga</b></div><div class="similar-games sim2-list">${r.same.map(x=> chip(x, true)).join('')}</div>` : ''}`;
   }
-  try{ if(typeof similarGamesHtml === 'function'){ window.similarGamesHtml = similarHtml; similarGamesHtml = similarHtml; } }catch(e){}
+  // v200: la sezione dei simili costa (confronta tutti i giochi): la scheda si apre subito con uno spazio riservato,
+  // e la riempio a animazione finita, quando il telefono è libero. Così l'apertura non scatta.
+  const idleDo = (fn, t)=> (window.requestIdleCallback ? requestIdleCallback(fn, {timeout: t || 900}) : setTimeout(fn, 60));
+  function similarLazy(g){
+    if(!g || g.id == null) return '';
+    const id = g.id;
+    setTimeout(()=> idleDo(()=>{
+      const box = document.querySelector('.sim-lazy[data-sim="' + id + '"]'); if(!box) return;
+      if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id !== id) return;
+      const h = similarHtml(GAMES.find(x=> x.id === id) || g);
+      if(!h){ box.remove(); return; }
+      box.innerHTML = h; box.classList.add('in'); box.style.minHeight = '';
+      box.querySelectorAll('.similar-chip').forEach(b=> b.addEventListener('click', ()=>{ const gg = GAMES.find(x=> x.id === parseInt(b.dataset.id, 10)); if(gg) openModal(gg); }));
+    }), 520);
+    return `<div class="sim-lazy" data-sim="${id}" style="min-height:180px"><div class="modal-section-title">🔁 Se ti è piaciuto questo, prova anche</div><div class="sim-skel"><i></i><i></i><i></i></div></div>`;
+  }
+  try{ if(typeof similarGamesHtml === 'function'){ window.similarGamesHtml = similarLazy; similarGamesHtml = similarLazy; window.rtSimilarHtmlNow = similarHtml; } }catch(e){}
+  // preparo in anticipo, a pezzetti e quando il telefono è libero, i tratti di tutti i giochi: la prima scheda aperta non deve calcolarli
+  (function warm(){
+    let i = 0;
+    const step = dl=>{
+      try{ if(typeof GAMES === 'undefined' || !GAMES.length){ setTimeout(()=> idleDo(step, 3000), 1500); return; }
+        while(i < GAMES.length && (!dl || !dl.timeRemaining || dl.timeRemaining() > 4)){ mechOf(GAMES[i]); i++; if(!dl || !dl.timeRemaining) { if(i % 40 === 0) break; } }
+        if(i < GAMES.length){ idleDo(step, 3000); return; }
+        idf(); try{ window.rtTasteModel && rtTasteModel(); }catch(e){}
+      }catch(e){}
+    };
+    setTimeout(()=> idleDo(step, 4000), 2500);
+  })();
 
   // ---------- una sola percentuale in tutta l'app ----------
   // il vecchio «DNA di compatibilità» (solo generi e voto) diventa la stessa % della Sintonia: ordinamento «Più adatti a te», righe, verdetto

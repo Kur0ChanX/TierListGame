@@ -596,21 +596,47 @@ function factsHtml(g){
   const it = f.s.it === 'D' ? ' · 🎙️ testi e doppiaggio in italiano' : f.s.it === 'S' ? ' · testi in italiano' : f.s.it === 'N' ? ' · nessun italiano su Steam' : '';
   return `<div class="fx-steam">${giIcon('gem')} <span>Su Steam ${p.f === 0 ? '<b>gratis</b>' : '<b>' + eur(p.f) + '</b>'}${d}${it}</span> <small>aggiornato il ${escHtml(f.t || '')}</small></div>`;
 }
+// v200: «A colpo d'occhio» a riquadri: per ogni voce una parola chiara, una barra colorata e (se lo so) se è come piace a te
+const GL_WORDS = {
+  d: ['', 'Molto facile', 'Facile', 'Media', 'Impegnativa', 'Durissima'],
+  g: ['', 'Niente grinding', 'Poco', 'Un po\'', 'Tanto', 'Tantissimo'],
+  s: ['', 'Quasi assente', 'Leggera', 'Presente', 'Importante', 'Al centro di tutto']
+};
+function glTaste(key){
+  try{ const tm = window.rtTasteModel && window.rtTasteModel(); if(!tm || !tm.wts || (tm.cnt[key] || 0) < 2) return ''; const w = tm.wts[key] || 0;
+    return w > .2 ? '<em class="gl-yes">💜 come piace a te</em>' : w < -.2 ? '<em class="gl-no">⚠️ di solito non ti piace</em>' : ''; }catch(e){ return ''; }
+}
+function glMeter(n, max, hue){ let o = '<span class="gl-m">'; for(let i = 1; i <= max; i++) o += `<i${i <= n ? ` class="on" style="--h:${hue}"` : ''}></i>`; return o + '</span>'; }
+function glHours(h){
+  if(!h) return '';
+  const days = Math.ceil(h / 1.5), w = days / 7;
+  return days <= 6 ? `≈ ${days} ${days === 1 ? 'giorno' : 'giorni'} a 1h30 al giorno` : w < 9 ? `≈ ${Math.round(w)} ${Math.round(w) === 1 ? 'settimana' : 'settimane'} a 1h30 al giorno` : `≈ ${Math.round(w / 4.3)} mesi a 1h30 al giorno`;
+}
 function labelHtml(g){
   const l = g.label;
   if(!l) return '';
   const costLabel = l.cost==='S' ? '€ (< 20)' : l.cost==='M' ? '€€ (20-40)' : l.cost==='H' ? '€€€ (> 40)' : '—';
-  return `<div class="modal-section-title">${giIcon('tag')} Etichetta del gioco</div>
-  <div class="glabel">
-    <div class="glabel-title">A colpo d'occhio</div>
-    <div class="glabel-grid">
-      <div class="glabel-row"><span>Difficoltà</span><span class="v">${labelBar(l.d,5)}</span></div>
-      <div class="glabel-row"><span>Grinding</span><span class="v">${labelBar(l.g,5)}</span></div>
-      <div class="glabel-row"><span>Peso storia</span><span class="v">${labelBar(l.s,5)}</span></div>
-      <div class="glabel-row"><span>Ritmo</span><span class="v">${LABEL_PACE[l.p]||'—'}</span></div>
-      <div class="glabel-row"><span>Ore (storia)</span><span class="v">${l.h!=null ? l.h+'h' : '—'}</span></div>
-      <div class="glabel-row"><span>Italiano</span><span class="v">${l.it ? LABEL_IT[l.it] : '—'}</span></div>
-    </div>
+  const h = (g.enrich && g.enrich.hoursMain) || l.h || 0;          // stesse ore della «Longevità»
+  const lv = v=> v >= 4 ? 'alta' : v <= 2 ? 'bassa' : 'media';
+  const tiles = [];
+  if(l.d) tiles.push(`<div class="gl-t"><span class="gl-k">🔥 Difficoltà</span><b>${GL_WORDS.d[l.d] || '—'}</b>${glMeter(l.d, 5, 130 - l.d * 26)}${glTaste('diff:' + lv(l.d))}</div>`);
+  if(l.s) tiles.push(`<div class="gl-t"><span class="gl-k">📖 Storia</span><b>${GL_WORDS.s[l.s] || '—'}</b>${glMeter(l.s, 5, 270)}${glTaste('storia:' + (l.s >= 4 ? 'forte' : l.s <= 2 ? 'leggera' : 'media'))}</div>`);
+  if(l.g) tiles.push(`<div class="gl-t"><span class="gl-k">⏳ Grinding</span><b>${GL_WORDS.g[l.g] || '—'}</b>${glMeter(l.g, 5, 40)}${glTaste('grind:' + (l.g >= 4 ? 'alto' : l.g <= 2 ? 'basso' : 'medio'))}</div>`);
+  if(h) tiles.push(`<div class="gl-t"><span class="gl-k">🕐 Durata</span><b>${h} ore <small>${h < 20 ? 'breve' : h <= 50 ? 'media' : 'lunga'}</small></b>${glMeter(Math.max(1, Math.min(5, Math.ceil(h / 20))), 5, 200)}<span class="gl-s">${glHours(h)}</span>${glTaste('ore:' + (h < 20 ? 'brevi' : h <= 50 ? 'medie' : 'lunghe'))}</div>`);
+  if(l.p) tiles.push(`<div class="gl-t"><span class="gl-k">🏃 Ritmo</span><b>${LABEL_PACE[l.p] || '—'}</b>${glMeter({L: 1, M: 2, V: 3}[l.p] || 0, 3, 170)}${glTaste('ritmo:' + ({L: 'lento', M: 'medio', V: 'veloce'}[l.p] || ''))}</div>`);
+  if(l.it){ const IT = {D: ['Doppiato in italiano', 3], S: ['Testi in italiano', 3], F: ['Traduzione amatoriale', 2], N: ['Niente italiano', 1]}[l.it] || ['—', 0];
+    tiles.push(`<div class="gl-t"><span class="gl-k">🇮🇹 Italiano</span><b>${IT[0]}</b>${glMeter(IT[1], 3, IT[1] === 3 ? 140 : IT[1] === 2 ? 45 : 0)}</div>`); }
+  // una frase che riassume tutto, da leggere in 2 secondi
+  const bits = [];
+  if(h) bits.push(h < 20 ? 'breve' : h <= 50 ? 'di durata media' : 'lungo');
+  if(l.s >= 4) bits.push('con la storia al centro'); else if(l.s && l.s <= 2) bits.push('con poca storia');
+  if(l.d >= 4) bits.push('impegnativo'); else if(l.d && l.d <= 2) bits.push('facile');
+  if(l.g >= 4) bits.push('con tanto grinding'); else if(l.g && l.g <= 2) bits.push('senza grinding');
+  const sum = bits.length ? `<div class="gl-sum">In breve: <b>${bits.join(', ').replace(/, ([^,]*)$/, ' e $1')}</b>.</div>` : '';
+  return `<div class="modal-section-title">${giIcon('tag')} A colpo d'occhio</div>
+  <div class="glabel gl2">
+    ${sum}
+    <div class="gl-grid">${tiles.join('')}</div>
     ${(l.ok && fixSecondPerson(l.ok)) ? `<div class="glabel-ok">🟢 <b>Fa per te se</b>${escHtml(fixSecondPerson(l.ok))}</div>` : ''}
     ${(l.ko && fixSecondPerson(l.ko)) ? `<div class="glabel-ko">🔴 <b>Lascia stare se</b>${escHtml(fixSecondPerson(l.ko))}</div>` : ''}
     ${l.play ? `<div class="glabel-play">${giIcon('target')} <b>Come giocarlo oggi:</b> ${escHtml(l.play)}</div>` : ''}
