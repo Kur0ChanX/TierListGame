@@ -55,7 +55,7 @@
   // ---------- v207: «Cosa ti ha preso» rifatto ----------
   // Un riquadro pulito: il tuo «filamento di DNA» con questo gioco (una striscia colorata), i motivi principali 💖, cosa ti è piaciuto 👍
   // e cosa no 👎. Per decidere in fretta c'è il GIOCO VELOCE: una carta alla volta da scorrere (destra 👍, sinistra 👎, su 💖, o i tasti).
-  // Valori in jrpg_dna_why {id: {TRATTO: 2 💖 motivo principale | 1 👍 | 0.5 🤷 Ni (c'è, ma così così: neutro per i gusti) | -1 👎}}: il 💖 pesa il doppio.
+  // Valori in jrpg_dna_why {id: {TRATTO: 2 💖 motivo principale | 1 👍 | 0.5 🫤 Mah, ex «Ni» (c'è, ma così così: neutro per i gusti) | -1 👎}}: il 💖 pesa il doppio.
   const MAXMAIN = 3;
   const getDw = g=> (LSG(WHY, {}) || {})[g.id] || {};
   function setDw(g, k, v){
@@ -99,8 +99,8 @@
       ${strip}
       <div class="d2-say">${say}</div>
       ${go ? `<button type="button" class="d2-go" data-dna-deck>${go}</button>` : ''}
-      ${sec('💖 I motivi principali', main)}${sec('👍 Ti è piaciuto', like)}${sec('🤷 Ni, così così', ni)}${sec('👎 Non ti è piaciuto', no)}
-      ${ks.length ? '<div class="d2-hint">Tocca un tratto per cambiarlo: 👍 → 💖 → 🤷 Ni → 👎 → via</div>' : ''}
+      ${sec('💖 I motivi principali', main)}${sec('👍 Ti è piaciuto', like)}${sec('🫤 Mah, così così', ni)}${sec('👎 Non ti è piaciuto', no)}
+      ${ks.length ? '<div class="d2-hint">Tocca un tratto per cambiarlo: 👍 → 💖 → 🫤 Mah → 👎 → via</div>' : ''}
       ${mine.length ? `<div class="d2-sec"><div class="d2-st">✍️ I tuoi tratti</div><div class="d2-chips">${mine.map(([k, c])=> { const v = (c.by || []).includes(g.id) ? 1 : (c.no || []).includes(g.id) ? -1 : 0; return `<button type="button" class="d2-chip v${v < 0 ? 'n' : v}" data-mine="${esc(k)}"><span>✍️</span>${esc(c.n)}</button>`; }).join('')}</div></div>` : ''}
       <div class="dna-info" id="dnaInfo"${info ? '' : ' hidden'}>${info || ''}</div>
       <div class="d2-tools"><button type="button" class="btn" data-dna-all>🔎 Tutti i tratti <small>${Object.keys(M).length}</small></button><button type="button" class="btn" data-dna-free>✍️ Con parole tue</button></div>
@@ -112,7 +112,7 @@
     const deck = deckFor(g).slice(0, 14); if(!deck.length){ U.toast && U.toast('Hai già deciso tutti i tratti di questo gioco 👏'); return; }
     let i = 0; const done = {like: 0, main: 0, no: 0};
     const body = U.sheet('xDnaDeck', '🧬 Gioco veloce', `<div class="dk"><div class="dk-top"><span id="dkN"></span><div class="dk-prog"><i id="dkP"></i></div></div><div class="dk-stage" id="dkStage"></div>
-      <div class="dk-btns"><button type="button" class="dk-b no" data-dk="-1" aria-label="Non mi è piaciuto">👎<small>No</small></button><button type="button" class="dk-b skip" data-dk="0" aria-label="Non c'è o salta">⏭️<small>Non c'è</small></button><button type="button" class="dk-b ni" data-dk="0.5" aria-label="Ni, così così">🤷<small>Ni</small></button><button type="button" class="dk-b yes" data-dk="1" aria-label="Mi è piaciuto">👍<small>Sì</small></button><button type="button" class="dk-b main" data-dk="2" aria-label="È il motivo principale">💖<small>Il motivo!</small></button></div>
+      <div class="dk-btns"><button type="button" class="dk-b no" data-dk="-1" aria-label="Non mi è piaciuto">👎<small>No</small></button><button type="button" class="dk-b skip" data-dk="0" aria-label="Non c'è o salta">⏭️<small>Non c'è</small></button><button type="button" class="dk-b ni" data-dk="0.5" aria-label="Mah, così così">🫤<small>Mah</small></button><button type="button" class="dk-b yes" data-dk="1" aria-label="Mi è piaciuto">👍<small>Sì</small></button><button type="button" class="dk-b main" data-dk="2" aria-label="È il motivo principale">💖<small>Il motivo!</small></button></div>
       <div class="dk-help">Scorri la carta: <b>→</b> mi piace · <b>←</b> no · <b>↑</b> è il motivo principale</div></div>`);
     const stage = body.querySelector('#dkStage');
     const tag = w=> w === 'det' ? '<span class="dk-tag det">🔎 Riconosciuto in questo gioco</span>' : w === 'love' ? '<span class="dk-tag love">💜 Di solito ti piace: c\'è anche qui?</span>' : '<span class="dk-tag">❓ C\'è in questo gioco?</span>';
@@ -151,7 +151,7 @@
     }
     function finish(){
       const tot = done.like + done.main + done.no + (done.ni || 0);
-      stage.innerHTML = `<div class="dk-end"><div class="dk-end-ic">🧬</div><b>${tot ? 'Il tuo DNA è cresciuto!' : 'Fatto!'}</b><p>${tot ? `${done.main ? `💖 ${done.main} ${done.main === 1 ? 'motivo principale' : 'motivi principali'} · ` : ''}👍 ${done.like} · ${done.ni ? '🤷 ' + done.ni + ' · ' : ''}👎 ${done.no}<br>Il cervello ora sa meglio <b>perché</b> ti piace un gioco come questo.` : 'Nessun tratto segnato questa volta.'}</p><button type="button" class="btn primary" id="dkClose">Chiudi</button></div>`;
+      stage.innerHTML = `<div class="dk-end"><div class="dk-end-ic">🧬</div><b>${tot ? 'Il tuo DNA è cresciuto!' : 'Fatto!'}</b><p>${tot ? `${done.main ? `💖 ${done.main} ${done.main === 1 ? 'motivo principale' : 'motivi principali'} · ` : ''}👍 ${done.like} · ${done.ni ? '🫤 ' + done.ni + ' · ' : ''}👎 ${done.no}<br>Il cervello ora sa meglio <b>perché</b> ti piace un gioco come questo.` : 'Nessun tratto segnato questa volta.'}</p><button type="button" class="btn primary" id="dkClose">Chiudi</button></div>`;
       body.querySelector('.dk-btns').hidden = true; body.querySelector('.dk-help').hidden = true;
       try{ window.rtHaptic && rtHaptic('success'); }catch(e){}
       body.querySelector('#dkClose').addEventListener('click', ()=>{ const sh = document.getElementById('xDnaDeck'); if(sh) sh.classList.remove('show'); });
@@ -168,7 +168,7 @@
     const M = MECH(), inCat = new Set(CATS.flatMap(c=> c[2])), extra = Object.keys(M).filter(k=> !inCat.has(k));
     const cats = CATS.map(c=> [c[0], c[1], c[2].concat(c[1] === 'Sistemi e attività' ? extra : []).filter(k=> M[k])]);
     const body = U.sheet('xDnaAll', '🔎 Tutti i tratti', `<input type="search" id="daQ" class="d2-search" placeholder="Cerca: loot, lore, minigiochi, superboss…" autocomplete="off">
-      <div class="d2-hint">Tocca per cambiare: 👍 → 💖 → 🤷 Ni → 👎 → via</div><div id="daL"></div>`);
+      <div class="d2-hint">Tocca per cambiare: 👍 → 💖 → 🫤 Mah → 👎 → via</div><div id="daL"></div>`);
     const L = body.querySelector('#daL'), Q = body.querySelector('#daQ');
     const det = new Set(mechOf(g));
     const draw = ()=>{
@@ -283,7 +283,7 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
       // aggiorno il chip sul posto, poi ridisegno il riquadro quando smetti di toccare (i tratti cambiano gruppo) — lo scorrimento resta fermo
       b.className = 'd2-chip v' + vcls(nx); b.innerHTML = `<span>${icOf(k)}</span>${esc(nameOf(k))}${nx === 2 ? '<i>💖</i>' : ''}`;
       try{ b.animate([{transform: 'scale(1)'}, {transform: 'scale(1.12)'}, {transform: 'scale(1)'}], {duration: 260}); }catch(x){}
-      const info = `<b>${icOf(k)} ${esc(nameOf(k))}</b> · ${nx === 2 ? '💖 il motivo principale' : nx === .5 ? '🤷 ni, così così' : nx > 0 ? '👍 ti è piaciuto' : nx < 0 ? '👎 non ti è piaciuto' : 'tolto'}<br>${esc(explain(k))}`;
+      const info = `<b>${icOf(k)} ${esc(nameOf(k))}</b> · ${nx === 2 ? '💖 il motivo principale' : nx === .5 ? '🫤 mah, così così' : nx > 0 ? '👍 ti è piaciuto' : nx < 0 ? '👎 non ti è piaciuto' : 'tolto'}<br>${esc(explain(k))}`;
       const inf = box.querySelector('#dnaInfo'); if(inf){ inf.innerHTML = info; inf.hidden = false; }
       clearTimeout(box._rt); box._rt = setTimeout(()=> redraw(card, g, info), 1400);
     });

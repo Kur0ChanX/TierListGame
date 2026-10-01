@@ -14,7 +14,7 @@
   // 1) BACKUP + SPAZIO DEL BROWSER (per non perdere nulla)
   // =====================================================================
   const SECRET = ['jrpg_gemini_key', 'jrpg_rawg_key', 'jrpg_opencritic_key', 'jrpg_sync_token', 'jrpg_sync_gist', 'jrpg_sync_meta', 'jrpg_triad_acct', 'jrpg_triad_server', 'jrpg_triad_photos'];      // mai dentro un backup: sono chiavi personali
-  function collect(){ const out = {}; for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if(k && k.indexOf('jrpg_') === 0 && !SECRET.includes(k)) out[k] = localStorage.getItem(k); } return out; }
+  function collect(){ const out = {}; for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if(k && k.indexOf('jrpg_') === 0 && !SECRET.includes(k)) out[k] = localStorage.getItem(k); } try{ if(window.rtBig) rtBig.keys().forEach(k=>{ if(!(k in out)) out[k] = localStorage.getItem(k); }); }catch(e){} return out; }
   function backupObj(){ return {app: 'raccoon-tier', v: 1, created: new Date().toISOString(), build: (document.querySelector('meta[name="build"]') || {}).content || '', keys: collect()}; }
   async function saveBackup(){
     const name = 'raccoon-tier-backup-' + new Date().toISOString().slice(0, 10) + '.json';
@@ -34,7 +34,7 @@
       if(!confirm('Ripristinare ' + keys.length + ' dati dal backup del ' + fmtDate(o.created) + '?\nI dati con lo stesso nome su questo dispositivo verranno sostituiti (le chiavi personali restano). Se hai la sincronizzazione attiva, il ripristino verrà propagato anche agli altri dispositivi.')) return;
       let fail = 0; keys.forEach(k=>{ try{ localStorage.setItem(k, o.keys[k]); }catch(e){ fail++; } });
       toast(fail ? 'Ripristino incompleto: spazio del browser insufficiente' : '✅ Backup ripristinato: ricarico…', 2500);
-      if(!fail) setTimeout(()=> location.reload(), 900);
+      if(!fail){ const fl = window.rtBig ? rtBig.flush() : Promise.resolve(); setTimeout(()=> fl.then(()=> location.reload(), ()=> location.reload()), 900); }
     };
     rd.readAsText(file);
   }
@@ -53,6 +53,7 @@
       <div class="lp-tools"><button class="btn primary" id="bkSave">💾 Salva backup</button><button class="btn" id="bkLoad">📂 Ripristina da file</button><input type="file" id="bkFile" accept="application/json,.json" hidden></div>
       <div class="lp-sub" style="margin-top:14px"><b>Spazio del browser</b>: ${kb(st.total)} usati su circa ${kb(st.limit)} (${pct}%)</div>
       <div class="bk-bar"><i style="width:${pct}%" class="${pct > 85 ? 'bad' : pct > 65 ? 'mid' : ''}"></i></div>
+      ${(()=>{ try{ const bi = window.rtBig && rtBig.info(); return bi && bi.ok ? `<div class="lp-sub">📦 <b>Archivio grande</b> (giochi aggiunti, copertine e foto): ${kb(bi.bytes)}, fuori da questo limite.</div>` : ''; }catch(e){ return ''; } })()}
       <div class="bk-keys">${st.per.map(p=> `<div><span>${esc(p[0])}</span><b>${kb(p[1])}</b></div>`).join('')}</div>
       <div class="lp-tools"><button class="btn" id="bkClean">🧹 Libera spazio (registro e cache)</button><button class="btn" id="bkPersist">🛡️ Proteggi i dati: ${per ? 'attivo ✅' : 'attiva'}</button></div>
       <div class="lp-sub">«Proteggi» chiede al browser di non cancellare i dati dell'app quando il telefono ha poco spazio. Con la sincronizzazione (⚙️) i dati stanno anche sul tuo GitHub.</div>`);

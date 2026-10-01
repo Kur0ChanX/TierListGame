@@ -252,6 +252,58 @@
     body.querySelector('#moTry').addEventListener('click', e=>{ const r = e.currentTarget.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2); haptic('success'); });
   }});
 
+  // ---------------------------------------------------------------- v211: barra in basso «viva»
+  // una bolla di luce scivola sotto la sezione scelta APPENA il dito tocca (prima che la pagina sia pronta): risposta immediata, niente attesa;
+  // l'icona fa un piccolo salto a molla. Si muove solo con transform (fluido anche mentre il telefono disegna la pagina nuova).
+  const SPRING = 'cubic-bezier(.34,1.56,.64,1)';
+  if(bar){
+    const puck = document.createElement('i'); puck.className = 'vt-puck'; puck.setAttribute('aria-hidden', 'true'); bar.insertBefore(puck, bar.firstChild);
+    const placeOn = (tab, instant)=>{
+      if(!tab || !bar.offsetWidth) return;
+      const br = bar.getBoundingClientRect(), r = tab.getBoundingClientRect();
+      const x = Math.round(r.left - br.left + r.width / 2 - 28);
+      if(instant) puck.style.transition = 'none';
+      puck.style.transform = 'translate3d(' + x + 'px,0,0)'; puck.classList.add('on');
+      if(instant){ void puck.offsetWidth; puck.style.transition = ''; }
+    };
+    const activeTab = ()=> bar.querySelector('.view-tab.active');
+    let pending = null, pendT = 0;
+    bar.addEventListener('pointerdown', e=>{
+      const tab = e.target.closest && e.target.closest('.view-tab[data-view]'); if(!tab || !moOn()) return;
+      pending = tab; clearTimeout(pendT); placeOn(tab);
+      pendT = setTimeout(()=>{ if(pending){ pending = null; placeOn(activeTab()); } }, 900);     // dito trascinato via senza scegliere: la bolla torna al suo posto
+    }, true);
+    bar.addEventListener('pointercancel', ()=>{ pending = null; placeOn(activeTab()); });
+    bar.addEventListener('click', e=>{
+      const tab = e.target.closest && e.target.closest('.view-tab'); if(!tab) return;
+      pending = null; clearTimeout(pendT);
+      if(tab.dataset.view) placeOn(tab);
+      if(!moOn()) return;
+      const ic = tab.querySelector('.vt-ic svg') || tab.querySelector('svg');
+      try{ ic && ic.animate([{transform: 'scale(.78)'}, {transform: 'scale(1.18)', offset: .45}, {transform: 'scale(.96)', offset: .75}, {transform: 'scale(1)'}], {duration: 460, easing: 'ease-out'}); }catch(err){}
+    }, true);
+    // la sezione può cambiare anche da altri comandi (indietro, ‹ Classifica, link interni): la bolla la segue
+    new MutationObserver(()=>{ if(!pending) placeOn(activeTab()); }).observe(document.body, {attributes: true, attributeFilter: ['data-view']});
+    addEventListener('resize', ()=> placeOn(activeTab(), true), {passive: true});
+    requestAnimationFrame(()=> placeOn(activeTab(), true));
+  }
+
+  // ---------------------------------------------------------------- v211: «Per te / Il gioco / Altro»: i riquadri nuovi emergono morbidi
+  document.addEventListener('click', e=>{
+    const tb = e.target.closest && e.target.closest('.cd-tabs [data-ctab]'); if(!tb || !moOn()) return;
+    requestAnimationFrame(()=>{
+      const card = document.getElementById('modalCard'), t = card && card.querySelector('.cd-tabs'); if(!t) return;
+      const H = innerHeight; let n = 0;
+      for(let el = t.nextElementSibling; el && n < 8; el = el.nextElementSibling){
+        if(el.offsetParent === null) continue;
+        const r = el.getBoundingClientRect(); if(r.bottom < 0) continue; if(r.top > H) break;
+        try{ el.animate([{opacity: 0, transform: 'translateY(10px) scale(.985)'}, {opacity: 1, transform: 'none'}], {duration: 300, delay: n * 22, easing: 'cubic-bezier(.2,.9,.25,1)', fill: 'backwards'}); }catch(err){}
+        n++;
+      }
+    });
+  });
+  window.rtSpring = SPRING;
+
   // all'avvio la classifica è già disegnata: la prima volta entra a cascata
   setTimeout(()=>{ try{ cascade(); }catch(e){} }, 0);
   window.__rtReady = true; try{ if(window.__rtQ) window.__rtQ(); }catch(e){}      // v206: rifaccio il tocco fatto mentre il programma si caricava

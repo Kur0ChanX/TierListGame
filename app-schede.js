@@ -469,7 +469,8 @@ function attachDbListeners(){
     COVER_DB = makeLocalDb();
     COVER_ASSETS = makeLocalAssets();
     COVER_STATE = 'ready';
-    attachDbListeners();
+    // v211: i giochi aggiunti, le copertine e le foto stanno nell'archivio grande (archivio.js): li leggo quando è pronto
+    if(window.rtBig && rtBig.ready) rtBig.ready.then(()=> attachDbListeners(), ()=> attachDbListeners()); else attachDbListeners();
     coverLog('window.claude non disponibile: pagina aperta fuori dalla piattaforma Claude (es. file salvato in locale)');
     return;
   }

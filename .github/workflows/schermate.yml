@@ -24,11 +24,13 @@ jobs:
           node-version: 22
       - name: Schermate Steam
         run: node tools/build-shots.js
+      - name: Schermate a pezzi per l'app (dati/notte-*.js)
+        run: node tools/shard-night.js
       - name: Salva e ripubblica il sito
         run: |
           git config user.name "raccoon-bot"
           git config user.email "raccoon-bot@users.noreply.github.com"
-          git add shots.js
+          git add shots.js dati/notte-*.js
           if git diff --cached --quiet; then
             echo "Nessuna novità."
           else

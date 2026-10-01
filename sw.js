@@ -8,7 +8,7 @@
 // Se il sito rifiuta e non c'è copia, riprovo da solo qualche volta prima di arrendermi.
 const CACHE = 'raccoon-tier-v2';
 // tutti i file dell'app (si salvano man mano che la pagina li chiede: NON li scarico tutti insieme all'installazione, era una raffica di richieste)
-const SHELL = ['./', 'style.css', 'theme.css', 'packs.css', 'palettes.js', 'packs.js', 'icone.js', 'gusto.js', 'dna.js', 'media.js', 'voti.js', 'idee.js', 'ordine.js', 'cervello.js', 'tratti.js', 'pagine.js', 'motion.js', 'sync.js', 'app.js', 'app-schede.js', 'app-utente.js', 'app-ai.js', 'chiavi-cifrate.js', 'acquisto.js', 'cinema.js', 'guida.js', 'shots.js', 'gemini.js', 'loader.js', 'sources.js', 'genres.js', 'verify.js', 'fx.js', 'extras.js', 'extras2.js', 'extras3.js', 'extras4.js', 'qrcode.min.js', 'music.js', 'pet.js', 'radar.js', 'ost.js', 'quality.js', 'intro.js', 'giochi.js', 'facts.js', 'discoveries.js', 'manifest.webmanifest', 'icons/logo.png', 'icons/icon-192.png', 'icons/frugu-hd.gif'];
+const SHELL = ['./', 'style.css', 'theme.css', 'packs.css', 'palettes.js', 'packs.js', 'icone.js', 'gusto.js', 'dna.js', 'media.js', 'voti.js', 'idee.js', 'ordine.js', 'cervello.js', 'tratti.js', 'pagine.js', 'motion.js', 'archivio.js', 'sync.js', 'app.js', 'app-schede.js', 'app-utente.js', 'app-ai.js', 'chiavi-cifrate.js', 'acquisto.js', 'cinema.js', 'guida.js', 'shots.js', 'gemini.js', 'loader.js', 'sources.js', 'genres.js', 'verify.js', 'fx.js', 'extras.js', 'extras2.js', 'extras3.js', 'extras4.js', 'qrcode.min.js', 'music.js', 'pet.js', 'radar.js', 'ost.js', 'quality.js', 'intro.js', 'giochi.js', 'facts.js', 'discoveries.js', 'manifest.webmanifest', 'icons/logo.png', 'icons/icon-192.png', 'icons/frugu-hd.gif'];
 const PRE = ['./', 'icons/logo.png', 'icons/icon-192.png', 'icons/frugu-hd.gif', 'icons/frugu.gif'];
 const COVERS = 'raccoon-covers-v1', COVER_MAX = 1600;
 async function coverFetch(r){
@@ -31,7 +31,7 @@ self.addEventListener('activate', e=>{
   e.waitUntil(caches.keys().then(ks=> Promise.all(ks.filter(k=> k !== CACHE && k !== COVERS).map(k=> caches.delete(k)))).then(()=> self.clients.claim()));
 });
 const STATIC = /\/(icons|packs|fonts)\/|\.(png|jpe?g|webp|gif|svg|woff2?|ttf|otf|mp3|ogg|webmanifest)(\?|$)/i;
-const DATA = /\/(voti|facts|ost|shots|radar|quality|discoveries)\.js$/;
+const DATA = /\/(voti|facts|ost|shots|radar|quality|discoveries)\.js$|\/dati\/notte-/;      // v211: anche i pezzi notturni (cambiano ogni notte, non con la versione)
 const DAY = 864e5, DATA_TTL = 6 * 3600e3;
 let BUILD = '';                                   // versione dell'ultima pagina scaricata dal sito
 const META = new Request('./__sw_build');

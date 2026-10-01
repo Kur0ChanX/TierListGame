@@ -579,7 +579,8 @@
   // facts.js e discoveries.js (aggiornati ogni settimana da GitHub) si caricano dopo l'avvio, così non rallentano la prima schermata
   H.loadLocalData = function(){
     const b = (document.querySelector('meta[name="build"]') || {}).content || '0';
-    ['facts.js', 'voti.js', 'discoveries.js', 'shots.js'].forEach(f=>{ const sc = document.createElement('script'); sc.src = f + '?b=' + b; sc.async = true; sc.onerror = ()=> LOG({kind: 'note', src: f, ok: false, note: 'file non trovato (il workflow «Dati settimanali» non è ancora girato?)'}); sc.onload = ()=>{ LOG({kind: 'note', src: f, ok: true, note: 'caricato'}); try{ window.dispatchEvent(new Event('localdata')); }catch(e){} }; document.head.appendChild(sc); });
+    ['facts.js', 'voti.js', 'discoveries.js'].concat(window.rtNight ? [] : ['shots.js']).forEach(f=>{      // v211: le schermate arrivano a pezzi (rtNight), solo per il gioco aperto
+     const sc = document.createElement('script'); sc.src = f + '?b=' + b; sc.async = true; sc.onerror = ()=> LOG({kind: 'note', src: f, ok: false, note: 'file non trovato (il workflow «Dati settimanali» non è ancora girato?)'}); sc.onload = ()=>{ LOG({kind: 'note', src: f, ok: true, note: 'caricato'}); try{ window.dispatchEvent(new Event('localdata')); }catch(e){} }; document.head.appendChild(sc); });
   };
   setTimeout(()=> H.loadLocalData(), 2500);
   // CheapShark dal browser (accesso diretto): Metascore, % recensioni Steam e prezzo in dollari di un gioco PC. Serve ai giochi che non sono nel database di base (quindi non in facts.js).

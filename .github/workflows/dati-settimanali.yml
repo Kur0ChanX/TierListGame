@@ -59,6 +59,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
+      - name: Colonne sonore e schermate a pezzi per l'app (dati/notte-*.js)
+        run: node tools/shard-night.js
+        continue-on-error: true
       - name: Controllo qualità (ogni notte)
         run: node tools/build-quality.js
         continue-on-error: true
@@ -70,7 +73,7 @@ jobs:
         run: |
           git config user.name "raccoon-bot"
           git config user.email "raccoon-bot@users.noreply.github.com"
-          git add facts.js discoveries.js radar.js ost.js quality.js voti.js tools/facts-chk.json tools/ost-miss.json
+          git add facts.js discoveries.js radar.js ost.js quality.js voti.js tools/facts-chk.json tools/ost-miss.json dati/notte-*.js
           if git diff --cached --quiet; then
             echo "Nessuna novità."
           else

@@ -89,4 +89,15 @@ for (const g of D.games) {
     try { JSON.parse(fs.readFileSync(fp, 'utf8').replace(/^const [A-Z_]+ = /, '').replace(/;\s*$/, '')); } catch (e) { warnings++; console.log('File dati non valido (JSON rotto): ' + f); }
   }
 }
+// v211: i pezzi notturni dati/notte-*.js devono contenere gli stessi giochi dei file interi (tools/shard-night.js)
+try {
+  const fsx = require('fs'), px = require('path'), R0 = px.join(__dirname, '..'), DX = px.join(R0, 'dati');
+  [['ost', 'ost.js', 'OST'], ['shots', 'shots.js', 'GAME_SHOTS']].forEach(([f, file, name])=>{
+    const fp = px.join(R0, file); if (!fsx.existsSync(fp)) return;
+    const whole = Object.keys(JSON.parse(fsx.readFileSync(fp, 'utf8').replace(new RegExp('^const ' + name + ' = '), '').replace(/;\s*$/, '')).games || {}).length;
+    let parts = 0, nf = 0;
+    if (fsx.existsSync(DX)) fsx.readdirSync(DX).filter(x=> x.indexOf('notte-' + f + '-') === 0).forEach(x=>{ nf++; const t = fsx.readFileSync(px.join(DX, x), 'utf8'); parts += Object.keys(JSON.parse(t.slice(t.indexOf('.push(') + 6, t.indexOf(');window.rtNotteArrived'))).g || {}).length; });
+    if (nf !== 64 || parts !== whole) warn('Pezzi notturni ' + f + ': ' + parts + ' giochi in ' + nf + ' pezzi, ma ' + file + ' ne ha ' + whole + ' → node tools/shard-night.js');
+  });
+} catch (e) { warn('Controllo pezzi notturni non riuscito: ' + e.message); }
 console.log(warnings ? `\n${warnings} avvisi.` : 'Nessun avviso: dati coerenti.');

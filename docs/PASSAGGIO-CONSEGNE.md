@@ -69,8 +69,8 @@ Misure con un catalogo finto di 20.000 giochi (`tools/test/make-big.js 20000 DIR
 prima della v209 48 MB di dati, 128 MB di memoria, lista in 1,5 s; dopo: indice 4,5 MB (178 KB con i 765 giochi veri), 33 MB di memoria, lista in 0,5 s, nessun blocco.
 Fatto: indice «a tabella» + testi a pezzi da 250 giochi caricati quando servono + tratti precalcolati (identici: `tv3.js`).
 Ancora da fare, in quest'ordine (ognuno con le sue prove):
-1. **Giochi aggiunti dall'utente** (`jrpg_db_customGames` in localStorage, limite ~5 MB del browser): spostarli in IndexedDB (con copia di sicurezza e sincronizzazione invariata). È il vero limite per crescere oltre ~1.500–2.000 giochi aggiunti.
-2. **File notturni del server** (`facts.js`, `voti.js`, `ost.js`, `shots.js`…): crescono con il catalogo; dividerli come i testi (pezzi per id) o in formato a tabella, caricando a richiesta quelli usati solo nella scheda (ost, shots).
+1. ✅ (v211) **Giochi aggiunti, copertine, foto** in IndexedDB: `archivio.js` (prova `tools/test/tarch.js`).
+2. ✅ (v211) **Colonne sonore e schermate** a pezzi `dati/notte-*.js` (`tools/shard-night.js`, prova `tools/test/tnight.js`). Restano interi `facts.js` e `voti.js` (servono a tutta la lista: nome inglese nella ricerca, voti verificati): a 20.000 giochi ~2–3 MB l'uno; prossimo passo = formato a tabella come giochi.js.
 3. Lista: con molti giochi, la «Sintonia» per riga va calcolata solo per le righe visibili (oggi è veloce grazie alle cache, ma cresce con N).
 
 ## 6. Cronologia utile (v195 → v206)

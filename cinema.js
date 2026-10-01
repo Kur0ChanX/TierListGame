@@ -42,6 +42,7 @@
   }
   async function shotsFor(g){
     try{ const lk = window.rtMediaLock && window.rtMediaLock(g); if(lk && lk.shots && lk.shots.length) return lk.shots; }catch(e){}     // schermate scelte da te: bloccate
+    try{ if(window.rtNight) await rtNight.ensure('shots', g.id); }catch(e){}
     const s = steamShots(g); if(s.length >= MIN_SHOTS) return s;
     const r = await rawgShots(g);                                        // poche schermate: aggiungo quelle di RAWG (se c'è la chiave)
     return s.concat(r.filter(u=> !s.includes(u))).slice(0, 12);
@@ -54,7 +55,8 @@
   async function run(g){
     stop(); const my = ticket;
     if(!document.getElementById('modalCard') || !document.getElementById('coverBlock') || !enabled()) return;
-    if(typeof GAME_SHOTS === 'undefined'){ await new Promise(res=>{ const f = ()=>{ window.removeEventListener('localdata', f); res(); }; window.addEventListener('localdata', f); setTimeout(res, 3500); }); if(my !== ticket) return; }
+    if(window.rtNight){ await rtNight.ensure('shots', g.id); if(my !== ticket) return; }
+    else if(typeof GAME_SHOTS === 'undefined'){ await new Promise(res=>{ const f = ()=>{ window.removeEventListener('localdata', f); res(); }; window.addEventListener('localdata', f); setTimeout(res, 3500); }); if(my !== ticket) return; }
     const urls0 = await shotsFor(g);
     const same = ()=> my === ticket && typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id;
     if(!same() || !urls0.length) return;
