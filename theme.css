@@ -1147,3 +1147,46 @@ body[data-view]:not([data-view="list"]) #todayBox{display:none}
 .mc-link{color:var(--accent,#8ab4ff) !important; text-decoration:underline}
 .fi-g{margin:8px 0; padding:8px 10px; border-radius:12px; border:1px solid var(--border); background:var(--card)} .fi-g > b{display:block; font-size:.8rem; opacity:.8; margin-bottom:2px}
 .fi-m{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:3px 0}
+/* v194 — Fonti e lucchetti */
+.fp-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.fp-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 12px;border-radius:12px;background:var(--pk-surface2,rgba(255,255,255,.04));border:1px solid var(--pk-line,rgba(255,255,255,.08))}
+.fp-row>span:first-child{flex:1 1 160px;font-weight:600}
+.fp-row select{flex:1 1 220px;max-width:100%;min-height:38px;border-radius:10px;padding:6px 8px;background:var(--pk-surface,#1b1f2a);color:inherit;border:1px solid var(--pk-line,rgba(255,255,255,.15))}
+.fp-auto{align-items:flex-start;margin-top:10px}
+.fp-auto input{margin-top:4px;width:20px;height:20px}
+.fp-auto small{display:block;opacity:.75;font-weight:400;margin-top:3px}
+.fp-act{display:flex;gap:8px;align-items:center;flex:1 1 100%;justify-content:flex-end}
+.fp-lock{display:flex;align-items:center;gap:4px;font-size:.92em;opacity:.9}
+#fpTake{margin-top:12px}
+/* v194 — Update+ in un posto fisso: piccolo, a destra della riga «Database aggiornato» */
+#metaRow{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:nowrap;margin:4px 2px 0;min-width:0}
+#metaRow>#buildLine{margin:0;min-width:0;flex:1 1 auto;white-space:normal;line-height:1.3}
+#metaRow>.upplus-line{flex:0 0 auto;margin:0;font-size:.66rem;padding:1px 8px 1px 3px;white-space:nowrap}
+#metaRow>.upplus-line svg.gi{width:13px !important;height:13px !important}
+/* v194 — effetti del carosello scelti nelle impostazioni */
+.hero-shots[data-fx="fade"] .hs.on{animation:none}
+.hero-shots[data-fx="slide"] .hs{transition:opacity .6s ease, transform .9s cubic-bezier(.2,.7,.2,1); transform:translateX(18%)}
+.hero-shots[data-fx="slide"] .hs.on{animation:none; transform:none}
+.hero-shots[data-fx="pan"] .hs.on{animation:heroPan var(--hsd,6.5s) linear both}
+@keyframes heroPan{from{transform:scale(1.12) translateX(-4%)} to{transform:scale(1.12) translateX(4%)}}
+.hero-shots[data-fx="zoom"] .hs.on{animation-duration:var(--hsd,6.5s)}
+@media (prefers-reduced-motion:reduce){ .hero-shots .hs.on{animation:none !important; transform:none !important} }
+/* v194 — Sintonia di gusto (al posto della ragnatela a 8 punte) */
+.gs2-top{display:flex;align-items:center;gap:14px;margin:6px 2px 10px}
+.gs2-ring{--p:0;flex:0 0 74px;width:74px;height:74px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--pk-accent,#22c55e) calc(var(--p)*1%), rgba(127,127,127,.18) 0);position:relative}
+.gs2-ring::before{content:'';position:absolute;inset:8px;border-radius:50%;background:var(--pk-surface,var(--card,#14171f))}
+.gs2-ring b{position:relative;font-size:1.25rem;font-variant-numeric:tabular-nums}
+.gs2-verd{display:flex;flex-direction:column;gap:2px;font-size:.92rem}.gs2-verd>b{font-size:1.05rem}.gs2-verd span{color:var(--sub)}
+.gs2-list{display:flex;flex-direction:column;gap:6px}
+.gs2-row{display:grid;grid-template-columns:24px minmax(0,1fr) 34% 20px;align-items:center;gap:8px;font-size:.86rem}
+.gs2-lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs2-bar{height:8px;border-radius:5px;background:rgba(127,127,127,.18);overflow:hidden}
+.gs2-bar i{display:block;height:100%;border-radius:5px;background:var(--pk-accent,#3b82f6);transition:width .6s ease}
+.gs2-row.off{opacity:.45}.gs2-row.on .gs2-bar i{background:var(--pk-good,#22c55e)}
+.gs2-ok{font-weight:800;color:var(--pk-good,#22c55e);text-align:center}
+.gs2-syms{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.gs2-sym{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:12px;background:rgba(236,72,153,.10);border:1px solid rgba(236,72,153,.28);font-size:.88rem;line-height:1.35}
+.gs2-sym small{display:block;color:var(--pk-good,#22c55e);margin-top:2px}
+.gs2-si{font-size:1.5rem;line-height:1}
+.gs2-neg{margin-top:8px;font-size:.84rem;color:#f59e0b}
+.gs2-sub{margin-top:8px;font-size:.76rem;color:var(--sub)}

@@ -47,5 +47,32 @@ const {customGames} = require('./catalog');
     if(++n % 40 === 0){ save(); console.log('controllati', n, '- con voto', hit); }
     await sleep(250);
   }
-  save(); console.log('FATTO: controllati', n, '- con voto', hit, '- totale in archivio', Object.keys(games).length);
+  save(); console.log('Metacritic: controllati', n, '- con voto', hit, '- totale in archivio', Object.keys(games).length);
+  // ---- OpenCritic SENZA chiave e senza limiti: solo per i giochi che Metacritic non ha ----
+  // Wikidata collega ~14.000 giochi al loro numero OpenCritic (proprietà P2864): una sola richiesta per tutto l'elenco,
+  // poi leggo il voto dalla pagina pubblica opencritic.com/game/<numero>/x (1 al secondo, massimo 400 a notte, ricontrollo dopo 30 giorni).
+  try{
+    const need = list.filter(g=> games[g.id] && !games[g.id].s && (ALL || !games[g.id].od || (Date.parse(today) - Date.parse(games[g.id].od)) >= 30 * 864e5));
+    if(need.length){
+      const q = 'SELECT ?o ?l WHERE { ?g wdt:P2864 ?o. ?g rdfs:label ?l. FILTER(lang(?l)="en") }';
+      const r = await fetch('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), {headers: {'User-Agent': 'TierListGame/1.0 (uso personale; github.com/Kur0ChanX/TierListGame)', Accept: 'application/sparql-results+json'}});
+      const map = {}; ((await r.json()).results.bindings || []).forEach(b=>{ const k = norm(b.l.value); if(k && !map[k]) map[k] = b.o.value; });
+      console.log('OpenCritic: giochi collegati su Wikidata', Object.keys(map).length, '- da controllare', need.length);
+      let on = 0, ohit = 0;
+      for(const g of need){
+        if(on >= 400) break;
+        const id = map[norm(clean(g.name))] || map[norm(clean(g.name).split(/:| - /)[0])];
+        games[g.id].od = today; if(!id) continue;
+        on++;
+        try{
+          const t = await (await fetch('https://opencritic.com/game/' + id + '/x', {headers: {'User-Agent': UA}})).text();
+          const sc = /topCriticScore&q;:([0-9.]+)/.exec(t), nr = /numReviews&q;:([0-9]+)/.exec(t);
+          if(sc && +sc[1] > 0){ games[g.id].oc = Math.round(+sc[1]); games[g.id].ocn = nr ? +nr[1] : 0; games[g.id].ocu = id; ohit++; }
+        }catch(e){}
+        await sleep(1000);
+      }
+      save(); console.log('OpenCritic: pagine lette', on, '- con voto', ohit);
+    }
+  }catch(e){ console.log('OpenCritic non letto:', e.message); }
+  console.log('FATTO');
 })();

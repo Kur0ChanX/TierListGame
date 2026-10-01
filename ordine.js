@@ -13,14 +13,14 @@
   const PINS = 'jrpg_card_pins', ON = 'jrpg_card_order';
   const cardOrderOn = ()=> LS.get(ON, 'on') !== 'off';
   const LAYERS = [
-    {id: 'capire', n: '🔎 Capire il gioco', keys: ['generi', 'simboli', 'storia', 'etichetta', 'affidabilita', 'gameplay', 'piace', 'proscons', 'tempo', 'longevita', 'colonna', 'cast', 'approfondimento', 'dettagli']},
+    {id: 'capire', n: '🔎 Capire il gioco', keys: ['storia', 'etichetta', 'radar', 'piace', 'gameplay', 'proscons', 'generi', 'longevita', 'tempo', 'colonna', 'cast', 'approfondimento', 'dettagli', 'simboli', 'affidabilita']},
     {id: 'giocare', n: '🎮 Giocarlo bene', keys: ['guida', 'compagno', 'saga']},
     {id: 'stato', n: '📋 Il tuo stato', keys: ['stato', 'recensione', 'nota']},
     {id: 'comprare', n: '🛒 Comprare', keys: ['comprare', 'versioni']},
     {id: 'simili', n: '🔁 Altri giochi', keys: ['simili']},
     {id: 'altro', n: '📚 Per approfondire', keys: ['eredi', 'quinte', 'uscita', 'album', 'cronologia']}
   ];
-  const KEY_NAMES = {verdetto: 'Verdetto d\'acquisto', radar: 'Radar di gusto', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'Etichetta del gioco', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
+  const KEY_NAMES = {verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'Etichetta del gioco', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
   const titleKey = t=>{
     t = norm(t);
     if(/etichetta/.test(t)) return 'etichetta'; if(/prima di comprarlo/.test(t)) return 'comprare'; if(/quale versione/.test(t)) return 'versioni'; if(/il tuo stato/.test(t)) return 'stato';
@@ -54,17 +54,17 @@
       else if(cur) blocks.get(cur).push(el);
       else top.push(el);
     });
-    // ordine: in alto identità, verdetto e radar; poi quello che hai fissato; poi gli strati
+    // ordine: in alto identità e verdetto; poi quello che hai fissato; poi gli strati (la sintonia con i tuoi gusti sta dopo storia e colpo d'occhio)
     const st = g && typeof STATUSES !== 'undefined' ? STATUSES[g.id] : '';
     let layers = LAYERS.slice();
     if(st === 'playing'){ const a = layers.find(l=> l.id === 'giocare'), b = layers.find(l=> l.id === 'stato'); layers = [a, b].concat(layers.filter(l=> l !== a && l !== b)); }
-    const used = new Set(), out = top.slice(), pinned = pins().filter(k=> blocks.has(k) && !['verdetto', 'radar'].includes(k));
-    ['verdetto', 'radar'].forEach(k=>{ if(blocks.has(k)){ out.push(...blocks.get(k)); used.add(k); } });
+    const used = new Set(), out = top.slice(), pinned = pins().filter(k=> blocks.has(k) && !['verdetto'].includes(k));
+    ['verdetto'].forEach(k=>{ if(blocks.has(k)){ out.push(...blocks.get(k)); used.add(k); } });
     // le etichette già presenti si riusano (altrimenti a ogni ridisegno se ne accumulavano di vecchie in cima alla scheda)
     const prevL = {}; card.querySelectorAll(':scope > .cd-layer').forEach(n=>{ if(prevL[n.dataset.l]) n.remove(); else prevL[n.dataset.l] = n; });
     const label = (id, text)=>{ let d = prevL[id]; if(!d){ d = document.createElement('div'); d.className = 'cd-layer'; d.dataset.l = id; } d.textContent = text; return d; };
     if(pinned.length){ out.push(label('pins', '📌 Fissati da te')); pinned.forEach(k=>{ out.push(...blocks.get(k)); used.add(k); }); }
-    const known = new Set(LAYERS.flatMap(l=> l.keys).concat(['verdetto', 'radar']));
+    const known = new Set(LAYERS.flatMap(l=> l.keys).concat(['verdetto']));
     layers.forEach(l=>{
       const ks = l.keys.filter(k=> blocks.has(k) && !used.has(k));
       if(l.id === 'capire') blocks.forEach((v, k)=>{ if(!known.has(k) && !used.has(k) && !ks.includes(k)) ks.push(k); });         // blocchi nuovi/sconosciuti: restano tra quelli per capire
@@ -348,6 +348,7 @@
       ['Sincronizzazione con GitHub', 'Token, «Sincronizza ora», accesso con utente', openAskSettings],
       ['Avvio: schermo intero e apertura animata', 'Le due opzioni di avvio', openAskSettings]]},
     {n: '🗂️ Dati e fonti', rows: [
+      ['Fonti e lucchetti', 'Da quale fonte prendere ogni dato, «applica tutto da solo»', ()=> window.openFieldPrefs && openFieldPrefs()],
       ['Controllo dati', 'Modifiche da approvare e fonti', ()=> window.openAuditPanel && openAuditPanel()],
       ['Backup e spazio del browser', 'Copia di sicurezza e spazio libero', ()=> runMenu(/Backup/)],
       ['Verifica generi online', 'Confronto con Wikidata', ()=> window.openGenreCheck && openGenreCheck()],
@@ -374,4 +375,15 @@
   window.rtSettings = {open: openSettings, modules: openModules};
 
   window.rtMenuRooms = {on: roomsOn, setOn: v=> LS.set(MON, v ? 'on' : 'off'), resetPins: ()=> { LS.set(MP, []); LS.set(MR, []); }};
+})();
+// ---- ricaricando la pagina (es. da Novità) torno nella stessa vista invece che in Classifica ----
+(function(){
+  try{
+    const v0 = sessionStorage.getItem('rt_view');
+    new MutationObserver(()=>{ const v = document.body.dataset.view; if(v) try{ sessionStorage.setItem('rt_view', v); }catch(e){} }).observe(document.body, {attributes: true, attributeFilter: ['data-view']});
+    if(v0 && v0 !== 'list'){
+      let n = 0; const go = ()=>{ if(typeof window.setView === 'function' && typeof GAMES !== 'undefined' && GAMES.length){ try{ window.setView(v0); }catch(e){} } else if(++n < 40) setTimeout(go, 150); };
+      setTimeout(go, 400);
+    }
+  }catch(e){}
 })();

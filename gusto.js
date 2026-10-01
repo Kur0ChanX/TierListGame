@@ -1,4 +1,5 @@
-// ---- Radar di gusto: i tuoi 8 gusti più forti a ragnatela (animata) e quanti ne tocca ogni gioco ----
+// ---- Sintonia di gusto (prima «radar» a ragnatela): % di sintonia con un cerchio, poi i tuoi 10 gusti più forti come barre ordinate, ✓ su quelli che ha il gioco ----
+// Dentro ci sono anche i simboli del gioco legati ai tuoi gusti (💕 🤝 ✨ storia, 💉 dopamina).
 // Usa il modello dei gusti di extras3.js («I tuoi gusti»): niente AI, tutto sul dispositivo. Compare nella scheda dei giochi (dopo il verdetto) e in «I tuoi gusti».
 (function(){
   'use strict';
@@ -11,7 +12,7 @@
 
   function axes(){
     const tm = window.rtTasteModel && window.rtTasteModel(); if(!tm || tm.n < 3) return null;
-    const e = Object.entries(tm.wts).filter(([k])=> tm.cnt[k] >= 2 && tm.wts[k] > .2 && k.indexOf('epoca') !== 0).sort((a, b)=> b[1] - a[1]).slice(0, 8);
+    const e = Object.entries(tm.wts).filter(([k])=> tm.cnt[k] >= 2 && tm.wts[k] > .2 && k.indexOf('epoca') !== 0).sort((a, b)=> b[1] - a[1]).slice(0, 10);
     if(e.length < 4) return null;
     const hi = e[0][1], lo = e[e.length - 1][1], span = (hi - lo) || 1;
     return {tm, ax: e.map(([k, w])=> ({k, w: .36 + .64 * ((w - lo) / span), label: shortLab(window.rtFLAB(k)), full: String(window.rtFLAB(k)), icon: iconOf(k)}))};
@@ -27,16 +28,33 @@
     return `<svg class="gs-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Radar di gusto">${rings}${spokes}<polygon class="gs-poly" points="${poly}"/>${dots}${labels}</svg>`;
   }
   // g = gioco da confrontare (oppure null: solo il tuo profilo)
+  function symbols(g, tm){
+    const e = (g && g.enrich) || {}, out = [];
+    let info = null; try{ info = typeof STORY_TAG_INFO !== 'undefined' ? STORY_TAG_INFO : null; }catch(x){}
+    const likeStory = ['storia:forte', 'tag:JRPG', 'tag:VN', 'tag:ADV'].some(k=> (tm.wts[k] || 0) > .2), likeDopa = (tm.wts['mech:DOPA'] || 0) > .2 || (tm.wts['mech:LOOT'] || 0) > .2;
+    if(e.storyTag && info && info[e.storyTag]) out.push(`<div class="gs2-sym"><span class="gs2-si">${info[e.storyTag].icon}</span><span><b>${esc(info[e.storyTag].label)}</b>${e.storyTagNote ? ' — ' + esc(e.storyTagNote) : ''}${likeStory ? '<small>✓ in linea con te: ami le storie che lasciano il segno</small>' : ''}</span></div>`);
+    if(e.dopamine === true) out.push(`<div class="gs2-sym"><span class="gs2-si">💉</span><span><b>Loop di ricompense molto coinvolgente</b> (effetto dopamina)${likeDopa ? '<small>✓ in linea con te: loot, progressi visibili e ricompense ti agganciano</small>' : ''}</span></div>`);
+    return out.length ? `<div class="gs2-syms">${out.join('')}</div>` : '';
+  }
   window.rtRadar = function(g){
     let r; try{ r = axes(); }catch(e){ return ''; }
     if(!r) return '';
     const {tm, ax} = r, has = g ? new Set(window.rtFeats(g)) : null;
-    let sum = '';
+    let top = '', neg = [];
     if(g){
-      const hit = ax.filter(a=> has.has(a.k)), neg = Object.entries(tm.wts).filter(([k, w])=> tm.cnt[k] >= 2 && w < -.25 && has.has(k)).sort((a, b)=> a[1] - b[1]).slice(0, 3).map(([k])=> window.rtFLAB(k));
-      sum = `<div class="gs-sum">Tocca <b>${hit.length} dei tuoi ${ax.length}</b> gusti più forti${hit.length ? ': ' + hit.slice(0, 4).map(a=> esc(a.full)).join(', ') : ''}.${neg.length ? ` <span class="gs-neg">⚠️ Ha anche cose che di solito eviti: ${neg.map(esc).join(', ')}.</span>` : ''}</div>`;
-    }else sum = `<div class="gs-sum">I tuoi ${ax.length} gusti più forti, imparati da ${tm.n} giochi. Più il punto è lontano dal centro, più ti piace.</div>`;
-    return `<div class="gs-card" id="gsCard"><div class="gs-head">🕸️ <b>${g ? 'Radar di gusto: tu e questo gioco' : 'Il tuo radar di gusto'}</b></div>${svg(ax, has)}${g ? '<div class="gs-lg"><span class="gs-lg-p"></span> i tuoi gusti <span class="gs-lg-d"></span> li ha questo gioco</div>' : ''}${sum}</div>`;
+      const raw = a=> Math.max(0, tm.wts[a.k] || 0), tot = ax.reduce((s, a)=> s + raw(a), 0) || 1, got = ax.filter(a=> has.has(a.k)).reduce((s, a)=> s + raw(a), 0);
+      neg = Object.entries(tm.wts).filter(([k, w])=> tm.cnt[k] >= 2 && w < -.25 && has.has(k)).sort((a, b)=> a[1] - b[1]).slice(0, 3);
+      const penalty = neg.reduce((s, [, w])=> s + Math.min(.6, -w), 0) / tot;
+      const pct = Math.max(0, Math.min(100, Math.round(100 * (got / tot - penalty * .5))));
+      const word = pct >= 75 ? 'Altissima' : pct >= 50 ? 'Buona' : pct >= 30 ? 'Parziale' : 'Bassa';
+      const n = ax.filter(a=> has.has(a.k)).length;
+      top = `<div class="gs2-top"><div class="gs2-ring" style="--p:${pct}"><b>${pct}%</b></div><div class="gs2-verd"><b>Sintonia ${word.toLowerCase()}</b><span>Ha <b>${n} dei tuoi ${ax.length}</b> gusti più forti</span></div></div>`;
+    }
+    const rows = ax.map(a=>{ const on = has && has.has(a.k);
+      return `<div class="gs2-row${has ? (on ? ' on' : ' off') : ''}"><span class="gs2-ic">${a.icon}</span><span class="gs2-lab">${esc(a.full)}</span><span class="gs2-bar"><i style="width:${Math.round(a.w * 100)}%"></i></span><span class="gs2-ok">${has ? (on ? '✓' : '·') : ''}</span></div>`; }).join('');
+    const negHtml = neg.length ? `<div class="gs2-neg">⚠️ Ha anche cose che di solito eviti: ${neg.map(([k])=> esc(window.rtFLAB(k))).join(', ')}.</div>` : '';
+    const sub = g ? 'Barre = quanto ti piace ogni cosa (imparato dai tuoi voti e preferiti) · ✓ = questo gioco ce l\'ha' : `I tuoi ${ax.length} gusti più forti, imparati da ${tm.n} giochi: più la barra è lunga, più ti piace.`;
+    return `<div class="gs-card gs2" id="gsCard"><div class="gs-head">🎯 <b>${g ? 'Sintonia con i tuoi gusti' : 'I tuoi gusti più forti'}</b></div>${top}${g ? symbols(g, tm) : ''}<div class="gs2-list">${rows}</div>${negHtml}<div class="gs2-sub">${sub}</div></div>`;
   };
   // nella scheda del gioco, subito dopo il verdetto d'acquisto
   if(typeof window.openModal === 'function'){

@@ -458,7 +458,10 @@
     // schermate di gioco (per la scheda cinematografica): dall'elenco di ricerca RAWG; la prima è quasi sempre la copertina, la salto
     async shots(name){
       const g = await H.rawg.find(name); if(!g) return [];
-      return (g.short_screenshots || []).map(s=> s && s.image).filter(Boolean).slice(1, 9).map(u=> String(u).replace('/media/screenshots/', '/media/resize/640/-/screenshots/'));
+      let list = (g.short_screenshots || []).map(s=> s && s.image).filter(Boolean).slice(1);
+      // la ricerca ne dà al massimo 5-6: se sono poche chiedo l'elenco completo del gioco (1 richiesta in più, una volta al mese per gioco)
+      if(list.length < 6 && g.id){ try{ const j = await rawgGet('games/' + g.id + '/screenshots', {page_size: '12'}); ((j && j.results) || []).forEach(x=>{ if(x && x.image && !list.includes(x.image)) list.push(x.image); }); }catch(e){} }
+      return list.slice(0, 12).map(u=> String(u).replace('/media/screenshots/', '/media/resize/640/-/screenshots/'));
     },
     async find(name){
       const j = await rawgGet('games', {search: name, search_precise: 'true', page_size: '6'});
@@ -589,6 +592,7 @@
   H.factsFor = g=>{ try{ return (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.games && GAME_FACTS.games[g.id]) || null; }catch(e){ return null; } };
 
   // Metascore UFFICIALE da metacritic.com, scaricato dai server GitHub (voti.js): niente blocchi, niente chiavi, niente limiti
+  H.ocArchFor = g=>{ try{ const v = typeof VOTI !== 'undefined' && VOTI.games && VOTI.games[g.id]; return v && v.oc ? {score: v.oc, reviews: v.ocn || 0, url: 'https://opencritic.com/game/' + v.ocu + '/x', arch: true} : null; }catch(e){ return null; } };
   H.votiFor = g=>{ try{ const v = typeof VOTI !== 'undefined' && VOTI.games && VOTI.games[g.id]; return v && v.s ? v : null; }catch(e){ return null; } };
 
   // ---------- il cuore: giri di ricerca senza sosta ----------

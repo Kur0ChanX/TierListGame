@@ -49,13 +49,13 @@ jobs:
       - name: Radar delle uscite (ogni notte)
         run: node tools/build-radar.js
         continue-on-error: true
-      - name: "Colonne sonore (ogni notte, solo giochi nuovi; al massimo 300 per giro)"
-        run: node tools/build-ost.js --cap 300
+      - name: "Voti ufficiali Metacritic e OpenCritic (ogni notte, solo giochi nuovi o controllati da più di 30 giorni)"
+        run: node tools/build-voti.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-      - name: "Voti ufficiali Metacritic (ogni notte, solo giochi nuovi o controllati da più di 30 giorni)"
-        run: node tools/build-voti.js
+      - name: "Colonne sonore (ogni notte, solo giochi nuovi; al massimo 150 per giro)"
+        run: node tools/build-ost.js --cap 150
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
