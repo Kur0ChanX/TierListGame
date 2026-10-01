@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v190', date:'2026-10-01', time:'11:40', items:[
+    'Ricerca nelle fonti, sistemata a strati. 1) Il giro notturno non partiva più per un mio errore nella v188 (due punti nel nome di un passaggio): corretto, e ora controllo il file a ogni versione.',
+    '2) Il server ora lavora per TUTTI i giochi, anche i ~600 che hai aggiunto tu (prima solo i 765 di base): ogni notte prende lingue, prezzo, Metascore e colonne sonore dei giochi nuovi; il lunedì rinfresca quelli vecchi. Mai tutto da capo: solo nuovi o vecchi di 7/30 giorni, con un tetto per notte (va bene anche con 10.000 giochi).',
+    '3) Memoria delle risposte sul telefono: la stessa domanda a Wikipedia, Wikidata, Steam, RAWG ecc. non si rifà per giorni (meno «troppe richieste», ricerche più veloci). Se un sito è giù, uso l\'ultima risposta buona (fino a 90 giorni) invece di fallire.',
+    '4) Gemini: le richieste partono in fila e distanziate (niente raffiche), se Google dice «aspetta 20 secondi» aspetto e riprovo, se è finita la quota del GIORNO di un modello lo salto fino a domattina e uso quello leggero.',
+    '5) Ponte personale: se un sito risponde «non trovato» il ponte non viene più messo in pausa per sbaglio (prima perdevi Steam per 10 minuti). Nuova versione 2 del ponte (codice copiabile dalla Diagnostica): legge anche Metacritic ufficiale DAL VIVO, così un gioco aggiunto oggi ha subito il voto verificato, senza aspettare la notte.',
+    '6) Il rapporto della Diagnostica dice anche la versione del ponte, la memoria delle risposte e i modelli Gemini in pausa.',
+  ]},
   {version:'v189', date:'2026-10-01', time:'11:25', items:[
     'Controllo fonti dal tuo telefono: 12 su 12 funzionano, Steam passa dal ponte personale. I ponti pubblici sono quasi tutti morti (4-8% di successo): ora quelli con troppi fallimenti vengono saltati e, quando c\'è il ponte personale, se ne prova solo uno pubblico di scorta. Meno attese a vuoto.',
   ]},

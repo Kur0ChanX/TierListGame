@@ -36,19 +36,25 @@ jobs:
       - name: Dati sui giochi (lingue, prezzi, voti)
         if: github.event.schedule != '23 1 * * *'
         run: node tools/build-facts.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Prezzi di oggi (giro notturno leggero)
         if: github.event.schedule == '23 1 * * *'
         run: node tools/build-facts.js --light
-      - name: Radar delle uscite (ogni notte)
-        run: node tools/build-radar.js
-        continue-on-error: true
-      - name: Colonne sonore (solo giro completo)
-        if: github.event.schedule != '23 1 * * *'
-        run: node tools/build-ost.js
+      - name: "Dati dei giochi appena aggiunti (ogni notte, solo quelli mai controllati)"
+        run: node tools/build-facts.js --new
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-      - name: Voti ufficiali Metacritic (ogni notte: solo giochi nuovi o controllati da più di 30 giorni)
+      - name: Radar delle uscite (ogni notte)
+        run: node tools/build-radar.js
+        continue-on-error: true
+      - name: "Colonne sonore (ogni notte, solo giochi nuovi; al massimo 300 per giro)"
+        run: node tools/build-ost.js --cap 300
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      - name: "Voti ufficiali Metacritic (ogni notte, solo giochi nuovi o controllati da più di 30 giorni)"
         run: node tools/build-voti.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,7 +69,7 @@ jobs:
         run: |
           git config user.name "raccoon-bot"
           git config user.email "raccoon-bot@users.noreply.github.com"
-          git add facts.js discoveries.js radar.js ost.js quality.js voti.js
+          git add facts.js discoveries.js radar.js ost.js quality.js voti.js tools/facts-chk.json tools/ost-miss.json
           if git diff --cached --quiet; then
             echo "Nessuna novità."
           else

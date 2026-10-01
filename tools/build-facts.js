@@ -9,7 +9,9 @@ const UA = {'User-Agent': 'TierListGame/1.0 (uso personale; +https://github.com/
 const arg = n=>{ const i = process.argv.indexOf('--' + n); return i > -1 ? +process.argv[i + 1] : null; };
 const LIMIT = arg('limit') || 99999, OFFSET = arg('offset') || 0;
 const LIGHT = process.argv.includes('--light');
-const REVIEWS = process.argv.includes('--reviews');   // solo il «termometro» delle recensioni Steam (ultimi 30 giorni contro sempre)       // solo prezzi (per l'aggiornamento notturno): 1 richiesta ogni 50 giochi
+const REVIEWS = process.argv.includes('--reviews');
+const NEW_ONLY = process.argv.includes('--new');    // solo i giochi mai controllati (giro notturno: un gioco aggiunto oggi ha i dati domani)
+const CAP = arg('cap') || (NEW_ONLY ? 400 : 2500); // massimo di giochi per giro: con 10.000 giochi il lavoro si divide su più giri   // solo il «termometro» delle recensioni Steam (ultimi 30 giorni contro sempre)       // solo prezzi (per l'aggiornamento notturno): 1 richiesta ogni 50 giochi
 const sleep = ms=> new Promise(r=> setTimeout(r, ms));
 const norm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[™®©]/g, '').replace(/[^a-z0-9]/g, '');
 const baseName = n=> String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*[-–:]\s*(definitive|remaster|remastered|remake|complete|hd|edition|reborn|reloaded|the final cut|director'?s cut|enhanced).*$/i, '').trim();
@@ -102,15 +104,23 @@ async function lightRun(){
     });
     await sleep(1500);
   }
-  fs.writeFileSync(path.join(ROOT, 'facts.js'), 'const GAME_FACTS = ' + JSON.stringify({built: today, games}) + ';\n');
+  fs.writeFileSync(path.join(ROOT, 'facts.js'), 'const GAME_FACTS = ' + JSON.stringify({built: today, games, }) + ';\n');
   console.log('prezzi aggiornati:', upd, 'su', ids.length, 'giochi con Steam');
 }
 (async()=>{
   if(LIGHT){ await lightRun(); return; }
   if(REVIEWS){ await reviewsRun(); return; }
-  const out = {built: new Date().toISOString().slice(0, 10), games: Object.assign({}, prev.games || {})};
-  const list = GAMES.slice(OFFSET, OFFSET + LIMIT);
-  let n = 0, withSteam = 0, withIt = 0;
+  const today = new Date().toISOString().slice(0, 10);
+  // ultimo controllo di ogni gioco (anche quelli senza dati) in un file a parte, che l'app non scarica
+  const CHK = path.join(ROOT, 'tools', 'facts-chk.json'); let chk = {}; try{ chk = JSON.parse(fs.readFileSync(CHK, 'utf8')); }catch(e){}
+  const out = {built: today, games: Object.assign({}, prev.games || {})};
+  const saveAll = ()=>{ fs.writeFileSync(path.join(ROOT, 'facts.js'), 'const GAME_FACTS = ' + JSON.stringify(out) + ';\n'); fs.writeFileSync(CHK, JSON.stringify(chk)); };
+  const age = id=>{ const d = chk[id] || (out.games[id] && out.games[id].t); return d ? (Date.parse(today) - Date.parse(d)) / 864e5 : 1e9; };
+  const all = (await require('./catalog').allGames(GAMES)).slice(OFFSET, OFFSET + LIMIT);
+  // prima i mai controllati, poi i più vecchi; nel giro dei «nuovi» solo i mai controllati; con dati: ogni 7 giorni, senza dati: ogni 30
+  const list = all.filter(g=> NEW_ONLY ? age(g.id) === 1e9 : age(g.id) >= (out.games[g.id] ? 7 : 30)).sort((a, b)=> age(b.id) - age(a.id)).slice(0, CAP);
+  console.log('da controllare:', list.length, 'su', all.length, NEW_ONLY ? '(solo nuovi)' : '');
+  let n = 0, withSteam = 0, withIt = 0, fails = 0;
   for(const g of list){
     n++;
     try{
@@ -119,12 +129,12 @@ async function lightRun(){
       if(st && st.id){ await sleep(500); try{ const rv = await reviewFacts(st.id); if(rv) Object.assign(st, rv); }catch(e){} }
       await sleep(700);
       const ch = await cheapFacts(g); if(ch) f.c = ch;
-      if(f.s || f.c){ f.t = out.built; out.games[g.id] = f; }
-      else if(out.games[g.id] && !out.games[g.id].t) delete out.games[g.id];
-    }catch(e){ console.error('errore', g.name, e.message); }
-    if(n % 25 === 0){ console.log(n + '/' + list.length, '· con Steam:', withSteam, '· con italiano:', withIt); fs.writeFileSync(path.join(ROOT, 'facts.js'), 'const GAME_FACTS = ' + JSON.stringify(out) + ';\n'); }
+      if(f.s || f.c){ f.t = today; out.games[g.id] = f; }
+      chk[g.id] = today;
+    }catch(e){ console.error('errore', g.name, e.message); if(++fails > 30){ console.log('troppi errori: mi fermo'); break; } }
+    if(n % 25 === 0){ console.log(n + '/' + list.length, '· con Steam:', withSteam, '· con italiano:', withIt); saveAll(); }
     await sleep(500);
   }
-  fs.writeFileSync(path.join(ROOT, 'facts.js'), 'const GAME_FACTS = ' + JSON.stringify(out) + ';\n');
+  saveAll();
   console.log('fatto:', Object.keys(out.games).length, 'giochi con dati · con Steam:', withSteam, '· con italiano ufficiale:', withIt);
 })();

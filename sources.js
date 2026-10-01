@@ -78,8 +78,57 @@
     return {name: 'ponte personale', url: x=> base + encodeURIComponent(x)};
   }
   H.hasCustomRelay = ()=> !!customRelay();
+  // versione del ponte personale (la 2 sa leggere anche Metacritic ufficiale): chiesta una volta al giorno
+  H.relayInfo = async (force)=>{
+    const c = customRelay(); if(!c) return null;
+    const old = ls.get('rt_relay_info', null); if(!force && old && Date.now() - old.t < 864e5) return old;
+    let u = ''; try{ u = localStorage.getItem('jrpg_relay_url').trim().replace(/[?&]url=$/, ''); }catch(e){}
+    let info = {v: 1, t: Date.now()};
+    try{ const r = await fetch(u + (u.indexOf('?') > -1 ? '&' : '?') + 'info=1'); if(r.ok){ const j = await r.json(); if(j && j.v) info = {v: j.v, hosts: j.hosts, t: Date.now()}; } }catch(e){ info.err = 1; }
+    ls.set('rt_relay_info', info); return info;
+  };
+  // Metascore UFFICIALE dal vivo (autosuggest di metacritic.com) passando SOLO dal ponte personale v2: serve ai giochi appena aggiunti, non ancora nell'archivio notturno
+  const mnorm = n=> String(n || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').replace(/\bthe\b/g, ' ').replace(/\s+/g, ' ').trim();
+  H.metacriticLive = async function(name){
+    const info = await H.relayInfo(); if(!info || !(info.v >= 2)) return null;
+    const nm = String(name || '').replace(/\s*\([^)]*\)/g, '').trim(), t = mnorm(nm); if(!t) return null;
+    const ask = async q=>{ const j = await H.json('https://backend.metacritic.com/finder/metacritic/autosuggest/' + encodeURIComponent(q) + '?apiKey=1MOZgmNFxvmljaQR1X9KAuUFFdE9ZK&mcoTypeId=13', {direct: false, maxRelays: 1, timeout: 12000}); return ((j && j.data && j.data.items) || []).filter(x=> x.type === 'game-title'); };
+    let best = (await ask(nm)).find(x=> mnorm(x.title) === t);
+    if(!best){ const short = nm.split(/:| - /)[0]; if(short && short !== nm) best = (await ask(short)).find(x=> mnorm(x.title) === t); }
+    const sc = best && best.criticScoreSummary && best.criticScoreSummary.score;
+    return sc ? {t: best.title, u: best.slug, s: sc, y: best.premiereYear || 0, g: (best.genres || []).map(x=> x.name), live: true} : null;
+  };
   H.testCustomRelay = async ()=>{ const c = customRelay(); if(!c) throw new Error('indirizzo non impostato'); const r = await fetch(c.url('https://www.cheapshark.com/api/1.0/stores')); if(!r.ok) throw new Error('risposta ' + r.status); const j = await r.json(); return Array.isArray(j) ? j.length : 0; };
   const cache = new Map();
+  const noCustom = {};   // siti che il ponte personale (versione vecchia) rifiuta con «sito non consentito»
+  // ---- Memoria persistente delle risposte (IndexedDB «rt_srccache», solo su questo dispositivo) ----
+  // La stessa domanda allo stesso sito non si rifà per giorni: meno «troppe richieste», ricerche istantanee, e se il sito è giù
+  // uso l'ultima risposta buona (fino a 90 giorni). Le chiavi negli indirizzi vengono tolte dal nome in memoria.
+  const TTL = {'backend.metacritic.com': 7, 'en.wikipedia.org': 14, 'it.wikipedia.org': 14, 'www.wikidata.org': 14, 'query.wikidata.org': 14, 'www.pcgamingwiki.com': 30, 'store.steampowered.com': 2, 'www.cheapshark.com': 1, 'api.rawg.io': 7, 'www.youtube.com': 7, 'steamspy.com': 7, 'catalog.gog.com': 3};
+  const STALE_MAX = 90 * 864e5, PMAX = 4000;
+  const pkey = u=> String(u).replace(/([?&](?:key|api_key|apikey|token|access_token)=)[^&]+/gi, '$1*');
+  let pdb = null;
+  function pOpen(){
+    if(pdb) return pdb;
+    pdb = new Promise(res=>{ try{ const r = indexedDB.open('rt_srccache', 1); r.onupgradeneeded = ()=> r.result.createObjectStore('r'); r.onsuccess = ()=> res(r.result); r.onerror = ()=> res(null); }catch(e){ res(null); } });
+    return pdb;
+  }
+  async function pGet(k){ const db = await pOpen(); if(!db) return null; return new Promise(res=>{ try{ const q = db.transaction('r').objectStore('r').get(k); q.onsuccess = ()=> res(q.result || null); q.onerror = ()=> res(null); }catch(e){ res(null); } }); }
+  let pCount = 0;
+  async function pPut(k, v){
+    const db = await pOpen(); if(!db) return;
+    try{ const sz = typeof v === 'string' ? v.length : JSON.stringify(v).length; if(sz > 250000) return; }catch(e){ return; }
+    try{ db.transaction('r', 'readwrite').objectStore('r').put({t: Date.now(), v}, k); }catch(e){}
+    if(++pCount % 200 === 0) pPrune();
+  }
+  async function pPrune(){   // tengo le PMAX risposte più recenti
+    const db = await pOpen(); if(!db) return;
+    try{ const all = []; const st = db.transaction('r', 'readwrite').objectStore('r'); const c = st.openCursor();
+      c.onsuccess = ()=>{ const cur = c.result; if(cur){ all.push([cur.key, cur.value.t]); cur.continue(); } else if(all.length > PMAX){ all.sort((a, b)=> a[1] - b[1]); const st2 = db.transaction('r', 'readwrite').objectStore('r'); all.slice(0, all.length - PMAX).forEach(x=> st2.delete(x[0])); } };
+    }catch(e){}
+  }
+  H.clearSourceCache = async ()=>{ const db = await pOpen(); if(db) try{ db.transaction('r', 'readwrite').objectStore('r').clear(); }catch(e){} cache.clear(); };
+  H.cacheStats = { hit: 0, stale: 0, miss: 0 };
   async function once(url, o){
     const ctrl = new AbortController(), tm = setTimeout(()=> ctrl.abort(), o.timeout || 12000);
     try{
@@ -98,8 +147,18 @@
     const ck = o.as + ':' + url, hit = cache.get(ck);
     if(o.cache && hit && Date.now() - hit.t < 10 * 60e3) return hit.v;
     const host = hostOf(url), attempts = []; let lastErr = null, usedRelay = false;
-    if(hostDown[host] && hostDown[host] > Date.now()){ const e = new Error('fonte in pausa (non risponde da un po\': riprovo tra qualche minuto)'); e.fast = true; throw e; }
-    const done = v=>{ hostFails[host] = 0; hostTrips[host] = 0; if(needsRelay[host] && !usedRelay){ delete needsRelay[host]; ls.set(NRK, needsRelay); } if(o.cache) cache.set(ck, {t: Date.now(), v}); return v; };
+    if(H.bypassCache) o.cache = false;                                    // la diagnostica deve provare il sito vero, non la memoria
+    const pdays = o.cache && o.persist !== false && TTL[host], pk = pdays ? o.as + ':' + pkey(url) : '';
+    let stale = null;
+    if(pk){
+      const hitP = await pGet(pk);
+      if(hitP && Date.now() - hitP.t < pdays * 864e5){ H.cacheStats.hit++; cache.set(ck, {t: Date.now(), v: hitP.v}); return hitP.v; }
+      if(hitP && Date.now() - hitP.t < STALE_MAX) stale = hitP;
+      H.cacheStats.miss++;
+    }
+    const useStale = why=>{ H.cacheStats.stale++; LOG({kind: 'note', src: host, ok: true, note: 'sito non raggiungibile (' + why + '): uso la risposta salvata del ' + new Date(stale.t).toLocaleDateString('it-IT')}); return stale.v; };
+    if(hostDown[host] && hostDown[host] > Date.now()){ if(stale) return useStale('in pausa'); const e = new Error('fonte in pausa (non risponde da un po\': riprovo tra qualche minuto)'); e.fast = true; throw e; }
+    const done = v=>{ hostFails[host] = 0; hostTrips[host] = 0; if(needsRelay[host] && !usedRelay){ delete needsRelay[host]; ls.set(NRK, needsRelay); } if(o.cache) cache.set(ck, {t: Date.now(), v}); if(pk) pPut(pk, v); return v; };
     if(o.direct && !(needsRelay[host] && needsRelay[host] > Date.now() && o.relays)){
       await gap(host);
       for(let a = 0; a <= o.retries; a++){
@@ -121,7 +180,7 @@
       // al massimo 3 ponti per richiesta (i migliori per esito recente, con un po' di casualità sui pari merito): una fonte muta non deve bloccare la ricerca
       const dead = r=>{ const h = health[r.name]; return !!(h && h.fail >= 20 && relayScore(r.name) < 0.1); };   // ponti pubblici morti da sempre: non perdo tempo
       const list = RELAYS.filter(r=> !relayCooling(r.name) && !dead(r) && !(o.as === 'json' && r.textOnly)).map(r=> ({r, k: relayScore(r.name) + Math.random() * 0.05})).sort((a, b)=> b.k - a.k).slice(0, o.maxRelays || (customRelay() ? 2 : 3)).map(x=> x.r);
-      { const cr = customRelay(); if(cr && !relayCooling(cr.name)){ list.unshift(cr); if(list.length > (o.maxRelays || 3)) list.pop(); } }
+      { const cr = customRelay(); if(cr && !relayCooling(cr.name) && !((noCustom[host] || 0) > Date.now())){ list.unshift(cr); if(list.length > (o.maxRelays || 3)) list.pop(); } }
       for(const R of list){
         const full = R.url(url);
         await gap(hostOf(full));
@@ -132,8 +191,12 @@
           markRelay(R.name, true); LOG({kind: 'relay', src: R.name, ok: true, note: 'ponte riuscito per ' + host});
           return done(v);
         }catch(e){
-          markRelay(R.name, false); lastErr = e; attempts.push(R.name + ': ' + emsg(e));
+          lastErr = e; attempts.push(R.name + ': ' + emsg(e));
           LOG({kind: 'relay', src: R.name, ok: false, err: emsg(e) + ' (per ' + host + ')'});
+          // il ponte personale ha risposto (4xx): il ponte è vivo, è il sito a dire «no» (o un sito che il ponte non conosce). Non lo metto in pausa.
+          if(R.name === 'ponte personale' && e.status >= 400 && e.status < 500 && e.status !== 429){
+            if(e.status === 403) noCustom[host] = Date.now() + 864e5; else { markRelay(R.name, true); break; }
+          } else markRelay(R.name, false);
         } finally { relSlot(); }
       }
     }
@@ -143,6 +206,7 @@
     }
     hostFails[host] = (hostFails[host] || 0) + 1;
     if(hostFails[host] >= 3 && o.relays !== false){ hostTrips[host] = (hostTrips[host] || 0) + 1; const pause = Math.min(45e3 * Math.pow(2, hostTrips[host] - 1), 10 * 60e3); hostDown[host] = Date.now() + pause; hostFails[host] = 0; LOG({kind: 'relay', src: host, ok: false, note: 'fonte in pausa per ' + Math.round(pause / 1000) + ' s (3 tentativi completi falliti)'}); }
+    if(stale) return useStale(emsg(lastErr));
     const err = new Error('nessuna via ha risposto: ' + attempts.join(' | ')); err.attempts = attempts; err.status = lastErr && lastErr.status;
     throw err;
   };
