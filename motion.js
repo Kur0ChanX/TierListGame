@@ -155,12 +155,13 @@
       if(!was && R && moOn() && VW <= 760 && document.body.animate){
         tap = null; haptic('soft');
         const self = this, args = arguments, G = ghostOpen(R);
+        setTimeout(()=>{ try{ if(G.gh.isConnected) G.gh.remove(); const c = document.getElementById('modalCard'); if(c && c.style.opacity === '0') c.style.opacity = ''; }catch(x){} }, 2500);   // rete di sicurezza: il cartoncino non resta MAI sopra l'app
         // lascio partire il cartoncino (un fotogramma), poi costruisco la scheda vera sotto di lui
         requestAnimationFrame(()=> setTimeout(()=>{
           let card = null;
           try{ origOpen.apply(self, args); card = document.getElementById('modalCard'); if(card) card.style.opacity = '0'; }catch(e){ G.gh.remove(); throw e; }
           requestAnimationFrame(()=> requestAnimationFrame(async ()=>{
-            await G.done;
+            await Promise.race([G.done, new Promise(r=> setTimeout(r, 700))]);      // v208: mai aspettare all'infinito (animazioni sospese, schermo intero…)
             if(card){ card.style.opacity = ''; try{ card.animate([{opacity: 0}, {opacity: 1}], {duration: 160, easing: 'ease-out'}); }catch(e){} countUp(card); }
             try{ G.gh.animate([{opacity: 1}, {opacity: 0}], {duration: 200, easing: 'ease-out', fill: 'forwards'}).finished.then(()=> G.gh.remove(), ()=> G.gh.remove()); }catch(e){ G.gh.remove(); }
           }));

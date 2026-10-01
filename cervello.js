@@ -30,6 +30,8 @@
   ];
   const RMAP = Object.fromEntries(REACT.map(r=> [r.k, r]));
   const reacts = ()=> LSG(RK, {}) || {};
+  // v208: lettura «solo per guardare» (niente JSON.parse se il testo non è cambiato): il modello la chiede per ogni gioco
+  const RO = (k, d)=> window.rtLSro ? (rtLSro(k, d) || d) : (LSG(k, d) || d);
   const reactOf = g=> (g && reacts()[g.id]) || {};
   function setReact(g, k){
     const all = reacts(), cur = Object.assign({}, all[g.id] || {}), on = !cur[k];
@@ -138,7 +140,9 @@
   // correlazione tra la voce e il tuo voto complessivo, su tutti i giochi valutati (servono almeno 3 giochi con quella voce)
   let IMPc = null, IMPkey = '';
   function importance(){
-    const all = rates(), key = JSON.stringify(all).length + ':' + Object.keys(all).length + ':' + JSON.stringify(LSG('jrpg_myvote', {})).length;
+    let key = ''; try{ key = (localStorage.getItem(RTK) || '').length + ':' + (localStorage.getItem('jrpg_myvote') || '').length; }catch(e){}
+    if(IMPc && IMPkey === key) return IMPc;
+    const all = RO(RTK, {});
     if(IMPc && IMPkey === key) return IMPc;
     const pairs = {};                     // dim -> [[voce, voto]]
     const level = {};                     // dim -> scarti dalla media del gioco (cosa valuti più alto)
@@ -165,24 +169,24 @@
     // peso in più di un gioco (si somma a preferiti, voto, stato, tier…)
     sigFor(g, hasMyVote){
       let w = 0;
-      const r = reacts()[g.id];
+      const r = RO(RK, {})[g.id];
       if(r){ const rc = recency(r.t); REACT.forEach(x=>{ if(r[x.k]) w += x.w * rc; }); }
-      const rt = rates()[g.id];
+      const rt = RO(RTK, {})[g.id];
       if(rt && !hasMyVote){ const a = avgOf(rt); if(a != null) w += (a - 6) * .5 * recency(rt.t); }
       return w;
     },
     // ritocchi al modello: generi che non sono per te, voci che contano, voci alte o basse su un gioco
     adjust(wts, cnt){
-      const R = reacts();
+      const R = RO(RK, {});
       const ng = {}; Object.keys(R).forEach(id=>{ if(!R[id].notgenre) return; const g = GAMES.find(x=> x.id === +id); const t = g && (g.tags || [])[0]; if(t) ng[t] = (ng[t] || 0) + 1; });
       Object.keys(ng).forEach(t=>{ const k = 'tag:' + t; wts[k] = (wts[k] || 0) - Math.min(1.5, .55 * ng[t]); cnt[k] = Math.max(cnt[k] || 0, 2); });
       const imp = importance();
       Object.keys(imp).forEach(d=>{ const x = imp[d]; if(x.imp == null || Math.abs(x.imp) < .2) return; (DIMF[d] || []).forEach(k=>{ wts[k] = (wts[k] || 0) + x.imp * .7; cnt[k] = Math.max(cnt[k] || 0, 2); }); });
-      const all = rates();
+      const all = RO(RTK, {});
       Object.keys(all).forEach(id=>{ const r = all[id], fam = FAM[r.f] || FAM.rpg, rc = recency(r.t);
         fam.v.forEach(([k, , dim])=>{ const v = r.v[k]; if(typeof v !== 'number') return; const s = v >= 8.5 ? .25 : v <= 4 ? -.25 : 0; if(!s) return; (DIMF[dim] || []).forEach(f=>{ wts[f] = (wts[f] || 0) + s * rc; cnt[f] = Math.max(cnt[f] || 0, 2); }); }); });
     },
-    key(){ return JSON.stringify(LSG(RK, {})).length + '|' + JSON.stringify(LSG(RTK, {})).length + '|' + Object.keys(LSG(RK, {})).length; },
+    key(){ let a = '', b = ''; try{ a = localStorage.getItem(RK) || ''; b = localStorage.getItem(RTK) || ''; }catch(e){} return a.length + '|' + b.length; },
     reactOf, rateOf, famOf, FAM, importance
   };
   // quando cambia qualcosa: ricalcolo i gusti e aggiorno la Sintonia della scheda aperta, senza ridisegnare tutto

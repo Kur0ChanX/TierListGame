@@ -73,7 +73,8 @@
   const fs = document.getElementById('fsBtn');
   const standalone = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches);
   if(fs){
-    if(!document.documentElement.requestFullscreen || standalone){ fs.style.display = 'none'; }
+    // v208: anche nell'app installata (standalone) lo schermo intero serve a nascondere la barra di stato: il pulsante resta
+    if(!document.documentElement.requestFullscreen || (window.matchMedia && matchMedia('(display-mode: fullscreen)').matches)){ fs.style.display = 'none'; }
     fs.addEventListener('click', ()=>{
       try{
         if(document.fullscreenElement){ document.exitFullscreen(); }

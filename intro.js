@@ -13,7 +13,7 @@
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const msg = el.querySelector('.intro-msg'), start = el.querySelector('.intro-start');
   let closed = false, timeUp = false;
-  const isFull = ()=> !!document.fullscreenElement || (window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches));
+  const isFull = ()=> !!document.fullscreenElement || (window.matchMedia && matchMedia('(display-mode: fullscreen)').matches);   // v208: l'app installata (standalone) NON è a schermo intero: lo schermo intero si attiva comunque
   const canFull = !!document.documentElement.requestFullscreen && !isFull();   // iPhone/Safari e app installata: niente da fare o già a schermo intero
 
   const wantFs = (()=>{ try{ return localStorage.getItem('jrpg_autofs') !== 'off'; }catch(e){ return true; } })();
