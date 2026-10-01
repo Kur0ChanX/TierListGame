@@ -114,6 +114,7 @@
     return `<div class="vd-card vd-${v.kind}" id="vdCard">
       <div class="vd-head"><span class="vd-ic" aria-hidden="true">${GLYPH[v.kind]}</span><div class="vd-ttl"><small>Verdetto d'acquisto</small><b>${esc(v.title)}</b></div></div>
       <div class="vd-sub">${esc(v.sub)}${v.target ? ` <b>Aspetta di vederlo a circa ${eur(v.target)}.</b>` : ''}</div>
+      ${v.target ? `<div class="vd-act"><button type="button" class="btn" id="vdAlert">${(()=>{ let t = null; try{ t = (JSON.parse(localStorage.getItem('jrpg_wishlist') || '{}') || {})[g.id]; }catch(e){} return t && t.th ? '🔔 Avviso a ' + eur(t.th) + ' attivo' : '🔔 Avvisami a ' + eur(v.target); })()}</button></div>` : ''}
       <ul class="vd-why">${why}</ul>
     </div>`;
   }
@@ -130,6 +131,8 @@
       const head = cardEl.querySelector('.modal-head'), tags = cardEl.querySelector('.modal-tags');
       if(head) head.insertAdjacentHTML('afterend', chip(g));
       if(tags) tags.insertAdjacentHTML('beforebegin', card(g));
+      const ab = cardEl.querySelector('#vdAlert');
+      if(ab) ab.addEventListener('click', ()=>{ const v = verdict(g); if(window.rtWishThreshold && v.target){ window.rtWishThreshold(g, v.target); ab.textContent = '🔔 Avviso a ' + eur(v.target) + ' attivo'; if(window.rtHaptic) window.rtHaptic('success'); } });
     }catch(e){ try{ console.error(e); }catch(x){} }
     return r;
   };

@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v177', date:'2026-10-01', time:'03:13', items:[
+    'Avvisi di prezzo a soglia: nella wishlist ogni gioco ha «🔔 Avvisami sotto X €» (Imposta/Cambia/Togli) e nel Verdetto d\'acquisto «Aspetta uno sconto» c\'è il pulsante «🔔 Avvisami a X €» con il prezzo giusto già calcolato. All\'apertura dell\'app (e dopo ogni controllo dei prezzi) compare il palloncino «🔔 … costa X €: sotto i tuoi Y €», che toccato apre la wishlist; con le notifiche attive arriva anche quella del telefono. Prezzi Steam dai dati settimanali dei server (CheapShark in dollari: conversione indicativa).',
+    'Nuovo «🕸️ Radar di gusto»: i tuoi 8 gusti più forti disegnati a ragnatela (animata), dentro «I tuoi gusti» e, nella scheda di ogni gioco, sotto il verdetto: i punti si accendono sui gusti che quel gioco tocca e una riga dice quanti sono e se ha anche cose che di solito eviti. Calcolato sul dispositivo dal modello dei gusti, senza AI; compare quando hai segnato almeno 3 giochi.'
+  ]},
   {version:'v176', date:'2026-10-01', time:'03:06', items:[
     'Animazioni più fluide: le righe della classifica entrano a cascata; sul telefono la scheda si apre «allargandosi» dalla riga che hai toccato; passando da una sezione all\'altra dalla barra in basso (o con lo swipe) la pagina scivola mentre le barre restano ferme; nella scheda il voto salta e conta fino al valore; i preferiti esplodono in scintille; i pulsanti si schiacciano e tornano con un piccolo rimbalzo.',
     'Vibrazione brevissima al tocco: su Android una vibrazione, su iPhone/iPad (da iOS 17.4) il «tic» del sistema, anche quando compare e quando rilasci l\'anteprima a pressione. Si regola da ✨ → «Movimento e vibrazione», dove si spengono anche le animazioni (si fermano da sole con «riduci animazioni» del telefono).',

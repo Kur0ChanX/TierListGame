@@ -213,7 +213,28 @@
       await sleep(1000);
     }
   }
-  setTimeout(()=>{ checkWishPrices().catch(()=>{}); }, 12000);
+  // avvisi a soglia: «avvisami quando costa meno di X €» (prezzi Steam dai dati settimanali, o CheapShark in dollari: conversione indicativa)
+  const eurOf = p=> p && p.f > 0 ? (p.cur === 'USD' ? p.f * 0.92 : p.f) : null;
+  function thNotify(){
+    const w = LS.get('jrpg_wishlist', {}) || {}, hits = [];
+    Object.keys(w).forEach(id=>{
+      const it = w[id]; if(!it || !it.th) return; const g = byId(id); if(!g) return;
+      let p = it.price; const f = window.SearchHub && SearchHub.factsFor ? SearchHub.factsFor(g) : null;
+      if(f && f.s && f.s.p) p = {f: f.s.p.f, cur: 'EUR', d: f.s.p.d};
+      const eu = eurOf(p); if(eu == null) return;
+      const k = Math.round(eu * 100) / 100;
+      if(eu <= it.th && it.thAlerted !== k) hits.push({id, it, eu: k});
+    });
+    if(!hits.length) return;
+    hits.forEach(h=>{ w[h.id].thAlerted = h.eu; });
+    LS.set('jrpg_wishlist', w);
+    const msg = hits.length === 1 ? `🔔 ${hits[0].it.name} costa ${eur(hits[0].eu)}: sotto i tuoi ${eur(hits[0].it.th)}` : `🔔 ${hits.length} giochi della wishlist sono sotto la tua soglia di prezzo`;
+    if(typeof showToast === 'function') showToast(msg + ' · tocca per vedere', 9000, ()=>{ if(window.openWishlist) window.openWishlist(); }); else toast(msg, 8000);
+    try{ if('Notification' in window && Notification.permission === 'granted') new Notification('Raccoon Tier', {body: msg, icon: 'icons/icon-192.png'}); }catch(e){}
+  }
+  window.rtThCheck = thNotify;
+  setTimeout(thNotify, 3500);                                  // all'apertura, con i prezzi già noti
+  setTimeout(()=>{ checkWishPrices().then(thNotify).catch(()=>{}); }, 12000);
 
   // scheda «Il tuo backlog» in Statistiche
   async function addBacklogCard(){

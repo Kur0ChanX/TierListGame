@@ -997,3 +997,23 @@ body{font-kerning:normal; text-rendering:optimizeLegibility; -webkit-font-smooth
 tbody tr:active{background:rgba(var(--a1rgb),.16)}
 /* lista vuota: al posto della tabella vuota resta solo Frugu */
 .wrap:has(#emptyMsg:not([style*="none"])) #tableWrap{display:none !important}
+
+/* ===== v177: radar di gusto ===== */
+.gs-card{border:1px solid var(--glass-line); border-radius:18px; padding:12px 12px 14px; margin:10px 0; background:var(--glass)}
+.gs-head{display:flex; align-items:center; gap:8px; margin-bottom:2px} .gs-head b{font-size:1rem}
+.gs-svg{display:block; width:100%; max-width:400px; margin:0 auto; overflow:visible}
+.gs-ring{fill:none; stroke:var(--border); stroke-width:1; opacity:.8} .gs-spoke{stroke:var(--border); stroke-width:1; opacity:.55}
+.gs-poly{fill:rgba(var(--a1rgb),.22); stroke:var(--accent); stroke-width:2.2; stroke-linejoin:round; transform-origin:180px 150px; animation:gsGrow .9s cubic-bezier(.2,.9,.25,1.1) both}
+.gs-dot{fill:var(--card); stroke:var(--accent); stroke-width:2; transform-box:fill-box; transform-origin:center; animation:gsPop .5s cubic-bezier(.3,1.8,.5,1) both; animation-delay:calc(.4s + var(--i) * 70ms)}
+.gs-dot.on{fill:var(--accent2); stroke:#fff; stroke-width:2.2; filter:drop-shadow(0 0 5px rgba(var(--a1rgb),.9))}
+.gs-lab{font-size:10.5px; fill:var(--sub)} .gs-lab.on{fill:var(--text); font-weight:800}
+@keyframes gsGrow{from{transform:scale(.04); opacity:0}to{transform:none; opacity:1}}
+@keyframes gsPop{from{transform:scale(0)}to{transform:scale(1)}}
+html.mo-off .gs-poly, html.mo-off .gs-dot{animation:none}
+.gs-sum{font-size:.84rem; color:var(--sub); line-height:1.45; margin-top:4px} .gs-sum b{color:var(--text)} .gs-neg{display:block; margin-top:2px}
+.gs-lg{display:flex; gap:6px; align-items:center; justify-content:center; font-size:.74rem; color:var(--sub); margin-top:2px}
+.gs-lg-p,.gs-lg-d{display:inline-block; width:12px; height:12px; border-radius:50%; margin-left:8px; vertical-align:-2px}
+.gs-lg-p{background:rgba(var(--a1rgb),.3); border:2px solid var(--accent)} .gs-lg-d{background:var(--accent2); border:2px solid #fff; box-shadow:0 0 5px rgba(var(--a1rgb),.8)}
+.vd-act{margin-top:8px}
+.x-wth{display:block; margin-top:4px} .x-wth .x-thb{padding:2px 8px; font-size:.74rem} .x-thok{color:#2f9e6b}
+.x-thin{width:5.2em; padding:4px 6px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font:inherit}

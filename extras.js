@@ -417,6 +417,8 @@
   // =====================================================================
   const WK = 'jrpg_wishlist';
   const wl = ()=> LS.get(WK, {});
+  const eurF = n=> Number(n).toLocaleString('it-IT', {style: 'currency', currency: 'EUR'});
+  const priceEur = p=> p && p.f > 0 ? (p.cur === 'USD' ? p.f * 0.92 : p.f) : null;      // CheapShark è in dollari: conversione indicativa
   const today = ()=> new Date().toISOString().slice(0, 10);
   const daysTo = d=> Math.round((new Date(d + 'T00:00:00') - new Date(today() + 'T00:00:00')) / 864e5);
   function fmtD(d){ try{ return new Date(d + 'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}); }catch(e){ return d; } }
@@ -460,13 +462,14 @@
   }
   function openWishlist(){
     const w = wl(), ids = Object.keys(w);
+    const thLine = (id, it)=>{ const pe = priceEur(it.price), ok = it.th && pe != null && pe <= it.th; return `🔔 ${it.th ? 'Avvisami sotto <b>' + eurF(it.th) + '</b>' + (ok ? ' · <b class="x-thok">✅ ora è sotto soglia</b>' : '') : 'Nessun avviso di prezzo'} <button class="btn x-thb" type="button" data-w-th="${id}">${it.th ? 'Cambia' : 'Imposta'}</button>`; };
     ids.sort((a, b)=> (w[a].released - w[b].released) || String(w[a].date || '9999').localeCompare(String(w[b].date || '9999')));
     const rows = ids.map(id=>{
       const it = w[id]; let when = 'data non ancora annunciata';
       if(it.released) when = '✅ già uscito';
       else if(it.date && it.date.length === 10){ const d = daysTo(it.date); when = d > 0 ? `📅 ${fmtD(it.date)} · tra ${d} giorn${d === 1 ? 'o' : 'i'}` : '🎉 uscito'; }
       else if(it.date) when = `📅 previsto: ${esc(it.date)}`;
-      return `<div class="x-wrow"><div><b>${esc(it.name)}</b><br><small>${when}${it.note ? ' · ' + esc(it.note) : ''}${it.price ? ' · 💶 ' + (it.price.cur === 'USD' ? '$' + it.price.f.toFixed(2) : it.price.f.toLocaleString('it-IT', {style:'currency', currency:'EUR'})) + (it.price.d > 0 ? ' (−' + it.price.d + '%)' : '') : ''}${it.checked ? ' · controllato il ' + fmtD(it.checked) : ''}</small></div><div class="x-wbtn"><button class="btn" data-w-open="${id}">Apri</button><button class="btn" data-w-check="${id}">↻</button><button class="btn" data-w-del="${id}">✕</button></div></div>`;
+      return `<div class="x-wrow"><div><b>${esc(it.name)}</b><br><small>${when}${it.note ? ' · ' + esc(it.note) : ''}${it.price ? ' · 💶 ' + (it.price.cur === 'USD' ? '$' + it.price.f.toFixed(2) : it.price.f.toLocaleString('it-IT', {style:'currency', currency:'EUR'})) + (it.price.d > 0 ? ' (−' + it.price.d + '%)' : '') : ''}${it.checked ? ' · controllato il ' + fmtD(it.checked) : ''}</small><br><small class="x-wth">${thLine(id, it)}</small></div><div class="x-wbtn"><button class="btn" data-w-open="${id}">Apri</button><button class="btn" data-w-check="${id}">↻</button><button class="btn" data-w-del="${id}">✕</button></div></div>`;
     }).join('');
     const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
     const body = sheet('xWish', giIcon('gift') + ' Wishlist e uscite', `<div class="lp-sub">Aggiungi un gioco dalla sua scheda con il pulsante «Wishlist». Controllo la data di uscita (con Gemini e ricerca web) e ti avviso quando esce, <b>quando apri l'app</b> (un sito web non può avvisarti a app chiusa).</div>
@@ -476,7 +479,29 @@
     body.querySelectorAll('[data-w-open]').forEach(b=> b.addEventListener('click', ()=>{ const g = byId(b.dataset.wOpen); if(g){ document.getElementById('xWish').classList.remove('show'); openModal(g); } }));
     body.querySelectorAll('[data-w-check]').forEach(b=> b.addEventListener('click', ()=>{ b.textContent = '…'; checkRelease(b.dataset.wCheck, true); }));
     body.querySelectorAll('[data-w-del]').forEach(b=> b.addEventListener('click', ()=>{ const w2 = wl(); delete w2[b.dataset.wDel]; LS.set(WK, w2); openWishlist(); }));
+    body.querySelectorAll('[data-w-th]').forEach(b=> b.addEventListener('click', ()=>{
+      const id = b.dataset.wTh, it = wl()[id]; if(!it) return;
+      const host = b.closest('.x-wth');
+      host.innerHTML = `🔔 Avvisami sotto <input class="x-thin" type="number" inputmode="decimal" min="1" step="0.5" placeholder="€" value="${it.th || ''}"> € <button class="btn primary" type="button" data-th-ok>OK</button>${it.th ? ' <button class="btn" type="button" data-th-no>Togli</button>' : ''}`;
+      const inp = host.querySelector('input'); inp.focus();
+      const save = v=>{ const w3 = wl(); if(!w3[id]) return; if(v){ w3[id].th = v; w3[id].thAlerted = null; } else delete w3[id].th; LS.set(WK, w3); toast(v ? '🔔 Ti avviso quando costa meno di ' + eurF(v) : 'Avviso di prezzo tolto'); openWishlist(); if(v && window.rtThCheck) setTimeout(window.rtThCheck, 400); };
+      host.querySelector('[data-th-ok]').addEventListener('click', ()=>{ const v = parseFloat(String(inp.value).replace(',', '.')); save(isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : null); });
+      const no = host.querySelector('[data-th-no]'); if(no) no.addEventListener('click', ()=> save(null));
+      inp.addEventListener('keydown', e=>{ if(e.key === 'Enter') host.querySelector('[data-th-ok]').click(); });
+    }));
   }
+  window.openWishlist = openWishlist;
+  // avviso di prezzo: dalla scheda («Avvisami a X €») o dalla wishlist
+  window.rtWishThreshold = function(g, th){
+    const w = wl(); let isNew = false;
+    if(!w[g.id]){ w[g.id] = {name: g.name, added: today(), date: null, released: null, checked: null, notified: false}; isNew = true; }
+    if(th){ w[g.id].th = th; w[g.id].thAlerted = null; } else delete w[g.id].th;
+    LS.set(WK, w);
+    toast(th ? `🔔 Ti avviso quando ${g.name} costa meno di ${eurF(th)}` : 'Avviso di prezzo tolto', 4200);
+    if(isNew && typeof llmAvailable === 'function' && llmAvailable()) checkRelease(g.id, false);
+    if(th && window.rtThCheck) setTimeout(window.rtThCheck, 400);
+    return w[g.id];
+  };
 
   // pulsante Wishlist nella scheda del gioco + colori dalla copertina
   const origOpen = window.openModal;
