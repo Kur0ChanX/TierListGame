@@ -116,15 +116,21 @@ REGOLE FERME: NIENTE SPOILER oltre a ciò che serve per rispondere; non parlare 
   // ---- aggancio alla scheda ----
   window.rtGuideHtml = guideHtml; window.rtMakeGuide = makeGuide;
   const origOpen = window.openModal;
+  function putGuide(g, onlyMissing){
+    const card = document.getElementById('modalCard'); if(!card || !g) return;
+    if(onlyMissing && card.querySelector('#gdCard')) return;
+    card.querySelectorAll('#gdCard, #cpCard').forEach(n=> n.remove());
+    const lab = card.querySelector('.glabel'), anchor = lab || card.querySelector('.modal-story') || card.querySelector('#statusRow');
+    if(anchor){ const html = guideHtml(g); if(lab) lab.insertAdjacentHTML('afterend', html); else anchor.insertAdjacentHTML('beforebegin', html); wireGuide(g); }
+    const sr = card.querySelector('#statusRow'), ch = compHtml(g);
+    if(sr && ch){ sr.insertAdjacentHTML('afterend', ch); wireComp(g); }
+  }
   window.openModal = function(g){
     const r = origOpen.apply(this, arguments);
     try{
-      const card = document.getElementById('modalCard'); if(!card || !g) return r;
-      card.querySelectorAll('#gdCard, #cpCard').forEach(n=> n.remove());
-      const lab = card.querySelector('.glabel'), anchor = lab || card.querySelector('.modal-story') || card.querySelector('#statusRow');
-      if(anchor){ const html = guideHtml(g); if(lab) lab.insertAdjacentHTML('afterend', html); else anchor.insertAdjacentHTML('beforebegin', html); wireGuide(g); }
-      const sr = card.querySelector('#statusRow'), ch = compHtml(g);
-      if(sr && ch){ sr.insertAdjacentHTML('afterend', ch); wireComp(g); }
+      putGuide(g, false);
+      const again = ()=>{ try{ if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id && document.getElementById('modalBackdrop').classList.contains('show')) putGuide(g, true); }catch(e){} };
+      setTimeout(again, 1000); setTimeout(again, 3400);
     }catch(e){ try{ console.error(e); }catch(x){} }
     return r;
   };

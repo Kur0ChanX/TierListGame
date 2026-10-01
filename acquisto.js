@@ -123,16 +123,23 @@
 
   // nella scheda del gioco: chip sotto il titolo (sempre visibile in alto) e scheda completa prima dei generi
   const origOpen = window.openModal;
+  function put(g, onlyMissing){
+    const cardEl = document.getElementById('modalCard'); if(!cardEl || !g) return;
+    if(onlyMissing && cardEl.querySelector('#vdCard') && cardEl.querySelector('.vd-chiprow')) return;
+    cardEl.querySelectorAll('#vdCard, .vd-chiprow').forEach(n=> n.remove());
+    const head = cardEl.querySelector('.modal-head'), tags = cardEl.querySelector('.modal-tags');
+    if(head) head.insertAdjacentHTML('afterend', chip(g));
+    if(tags) tags.insertAdjacentHTML('beforebegin', card(g));
+    const ab = cardEl.querySelector('#vdAlert');
+    if(ab) ab.addEventListener('click', ()=>{ const v = verdict(g); if(window.rtWishThreshold && v.target){ window.rtWishThreshold(g, v.target); ab.textContent = '🔔 Avviso a ' + eur(v.target) + ' attivo'; if(window.rtHaptic) window.rtHaptic('success'); } });
+  }
   window.openModal = function(g){
     const r = origOpen.apply(this, arguments);
     try{
-      const cardEl = document.getElementById('modalCard'); if(!cardEl || !g) return r;
-      cardEl.querySelectorAll('#vdCard, .vd-chiprow').forEach(n=> n.remove());
-      const head = cardEl.querySelector('.modal-head'), tags = cardEl.querySelector('.modal-tags');
-      if(head) head.insertAdjacentHTML('afterend', chip(g));
-      if(tags) tags.insertAdjacentHTML('beforebegin', card(g));
-      const ab = cardEl.querySelector('#vdAlert');
-      if(ab) ab.addEventListener('click', ()=>{ const v = verdict(g); if(window.rtWishThreshold && v.target){ window.rtWishThreshold(g, v.target); ab.textContent = '🔔 Avviso a ' + eur(v.target) + ' attivo'; if(window.rtHaptic) window.rtHaptic('success'); } });
+      put(g, false);
+      // se la scheda viene ridisegnata da un altro pezzo dell'app (copertina o dettagli che arrivano), rimetto il verdetto che è sparito
+      const again = ()=>{ try{ if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id && document.getElementById('modalBackdrop').classList.contains('show')) put(g, true); }catch(e){} };
+      setTimeout(again, 900); setTimeout(again, 3200);
     }catch(e){ try{ console.error(e); }catch(x){} }
     return r;
   };

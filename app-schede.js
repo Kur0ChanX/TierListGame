@@ -560,7 +560,8 @@ const LABEL_STORE = {PS:'PlayStation', XB:'Xbox', NS:'Switch', PC:'PC', MOB:'Mob
 // nota «voto e dettagli sono una stima…»: se il voto è poi diventato verificato (V) la frase non è più vera, la sostituisco
 function noteForVoto(g){
   const n = String(g.note || '');
-  return g.m === 'V' ? n.replace(/ — (?:nessun Metacritic trovato: )?voto e dettagli sono una stima[^.]*\./, ' — voto verificato (Metacritic/OpenCritic).') : n;
+  const vs = String(g.vs || '').replace(/ \(nessun Metacritic trovato\)/, '').trim();
+  return g.m === 'V' ? n.replace(/ — (?:nessun Metacritic trovato: )?voto e dettagli sono una stima[^.]*\.| — voto verificato \(Metacritic\/OpenCritic\)\./, ' — voto verificato (' + (vs || 'Metacritic/OpenCritic') + ').') : n;
 }
 // da dove viene il voto: Metacritic se c'è, altrimenti lo dico chiaramente (fonte o stima)
 // link al sito ufficiale di Metacritic per controllare il voto a mano (dal telefono il sito non si può leggere dentro il programma)
