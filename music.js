@@ -197,6 +197,7 @@
   const pickTracks = (list, name)=> list.filter(v=> /ost|soundtrack|music|theme|bgm|score|original|playlist|album/i.test(v[1]) && !BAD.test(v[1]) && secsOf(v[2]) >= 60 && namesGame(v[1], name))
     .sort((a, b)=> (secsOf(b[2]) > 1800) - (secsOf(a[2]) > 1800)).slice(0, 5);
   const searchYT = async q=> parseYT(await SearchHub.text('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), {timeout: 15000}));
+  window.rtYtSearch = q=> searchYT(q).catch(()=> []);      // usato anche per le foto del carosello (fotogrammi dei video di gameplay)
   const setStat = (id, t)=>{ if(t) STAT[id] = t; else delete STAT[id]; paintBar(); };
   // ---- Internet Archive: album interi caricati dagli utenti, file mp3 diretti (niente pubblicità). Cache 30 giorni (anche i «non trovato»). ----
   const IA = 'rt_ost_ia2', SRC = 'jrpg_music_src';                 // fonte preferita: 'ia' (senza pubblicità, predefinita) | 'yt'

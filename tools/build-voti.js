@@ -24,6 +24,9 @@ async function q(name){
   return null;
 }
 const {customGames} = require('./catalog');
+// v201: nome inglese ufficiale (da Steam, in facts.js): i nomi italiani del catalogo («Echi di un'era perduta») non si trovano su Metacritic/OpenCritic
+let EN = {};
+try{ const F = JSON.parse(fs.readFileSync(path.join(ROOT, 'facts.js'), 'utf8').replace(/^const GAME_FACTS = /, '').replace(/;\s*$/, '')); Object.keys(F.games || {}).forEach(id=>{ const e = F.games[id] && F.games[id].s && F.games[id].s.en; if(e) EN[id] = e; }); }catch(e){}
 (async()=>{
   const games = Object.assign({}, prev.games || {});
   const custom = await customGames(); console.log('giochi aggiunti dal catalogo:', custom.length);
@@ -34,15 +37,18 @@ const {customGames} = require('./catalog');
   list.sort((a, b)=> ((games[a.id] || {}).d || '') < ((games[b.id] || {}).d || '') ? -1 : 1);
   let n = 0, hit = 0, fail = 0;
   for(const g of list){
-    if(!ALL && games[g.id] && fresh(games[g.id].d)) continue;
+    const en = EN[g.id] && norm(EN[g.id]) !== norm(g.name) ? clean(EN[g.id]) : '';
+    if(!ALL && games[g.id] && fresh(games[g.id].d) && (games[g.id].s || !en || games[g.id].qe === en)) continue;
     if(n >= CAP){ console.log('limite di', CAP, 'giochi per notte: il resto alla prossima'); break; }
     const nm = clean(g.name), t = norm(nm);
     let items = await q(nm);
     if(items === null){ if(++fail >= 8){ console.log('Metacritic non risponde: mi fermo'); break; } continue; }
     let best = items.find(x=> norm(x.title) === t);
     if(!best){ const short = nm.split(/:| - /)[0]; if(short && short !== nm){ const it2 = await q(short); best = (it2 || []).find(x=> norm(x.title) === t); } }
+    if(!best && en){ const it3 = await q(en); best = (it3 || []).find(x=> norm(x.title) === norm(en) || norm(x.title) === norm(en.replace(/\s*[-–]\s*(definitive|complete|deluxe|hd|remaster\w*).*$/i, ''))); }
     const s = best && best.criticScoreSummary && best.criticScoreSummary.score;
     games[g.id] = best ? {t: best.title, u: best.slug, s: s || 0, y: best.premiereYear || 0, g: (best.genres || []).map(x=> x.name), p: (best.platforms || []).map(x=> x.name).slice(0, 8), d: today} : {d: today};
+    if(en && games[g.id]) games[g.id].qe = en;
     if(best && s) hit++;
     if(++n % 40 === 0){ save(); console.log('controllati', n, '- con voto', hit); }
     await sleep(250);
@@ -61,7 +67,8 @@ const {customGames} = require('./catalog');
       let on = 0, ohit = 0;
       for(const g of need){
         if(on >= 400) break;
-        const id = map[norm(clean(g.name))] || map[norm(clean(g.name).split(/:| - /)[0])];
+        const en = EN[g.id] ? clean(EN[g.id]) : '';
+        const id = map[norm(clean(g.name))] || map[norm(clean(g.name).split(/:| - /)[0])] || (en && (map[norm(en)] || map[norm(en.replace(/\s*[-–]\s*(definitive|complete|deluxe|hd|remaster\w*).*$/i, ''))]));
         games[g.id].od = today; if(!id) continue;
         on++;
         try{

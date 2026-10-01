@@ -40,14 +40,7 @@
 
   // ---------- 🎞️ Schermate del carosello (v199): tocchi una foto → tante alternative → tocchi quella nuova: la sostituisce e la blocca 🔒 ----------
   const thumbOf = new Map();          // foto grande -> miniatura (per la griglia, più leggera)
-  async function steamId(g){
-    try{ const f = window.SearchHub && SearchHub.factsFor(g), id = f && f.s && f.s.id; if(id) return id; }catch(e){}
-    try{
-      const j = await SearchHub.json('https://store.steampowered.com/api/storesearch/?l=english&cc=us&term=' + encodeURIComponent(String(g.name).replace(/[:™®]/g, ' ')), {timeout: 12000});
-      const n = s=> String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''), it = ((j && j.items) || []).find(x=> n(x.name) === n(g.name)) || ((j && j.items) || [])[0];
-      return it ? it.id : null;
-    }catch(e){ return null; }
-  }
+  async function steamId(g){ try{ return (await SearchHub.resolveGame(g)).sid; }catch(e){ return null; } }
   async function steamAll(g){
     try{
       const id = await steamId(g); if(!id) return [];
@@ -90,6 +83,24 @@
       const [a, b] = await Promise.all([steamAll(g).catch(()=> []), (window.rtRawgShots ? rtRawgShots(g) : Promise.resolve([])).catch(()=> [])]);
       a.forEach(add); (b || []).forEach(add);
     })();
+    // v201: quando le foto finiscono, ne cerco altre senza fine: fotogrammi dei video di gameplay su YouTube (query sempre diverse)
+    let en = g.name; try{ en = await SearchHub.enName(g); }catch(e){}
+    const QS = ['gameplay', 'walkthrough part 1', 'boss fight', 'all cutscenes', 'walkthrough part 5', 'review', 'gameplay 4k', 'walkthrough part 10', 'combat', 'exploration', 'final boss', 'opening', 'walkthrough part 20', 'side quests', 'ending'];
+    // titolo del video valido se contiene il nome base del gioco (prima dei «:»), con i numeri romani = arabi (XI = 11)
+    const ROM = {i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10, xi: 11, xii: 12, xiii: 13, xiv: 14, xv: 15, xvi: 16};
+    const tk = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w=> w.length >= 2 && !['the', 'of', 'and'].includes(w)).map(w=> ROM[w] ? String(ROM[w]) : w);
+    const toks = tk(String(en).split(/:| - | – /)[0]);
+    const okTitle = t=>{ const x = new Set(tk(t)); return toks.length ? toks.every(w=> x.has(w)) : true; };
+    let qi = 0, moreBusy = null;
+    const more = ()=> moreBusy || (moreBusy = (async()=>{
+      const before = pool.length;
+      while(qi < QS.length && pool.length - before < 12){
+        const q = en + ' ' + QS[qi++];
+        let vids = []; try{ vids = window.rtYtSearch ? await rtYtSearch(q) : []; }catch(e){}
+        vids.filter(v=> okTitle(v[1])).slice(0, 10).forEach(v=>{ const id = v[0]; ['hq1', 'hq2', 'hq3', 'maxresdefault'].forEach(f=>{ const u = 'https://i.ytimg.com/vi/' + id + '/' + f + '.jpg'; add(u); thumbOf.set(u, 'https://i.ytimg.com/vi/' + id + '/' + (f === 'maxresdefault' ? 'hqdefault' : f) + '.jpg'); }); });
+      }
+      return pool.length - before;
+    })().finally(()=>{ moreBusy = null; }));
     if(!cur.isConnected) return;
     const locked = ()=> !!((lockOf(g) || {}).shots || []).length;
     const img = u=> `<img src="${esc(thumbOf.get(u) || u)}" data-full="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.closest('.cv-it').classList.add('bad')">`;
@@ -102,13 +113,14 @@
       if(sel === -1){ alt.innerHTML = ''; return; }
       alt.innerHTML = '<div class="lp-sub">Cerco le alternative…</div>';
       await poolReady; if(!alt.isConnected) return;
-      const free = pool.filter(u=> !slots.includes(u));
+      let free = pool.filter(u=> !slots.includes(u));
+      if(free.length <= (page + 1) * 12){ alt.innerHTML = '<div class="lp-sub">Cerco altre foto (anche dai video di gameplay)…</div>'; await more(); if(!alt.isConnected) return; free = pool.filter(u=> !slots.includes(u)); }
       if(!free.length){ alt.innerHTML = '<div class="lp-sub">Non trovo altre foto di questo gioco (Steam e, con la chiave, RAWG).</div>'; return; }
-      const per = 12, pages = Math.ceil(free.length / per); page = page % pages;
+      const per = 12, pages = Math.ceil(free.length / per); if(page >= pages) page = 0;
       const show = free.slice(page * per, page * per + per);
-      alt.innerHTML = `<div class="gs2-h">${sel === 'new' ? 'Scegli la foto da aggiungere' : 'Al posto della foto ' + (sel + 1) + ':'} <small>(${free.length} disponibili${pages > 1 ? ', gruppo ' + (page + 1) + ' di ' + pages : ''})</small></div>
+      alt.innerHTML = `<div class="gs2-h">${sel === 'new' ? 'Scegli la foto da aggiungere' : 'Al posto della foto ' + (sel + 1) + ':'} <small>(gruppo ${page + 1}${qi < QS.length ? ' · ne cerco sempre altre' : ' di ' + pages})</small></div>
         <div class="cv-grid sh">${show.map(u=> `<button type="button" class="cv-it" data-a="${esc(u)}">${img(u)}</button>`).join('')}</div>
-        <div class="lp-tools">${pages > 1 ? '<button class="btn" type="button" id="shMore">🔄 Altre foto diverse</button>' : ''}${sel !== 'new' && slots.length > 1 ? '<button class="btn" type="button" id="shDel">🗑️ Togli questa foto</button>' : ''}<button class="btn" type="button" id="shCancel">Annulla</button></div>`;
+        <div class="lp-tools">${qi < QS.length || pages > 1 ? '<button class="btn" type="button" id="shMore">🔄 Altre foto diverse</button>' : ''}${sel !== 'new' && slots.length > 1 ? '<button class="btn" type="button" id="shDel">🗑️ Togli questa foto</button>' : ''}<button class="btn" type="button" id="shCancel">Annulla</button></div>`;
       const m = alt.querySelector('#shMore'); if(m) m.addEventListener('click', ()=>{ page++; drawAlt(); });
       const d = alt.querySelector('#shDel'); if(d) d.addEventListener('click', ()=>{ slots.splice(sel, 1); sel = -1; save(); toast('Foto tolta 🔒', 1500); drawCur(); drawAlt(); });
       alt.querySelector('#shCancel').addEventListener('click', ()=>{ sel = -1; drawCur(); drawAlt(); });
@@ -125,7 +137,7 @@
       if(sel === v){ page++; } else { sel = v; page = 0; }      // ritocchi la stessa foto: altre alternative
       drawCur(); drawAlt();
     });
-    if(!slots.length){ await poolReady; slots = pool.slice(0, 6); }
+    if(!slots.length){ await poolReady; if(!pool.length) await more(); slots = pool.slice(0, 6); }
     if(!slots.length){ cur.textContent = 'Non trovo foto per questo gioco (servono Steam o la chiave RAWG).'; return; }
     drawCur();
   }

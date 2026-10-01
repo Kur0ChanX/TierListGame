@@ -226,10 +226,13 @@
     return p && p.thumbnail ? p.thumbnail.source : null;
   }
   // trova la copertina migliore; restituisce {url, source} oppure null
+  // v201: per Wikidata, RAWG e Steam serve il nome inglese ufficiale (col nome italiano trovavano un altro gioco)
+  const enN = async g=>{ try{ return window.SearchHub && SearchHub.enName ? await SearchHub.enName(g) : g.name; }catch(e){ return g.name; } };
   async function findCover(g, opts){
     opts = opts || {}; const say = opts.onStep || (()=>{});
     let wd = null;
-    say('Wikidata…'); try{ wd = await wikidataInfo(g.name); }catch(e){}
+    say('Wikidata…'); try{ wd = await wikidataInfo(await enN(g)); }catch(e){}
+    try{ const r = window.SearchHub && SearchHub.resolveGame && await SearchHub.resolveGame(g); if(r && r.sid){ wd = wd || {}; wd.steam = [String(r.sid)].concat((wd.steam || []).filter(x=> String(x) !== String(r.sid))); } }catch(e){}
     if(wd && wd.steam && wd.steam.length){
       say('Steam…');
       const u = await firstOk(wd.steam.slice(0, 2).map(id=> `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/library_600x900.jpg`));
@@ -238,7 +241,7 @@
     const sys = lrSystems(g.plat);
     if(sys.length){
       say('Libretro (box art ufficiali)…');
-      const titles = lrTitles([wd && wd.label, g.name]);
+      const titles = lrTitles([wd && wd.label, window.SearchHub && SearchHub.enNameSync ? SearchHub.enNameSync(g) : g.name, g.name]);
       const regs = opts.quick ? LR_REG.slice(0, 4) : LR_REG;
       const urls = []; titles.forEach(t=> sys.forEach(s=> regs.forEach(r=> urls.push(LR + encodeURIComponent(s) + '/Named_Boxarts/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png')))));   // prima il titolo completo su tutte le console, poi le varianti più corte
       const u = await firstOk(urls, 8);
@@ -247,20 +250,20 @@
     say('Wikipedia…');
     try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); if(u) return {url: u, source: 'Wikipedia'}; }catch(e){}
     // ultima possibilità: immagine ufficiale del gioco su RAWG (non è una box art, ma è sempre del gioco giusto)
-    try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(g.name); if(i && i.cover) return {url: i.cover, source: 'RAWG'}; } }catch(e){}
+    try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(await enN(g)); if(i && i.cover) return {url: i.cover, source: 'RAWG'}; } }catch(e){}
     return null;
   }
   // TUTTE le locandine trovabili (per «Cambia locandina»): Steam (verticale, HD, orizzontale), Libretro (tutte le regioni), Wikipedia, Wikimedia, RAWG
   async function allCovers(g, onStep){
     const say = onStep || (()=>{}), out = [], add = (url, source)=>{ if(url && !out.some(o=> o.url === url)) out.push({url, source}); };
-    let wd = null; say('Wikidata…'); try{ wd = await wikidataInfo(g.name); }catch(e){}
-    const steamIds = new Set((wd && wd.steam) || []); try{ const f = window.SearchHub && SearchHub.factsFor(g); if(f && f.s && f.s.id) steamIds.add(String(f.s.id)); }catch(e){}
+    let wd = null; say('Wikidata…'); try{ wd = await wikidataInfo(await enN(g)); }catch(e){}
+    const steamIds = new Set(); try{ const r = window.SearchHub && SearchHub.resolveGame && await SearchHub.resolveGame(g); if(r && r.sid) steamIds.add(String(r.sid)); }catch(e){} ((wd && wd.steam) || []).forEach(x=> steamIds.add(String(x))); try{ const f = window.SearchHub && SearchHub.factsFor(g); if(f && f.s && f.s.id) steamIds.add(String(f.s.id)); }catch(e){}
     [...steamIds].slice(0, 2).forEach(id=>{ const B = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/`; add(B + 'library_600x900_2x.jpg', 'Steam HD'); add(B + 'library_600x900.jpg', 'Steam'); add(B + 'header.jpg', 'Steam (orizzontale)'); });
     const sys = lrSystems(g.plat);
-    if(sys.length){ say('Libretro…'); const urls = []; lrTitles([wd && wd.label, g.name]).forEach(t=> sys.forEach(sy=> LR_REG.forEach(r=> urls.push(LR + encodeURIComponent(sy) + '/Named_Boxarts/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png'))))); urls.slice(0, 40).forEach(u=> add(u, 'Libretro')); }
+    if(sys.length){ say('Libretro…'); const urls = []; lrTitles([wd && wd.label, window.SearchHub && SearchHub.enNameSync ? SearchHub.enNameSync(g) : g.name, g.name]).forEach(t=> sys.forEach(sy=> LR_REG.forEach(r=> urls.push(LR + encodeURIComponent(sy) + '/Named_Boxarts/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png'))))); urls.slice(0, 40).forEach(u=> add(u, 'Libretro')); }
     say('Wikipedia…'); try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); add(u, 'Wikipedia'); }catch(e){}
     ((wd && wd.img) || []).slice(0, 2).forEach(f=> add('https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(f) + '?width=600', 'Wikimedia'));
-    try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(g.name); if(i && i.cover) add(i.cover, 'RAWG'); } }catch(e){}
+    try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(await enN(g)); if(i && i.cover) add(i.cover, 'RAWG'); } }catch(e){}
     say('Controllo quali immagini esistono…');
     const ok = await Promise.all(out.map(o=> probeImg(o.url, 7000)));
     return out.filter((o, i)=> ok[i]);
@@ -281,7 +284,7 @@
     // tutte le immagini che rappresentano il gioco, dalla più adatta a fare da locandina alla meno: box art verticali, copertine
     // di Wikipedia in più lingue, immagini ufficiali di Wikidata, grafiche di Steam (capsule, banner, hero), RAWG, schermate del titolo e di gioco
     const out = [], add = (u, src, rk)=>{ if(u && !out.some(x=> x.url === u)) out.push({url: u, source: src, rk}); };
-    let wd = null; try{ wd = await wikidataInfo(g.name); }catch(e){}
+    let wd = null; try{ wd = await wikidataInfo(await enN(g)); }catch(e){}
     const tasks = [];
     const f = (window.SearchHub && SearchHub.factsFor) ? SearchHub.factsFor(g) : null;
     const ids = [...new Set([...((wd && wd.steam) || []), f && f.s && f.s.id ? String(f.s.id) : null].filter(Boolean))].slice(0, 2);
@@ -292,7 +295,7 @@
     }
     const sys = lrSystems(g.plat);
     if(sys.length){
-      const titles = lrTitles([wd && wd.label, g.name]);
+      const titles = lrTitles([wd && wd.label, window.SearchHub && SearchHub.enNameSync ? SearchHub.enNameSync(g) : g.name, g.name]);
       const mk = kind=>{ const urls = []; titles.forEach(t=> sys.forEach(s=> LR_REG.forEach(r=> urls.push(LR + encodeURIComponent(s) + '/' + kind + '/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png'))))); return urls; };
       tasks.push(okAll(mk('Named_Boxarts')).then(l=> l.forEach(u=> add(u, 'Libretro (box art)', 0))));
       tasks.push(okAll(mk('Named_Titles'), 8).then(l=> l.slice(0, 2).forEach(u=> add(u, 'Libretro (schermata del titolo)', 6))));
@@ -308,7 +311,7 @@
     }catch(e){} })());
     // Wikidata: immagine e logo ufficiali (Wikimedia Commons)
     if(wd){ (wd.img || []).slice(0, 2).forEach(fn=> add('https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(fn) + '?width=600', 'Wikidata (immagine)', 2)); (wd.logo || []).slice(0, 1).forEach(fn=> add('https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(fn) + '?width=600', 'Wikidata (logo)', 6)); }
-    tasks.push((async()=>{ try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ const i = await SearchHub.rawg.info(g.name); if(i && i.cover) add(i.cover, 'RAWG', 3); } }catch(e){} })());
+    tasks.push((async()=>{ try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ const i = await SearchHub.rawg.info(await enN(g)); if(i && i.cover) add(i.cover, 'RAWG', 3); } }catch(e){} })());
     await Promise.all(tasks);
     return out.sort((a, b)=> a.rk - b.rk);
   }

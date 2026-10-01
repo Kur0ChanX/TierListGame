@@ -592,6 +592,46 @@
   };
   H.factsFor = g=>{ try{ return (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.games && GAME_FACTS.games[g.id]) || null; }catch(e){ return null; } };
 
+  // v201: NOME INGLESE e ID Steam di ogni gioco. Molti nomi nel catalogo sono italiani («Echi di un'era perduta»):
+  // cercati così su RAWG/OpenCritic/Wikidata davano il gioco sbagliato o «non trovato». Steam conosce anche i nomi italiani,
+  // quindi: nome italiano → Steam (in italiano) → ID → nome ufficiale inglese. Salvato sul dispositivo (rt_en_name).
+  const ENK = 'rt_en_name';
+  const enTok = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[®™©]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w=> w && !['the', 'of', 'di', 'a', 'and', 'e', 'edition', 'edizione', 'definitive', 'definitiva'].includes(w));
+  const enSim = (a, b)=>{ const A = new Set(enTok(a)), B = new Set(enTok(b)); if(!A.size || !B.size) return 0; let n = 0; A.forEach(w=>{ if(B.has(w)) n++; }); return n / Math.min(A.size, B.size); };
+  const enClean = t=> String(t || '').replace(/[®™©]/g, '').replace(/\s+/g, ' ').trim();
+  const ENC = (()=>{ try{ return JSON.parse(localStorage.getItem(ENK) || '{}') || {}; }catch(e){ return {}; } })();
+  const enSave = ()=>{ try{ const ks = Object.keys(ENC); if(ks.length > 3000) ks.slice(0, ks.length - 3000).forEach(k=> delete ENC[k]); localStorage.setItem(ENK, JSON.stringify(ENC)); }catch(e){} };
+  const ENP = new Map();
+  H.enNameSync = g=>{ const e = g && ENC[g.id]; return e && e.n ? e.n : (g ? g.name : ''); };
+  H.resolveGame = function(g){
+    if(!g) return Promise.resolve({en: '', sid: null});
+    const e = ENC[g.id];
+    if(e && (e.n || Date.now() - e.t < 20 * 864e5) && e.q === g.name) return Promise.resolve({en: e.n || g.name, sid: e.sid || null});
+    if(ENP.has(g.id)) return ENP.get(g.id);
+    const p = (async()=>{
+      let sid = null, en = null;
+      try{ const f = H.factsFor(g); if(f && f.s && f.s.id){ sid = f.s.id; if(f.s.en){ ENC[g.id] = {n: f.s.en, sid, t: Date.now(), q: g.name}; enSave(); return {en: f.s.en, sid}; } } }catch(x){}
+      if(!sid){
+        for(const [l, cc] of [['italian', 'it'], ['english', 'us']]){
+          try{
+            const j = await H.json('https://store.steampowered.com/api/storesearch/?l=' + l + '&cc=' + cc + '&term=' + encodeURIComponent(g.name.replace(/[:™®]/g, ' ')), {timeout: 12000});
+            const best = ((j && j.items) || []).map(x=> ({x, s: enSim(g.name, x.name)})).sort((a, b)=> b.s - a.s)[0];
+            if(best && best.s >= .6){ sid = best.x.id; break; }
+          }catch(x){}
+        }
+      }
+      if(sid){
+        try{ const j = await H.json('https://store.steampowered.com/api/appdetails?appids=' + sid + '&filters=basic&l=english&cc=us', {timeout: 12000}); const d = j && j[sid] && j[sid].success ? j[sid].data : null; if(d && d.name) en = enClean(d.name); }catch(x){}
+      }
+      ENC[g.id] = {n: en || '', sid: sid || 0, t: Date.now(), q: g.name}; enSave();
+      return {en: en || g.name, sid};
+    })().finally(()=> ENP.delete(g.id));
+    ENP.set(g.id, p); return p;
+  };
+  H.enName = async g=> (await H.resolveGame(g)).en;
+  // per le ricerche: una copia del gioco con il nome inglese (il resto identico)
+  H.enGame = async g=>{ const en = await H.enName(g); return en && en !== g.name ? Object.assign({}, g, {name: en, nameIt: g.name}) : g; };
+
   // Metascore UFFICIALE da metacritic.com, scaricato dai server GitHub (voti.js): niente blocchi, niente chiavi, niente limiti
   H.ocArchFor = g=>{ try{ const v = typeof VOTI !== 'undefined' && VOTI.games && VOTI.games[g.id]; return v && v.oc ? {score: v.oc, reviews: v.ocn || 0, url: 'https://opencritic.com/game/' + v.ocu + '/x', arch: true} : null; }catch(e){ return null; } };
   H.votiFor = g=>{ try{ const v = typeof VOTI !== 'undefined' && VOTI.games && VOTI.games[g.id]; return v && v.s ? v : null; }catch(e){ return null; } };
