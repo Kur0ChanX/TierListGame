@@ -1190,3 +1190,32 @@ body[data-view]:not([data-view="list"]) #todayBox{display:none}
 .gs2-si{font-size:1.5rem;line-height:1}
 .gs2-neg{margin-top:8px;font-size:.84rem;color:#f59e0b}
 .gs2-sub{margin-top:8px;font-size:.76rem;color:var(--sub)}
+/* v195 — procione «approved» per la sintonia altissima */
+.gs2-top.appr{background:linear-gradient(135deg,rgba(236,72,153,.16),rgba(250,204,21,.12));border-radius:16px;padding:8px 10px;border:1px solid rgba(236,72,153,.35)}
+.gs2-top.appr .gs2-verd>b{color:#f472b6}
+.gs2-top.appr .gs2-verd small{color:var(--sub);font-size:.76rem}
+.gs2-appr{margin-left:auto;width:86px;height:auto;filter:drop-shadow(0 4px 12px rgba(236,72,153,.45));animation:apprPop .7s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes apprPop{from{transform:scale(.4) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.gs2-appr{animation:none}}
+/* v195 — DNA: cosa ti ha preso + giochi simili */
+.dna-card{border:1px solid var(--glass-line,rgba(255,255,255,.12));border-radius:18px;padding:12px;margin:10px 0;background:var(--glass,rgba(255,255,255,.03))}
+.dna-head{font-size:1rem;margin-bottom:4px}
+.dna-sub{font-size:.8rem;color:var(--sub);line-height:1.4;margin-bottom:8px}
+.dna-n{display:inline-block;margin-left:4px;padding:0 8px;border-radius:999px;background:rgba(34,197,94,.15);color:var(--pk-good,#22c55e);font-weight:700}
+.dna-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dna-rest{display:contents}
+.dna-chip,.dna-more{font:600 .8rem/1.2 inherit;padding:7px 10px;border-radius:999px;border:1px solid var(--glass-line,rgba(255,255,255,.18));background:transparent;color:inherit;cursor:pointer;min-height:34px}
+.dna-chip.det{border-style:dashed;border-color:var(--pk-accent,#60a5fa)}
+.dna-chip.like{background:rgba(34,197,94,.18);border-color:#22c55e}
+.dna-chip.no{background:rgba(239,68,68,.15);border-color:#ef4444;opacity:.85}
+.dna-chip.mini{padding:1px 8px;min-height:0;font-size:.7rem}
+.dna-more{opacity:.8}
+.dna-leg{margin-top:6px;font-size:.72rem;color:var(--sub)}
+.sim2-list{display:flex;flex-direction:column;gap:6px}
+.similar-chip.sim2{display:flex;align-items:center;gap:10px;text-align:left;width:100%}
+.sim2-t{display:flex;flex-direction:column;min-width:0}.sim2-t b{overflow:hidden;text-overflow:ellipsis}
+.sim2-t small{color:var(--sub);font-weight:400;font-size:.76rem}
+.sim2-p{color:var(--pk-good,#22c55e);font-weight:700}.sim2-p.a{color:#f472b6}
+.sim2-saga{margin:10px 2px 6px;font-size:.86rem}
+.dna-chip.appr{display:inline-flex;align-items:center;gap:2px;color:#f472b6 !important;border-color:#f472b6 !important}
+.dna-chip.appr img{width:16px;height:auto}

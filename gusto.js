@@ -10,12 +10,14 @@
   const iconOf = k=>{ const [a, b] = k.split(':'); let t = null; try{ t = typeof TAG_INFO !== 'undefined' ? TAG_INFO : null; }catch(e){} if(a === 'mech' && window.rtMech && window.rtMech[b]) return window.rtMech[b].ic; return a === 'tag' ? ((t && t[b] && t[b].icon) || '•') : (ICON[a] || '•'); };
   const shortLab = s=>{ s = String(s).replace(/\s*\(.*?\)\s*/g, ' ').trim(); return s.length > 19 ? s.slice(0, 18).trim() + '…' : s; };
 
+  let AXtm = null, AXc = null;
   function axes(){
     const tm = window.rtTasteModel && window.rtTasteModel(); if(!tm || tm.n < 3) return null;
+    if(tm === AXtm) return AXc;                      // stesso modello dei gusti: riuso il calcolo (serve quando si ordinano centinaia di giochi)
     const e = Object.entries(tm.wts).filter(([k])=> tm.cnt[k] >= 2 && tm.wts[k] > .2 && k.indexOf('epoca') !== 0).sort((a, b)=> b[1] - a[1]).slice(0, 10);
-    if(e.length < 4) return null;
+    if(e.length < 4){ AXtm = tm; AXc = null; return null; }
     const hi = e[0][1], lo = e[e.length - 1][1], span = (hi - lo) || 1;
-    return {tm, ax: e.map(([k, w])=> ({k, w: .36 + .64 * ((w - lo) / span), label: shortLab(window.rtFLAB(k)), full: String(window.rtFLAB(k)), icon: iconOf(k)}))};
+    AXtm = tm; AXc = {tm, ax: e.map(([k, w])=> ({k, w: .36 + .64 * ((w - lo) / span), label: shortLab(window.rtFLAB(k)), full: String(window.rtFLAB(k)), icon: iconOf(k)}))}; return AXc;
   }
   function svg(ax, has){
     const n = ax.length, ang = i=> -Math.PI / 2 + i * 2 * Math.PI / n, pt = (i, r)=> [CX + Math.cos(ang(i)) * r, CY + Math.sin(ang(i)) * r];
@@ -36,6 +38,18 @@
     if(e.dopamine === true) out.push(`<div class="gs2-sym"><span class="gs2-si">💉</span><span><b>Loop di ricompense molto coinvolgente</b> (effetto dopamina)${likeDopa ? '<small>✓ in linea con te: loot, progressi visibili e ricompense ti agganciano</small>' : ''}</span></div>`);
     return out.length ? `<div class="gs2-syms">${out.join('')}</div>` : '';
   }
+  // % di sintonia di un gioco con i tuoi gusti (usata anche da giochi simili e consigli). null se il profilo è ancora troppo debole.
+  window.rtSintonia = function(g){
+    let r; try{ r = axes(); }catch(e){ return null; } if(!r || !g) return null;
+    const {tm, ax} = r, has = new Set(window.rtFeats(g));
+    const raw = a=> Math.max(0, tm.wts[a.k] || 0), tot = ax.reduce((s, a)=> s + raw(a), 0) || 1, got = ax.filter(a=> has.has(a.k)).reduce((s, a)=> s + raw(a), 0);
+    const neg = Object.entries(tm.wts).filter(([k, w])=> tm.cnt[k] >= 2 && w < -.25 && has.has(k)).sort((a, b)=> a[1] - b[1]).slice(0, 3);
+    const penalty = neg.reduce((s, [, w])=> s + Math.min(.6, -w), 0) / tot;
+    const pct = Math.max(0, Math.min(100, Math.round(100 * (got / tot - penalty * .5))));
+    // «approvato dal procione»: sintonia molto alta, nessuna cosa che eviti e un profilo con abbastanza giochi per fidarsi
+    const approved = pct >= 80 && !neg.length && tm.n >= 6;
+    return {pct, neg, tm, ax, has, approved, n: ax.filter(a=> has.has(a.k)).length};
+  };
   window.rtRadar = function(g){
     let r; try{ r = axes(); }catch(e){ return ''; }
     if(!r) return '';
@@ -48,7 +62,8 @@
       const pct = Math.max(0, Math.min(100, Math.round(100 * (got / tot - penalty * .5))));
       const word = pct >= 75 ? 'Altissima' : pct >= 50 ? 'Buona' : pct >= 30 ? 'Parziale' : 'Bassa';
       const n = ax.filter(a=> has.has(a.k)).length;
-      top = `<div class="gs2-top"><div class="gs2-ring" style="--p:${pct}"><b>${pct}%</b></div><div class="gs2-verd"><b>Sintonia ${word.toLowerCase()}</b><span>Ha <b>${n} dei tuoi ${ax.length}</b> gusti più forti</span></div></div>`;
+      const appr = pct >= 80 && !neg.length && tm.n >= 6;
+      top = `<div class="gs2-top${appr ? ' appr' : ''}"><div class="gs2-ring" style="--p:${pct}"><b>${pct}%</b></div><div class="gs2-verd"><b>${appr ? 'Approvato dal procione!' : 'Sintonia ' + word.toLowerCase()}</b><span>Ha <b>${n} dei tuoi ${ax.length}</b> gusti più forti</span>${appr ? '<small>Sintonia altissima con il tuo DNA di giocatore</small>' : ''}</div>${appr ? '<img class="gs2-appr" src="icons/approved.webp" alt="Approvato" width="86" height="91" loading="lazy">' : ''}</div>`;
     }
     const rows = ax.map(a=>{ const on = has && has.has(a.k);
       return `<div class="gs2-row${has ? (on ? ' on' : ' off') : ''}"><span class="gs2-ic">${a.icon}</span><span class="gs2-lab">${esc(a.full)}</span><span class="gs2-bar"><i style="width:${Math.round(a.w * 100)}%"></i></span><span class="gs2-ok">${has ? (on ? '✓' : '·') : ''}</span></div>`; }).join('');

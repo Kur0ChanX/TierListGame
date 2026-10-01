@@ -13,14 +13,14 @@
   const PINS = 'jrpg_card_pins', ON = 'jrpg_card_order';
   const cardOrderOn = ()=> LS.get(ON, 'on') !== 'off';
   const LAYERS = [
-    {id: 'capire', n: '🔎 Capire il gioco', keys: ['storia', 'etichetta', 'radar', 'piace', 'gameplay', 'proscons', 'generi', 'longevita', 'tempo', 'colonna', 'cast', 'approfondimento', 'dettagli', 'simboli', 'affidabilita']},
+    {id: 'capire', n: '🔎 Capire il gioco', keys: ['storia', 'etichetta', 'radar', 'dna', 'piace', 'gameplay', 'proscons', 'generi', 'longevita', 'tempo', 'colonna', 'cast', 'approfondimento', 'dettagli', 'simboli', 'affidabilita']},
     {id: 'giocare', n: '🎮 Giocarlo bene', keys: ['guida', 'compagno', 'saga']},
     {id: 'stato', n: '📋 Il tuo stato', keys: ['stato', 'recensione', 'nota']},
     {id: 'comprare', n: '🛒 Comprare', keys: ['comprare', 'versioni']},
     {id: 'simili', n: '🔁 Altri giochi', keys: ['simili']},
     {id: 'altro', n: '📚 Per approfondire', keys: ['eredi', 'quinte', 'uscita', 'album', 'cronologia']}
   ];
-  const KEY_NAMES = {verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'Etichetta del gioco', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
+  const KEY_NAMES = {verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'Etichetta del gioco', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
   const titleKey = t=>{
     t = norm(t);
     if(/etichetta/.test(t)) return 'etichetta'; if(/prima di comprarlo/.test(t)) return 'comprare'; if(/quale versione/.test(t)) return 'versioni'; if(/il tuo stato/.test(t)) return 'stato';
@@ -33,7 +33,7 @@
   function startKey(el){
     if(el.classList.contains('cd-layer')) return null;
     if(el.classList.contains('modal-section-title')) return titleKey(el.textContent);
-    if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
+    if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
     if(el.classList.contains('modal-tags')) return 'generi'; if(el.classList.contains('enrich-highlights')) return 'simboli'; if(el.classList.contains('ds-chip')) return 'affidabilita';
     if(el.classList.contains('saga-note')) return 'saga'; if(el.matches('details.hist')) return 'cronologia';
     return null;
