@@ -199,8 +199,12 @@
     // lite: solo le fonti leggere (Wikipedia, Wikidata, RAWG); Steam e PCGamingWiki (lingue) restano per «Aggiorna info»
     const none = Promise.resolve(null);
     const needCheap = !(window.SearchHub && SearchHub.factsFor(g)) && window.SearchHub;
-    const [wiki, wd, itw, steam, pcgw, rawg, cheap, oc] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none, ocInfoFor(g)]);
+    const [wiki, wd, itw, steam, pcgw, rawg, cheap] = await Promise.allSettled([wikiPageTree(g.name), wikidataGenreCodes(g.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(g.name), lite ? none : pcgwInfo(g.name), rawgInfoFor(g), needCheap ? SearchHub.cheapFacts(g.name) : none]);
     const cheapLive = cheap.status === 'fulfilled' ? cheap.value : null;
+    // OpenCritic (poche richieste gratuite al giorno) si interroga solo se Metacritic non ha dato nessun voto (Wikipedia, Steam o CheapShark)
+    const mcSeen = (wiki.status === 'fulfilled' && wiki.value && wiki.value.mc) || (steam.status === 'fulfilled' && steam.value && steam.value.mc) || (cheapLive && cheapLive.mc) || (window.SearchHub && (f=> f && ((f.s && f.s.mc) || (f.c && f.c.mc)))(SearchHub.factsFor(g)));
+    const needOc = !mcSeen;
+    const oc = needOc ? (await Promise.allSettled([ocInfoFor(g)]))[0] : {status: 'fulfilled', value: null};
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
     // stato di ogni fonte del voto (per dire chiaramente se un sito è bloccato, la chiave non va o la quota è finita)
     const H = window.SearchHub, hasK = f=> { try{ return !!(H && f && f.has()); }catch(e){ return false; } };
@@ -211,7 +215,7 @@
       wiki: mk('Wikipedia (Metacritic)', wiki, vals.wiki, vals.wiki && vals.wiki.mc),
       steam: mk('Steam (Metacritic)', steam, vals.steam, vals.steam && vals.steam.mc, false, lite),
       cheap: mk('CheapShark (Metacritic)', needCheap ? cheap : {status:'fulfilled'}, cf, (cf && ((cf.s && cf.s.mc) || (cf.c && cf.c.mc))) || 0),
-      oc: mk('OpenCritic', oc, vals.oc, vals.oc && vals.oc.score, !hasK(H && H.opencritic)),
+      oc: mk('OpenCritic', oc, vals.oc, vals.oc && vals.oc.score, needOc && !hasK(H && H.opencritic), !needOc),
       rawg: mk('RAWG', rawg, vals.rawg, vals.rawg && vals.rawg.mc, !hasK(H && H.rawg))
     };
     return {st, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
@@ -254,22 +258,26 @@
     }
     const nowY = new Date().getFullYear();
     offerScore(3, src.wiki && src.wiki.mc, 'Metacritic (da Wikipedia)', 'score', 'Voto', 'Metacritic, da Wikipedia');
-    if(src.wd && src.wd.codes){
-      const add = src.wd.codes.filter(c=> TAG_INFO[c] && !g.tags.includes(c));
-      if(add.length){
-        const warn = add.some(c=> EXTRA_GENRE_INFO[c]);
-        ch.push({id:'tags', label:'Generi', from: g.tags.map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', '), to: '+ ' + add.map(c=> TAG_INFO[c].label).join(', ') + (warn ? ' ⚠️ (esce da JRPG / RPG)' : '') + ' (Wikidata)', patch:{tags: g.tags.concat(add).slice(0, 6)}});
-      }
-    }
-    // generi «forti» che nessuna fonte conferma (Wikidata + RAWG + Steam): li tolgo, es. un gioco narrativo segnato Soulslike
-    if(src.wd && src.wd.labels && src.wd.labels.length && src.wd.codes && src.wd.codes.length){
-      const STRONG = ['SOUL', 'METR', 'ROG', 'HOR', 'MECH', 'ACT', 'ACTADV'], WORDS = {SOUL: /soul/i, METR: /metroidvania/i, ROG: /rogue/i, HOR: /horror/i, MECH: /mecha|mech/i, ACT: /action role|action rpg|action-rpg|hack/i, ACTADV: /action[- ]adventure/i};
-      const ev = [].concat(src.wd.labels, src.rawg ? [].concat(src.rawg.genres || [], src.rawg.genreSlugs || [], (src.rawg.tags || []).map(t=> t.name + ' ' + t.slug)) : [], src.steam && src.steam.tags ? [].concat(src.steam.tags) : []).map(x=> typeof x === 'string' ? x : (x && (x.name || x.description)) || '').join(' | ');
-      const drop = g.tags.filter(t=> STRONG.includes(t) && !src.wd.codes.includes(t) && !WORDS[t].test(ev));
-      const keep = g.tags.filter(t=> !drop.includes(t)).concat(src.wd.codes.filter(c=> TAG_INFO[c] && !g.tags.includes(c)));
-      if(drop.length && keep.length){
-        ch.push({id:'tagsrm', label:'Generi non confermati', from: g.tags.map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', '), to: '− ' + drop.map(c=> (TAG_INFO[c] || {}).label || c).join(', ') + ' (nessuna fonte li conferma)', patch:{tags: keep.slice(0, 6)}});
-        const old = ch.findIndex(c=> c.id === 'tags'); if(old >= 0) ch.splice(old, 1);   // le aggiunte di Wikidata sono già dentro `keep`
+    // GENERI dalle fonti (Wikidata, RAWG, Steam): i generi che le fonti sanno riconoscere diventano quelli del gioco (si aggiungono i confermati, si tolgono quelli che nessuna fonte conferma).
+    // JRPG/WRPG, «a turni», Crossover, Remake, Guerra, Gacha… non si possono verificare e restano. Se le fonti non dicono nulla di preciso (solo «RPG») non si cambia niente.
+    {
+      const VER = new Set(['TAC','ACT','DUN','MON','CARD','ROG','METR','SOUL','VN','HOR','MECH','LIFE','PLAT','FIGHT','RTS','TOWERDEF','PUZ','STEALTH','FPS','TPS','SHMUP','RACE','SPORT','CITY','ACTADV','OPENW','MMO','SIMVEH','TRIVIA','ADV','WALK','BR','RHY','PARTY','SAND','MOBA','TBS4X','BEAT']);
+      const info = c=> TAG_INFO[c] || EXTRA_GENRE_INFO[c];
+      const hy = x=> String(x).replace(/[-_]/g, ' ');
+      const raw = [].concat((src.rawg && src.rawg.genres) || [], ((src.rawg && src.rawg.tags) || []).map(t=> t.name), (src.steam && src.steam.genres) || []).filter(Boolean);
+      const cf = window.wikidataCodesFrom || (()=> []);
+      const fromWd = ((src.wd && src.wd.labels && src.wd.labels.length) ? (src.wd.codes || []) : []).filter(c=> VER.has(c) && info(c));
+      const fromWeb = [...new Set(cf(raw).concat(cf(raw.map(hy))))].filter(c=> VER.has(c) && info(c));
+      const found = [...new Set(fromWd.concat(fromWeb))];                       // tutto ciò che le fonti riconoscono (basta una fonte per NON togliere)
+      const addOk = c=> fromWd.includes(c) || (fromWeb.includes(c) && (fromWd.length === 0 || (src.rawg && src.steam)));   // per AGGIUNGERE: Wikidata, oppure RAWG/Steam quando Wikidata tace
+      if(found.length){
+        const mine = g.tags.slice(), add = found.filter(c=> !mine.includes(c) && addOk(c)), drop = mine.filter(t=> VER.has(t) && !found.includes(t));
+        if(add.length || drop.length){
+          const keep = mine.filter(t=> !drop.includes(t)).concat(add).slice(0, 6);
+          const extra = add.concat(drop).some(c=> EXTRA_GENRE_INFO[c]);
+          const lab = c=> (info(c) || {}).label || c, srcN = [fromWd.length ? 'Wikidata' : '', fromWeb.length ? (src.rawg ? 'RAWG' : 'Steam') : ''].filter(Boolean).join(' + ');
+          if(keep.length) ch.push({id:'tagsync', label:'Generi (dalle fonti)', from: mine.map(lab).join(', ') || '—', to: [add.length ? '+ ' + add.map(lab).join(', ') : '', drop.length ? '− ' + drop.map(lab).join(', ') : ''].filter(Boolean).join(' · ') + ' (' + srcN + ')' + (extra ? ' ⚠️ (esce da JRPG / RPG)' : ''), patch:{tags: keep}, warn: extra});
+        }
       }
     }
     if(src.wd && src.wd.years && src.wd.years.length){
@@ -310,6 +318,7 @@
     }
     return ch;
   }
+  window.__factChanges = factChanges;                                    // per i test automatici
   function parseJson(t){
     const s = String(t || '').replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
     const a = s.indexOf('{'), b = s.lastIndexOf('}');
@@ -436,7 +445,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   function canAuto(c, g){
     if(!c || !c.patch || c.off || c.warn || c.id === 'score2') return false;
     if(c.patch.score != null && Math.abs(c.patch.score - g.score) > 15) return false;              // scarto enorme: probabile gioco sbagliato, chiedo
-    if(/^(method|vsrc|score\d?|itsrc|itdub|similar)$/.test(c.id)) return true;
+    if(/^(method|vsrc|score\d?|itsrc|itdub|similar|tagsync)$/.test(c.id)) return true;
     return isFill(c) && /^(story|proscons|aging|why|hours|gameplay|lang|label)$/.test(c.id);
   }
   // le proposte «sicure» (voto da fonte in ordine di priorità, lingua da Steam/PCGamingWiki/it.wikipedia, giochi affini) si applicano da sole, anche quelle rimaste in coda: niente scelte inutili

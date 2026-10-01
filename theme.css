@@ -1026,3 +1026,6 @@ html.mo-off .gs-poly, html.mo-off .gs-dot{animation:none}
 .rt-music.docked.idle:not(.moving){opacity:1}
 body:has(#modalBackdrop.show) .rt-music.docked{display:none !important}
 .btn.danger{background:rgba(220,60,60,.2) !important; border-color:rgba(220,60,60,.7) !important; color:#ff9a9a}
+.saga-upd{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px}
+.saga-upd .lp-sub{flex-basis:100%; margin:0}
+.mc-link{font-size:.78rem; margin-left:6px; white-space:nowrap}

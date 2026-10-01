@@ -563,7 +563,11 @@ function noteForVoto(g){
   return g.m === 'V' ? n.replace(/ — (?:nessun Metacritic trovato: )?voto e dettagli sono una stima[^.]*\./, ' — voto verificato (Metacritic/OpenCritic).') : n;
 }
 // da dove viene il voto: Metacritic se c'è, altrimenti lo dico chiaramente (fonte o stima)
-function voteSourceHtml(g){
+// link al sito ufficiale di Metacritic per controllare il voto a mano (dal telefono il sito non si può leggere dentro il programma)
+const mcLink = g=> ` <a class="mc-link" href="https://www.metacritic.com/search/${encodeURIComponent(cleanBaseTitle(g.name))}/?category=13" target="_blank" rel="noopener" title="Apri la ricerca su Metacritic (sito ufficiale)">↗ Metacritic ufficiale</a>`;
+const cleanBaseTitle = n=> String(n || '').replace(/\s*\([^)]*\)/g, '').trim();
+function voteSourceHtml(g){ return voteSourceHtml0(g) + mcLink(g); }
+function voteSourceHtml0(g){
   const vs = g.vs || '';
   if(g.m === 'V' && /^Metacritic/.test(vs)) return `${giIcon('tag')} <span>Voto preso da <b>${escHtml(vs)}</b>.</span>`;
   if(g.m === 'V' && vs) return `⚠️ <span>Nessun Metacritic trovato: voto preso da <b>${escHtml(vs.replace(/ \(nessun Metacritic trovato\)/, ''))}</b>.</span>`;
@@ -1093,6 +1097,89 @@ function similarGamesHtml(g){
   return `<div class="modal-section-title">🔁 Se ti è piaciuto questo, prova anche</div><div class="similar-games">${sims.map(s=>`<button class="similar-chip" data-id="${s.id}"><span class="badge ${TIER_LABEL[s.tier]}">${s.tier}</span>${s.name}</button>`).join('')}</div>`;
 }
 
+// ---- «Aggiorna saghe»: cerca da solo i capitoli e le saghe che mancano e li aggiunge (senza chiavi: Wikidata; con la chiave RAWG anche l'elenco delle serie di RAWG) ----
+const SAGA_UPD = {running: false, stop: false, msg: ''}, SAGA_SCAN = 'jrpg_saga_scan', SAGA_CAP = 30;
+const sagaNorm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const sagaSleep = ms=> new Promise(r=> setTimeout(r, ms));
+function sagaQuietAdd(c){
+  const name = String(c.name || '').trim(); if(!name || !COVER_DB) return false;
+  if(typeof findDuplicateGame === 'function' && findDuplicateGame(name)) return false;
+  const id = nextCustomGameId(), sc = clampIntOrNull(c.score, 0, 100);
+  const doc = {name, plat: c.plat ? String(c.plat) : null, year: c.year ? String(c.year) : null, tier: 'ND', score: sc != null ? Math.min(sc, 79) : 70, tags: Array.isArray(c.tags) ? c.tags.filter(t=> TAG_INFO[t]).slice(0, 3) : [], story: '',
+    note: 'Aggiunto da Mario tramite "Aggiorna saghe" il ' + new Date().toLocaleDateString('it-IT') + ' — nessun Metacritic trovato: voto e dettagli sono una stima automatica, non della classifica ufficiale curata a mano.', label: {}, pros: [], cons: [], addedAt: new Date().toISOString()};
+  try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){ return false; }
+  try{ queueEnrich(id); }catch(e){}
+  try{ if(window.updatePlusQueue) updatePlusQueue(id); }catch(e){}
+  return true;
+}
+// capitoli della stessa serie su Wikidata (proprietà «parte della serie»), per un gioco che già conosci
+async function sagaWdMembers(name){
+  const r = window.wikidataGenreCodes ? await window.wikidataGenreCodes(name) : null; if(!r || !r.qid) return [];
+  const e = await SearchHub.json('https://www.wikidata.org/w/api.php?' + new URLSearchParams({action: 'wbgetentities', ids: r.qid, props: 'claims', format: 'json', origin: '*'}));
+  const claims = (e.entities && e.entities[r.qid] && e.entities[r.qid].claims) || {};
+  const series = (claims.P179 || []).map(c=> c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id).filter(Boolean).slice(0, 2);
+  const out = [], nowY = new Date().getFullYear();
+  for(const sq of series){
+    const q = `SELECT ?g ?gLabel (MIN(YEAR(?d)) AS ?yr) (GROUP_CONCAT(DISTINCT ?plL; separator=", ") AS ?plat) (GROUP_CONCAT(DISTINCT ?geL; separator=", ") AS ?gen) WHERE { ?g wdt:P179 wd:${sq}. ?g wdt:P31/wdt:P279* wd:Q7889. OPTIONAL{ ?g wdt:P577 ?d. } OPTIONAL{ ?g wdt:P400 ?pl. ?pl rdfs:label ?plL. FILTER(LANG(?plL)='en') } OPTIONAL{ ?g wdt:P136 ?ge. ?ge rdfs:label ?geL. FILTER(LANG(?geL)='en') } SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } GROUP BY ?g ?gLabel LIMIT 80`;
+    const j = await SearchHub.json('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), {headers: {Accept: 'application/sparql-results+json'}, timeout: 25000});
+    ((j.results && j.results.bindings) || []).forEach(b=>{
+      const nm = b.gLabel && b.gLabel.value; if(!nm || /^Q\d+$/.test(nm)) return;
+      const yr = b.yr && +b.yr.value, gen = (b.gen && b.gen.value) || '';
+      if(!yr || yr > nowY) return;                                                           // senza anno o non ancora uscito
+      if(gen && !/role|rpg|tactic|dungeon|monster|rogue|hack|action-adventure|strategy/i.test(gen)) return;   // la lista è di RPG/JRPG: salto platform, corse, picchiaduro…
+      out.push({name: nm, year: yr || '', plat: ((b.plat && b.plat.value) || '').split(', ').slice(0, 4).join(' / '), src: 'Wikidata'});
+    });
+  }
+  return out;
+}
+async function sagaCandidates(names){
+  let out = [];
+  for(const nm of names.slice(0, 2)){ try{ out = out.concat(await sagaWdMembers(nm)); }catch(e){} if(out.length) break; }
+  if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){
+    try{ for(const nm of names.slice(0, 2)){ const rg = await SearchHub.rawg.find(nm); if(!rg) continue; const l = (await SearchHub.rawg.series(rg.id)).filter(c=> c && c.name && (c.score == null || c.score >= 50)); out = out.concat(l.map(c=> ({name: c.name, year: c.year || '', plat: c.plat || '', score: c.score, tags: c.tags, src: 'RAWG'}))); if(l.length) break; } }catch(e){}
+  }
+  const seen = new Set(); return out.filter(c=>{ const k = sagaNorm(c.name); if(!k || seen.has(k)) return false; seen.add(k); return true; });
+}
+async function sagaUpdateAll(){
+  if(SAGA_UPD.running) return;
+  if(!window.SearchHub){ showToast('Ricerca non disponibile ora', 2500); return; }
+  SAGA_UPD.running = true; SAGA_UPD.stop = false;
+  const say = t=>{ SAGA_UPD.msg = t; const m = document.getElementById('sagaUpdMsg'); if(m) m.textContent = t; };
+  const btn = ()=> document.getElementById('sagaUpdBtn'), stp = ()=> document.getElementById('sagaUpdStop');
+  if(btn()) btn().disabled = true; if(stp()) stp().style.display = '';
+  const scan = (()=>{ try{ return JSON.parse(localStorage.getItem(SAGA_SCAN) || '{}') || {}; }catch(e){ return {}; } })(), saveScan = ()=>{ try{ localStorage.setItem(SAGA_SCAN, JSON.stringify(scan)); }catch(e){} };
+  const fresh = k=> scan[k] && Date.now() - scan[k] < 30 * 864e5;
+  let added = 0, looked = 0;
+  try{
+    // 1) saghe già presenti: i capitoli che mancano
+    buildDynamicSagas();
+    const groups = {}; GAMES.forEach(g=>{ const k = sagaKeyOf(g); if(k) (groups[k] = groups[k] || []).push(g); });
+    const keys = Object.keys(groups).sort((a, b)=> groups[b].length - groups[a].length).filter(k=> !fresh(k));
+    for(let i = 0; i < keys.length && added < SAGA_CAP && !SAGA_UPD.stop; i++){
+      const k = keys[i], names = groups[k].slice().sort((a, b)=> a.score - b.score).reverse().map(g=> g.name);
+      say(`Saghe: ${i + 1}/${keys.length} · ${(SAGA_INFO[k] || {}).name || k}… (aggiunti ${added})`);
+      const cands = await sagaCandidates(names); looked++;
+      let n = 0; for(const c of cands){ if(added >= SAGA_CAP) break; if(sagaQuietAdd(c)){ added++; n++; } }
+      if(added < SAGA_CAP || n === 0) scan[k] = Date.now(); saveScan();
+      await sagaSleep(350);
+    }
+    // 2) giochi senza saga: se Wikidata li mette in una serie con altri capitoli, nasce una saga nuova
+    if(added < SAGA_CAP && !SAGA_UPD.stop){
+      const singles = GAMES.filter(g=> !sagaKeyOf(g) && !fresh('g' + g.id)).sort((a, b)=> b.score - a.score).slice(0, 60);
+      for(let i = 0; i < singles.length && added < SAGA_CAP && !SAGA_UPD.stop; i++){
+        const g = singles[i]; say(`Giochi senza saga: ${i + 1}/${singles.length} · ${g.name}… (aggiunti ${added})`);
+        const cands = await sagaCandidates([g.name]); looked++;
+        let n = 0; for(const c of cands){ if(added >= SAGA_CAP) break; if(sagaQuietAdd(c)){ added++; n++; } }
+        scan['g' + g.id] = Date.now(); saveScan(); await sagaSleep(350);
+      }
+    }
+    DYN_SAGA_FOR = -1;
+    say(added ? `Fatto: ${added} giochi aggiunti da ${looked} ricerche${added >= SAGA_CAP ? ' (limite per volta: premi di nuovo per continuare)' : ''}. Si completano da soli nei prossimi minuti.` : (SAGA_UPD.stop ? 'Fermato.' : 'Nessun capitolo nuovo trovato: le saghe sono complete per le fonti disponibili.'));
+  }catch(e){ say('Ricerca interrotta: ' + String((e && e.message) || e).slice(0, 100)); }
+  SAGA_UPD.running = false;
+  try{ if(state.view === 'saga') renderSagaView(); }catch(e){}
+}
+
 // ---- Vista "per saga" ----
 function renderSagaView(){
   const panel = document.getElementById('sagaPanel');
@@ -1110,7 +1197,8 @@ function renderSagaView(){
     panel.innerHTML = window.rtEmpty ? window.rtEmpty('saga') : '<div class="empty">Nessuna saga corrisponde ai filtri attuali (prova a rimuovere qualche filtro).</div>';
     return;
   }
-  panel.innerHTML = `<div class="count-line" style="margin-bottom:10px;"><span>${keys.length} saghe multi-capitolo trovate (su ${list.length} giochi visibili)</span></div>` + keys.map(key=>{
+  panel.innerHTML = `<div class="count-line" style="margin-bottom:10px;"><span>${keys.length} saghe multi-capitolo trovate (su ${list.length} giochi visibili)</span></div>
+    <div class="saga-upd"><button class="btn primary" id="sagaUpdBtn" title="Cerca su Wikidata (e RAWG se hai la chiave) i capitoli e le saghe che mancano e li aggiunge alla lista">${giIcon('refresh')} Aggiorna saghe</button><button class="btn" id="sagaUpdStop" style="display:none">Ferma</button><div class="lp-sub" id="sagaUpdMsg">${escHtml(SAGA_UPD.msg || 'Cerca i capitoli e le saghe che mancano e li aggiunge da solo (fino a 30 giochi per volta: se ne restano, premi di nuovo).')}</div></div>` + keys.map(key=>{
     const info = SAGA_INFO[key];
     const games = bySaga[key].slice().sort((a,b)=> (a.ysort||0)-(b.ysort||0));
     return `<div class="saga-section">
@@ -1125,6 +1213,8 @@ function renderSagaView(){
       <div class="saga-missing" data-host="${key}"></div>
     </div>`;
   }).join('');
+  { const ub = panel.querySelector('#sagaUpdBtn'), us = panel.querySelector('#sagaUpdStop');
+    if(ub){ ub.addEventListener('click', ()=> sagaUpdateAll()); us.addEventListener('click', ()=>{ SAGA_UPD.stop = true; }); if(SAGA_UPD.running){ ub.disabled = true; us.style.display = ''; } } }
   panel.querySelectorAll('.saga-miss-btn').forEach(b=> b.addEventListener('click', ()=>{ const host = panel.querySelector(`.saga-missing[data-host="${b.dataset.saga}"]`); if(host) sagaFindMissing(b.dataset.saga, host); }));
   panel.querySelectorAll('.saga-game-chip').forEach(btn=>{
     btn.addEventListener('click', ()=>{
