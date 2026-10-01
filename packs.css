@@ -136,3 +136,5 @@ html[data-pack] .toast{background:var(--pk-act) !important; color:var(--pk-act-c
 .pk-ck{position:absolute; top:10px; left:10px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:var(--on-accent); display:none; place-items:center; font-weight:900; font-size:.8rem}
 .pk-tile.on .pk-ck{display:grid}
 .pk-orig .pk-th{background:linear-gradient(135deg,#7c5cff,#b04cf5 55%,#ff6ec7)}
+.ic-pv{display:grid; grid-template-columns:repeat(3,1fr); gap:4px 2px; padding:10px 6px; border-radius:10px; background:rgba(127,127,127,.12); justify-items:center; align-items:center; color:var(--text)}
+.ic-pv svg{width:34px; height:34px; overflow:visible}

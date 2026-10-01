@@ -171,6 +171,7 @@
     const body = U.sheet('xPacks', '🎭 Temi grafici', `<div class="pk-sub">Ogni tema cambia tutto insieme: colori, forme, scritte, sfondo animato e l'aspetto dei tier. Tocca per provarlo subito. «Originale» riporta il vetro lucido con le palette.</div>
       <div class="pk-grid">${tile(null)}</div>
       ${groups.map(g=> `<div class="pk-group">${g}</div><div class="pk-grid">${PACKS.filter(p=> p.g === g).map(tile).join('')}</div>`).join('')}
+      <button type="button" class="btn" id="pkIcons" style="width:100%;margin:10px 0 2px">🧩 Set di icone <small>(20 stili: di solito seguono il tema)</small></button>
       <label class="ask-toggle"><input type="checkbox" id="pkAnim" ${animOn() ? 'checked' : ''}> Sfondi animati e effetti in movimento <small>(spegnili se il telefono si scalda o scorre a scatti)</small></label>`);
     body.addEventListener('click', e=>{
       const b = e.target.closest('[data-pk]'); if(!b) return;
@@ -179,6 +180,7 @@
       const p = byId(b.dataset.pk);
       if(p && p.m !== 'both' && U.toast) U.toast('«' + p.n + '» ha un solo aspetto (' + (p.m === 'dark' ? 'scuro' : 'chiaro') + '): il pulsante Tema non lo cambia', 3200);
     });
+    body.querySelector('#pkIcons').addEventListener('click', ()=>{ const el = document.getElementById('xPacks'); if(el) el.classList.remove('show'); if(window.openIconPicker) window.openIconPicker(); });
     body.querySelector('#pkAnim').addEventListener('change', e=>{ try{ localStorage.setItem(KEY_ANIM, JSON.stringify(e.target.checked)); }catch(err){} applyStill(); });
   };
   (window.XMENU = window.XMENU || []).push({html: '🎭 Temi grafici <small>(20 stili completi)</small>', run: ()=> window.openPackPicker()});
