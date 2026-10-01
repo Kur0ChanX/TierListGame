@@ -40,11 +40,12 @@
     }catch(e2){ return []; }
   }
   async function shotsFor(g){
+    try{ const lk = window.rtMediaLock && window.rtMediaLock(g); if(lk && lk.shots && lk.shots.length) return lk.shots; }catch(e){}     // schermate scelte da te: bloccate
     const s = steamShots(g); if(s.length >= MIN_SHOTS) return s;
     const r = await rawgShots(g);                                        // poche schermate: aggiungo quelle di RAWG (se c'è la chiave)
     return s.concat(r.filter(u=> !s.includes(u))).slice(0, 12);
   }
-  window.rtShotsFor = shotsFor;
+  window.rtShotsFor = shotsFor; window.rtSteamShots = steamShots; window.rtRawgShots = rawgShots;
 
   const preload = u=> new Promise(res=>{ const im = new Image(); im.onload = ()=> res(u); im.onerror = ()=> res(null); im.decoding = 'async'; im.src = u; });
 

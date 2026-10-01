@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v196', date:'2026-10-01', time:'15:10', items:[
+    '🔄 «Cambia locandina» nella scheda (sopra, negli strumenti della copertina): ti mostro TUTTE le locandine ufficiali che trovo (Steam verticale e HD, Steam orizzontale, Libretro in tutte le regioni, Wikipedia, Wikimedia, RAWG). Tocchi quella bella e resta bloccata 🔒: nessun aggiornamento automatico la cambia più (la sblocchi dallo stesso pannello).',
+    '🎞️ «Schermate»: vedi tutte le schermate disponibili (Steam completo, fino a 24, più RAWG) e spunti quelle che vuoi nel carosello; «Salva e blocca» e restano quelle 🔒.',
+    '🎵 Colonne sonore SENZA pubblicità: prima cerco l\'album completo su Internet Archive (file musicali normali, nessuna pubblicità né collegamento a Google); YouTube resta solo come riserva (e ora in modalità senza cookie). Si può cambiare in ✨ → Suoni e musica. I brani senza pubblicità hanno il simbolo 🚫📢.',
+    '🔁 Nel lettore della scheda: se un brano non ti piace, il tasto 🔁 ti propone le alternative (altri brani dello stesso album o da YouTube); quello che scegli prende il suo posto e resta bloccato 🔒 per quel gioco. Sempre 5 brani per gioco quando l\'album li ha (presi lungo tutto l\'album, non solo i primi).',
+    'Corretto: se nessun brano si caricava (senza rete) il lettore passava da un brano all\'altro all\'infinito; ora si ferma e te lo dice.',
+  ]},
   {version:'v195', date:'2026-10-01', time:'15:02', items:[
     '🧬 DNA del giocatore, il cuore dell\'app: oltre alle 8 meccaniche di prima riconosco altri 19 tratti di un gioco (lore, world building, esplorazione e segreti, crafting, gestione delle risorse, sandbox, costruzione e gestione, tattica, combattimento, storia, personaggi e legami, scelte e conseguenze, atmosfera, colonna sonora, gioco con gli altri, enigmi, umorismo, vita quotidiana e legami). Li leggo da storia, gameplay, pro, «perché piacerti», etichette e simboli di ogni scheda.',
     'Nuovo blocco nella scheda, sotto la sintonia: «🧬 Cosa ti ha preso di questo gioco?». Tocchi i tratti che ti hanno preso davvero (👍), anche una piccola parte; di nuovo per 👎. È il modo più forte per insegnarmi PERCHÉ ti piace un gioco che sembra fuori dal tuo genere: ogni tratto che segni pesa subito sui tuoi gusti, sulla sintonia e sui consigli. I tratti tratteggiati sono quelli che ho riconosciuto io.',
