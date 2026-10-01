@@ -3,9 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
-  {version:'v188', date:'2026-10-01', time:'11:10', items:[
+  {version:'v188', date:'2026-10-01', time:'11:35', items:[
     'Fonti: ho provato una per una tutte le fonti dal server. Risultato: Steam, Metacritic, OpenCritic e YouTube funzionano; il problema è che Steam e Metacritic NON si lasciano leggere dal browser (blocco CORS) e i ponti pubblici sono morti o lenti. Wikipedia/Wikidata rispondono «troppe richieste» se si insiste. OpenCritic ha chiuso l\'accesso libero (solo chiave limitata).',
     'Soluzione definitiva: ogni notte GitHub (dal server, senza blocchi né chiavi né limiti) legge il Metascore UFFICIALE da metacritic.com per tutti i giochi, anche quelli che aggiungi tu, e lo salva in un archivio (voti.js). Update+ lo usa per primo: voto verificato «Metacritic (sito ufficiale)» istantaneo, senza ponti e senza consumare OpenCritic.',
+    'Diagnostica fonti: il pulsante «🩺 Prova le fonti e fai il rapporto» fa chiamate vere a ogni fonte (una alla volta) e dà DUE rapporti: uno facile da leggere e uno tecnico da copiare e incollare a Claude (esito, tempo, via usata, ponti, errore preciso, di chi è il problema).',
+    'L\'archivio voti è incrementale: ogni notte controlla solo i giochi nuovi o controllati da più di 30 giorni (massimo 3000 a notte), quindi anche con 10.000 giochi non rilegge tutto.',
     'La «Mappa delle fonti» ora mostra anche l\'archivio ufficiale e, quando una fonte non risponde, dice di chi è il problema (il sito, il browser o il limite di una chiave) e cosa fare.',
   ]},
   {version:'v187', date:'2026-10-01', time:'10:34', items:[
