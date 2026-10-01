@@ -367,15 +367,23 @@
     has: ()=> !!ocKey(),
     usage: ()=> ocUsage().n,
     async ping(){ const j = await ocGet('game/search?criteria=' + encodeURIComponent('Dark Souls')); return Array.isArray(j); },
-    // cerca il gioco per nome (titolo praticamente uguale) e ne legge il voto medio dei critici
+    // cerca il gioco per nome (titolo praticamente uguale) e ne legge il voto medio dei critici.
+    // Per risparmiare le ~200 richieste gratuite al giorno: la risposta (anche «non trovato») si ricorda 45 / 14 giorni e, se l'id è noto, si salta la ricerca.
     async info(name){
       const clean = t=> String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-      const list = await ocGet('game/search?criteria=' + encodeURIComponent(name)); if(!Array.isArray(list) || !list.length) return null;
-      const t = clean(name), hit = list.find(x=> clean(x.name) === t) || list.find(x=> (x.dist == null || x.dist <= 0.15) && clean(x.name) === t.replace(/ (remastered|remake|definitive edition)$/, ''));
-      if(!hit) return null;
-      const d = await ocGet('game/' + hit.id); if(!d) return null;
+      const key = clean(name), C = ls.get('rt_oc_cache', {}) || {}, e = C[key];
+      if(e && Date.now() - e.t < (e.r ? 45 : 14) * 864e5) return e.r || null;
+      const save = r=>{ C[key] = {t: Date.now(), r: r || null}; const ks = Object.keys(C); if(ks.length > 700) ks.sort((a, b)=> C[a].t - C[b].t).slice(0, ks.length - 700).forEach(k=> delete C[k]); ls.set('rt_oc_cache', C); return r || null; };
+      let id = e && e.r && e.r.id, hitName = e && e.r && e.r.name;
+      if(!id){
+        const list = await ocGet('game/search?criteria=' + encodeURIComponent(name)); if(!Array.isArray(list) || !list.length) return save(null);
+        const t = key, hit = list.find(x=> clean(x.name) === t) || list.find(x=> (x.dist == null || x.dist <= 0.15) && clean(x.name) === t.replace(/ (remastered|remake|definitive edition)$/, ''));
+        if(!hit) return save(null);
+        id = hit.id; hitName = hit.name;
+      }
+      const d = await ocGet('game/' + id); if(!d) return save(null);
       const sc = Math.round(d.topCriticScore >= 0 ? d.topCriticScore : (d.medianScore >= 0 ? d.medianScore : -1));
-      return sc >= 20 ? {id: hit.id, name: d.name || hit.name, score: sc, reviews: d.numReviews || d.numTopCriticReviews || null, tier: d.tier || '', url: 'https://opencritic.com/game/' + hit.id + '/' + String(d.name || hit.name).toLowerCase().replace(/[^a-z0-9]+/g, '-')} : null;
+      return save(sc >= 20 ? {id, name: d.name || hitName, score: sc, reviews: d.numReviews || d.numTopCriticReviews || null, tier: d.tier || '', url: 'https://opencritic.com/game/' + id + '/' + String(d.name || hitName).toLowerCase().replace(/[^a-z0-9]+/g, '-')} : null);
     }
   };
   H.rawg = {

@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v181', date:'2026-10-01', time:'09:48', items:[
+    'OpenCritic non finisce più subito: ora lo si interroga solo se Metacritic non ha dato nessun voto (prima partiva per ogni gioco), la risposta si ricorda 45 giorni (14 se il gioco non c\'è) e, quando il gioco è già noto, si salta la ricerca: da due richieste a gioco a quasi zero. Il piano gratuito resta di circa 200 al giorno (non si può alzare senza pagare).',
+    'Generi dalle fonti: «Update V+» ora cerca i generi su Wikidata, RAWG e Steam. I generi che le fonti riconoscono (Soulslike, Action-RPG, Dungeon Crawler, Horror, Metroidvania…) diventano quelli del gioco: aggiunge i confermati e toglie quelli che nessuna fonte conferma. JRPG/WRPG, «A turni», Crossover, Remake, Guerra e Gacha non si possono verificare e restano. Se un genere sposterebbe il gioco fuori da RPG/JRPG chiede conferma; se le fonti dicono solo «RPG» non cambia niente. Con «Rifai Update V+» lo applichi ai giochi già fatti. Ogni cambio finisce nella cronologia con Annulla.',
+    'Nuovo «🔄 Aggiorna saghe» nella vista Saghe: per ogni saga cerca su Wikidata (e su RAWG se hai la chiave) i capitoli che mancano e, per i giochi senza saga, le serie a cui appartengono, e li aggiunge da solo (fino a 30 giochi per volta, poi premi di nuovo; si può fermare). Salta platform, corse e picchiaduro: la lista resta di RPG/JRPG.',
+    'Accanto alla fonte del voto, nella scheda, c\'è «↗ Metacritic ufficiale»: apre la ricerca sul sito di Metacritic per controllare a mano.'
+  ]},
   {version:'v180', date:'2026-10-01', time:'09:40', items:[
     'Anteprima cinematografica sistemata: la copertina non si riaffaccia più per errore mentre scorrono le schermate. Ora il giro è: schermate di gioco → copertina ferma per qualche secondo → di nuovo le schermate, e così via.',
     'Nuovo «🗑️ Elimina» in fondo a ogni scheda, con doppia conferma (secondo tocco + domanda finale). I giochi aggiunti da te spariscono anche sugli altri dispositivi; quelli della classifica di base vengono solo nascosti. Sparisce anche da preferiti, stati, tua tier list e wishlist.',
