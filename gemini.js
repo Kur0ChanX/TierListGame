@@ -297,7 +297,9 @@ async function askLLM(input, opts, extra){
       <div id="lgBody"></div><div class="lp-sub" id="lgMsg"></div></div>`;
     el.classList.add('show');
     const msg = t=>{ const m = el.querySelector('#lgMsg'); if(m) m.textContent = t; }, body = el.querySelector('#lgBody');
-    const fld = (id, label, type, val)=> `<label style="display:block;margin:8px 0">${label}<input id="${id}" type="${type}" value="${val || ''}" autocomplete="off" autocapitalize="none" spellcheck="false" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font-size:1rem"></label>`;
+    // il campo password è un testo «a pallini» (non type=password): così Chrome/Google non propone «Salva/Aggiorna la password?»
+    const HIDE_OK = !!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc'));
+    const fld = (id, label, type, val)=> `<label style="display:block;margin:8px 0">${label}<input id="${id}" name="rt-${id}" type="${type === 'password' && HIDE_OK ? 'text' : type}" value="${val || ''}" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocapitalize="none" spellcheck="false" style="${type === 'password' && HIDE_OK ? '-webkit-text-security:disc;' : ''}width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font-size:1rem"></label>`;
     const showIn = ()=>{ el.querySelector('#lgTabIn').classList.add('primary'); el.querySelector('#lgTabNew').classList.remove('primary');
       body.innerHTML = `<div class="lp-sub">Come se fossi sul telefono: chiavi, sincronizzazione e tutti i tuoi dati.</div>${fld('lgUser', 'Utente', 'text', U)}${fld('lgPw', 'Password', 'password', '')}<div class="lp-tools"><button class="btn primary" id="lgGo">Accedi</button></div>`;
       el.querySelector('#lgGo').addEventListener('click', async ()=>{ const u = el.querySelector('#lgUser').value.trim(), pw = el.querySelector('#lgPw').value; if(!u || !pw){ msg('Scrivi utente e password.'); return; } msg('Accedo…'); try{ await cloudLogin(u, pw, msg); }catch(e){ msg('❌ Non riesco a leggere da GitHub' + (e && e.status === 403 ? ' (troppe richieste, riprova tra un po\')' : '') + '.'); } });
@@ -357,3 +359,15 @@ function llmErrorText(e){
   const base = askErrorCopy(e && e.code);
   return (e && e.code && String(e.code).indexOf('gemini_') === 0 && e.message) ? base + ' (' + String(e.message).slice(0, 160) + ')' : base;
 }
+
+// I campi delle chiavi (Gemini, RAWG, OpenCritic, token GitHub) sono testi «a pallini», non type=password: Chrome/Google non propone più «Salva/Aggiorna la password?».
+(function(){
+  try{
+    if(!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc'))) return;           // senza questo supporto (Firefox) restano campi password normali
+    ['geminiKeyInput', 'rawgKeyInput', 'ocKeyInput', 'syncTokenInput'].forEach(id=>{
+      const el = document.getElementById(id); if(!el) return;
+      el.type = 'text'; el.style.webkitTextSecurity = 'disc';
+      el.setAttribute('name', 'rt-' + id); el.setAttribute('data-lpignore', 'true'); el.setAttribute('data-1p-ignore', 'true'); el.setAttribute('data-form-type', 'other');
+    });
+  }catch(e){}
+})();

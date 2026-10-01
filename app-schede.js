@@ -791,12 +791,22 @@ function openModal(g){
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
       ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : ''}
       ${typeof updatePlusNow === 'function' ? `<button class="btn upplus-btn" id="updatePlusBtn" title="Controlla voto (Metacritic), generi, anno, lingua, testi e locandina da tutte le fonti e ti mostra cosa cambiare">${giIcon('upplus')} ${freshInfo(g) ? 'Rifai Update V+' : 'Update V+'}</button>` : ''}
+      <button class="btn" id="modalDelBtn" title="Elimina questo gioco dalla tua lista (chiede due conferme)">🗑️ Elimina</button>
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
     </div>
   `;
   modalBackdrop.classList.add('show');
   document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
   document.getElementById('modalCloseBtn2').addEventListener('click', closeModal);
+  { // elimina: doppia conferma (prima un secondo tocco, poi la domanda finale) così non succede per sbaglio
+    const del = document.getElementById('modalDelBtn'); let armed = 0, tm = 0;
+    if(del) del.addEventListener('click', ()=>{
+      if(!armed){ armed = 1; del.textContent = '⚠️ Tocca ancora per eliminare'; del.classList.add('danger'); clearTimeout(tm); tm = setTimeout(()=>{ armed = 0; del.textContent = '🗑️ Elimina'; del.classList.remove('danger'); }, 4000); return; }
+      clearTimeout(tm); armed = 0; del.textContent = '🗑️ Elimina'; del.classList.remove('danger');
+      if(!window.confirm('Ultima conferma: elimino «' + g.name + '» dalla tua lista?\n\nSparisce anche dai preferiti, dagli stati e dalla tua tier list' + (g.custom ? ' (e dagli altri tuoi dispositivi).' : '. Il gioco di base viene solo nascosto.'))) return;
+      if(typeof rtDeleteGame === 'function' && rtDeleteGame(g)){ closeModal(); showToast('«' + g.name + '» eliminato', 2600); } else showToast('Non sono riuscito a eliminarlo', 2600);
+    });
+  }
   document.getElementById('modalCompareBtn').addEventListener('click', ()=>{
     toggleCompare(g.id);
     openModal(g);

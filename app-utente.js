@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v180', date:'2026-10-01', time:'09:40', items:[
+    'Anteprima cinematografica sistemata: la copertina non si riaffaccia più per errore mentre scorrono le schermate. Ora il giro è: schermate di gioco → copertina ferma per qualche secondo → di nuovo le schermate, e così via.',
+    'Nuovo «🗑️ Elimina» in fondo a ogni scheda, con doppia conferma (secondo tocco + domanda finale). I giochi aggiunti da te spariscono anche sugli altri dispositivi; quelli della classifica di base vengono solo nascosti. Sparisce anche da preferiti, stati, tua tier list e wishlist.',
+    'Player musicale: ora sta fisso sotto la barra di ricerca, non ti segue mentre scorri, non copre nulla e scompare quando apri una scheda (che ha già il suo). ■ lo ferma e lo chiude. Chi preferisce quello mobile lo riattiva da ✨ → Suoni e musica.',
+    'Colonne sonore: se un gioco non ha brani cerca su YouTube con tre tentativi in ordine («nome OST music», «nome soundtrack», «nome playlist complete music») e scarta video che non c\'entrano. Nuovo tasto 🔎 nel player della scheda: scrivi tu le parole, scegli il brano e resta salvato per quel gioco. La preparazione settimanale ora cerca anche i giochi aggiunti da te e ha già riempito 22 giochi di base che mancavano.',
+    'Google non propone più «Aggiornare la password?»: i campi delle chiavi (Gemini, RAWG, OpenCritic, token GitHub) e quello dell\'accesso non sono più campi password per il telefono (restano a pallini).'
+  ]},
   {version:'v179', date:'2026-10-01', time:'03:47', items:[
     'Correzione sulla vibrazione: funziona su Android e su iPhone (da iOS 17.4). L\'iPad non ha il motorino della vibrazione, quindi lì non si sente nulla: prima la schermata «Movimento e vibrazione» e questo elenco dicevano il contrario. Ora lo dicono chiaramente.'
   ]},

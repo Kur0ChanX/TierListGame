@@ -44,6 +44,8 @@ jobs:
       - name: Colonne sonore (solo giro completo)
         if: github.event.schedule != '23 1 * * *'
         run: node tools/build-ost.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
       - name: Controllo qualità (ogni notte)
         run: node tools/build-quality.js

@@ -10,10 +10,10 @@
     && !(navigator.connection && navigator.connection.saveData)
     && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const holdMs = ()=> Math.max(2000, Math.min(12000, (+LSG(K_HOLD, 5)) * 1000));
-  const SLIDE_MS = 4400, BACK_MS = 3800, MAX_CYCLES = 2;
+  const SLIDE_MS = 4400, BACK_MS = 3800, MAX_CYCLES = 12;      // giro di schermate → copertina ferma → di nuovo le schermate, e così via
 
-  let ticket = 0, timers = [];
-  const stop = ()=>{ ticket++; timers.forEach(clearTimeout); timers = []; };
+  let ticket = 0, timers = [], playing = false, obs = null;
+  const stop = ()=>{ ticket++; timers.forEach(clearTimeout); timers = []; playing = false; if(obs){ obs.disconnect(); obs = null; } };
   const later = (fn, ms)=>{ const t = setTimeout(fn, ms); timers.push(t); return t; };
 
   // ---- sorgenti delle schermate ----
@@ -76,6 +76,11 @@
     bar.innerHTML = urls.map(()=> '<i></i>').join('');
     bar.style.setProperty('--hd', (SLIDE_MS / 1000) + 's');
     const segs = [...bar.children];
+    // se un altro pezzo dell'app ridisegna la cornice mentre scorrono le schermate, la copertina non deve riaffacciarsi: rimetto subito lo strato e la classe
+    try{
+      const root = document.getElementById('modalBackdrop');
+      if(root){ obs = new MutationObserver(()=>{ if(!playing || my !== ticket) return; const f = mount(); if(f && !f.classList.contains('hero-play')) f.classList.add('hero-play'); }); obs.observe(root, {childList: true, subtree: true}); }
+    }catch(e){}
     const clearTimers = ()=>{ timers.forEach(clearTimeout); timers = []; };
     segs.forEach((sg, i)=> sg.addEventListener('click', e=>{ e.stopPropagation(); if(!same()) return; clearTimers(); cur = i; show(); }));
     const setBar = idx=> segs.forEach((sg, i)=>{ sg.className = i < idx ? 'done' : (i === idx ? 'cur' : ''); });
@@ -85,8 +90,8 @@
       if(document.hidden){ later(show, 1000); return; }
       const frame = mount(); if(!frame) return;
       if(cur >= urls.length){                                          // fine giro: torna la copertina
-        frame.classList.remove('hero-play'); imgs.forEach(im=> im.classList.remove('on')); setBar(-1); cycles++;
-        if(cycles >= MAX_CYCLES) return;                               // dopo due giri si ferma sulla copertina
+        playing = false; frame.classList.remove('hero-play'); imgs.forEach(im=> im.classList.remove('on')); setBar(-1); cycles++;
+        if(cycles >= MAX_CYCLES) return;                               // dopo molti giri si ferma sulla copertina
         cur = 0; later(show, BACK_MS); return;
       }
       const ok = await preload(urls[cur]);
@@ -96,7 +101,7 @@
       next.src = urls[cur]; face = 1 - face;
       next.classList.remove('on'); void next.offsetWidth; next.classList.add('on');       // riparte il lento zoom
       prev.classList.remove('on');
-      mount().classList.add('hero-play'); setBar(cur);
+      playing = true; mount().classList.add('hero-play'); setBar(cur);
       cur++; later(show, SLIDE_MS);
     }
     later(show, hadCover ? holdMs() : 300);
