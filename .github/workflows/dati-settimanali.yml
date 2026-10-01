@@ -74,7 +74,8 @@ jobs:
             echo "Nessuna novità."
           else
             git commit -m "Dati automatici: prezzi, radar, qualità (e ogni lunedì scoperte, termometro, colonne sonore)"
-            git push
+            # se nel frattempo è stata pubblicata una versione nuova, metto i dati sopra di lei (fino a 4 tentativi)
+            for i in 1 2 3 4; do git pull --rebase -X theirs origin main && git push && break; sleep $((i * 10)); done
             gh workflow run pages.yml --ref main
           fi
         env:

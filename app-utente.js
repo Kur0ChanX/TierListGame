@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v191', date:'2026-10-01', time:'11:54', items:[
+    'Controllo generale: tutte le viste, 15 schede aperte e riaperte, le 28 voci del menu ✨ e la Diagnostica, su telefono e computer, anche con 1365 giochi: nessun errore, avvio in circa 0,3 secondi.',
+    '«Aggiorna info» senza rete diceva «non ho trovato questo titolo»: ora dice chiaramente che le fonti non rispondono (rete assente o bloccata) e di riprovare.',
+    'Se tieni l\'app aperta a lungo, quando esce una versione nuova compare in basso «✨ È uscita la vNNN: tocca per aggiornare» (prima restavi sulla vecchia finché non la riaprivi).',
+    'Giro notturno: se una versione nuova veniva pubblicata mentre il server lavorava, alla fine i dati raccolti non si salvavano (ore perse). Ora li mette sopra la versione nuova e riprova fino a 4 volte.',
+    'Misuratore della memoria del browser (circa 5 milioni di caratteri per sito): nel rapporto della Diagnostica e con un avviso se supera il 70%. Con circa 2.500-3.000 giochi aggiunti andrà spostata in una memoria più grande.',
+  ]},
   {version:'v190', date:'2026-10-01', time:'11:40', items:[
     'Ricerca nelle fonti, sistemata a strati. 1) Il giro notturno non partiva più per un mio errore nella v188 (due punti nel nome di un passaggio): corretto, e ora controllo il file a ogni versione.',
     '2) Il server ora lavora per TUTTI i giochi, anche i ~600 che hai aggiunto tu (prima solo i 765 di base): ogni notte prende lingue, prezzo, Metascore e colonne sonore dei giochi nuovi; il lunedì rinfresca quelli vecchi. Mai tutto da capo: solo nuovi o vecchi di 7/30 giorni, con un tetto per notte (va bene anche con 10.000 giochi).',
