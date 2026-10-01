@@ -76,15 +76,16 @@
     if(!r) return '';
     const {tm, ax} = r;
     if(!g){
-      return `<div class="gs-card gs2" id="gsCard"><div class="gs-head">🎯 <b>I tuoi gusti più forti</b></div><div class="gs2-list">${ax.map(a=> bar(a)).join('')}</div><div class="gs2-topb"><button class="btn" type="button" data-gtopall="1">👑 I miei giochi top (${topList().length})</button></div><div class="gs2-sub">Imparati da ${tm.n} giochi (preferiti, voti, stati, tier e i tratti che segni con 🧬): più la barra è lunga, più ti piace.</div></div>`;
+      return `<div class="gs-card gs2" id="gsCard"><div class="gs-head">🎯 <b>I tuoi gusti più forti</b></div><div class="gs2-list">${ax.map(a=> bar(a)).join('')}</div><div class="gs2-topb"><button class="btn" type="button" data-gtopall="1">😍 I miei giochi nel cuore (${topList().length})</button><button class="btn" type="button" data-brain="1">🧠 Cosa ho imparato di te</button></div><div class="gs2-sub">Imparati da ${tm.n} giochi (preferiti, voti, stati, tier e i tratti che segni con 🧬): più la barra è lunga, più ti piace.</div></div>`;
     }
     const s = window.rtSintonia(g); if(!s) return '';
     const {pct, neg, has, approved, known, near} = s;
-    const word = known === 'love' ? 'È uno dei giochi che ami' : known === 'drop' ? 'L\'hai mollato' : pct >= 85 ? 'Sintonia altissima' : pct >= 70 ? 'Sintonia alta' : pct >= 50 ? 'Sintonia buona' : pct >= 30 ? 'Sintonia parziale' : 'Sintonia bassa';
+    const rx = (window.rtBrain && rtBrain.reactOf(g)) || {};
+    const word = known === 'love' ? 'È uno dei giochi che ami' : known === 'drop' ? (rx.notgenre ? 'Non è il tuo genere' : rx.dislike ? 'Non ti è piaciuto' : rx.letdown ? 'Ti ha deluso' : 'L\'hai mollato') : pct >= 85 ? 'Sintonia altissima' : pct >= 70 ? 'Sintonia alta' : pct >= 50 ? 'Sintonia buona' : pct >= 30 ? 'Sintonia parziale' : 'Sintonia bassa';
     const hits = ax.filter(a=> has.has(a.k)), miss = ax.filter(a=> !has.has(a.k));
     const ti = topList().indexOf(g.id);
     const sub2 = ti >= 0 ? `👑 N. ${ti + 1} dei tuoi top: è il metro con cui misuro tutto il resto` : known === 'love' ? 'La % rispecchia quello che sai già: lo uso per imparare i tuoi gusti' : `Ha ${hits.length} dei tuoi ${ax.length} gusti più forti`;
-    const topBtn = `<div class="gs2-topb"><button class="btn${ti >= 0 ? ' on' : ''}" type="button" data-gtop="${g.id}">${ti >= 0 ? '👑 Nei miei top (tocca per togliere)' : '👑 È tra i miei giochi top'}</button><button class="btn" type="button" data-gtopall="1">📋 I miei top</button></div>`;
+    const topBtn = `<div class="gs2-topb"><button class="btn${ti >= 0 ? ' on' : ''}" type="button" data-gtop="${g.id}">${ti >= 0 ? '👑 Nei miei top (tocca per togliere)' : '👑 È tra i miei giochi top'}</button><button class="btn" type="button" data-gtopall="1">📋 I miei top</button><button class="btn" type="button" data-brain="1">🧠 Cosa ho imparato</button></div>`;
     const top = `<div class="gs2-top${approved ? ' appr' : ''}"><div class="gs2-ring" style="--p:${pct}"><b>${pct}%</b></div><div class="gs2-verd"><b>${approved && known !== 'love' ? 'Approvato dal procione!' : word}</b><span>${sub2}</span>${approved ? '<small>Sintonia altissima con il tuo DNA di giocatore</small>' : ''}</div>${approved ? '<img class="gs2-appr" src="icons/approved.webp" alt="Approvato" width="86" height="91" loading="lazy">' : ''}</div>`;
     const nearHtml = near.length ? `<div class="gs2-near">💞 Somiglia a giochi che ami: ${near.map(x=> `<b>${esc(x.g.name)}</b>`).join(', ')}</div>` : '';
     const hitHtml = hits.length ? `<div class="gs2-h">✓ Ha queste cose che ami</div><div class="gs2-list">${hits.map(a=> bar(a, true)).join('')}</div>` : '';

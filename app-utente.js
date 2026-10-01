@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v203', date:'2026-10-01', time:'17:40', items:[
+    '🧠 Nasce il CERVELLO dei tuoi gusti: un solo posto che raccoglie tutto quello che dici dei giochi (preferiti, cuori, voti, stati, valutazioni, icone, tratti del DNA) e impara nel tempo. Le cose recenti pesano un po\' di più, perché i gusti cambiano. Dal menu ✨ o dalla Sintonia: «🧠 Cosa ho imparato di te» (quanto ti conosco, cosa ami, cosa eviti, cosa conta nei tuoi voti, cosa è cambiato nell\'ultima settimana, quali giochi valutare per aiutarlo).',
+    'Nuova barra sotto la locandina, tutto in un posto solo: ⭐ Preferito · 😍 Nel cuore (i tuoi top) · 👍 Mi piace · 👎 Non mi piace · 🚫 Non è il mio genere (abbassa tutto quel genere) · 💔 Mi ha deluso · 🔁 Lo rigiocherei · e lo stato (In corso, Giocato, Da giocare, Mollato). Via i doppioni più in basso.',
+    '🎚️ Le tue valutazioni: 6 voci da 1 a 10 (a mezzi punti), diverse per ogni famiglia di giochi (ruolo, action, avventura/horror, sparatutto, sport/guida, platform, strategici, puzzle). Il cervello capisce quali voci contano davvero per te: per esempio, se quando la storia è alta il tuo voto sale sempre, darà più peso alla storia in tutti i consigli.'
+  ]},
   {version:'v202', date:'2026-10-01', time:'17:21', items:[
     'Risolto il programma che non si apriva («Rate limit exceeded»). Il limite di GitHub vale per indirizzo internet, e sulla rete mobile l\'indirizzo è condiviso con tante persone (per questo spegnendo e riaccendendo i dati ripartiva). Ora il programma chiede al sito solo la pagina: tutto il resto lo prende dalla memoria del telefono, i file nuovi una sola volta per versione, i dati notturni al massimo ogni 6 ore. Se GitHub rifiuta, si apre lo stesso con la copia salvata. Prima ogni apertura erano circa 60 richieste, ora 1.',
     'Se il caricamento resta fermo, lo dico chiaramente e riprovo da solo (al massimo 3 volte).',
