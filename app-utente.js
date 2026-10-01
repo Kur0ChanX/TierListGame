@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v189', date:'2026-10-01', time:'11:50', items:[
+    'Controllo fonti dal tuo telefono: 12 su 12 funzionano, Steam passa dal ponte personale. I ponti pubblici sono quasi tutti morti (4-8% di successo): ora quelli con troppi fallimenti vengono saltati e, quando c\'è il ponte personale, se ne prova solo uno pubblico di scorta. Meno attese a vuoto.',
+  ]},
   {version:'v188', date:'2026-10-01', time:'11:35', items:[
     'Fonti: ho provato una per una tutte le fonti dal server. Risultato: Steam, Metacritic, OpenCritic e YouTube funzionano; il problema è che Steam e Metacritic NON si lasciano leggere dal browser (blocco CORS) e i ponti pubblici sono morti o lenti. Wikipedia/Wikidata rispondono «troppe richieste» se si insiste. OpenCritic ha chiuso l\'accesso libero (solo chiave limitata).',
     'Soluzione definitiva: ogni notte GitHub (dal server, senza blocchi né chiavi né limiti) legge il Metascore UFFICIALE da metacritic.com per tutti i giochi, anche quelli che aggiungi tu, e lo salva in un archivio (voti.js). Update+ lo usa per primo: voto verificato «Metacritic (sito ufficiale)» istantaneo, senza ponti e senza consumare OpenCritic.',
