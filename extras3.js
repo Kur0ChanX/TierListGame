@@ -218,7 +218,16 @@
     PROC:   {ic: '🎲', n: 'Rigiocabilità procedurale («ancora una run»)', d: 'mappe e partite generate a caso, run diverse ogni volta, permadeath'},
     GACHA:  {ic: '🎰', n: 'Gacha, wish e pity', d: 'evocazioni casuali, banner, sistema pity, personaggi da «pescare»'},
     FEEL:   {ic: '💥', n: 'Game feel (colpi pesanti, juiciness)', d: 'ogni colpo si sente: impatto, feedback, controlli reattivi'},
-    DAILY:  {ic: '🗓️', n: 'Routine giornaliere e time sink', d: 'daily e weekly reset, missioni giornaliere, endgame infinito che chiede tempo'}
+    DAILY:  {ic: '🗓️', n: 'Routine giornaliere e time sink', d: 'daily e weekly reset, missioni giornaliere, endgame infinito che chiede tempo'},
+    // v198 — tratti in più (per giochi come FFX: boss segreti, evocazioni, minigiochi…)
+    SUPERBOSS: {ic: '👹', n: 'Superboss e sfide segrete', d: 'boss opzionali durissimi, nemici segreti da preparare con cura'},
+    SUMMON: {ic: '🐉', n: 'Evocazioni', d: 'creature potenti da chiamare in battaglia (eoni, esper, G.F.)'},
+    PARTY:  {ic: '🧑‍🤝‍🧑', n: 'Gestione della squadra', d: 'scegliere e alternare i personaggi, comporre il gruppo giusto'},
+    JOURNEY: {ic: '🧳', n: 'Viaggio epico', d: 'un lungo viaggio attraverso un mondo, tappa dopo tappa'},
+    ROMANCE: {ic: '💞', n: 'Storia d\'amore', d: 'una relazione romantica che conta nella storia'},
+    VILLAIN: {ic: '🦹', n: 'Antagonista memorabile', d: 'un cattivo carismatico che resta impresso'},
+    MINI:   {ic: '🃏', n: 'Minigiochi', d: 'giochi nel gioco: carte, sport, corse, pesca, casinò'},
+    ENDGAME: {ic: '🏁', n: 'Endgame ricco', d: 'tanto da fare dopo la fine o fuori dalla storia: post-game, NG+, sfide opzionali'}
   };
   const MRX = {
     LOOT: /\b(loot\w*|drop|drop rate|randomi[sz]ed loot|loot casuale|god ?roll|affix\w*|affiss\w*|rarita (a colori|per colore|a gradi|a livelli)|oggetti (viola|arancioni|dorati|leggendari)|bottin\w*|oggetti rari|oggetti leggendari|equipaggiament\w* (raro|rari|unico|unici|leggendari\w*|casuali)|item world|tesori|casse|ricompense casuali|looter|rarita|reliquie|artefatti|armi (rare|uniche|leggendarie)|dungeon generat\w*|generazion\w* procedural\w*)/,
@@ -249,6 +258,14 @@
     GACHA: /(gacha|\bwish\b|\bpity\b|banner|evocazion\w* (casual\w*|a pagamento)|\bsummon\w*|estrazion\w* casual\w*|loot ?box)/,
     FEEL: /(game ?feel|juic\w*|feedback (dei colpi|tattile|appagante|soddisfacente)|pesantezza (dei )?colpi|colpi (pesanti|che si sentono)|impatto (dei colpi|fisico)|hit ?stop|controlli (reattivi|precisi|fluidi)|fisicita)/,
     DAILY: /(time ?sink|\bdaily\b|\bweekly\b|reset (giornalier\w*|settimanal\w*)|(missioni|attivita) giornalier\w*|login giornalier\w*|endgame (infinito|senza fine)|impegno quotidiano)/,
+    SUPERBOSS: /(superboss|boss (segret\w*|opzional\w*|nascost\w*|facoltativ\w*)|eoni oscuri|dark aeon|weapon (emerald|ruby|omega)|nemici (opzionali|leggendari)|boss piu (duri|difficili))/,
+    SUMMON: /(evocazion\w*|\bsummon\w*|\besper\b|\beoni\b|\baeon\w*|guardian force|\bg\.?f\.?\b|evocare)/,
+    PARTY: /(gestione (del|della) (party|squadra|gruppo)|cambiare (i )?personaggi|personaggi intercambiabili|composizione (del|della) (party|squadra)|party di \d|squadra di \d|scambiare (i )?membri)/,
+    JOURNEY: /(viaggio|pellegrinaggio|avventura epica|odissea|attraverso (il|un) mondo|di tappa in tappa)/,
+    ROMANCE: /(storia d.amore|romance|romantic\w*|relazione amorosa|innamorat\w*)/,
+    VILLAIN: /(antagonist\w* (memorabil\w*|carismatic\w*|iconic\w*|indimenticabil\w*)|cattivo (memorabile|carismatico|iconico)|villain)/,
+    MINI: /(minigioch\w*|mini-gioch\w*|blitzball|triple triad|gioco di carte|corse (dei|di) chocobo|chocobo|casino|gold saucer|pesca)/,
+    ENDGAME: /(endgame|post-?game|new game ?\+|ng\+|contenuti (opzionali|extra|post)|dopo la fine|sfide opzionali|attivita secondarie)/,
     LIFE: /(calendari\w*|vita (scolastica|quotidiana|di tutti i giorni)|routine|tempo libero|gestione del tempo|legami social\w*|social link|confidant|confidenti|attivita (quotidiane|del giorno)|simulazione (di vita|sociale)|giorno dopo giorno)/,
     HUMOR: /(umoris\w*|ironi\w*|divertente|comic\w*|scanzonat\w*|esilarant\w*|assurd\w*|parodi\w*|battute)/
   };
@@ -270,6 +287,8 @@
     if(tg.includes('HOR')) out.add('ATMO');
     if(tg.includes('LIFE')) out.add('BASE');
     if(tg.includes('ROG')) out.add('PROC');
+    if(e.storyTag === 'romance') out.add('ROMANCE');
+    if(out.has('SUPERBOSS')) out.add('CHALL');
     if(tg.includes('GACHA')){ out.add('GACHA'); out.add('DAILY'); }
     if(tg.includes('MUD') || tg.includes('MMO')) out.add('DAILY');
     try{ const dw = (LS.get('jrpg_dna_why', {}) || {})[g.id] || {}; Object.keys(dw).forEach(k=>{ if(dw[k] > 0) out.add(k); else if(dw[k] < 0) out.delete(k); }); }catch(x){}   // quello che hai detto tu di questo gioco vale più dei testi
@@ -288,7 +307,7 @@
   const DECL = 'jrpg_taste_mech';                                  // le meccaniche che dici tu: 1 = mi piace, -1 = evito
   const declared = ()=> LS.get(DECL, {}) || {};
   function feats(g){
-    const l = g.label || {}, h = l.h || (g.enrich && g.enrich.hoursMain) || 0, f = [];
+    const l = g.label || {}, h = (g.enrich && g.enrich.hoursMain) || l.h || 0, f = [];      // stesse ore della «Longevità» nella scheda
     (g.tags || []).forEach(t=> f.push('tag:' + t));
     if(l.d) f.push('diff:' + (l.d >= 4 ? 'alta' : l.d <= 2 ? 'bassa' : 'media'));
     if(l.g) f.push('grind:' + (l.g >= 4 ? 'alto' : l.g <= 2 ? 'basso' : 'medio'));
@@ -297,12 +316,13 @@
     if(h) f.push('ore:' + (h < 20 ? 'brevi' : h <= 50 ? 'medie' : 'lunghe'));
     if(g.ysort) f.push('epoca:' + (Math.floor(g.ysort / 10) * 10));
     try{ mechOf(g).forEach(m=> f.push('mech:' + m)); }catch(e){}
+    try{ const cu = LS.get('jrpg_dna_custom', {}) || {}, ks = Object.keys(cu); if(ks.length){ const e = g.enrich || {}, txt = mnrm([g.story, e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (g.label || {}).ok].join(' . ')); ks.forEach(k=>{ const c = cu[k]; if((c.by || []).includes(g.id) || (c.kw || []).some(w=> w && w.length >= 4 && txt.includes(mnrm(w)))) f.push('mine:' + k); }); } }catch(e){}
     return f;
   }
-  const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
+  const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mine'){ const c = (LS.get('jrpg_dna_custom', {}) || {})[b]; return c ? c.n : b; } if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
   let TM = null, TMkey = '';
   function tasteModel(){
-    const sig = signals(), dc = declared(), dw = LS.get('jrpg_dna_why', {}) || {}, key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc) + ':' + JSON.stringify(dw);
+    const sig = signals(), dc = declared(), dw = LS.get('jrpg_dna_why', {}) || {}, key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc) + ':' + JSON.stringify(dw) + ':' + JSON.stringify(LS.get('jrpg_dna_custom', {}) || {});
     if(TM && TMkey === key) return TM;
     const sum = {}, cnt = {};
     sig.forEach(({g, w})=> feats(g).forEach(k=>{ sum[k] = (sum[k] || 0) + w; cnt[k] = (cnt[k] || 0) + 1; }));

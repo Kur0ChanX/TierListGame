@@ -1232,3 +1232,41 @@ body[data-view]:not([data-view="list"]) #todayBox{display:none}
 .cv-it .cv-ck{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;display:none;place-items:center;background:var(--pk-good,#22c55e);color:#fff;font-weight:800}
 .cv-it.on{border-color:var(--pk-good,#22c55e)}.cv-it.on .cv-ck{display:grid}
 .cv-grid.sh .cv-it:not(.on){opacity:.55}
+/* v198 — Sintonia più chiara */
+.gs2-near{margin:2px 0 10px;padding:8px 10px;border-radius:12px;background:rgba(236,72,153,.10);font-size:.88rem;line-height:1.4}
+.gs2-h{margin:10px 2px 6px;font-weight:700;font-size:.86rem}
+.gs2-h.dim{color:var(--sub);font-weight:600}
+.gs2-miss{display:flex;flex-wrap:wrap;gap:6px}
+.gs2-miss span{font-size:.78rem;padding:3px 9px;border-radius:999px;border:1px dashed rgba(127,127,127,.4);color:var(--sub)}
+/* v198 — lettore musicale della scheda, più moderno */
+.mz2{margin:10px 0;padding:12px 14px;border-radius:20px;background:linear-gradient(135deg,color-mix(in srgb,var(--pk-accent,#6366f1) 22%,transparent),color-mix(in srgb,var(--pk-accent,#6366f1) 6%,transparent));border:1px solid color-mix(in srgb,var(--pk-accent,#6366f1) 35%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.mz2-top{display:flex;align-items:center;gap:12px}
+.mz2-art{flex:0 0 46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:1.4rem;background:radial-gradient(circle at 50% 50%,#111 0 18%,#333 19% 22%,#1b1b1b 23% 100%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
+.mz2-art.spin{animation:mzSpin 4s linear infinite}
+@keyframes mzSpin{to{transform:rotate(360deg)}}
+.mz2-info{min-width:0;display:flex;flex-direction:column;gap:2px}
+.mz2-title{font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mz2-info small{color:var(--sub);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mz2-prog{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;margin:10px 0 4px;font-size:.72rem;color:var(--sub);font-variant-numeric:tabular-nums}
+.mz2-pb{height:6px;border-radius:4px;background:rgba(127,127,127,.25);overflow:hidden;cursor:pointer;padding:6px 0;background-clip:content-box}
+.mz2-pb i{display:block;height:6px;margin-top:-0px;border-radius:4px;background:var(--pk-accent,#6366f1);width:0;transition:width .9s linear}
+.mz2-ctl{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px}
+.mz2-ctl button{width:40px;height:40px;border-radius:50%;border:0;background:rgba(127,127,127,.14);color:inherit;font-size:1rem;cursor:pointer;display:grid;place-items:center}
+.mz2-ctl .mz2-play{width:52px;height:52px;font-size:1.25rem;background:var(--pk-accent,#6366f1);color:#fff;box-shadow:0 6px 16px color-mix(in srgb,var(--pk-accent,#6366f1) 45%,transparent)}
+.mz2-sep{width:1px;height:26px;background:rgba(127,127,127,.3);margin:0 4px}
+.mz2-list{display:flex;flex-direction:column;gap:4px;margin-top:10px}
+.mz2-li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;padding:8px 10px;border-radius:12px;border:0;background:rgba(127,127,127,.10);color:inherit;cursor:pointer}
+.mz2-li b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}.mz2-li span,.mz2-li small{color:var(--sub);font-size:.75rem}
+.mz2-li.cur{background:color-mix(in srgb,var(--pk-accent,#6366f1) 25%,transparent)}
+@media (prefers-reduced-motion:reduce){.mz2-art.spin{animation:none}}
+.gs2-lab{white-space:normal}
+/* v198 — DNA per categorie */
+.dna-cat{margin:6px 0;border-radius:12px;background:rgba(127,127,127,.06);padding:2px 8px 6px}
+.dna-ct{cursor:pointer;font-weight:700;font-size:.86rem;padding:8px 2px;list-style:none}
+.dna-ct::-webkit-details-marker{display:none}
+details.dna-cat>summary.dna-ct::after{content:'▾';float:right;opacity:.6;transition:transform .2s}
+details.dna-cat[open]>summary.dna-ct::after{transform:rotate(180deg)}
+.dna-ct small{color:var(--sub);font-weight:500;margin-left:4px}
+.dna-info{margin:10px 0 6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--pk-accent,#6366f1) 14%,transparent);font-size:.84rem;line-height:1.45}
+.dna-free{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.dna-free small{color:var(--sub);font-size:.76rem;line-height:1.35}
