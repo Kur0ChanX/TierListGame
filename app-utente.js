@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v204', date:'2026-10-01', time:'17:48', items:[
+    'Scheda del gioco in 3 parti, con le linguette che restano in alto mentre scorri: 💜 Per te (verdetto, sintonia, DNA, recensione, comprare, giochi simili) · 🎮 Il gioco (storia, a colpo d\'occhio, gameplay, pro e contro, guida, saga) · 📚 Altro (affidabilità dei dati, eredi, dietro le quinte, album). Sopra le linguette resta sempre quello che serve subito: locandina, la tua barra, le valutazioni e la musica. Le parti che non guardi non vengono disegnate: la scheda si apre più leggera. L\'ultima linguetta scelta viene ricordata.',
+    '🖼️ Un solo pulsante «Locandina e foto» al posto di 8: dentro trovi cambia locandina, foto del carosello, carica dal telefono, scatta foto, aggiorna in automatico, prossima immagine, cerca su internet, usa un link, sblocca e diagnostica. Se la locandina è bloccata 🔒, le voci automatiche spariscono.',
+    'Pulizia dei doppioni: il verdetto d\'acquisto compariva due volte (ora in alto c\'è la pillola, che con un tocco ti porta al verdetto completo in «Per te»), le note tecniche sul voto vanno in «Altro», e il vecchio «Il tuo stato» e «Aggiungi ai preferiti» sono nella barra sotto la locandina.'
+  ]},
   {version:'v203', date:'2026-10-01', time:'17:40', items:[
     '🧠 Nasce il CERVELLO dei tuoi gusti: un solo posto che raccoglie tutto quello che dici dei giochi (preferiti, cuori, voti, stati, valutazioni, icone, tratti del DNA) e impara nel tempo. Le cose recenti pesano un po\' di più, perché i gusti cambiano. Dal menu ✨ o dalla Sintonia: «🧠 Cosa ho imparato di te» (quanto ti conosco, cosa ami, cosa eviti, cosa conta nei tuoi voti, cosa è cambiato nell\'ultima settimana, quali giochi valutare per aiutarlo).',
     'Nuova barra sotto la locandina, tutto in un posto solo: ⭐ Preferito · 😍 Nel cuore (i tuoi top) · 👍 Mi piace · 👎 Non mi piace · 🚫 Non è il mio genere (abbassa tutto quel genere) · 💔 Mi ha deluso · 🔁 Lo rigiocherei · e lo stato (In corso, Giocato, Da giocare, Mollato). Via i doppioni più in basso.',

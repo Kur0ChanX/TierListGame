@@ -148,15 +148,55 @@
     sh._rtObs = mo; mo.observe(sh, {attributes: true, attributeFilter: ['class']});
   };
 
-  // ---------- pulsanti nella scheda (vicino agli strumenti della copertina) ----------
+  // ---------- v204: UN SOLO pulsante «🖼️ Locandina» con tutto dentro (prima erano 8 pulsanti sparsi) ----------
+  // Gli strumenti di sempre restano nella pagina, nascosti: il menu li «preme» per te (così caricare dal telefono, i link ecc. funzionano come prima).
   function addButtons(g){
-    const tools = document.querySelector('#coverBlock .cover-tools'); if(!tools || tools.querySelector('[data-media]')) return;
+    const block = document.getElementById('coverBlock'); if(!block) return;
+    block.classList.add('cv-compact');
+    if(block.querySelector(':scope > .cv-menu-btn')) return;
+    const lk = lockOf(g) || {}, hasImg = !!block.querySelector('.cover-frame');
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'cv-menu-btn'; btn.dataset.media = 'menu';
+    btn.innerHTML = `🖼️ <span>Locandina e foto</span>${lk.cover || lk.shots ? ' <small>🔒</small>' : ''} <b>▾</b>`;
+    const after = block.querySelector('.cover-frame') || block.querySelector('.placeholder-cover') || block.firstElementChild;
+    if(after) after.insertAdjacentElement('afterend', btn); else block.prepend(btn);
+    if(!hasImg) block.classList.add('cv-noimg');           // senza locandina «✨ Trova copertina» resta in vista
+  }
+  function openMenu(g){
+    const block = document.getElementById('coverBlock'); if(!block || !U.sheet) return;
     const lk = lockOf(g) || {};
-    tools.insertAdjacentHTML('afterbegin', `<button class="cover-pill" type="button" data-media="cover" title="Scegli un'altra locandina ufficiale: poi resta bloccata">🔄<span>${lk.cover ? 'Locandina 🔒' : 'Cambia locandina'}</span></button><button class="cover-pill" type="button" data-media="shots" title="Scegli le schermate del carosello: poi restano bloccate">🎞️<span>${lk.shots ? 'Schermate 🔒' : 'Schermate'}</span></button>`);
+    const has = sel=> !!block.querySelector(sel);
+    const items = [
+      ['cover', '🔄', lk.cover ? 'Cambia la locandina (ora bloccata 🔒)' : 'Scegli un\'altra locandina', 'tutte le locandine ufficiali trovate: tocchi e resta bloccata'],
+      ['shots', '🎞️', lk.shots ? 'Foto del carosello (bloccate 🔒)' : 'Foto del carosello', 'cambia le foto una per una, con tante alternative'],
+      has('[data-cover-file-input]') ? ['file', '📱', 'Carica dal telefono', 'una foto dalla tua galleria'] : null,
+      has('[data-cover-camera-input]') ? ['cam', '📷', 'Scatta una foto', 'con la fotocamera, adesso'] : null,
+      !lk.cover && has('.x-autocover button') ? ['auto', '✨', has('.cover-frame') ? 'Aggiorna in automatico' : 'Trova la copertina in automatico', 'la cerco io nelle fonti ufficiali'] : null,
+      !lk.cover && has('[data-cover-alt]') ? ['alt', '🔍', 'Prova la prossima immagine', 'una alla volta, tra quelle trovate online'] : null,
+      ['web', '🌐', 'Cerca su internet', 'apre la ricerca immagini'],
+      has('.cover-more') ? ['link', '🔗', 'Usa un link', 'incolla l\'indirizzo di un\'immagine'] : null,
+      lk.cover ? ['unlock', '🔓', 'Sblocca la locandina', 'torna automatica'] : null,
+      has('[data-cover-diag]') ? ['diag', '🩺', 'Diagnostica immagini', 'se le immagini non si vedono'] : null
+    ].filter(Boolean);
+    const body = U.sheet('xCvMenu', '🖼️ Locandina e foto', `<div class="cvm">${items.map(([k, ic, n, d])=> `<button type="button" class="cvm-i" data-cvm="${k}"><span class="cvm-ic">${ic}</span><span><b>${esc(n)}</b><small>${esc(d)}</small></span></button>`).join('')}</div>`);
+    body.querySelectorAll('[data-cvm]').forEach(b=> b.addEventListener('click', ()=>{
+      const k = b.dataset.cvm, sh = document.getElementById('xCvMenu'), close = ()=>{ if(sh) sh.classList.remove('show'); };
+      const press = sel=>{ const el = block.querySelector(sel); if(el) el.click(); };
+      if(k === 'cover'){ close(); openCovers(g); }
+      else if(k === 'shots'){ close(); openShots(g); }
+      else if(k === 'file'){ close(); press('[data-cover-file-input]'); }
+      else if(k === 'cam'){ close(); press('[data-cover-camera-input]'); }
+      else if(k === 'auto'){ close(); press('.x-autocover button'); toast('Cerco la locandina…', 1800); }
+      else if(k === 'alt'){ close(); press('[data-cover-alt]'); }
+      else if(k === 'web'){ close(); press('.cover-tools a.cover-pill'); }
+      else if(k === 'link'){ close(); const d = block.querySelector('.cover-more'); if(d){ d.classList.add('cv-show'); d.open = true; const i = d.querySelector('input'); if(i) setTimeout(()=> i.focus(), 150); } }
+      else if(k === 'unlock'){ setLock(g, {cover: null}); toast('Locandina sbloccata: torna automatica', 2000); close(); reopen(g); }
+      else if(k === 'diag'){ close(); press('[data-cover-diag]'); }
+    }));
   }
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('[data-media]'); if(!b || typeof currentModalGame === 'undefined' || !currentModalGame) return;
-    e.preventDefault(); if(b.dataset.media === 'cover') openCovers(currentModalGame); else openShots(currentModalGame);
+    e.preventDefault();
+    const k = b.dataset.media; if(k === 'menu') openMenu(currentModalGame); else if(k === 'cover') openCovers(currentModalGame); else openShots(currentModalGame);
   });
   if(typeof window.openModal === 'function'){
     const prev = window.openModal;
@@ -164,5 +204,5 @@
     try{ openModal = window.openModal; }catch(e){}
   }
   // la copertina viene ridisegnata quando arriva l'immagine: rimetto i pulsanti se spariscono
-  try{ const card = document.getElementById('modalCard'); if(card) new MutationObserver(()=>{ if(typeof currentModalGame !== 'undefined' && currentModalGame && document.querySelector('#coverBlock .cover-tools') && !document.querySelector('#coverBlock [data-media]')) addButtons(currentModalGame); }).observe(card, {childList: true, subtree: true}); }catch(e){}
+  try{ const card = document.getElementById('modalCard'); if(card) new MutationObserver(()=>{ if(typeof currentModalGame !== 'undefined' && currentModalGame && document.getElementById('coverBlock') && !document.querySelector('#coverBlock > .cv-menu-btn')) addButtons(currentModalGame); }).observe(card, {childList: true, subtree: true}); }catch(e){}
 })();

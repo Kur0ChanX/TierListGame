@@ -12,14 +12,17 @@
   // =====================================================================
   const PINS = 'jrpg_card_pins', ON = 'jrpg_card_order';
   const cardOrderOn = ()=> LS.get(ON, 'on') !== 'off';
+  // v204: la scheda è divisa in 3 parti (linguette in alto): «Per te», «Il gioco», «Altro». Le parti nascoste non si disegnano: apertura più leggera.
   const LAYERS = [
-    {id: 'capire', n: '🔎 Capire il gioco', keys: ['storia', 'etichetta', 'radar', 'dna', 'piace', 'gameplay', 'proscons', 'generi', 'longevita', 'tempo', 'colonna', 'cast', 'approfondimento', 'dettagli', 'simboli', 'affidabilita']},
-    {id: 'giocare', n: '🎮 Giocarlo bene', keys: ['guida', 'compagno', 'saga']},
-    {id: 'stato', n: '📋 Il tuo stato', keys: ['stato', 'recensione', 'nota']},
-    {id: 'comprare', n: '🛒 Comprare', keys: ['comprare', 'versioni']},
-    {id: 'simili', n: '🔁 Altri giochi', keys: ['simili']},
-    {id: 'altro', n: '📚 Per approfondire', keys: ['eredi', 'quinte', 'uscita', 'album', 'cronologia']}
+    {id: 'perme', tab: 'perme', n: '💜 Per te', keys: ['verdetto', 'radar', 'dna', 'recensione', 'nota', 'stato']},
+    {id: 'comprare', tab: 'perme', n: '🛒 Comprare', keys: ['comprare', 'versioni']},
+    {id: 'simili', tab: 'perme', n: '🔁 Altri giochi', keys: ['simili']},
+    {id: 'capire', tab: 'gioco', n: '🔎 Capire il gioco', keys: ['storia', 'etichetta', 'piace', 'gameplay', 'proscons', 'generi', 'longevita', 'tempo', 'colonna', 'cast', 'approfondimento', 'dettagli', 'simboli']},
+    {id: 'giocare', tab: 'gioco', n: '🎮 Giocarlo bene', keys: ['guida', 'compagno', 'saga']},
+    {id: 'altro', tab: 'altro', n: '📚 Per approfondire', keys: ['affidabilita', 'eredi', 'quinte', 'uscita', 'album', 'cronologia']}
   ];
+  const TABS = [['perme', '💜 Per te'], ['gioco', '🎮 Il gioco'], ['altro', '📚 Altro']];
+  const tabNow = ()=>{ const t = LS.get('jrpg_card_tab', 'perme'); return TABS.some(x=> x[0] === t) ? t : 'perme'; };
   const KEY_NAMES = {verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'A colpo d\'occhio', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
   const titleKey = t=>{
     t = norm(t);
@@ -33,7 +36,7 @@
   function startKey(el){
     if(el.classList.contains('cd-layer')) return null;
     if(el.classList.contains('modal-section-title')) return titleKey(el.textContent);
-    if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
+    if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'voteSrc') return 'affidabilita'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
     if(el.classList.contains('modal-tags')) return 'generi'; if(el.classList.contains('enrich-highlights')) return 'simboli'; if(el.classList.contains('ds-chip')) return 'affidabilita';
     if(el.classList.contains('saga-note')) return 'saga'; if(el.matches('details.hist')) return 'cronologia';
     return null;
@@ -42,9 +45,9 @@
   let arranging = false, obs = null, tm = 0;
   function arrange(){
     const card = document.getElementById('modalCard'); if(!card || !card.children.length) return;
-    if(!cardOrderOn()){ card.querySelectorAll('.cd-layer, .cd-pin').forEach(n=> n.remove()); return; }
+    if(!cardOrderOn()){ card.querySelectorAll('.cd-layer, .cd-pin, .cd-tabs').forEach(n=> n.remove()); delete card.dataset.ctab; card.querySelectorAll('[data-tab]').forEach(n=> n.removeAttribute('data-tab')); return; }
     const g = (typeof currentModalGame !== 'undefined') ? currentModalGame : null;
-    const kids = Array.from(card.children).filter(el=> !el.classList.contains('cd-layer'));
+    const kids = Array.from(card.children).filter(el=> !el.classList.contains('cd-layer') && !el.classList.contains('cd-tabs'));
     const top = [], bottom = [], blocks = new Map();
     let cur = null, inBottom = false;
     kids.forEach(el=>{
@@ -57,21 +60,31 @@
     // ordine: in alto identità e verdetto; poi quello che hai fissato; poi gli strati (la sintonia con i tuoi gusti sta dopo storia e colpo d'occhio)
     const st = g && typeof STATUSES !== 'undefined' ? STATUSES[g.id] : '';
     let layers = LAYERS.slice();
-    if(st === 'playing'){ const a = layers.find(l=> l.id === 'giocare'), b = layers.find(l=> l.id === 'stato'); layers = [a, b].concat(layers.filter(l=> l !== a && l !== b)); }
+    if(st === 'playing'){ const a = layers.find(l=> l.id === 'giocare'); layers = [a].concat(layers.filter(l=> l !== a)); }
     const used = new Set(), out = top.slice(), pinned = pins().filter(k=> blocks.has(k) && !['verdetto'].includes(k));
-    ['verdetto'].forEach(k=>{ if(blocks.has(k)){ out.push(...blocks.get(k)); used.add(k); } });
+    // v204: il verdetto sta in «Per te» (in alto resta la pillola, che porta lì con un tocco)
     // le etichette già presenti si riusano (altrimenti a ogni ridisegno se ne accumulavano di vecchie in cima alla scheda)
     const prevL = {}; card.querySelectorAll(':scope > .cd-layer').forEach(n=>{ if(prevL[n.dataset.l]) n.remove(); else prevL[n.dataset.l] = n; });
     const label = (id, text)=>{ let d = prevL[id]; if(!d){ d = document.createElement('div'); d.className = 'cd-layer'; d.dataset.l = id; } d.textContent = text; return d; };
     if(pinned.length){ out.push(label('pins', '📌 Fissati da te')); pinned.forEach(k=>{ out.push(...blocks.get(k)); used.add(k); }); }
-    const known = new Set(LAYERS.flatMap(l=> l.keys).concat(['verdetto']));
+    const known = new Set(LAYERS.flatMap(l=> l.keys));
+    // tutto ciò che sta sopra le linguette (identità, locandina, la tua barra, verdetto, fissati) si vede sempre
+    out.forEach(el=> el.removeAttribute && el.removeAttribute('data-tab'));
+    let bar = card.querySelector(':scope > .cd-tabs');
+    if(!bar){ bar = document.createElement('div'); bar.className = 'cd-tabs'; bar.setAttribute('role', 'tablist'); bar.innerHTML = TABS.map(([id, n])=> `<button type="button" role="tab" data-ctab="${id}">${n}</button>`).join(''); }
+    out.push(bar);
+    const firstOfTab = {};
     layers.forEach(l=>{
       const ks = l.keys.filter(k=> blocks.has(k) && !used.has(k));
-      if(l.id === 'capire') blocks.forEach((v, k)=>{ if(!known.has(k) && !used.has(k) && !ks.includes(k)) ks.push(k); });         // blocchi nuovi/sconosciuti: restano tra quelli per capire
+      if(l.id === 'altro') blocks.forEach((v, k)=>{ if(!known.has(k) && !used.has(k) && !ks.includes(k)) ks.push(k); });         // blocchi nuovi/sconosciuti: in «Altro»
       if(!ks.length) return;
-      out.push(label(l.id, l.n)); ks.forEach(k=>{ out.push(...blocks.get(k)); used.add(k); });
+      if(firstOfTab[l.tab]){ const lb = label(l.id, l.n); lb.dataset.tab = l.tab; out.push(lb); } else firstOfTab[l.tab] = true;   // la prima etichetta di ogni parte è già il nome della linguetta
+      ks.forEach(k=>{ blocks.get(k).forEach(el=>{ el.dataset.tab = l.tab; out.push(el); }); used.add(k); });
     });
+    bottom.forEach(el=> el.removeAttribute('data-tab'));
     out.push(...bottom);
+    const t = tabNow(); if(card.dataset.ctab !== t) card.dataset.ctab = t;
+    bar.querySelectorAll('[data-ctab]').forEach(b=>{ const on = b.dataset.ctab === t, n = firstOfTab[b.dataset.ctab]; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); b.hidden = !n; });
     // pulce su ogni blocco
     blocks.forEach((els, k)=>{
       const f = els[0]; if(!f || f.querySelector(':scope > .cd-pin')) return;
@@ -91,6 +104,19 @@
     watch();
   }
   function watch(){ const card = document.getElementById('modalCard'); if(!card) return; if(!obs) obs = new MutationObserver(()=>{ if(arranging) return; clearTimeout(tm); tm = setTimeout(arrange, 90); }); obs.observe(card, {childList: true}); }
+  document.addEventListener('click', e=>{
+    const ch = e.target.closest && e.target.closest('#modalCard .vd-chiprow'); if(!ch) return;
+    const card = document.getElementById('modalCard'), b = card && card.querySelector('.cd-tabs [data-ctab="perme"]'); if(b) b.click();
+    setTimeout(()=>{ const v = card && card.querySelector('#vdCard'); if(v){ try{ v.scrollIntoView({behavior: 'smooth', block: 'start'}); }catch(x){} } }, 60);
+  });
+  document.addEventListener('click', e=>{
+    const tb = e.target.closest && e.target.closest('.cd-tabs [data-ctab]'); if(!tb) return;
+    e.preventDefault(); const card = document.getElementById('modalCard'); if(!card) return;
+    LS.set('jrpg_card_tab', tb.dataset.ctab); card.dataset.ctab = tb.dataset.ctab;
+    card.querySelectorAll('.cd-tabs [data-ctab]').forEach(b=>{ const on = b === tb; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
+    const bar = card.querySelector('.cd-tabs'); if(bar && bar.getBoundingClientRect().top < 0){ try{ card.scrollTo({top: bar.offsetTop - 6, behavior: 'smooth'}); }catch(x){} }
+  });
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('.cd-pin'); if(!b) return;
     e.preventDefault(); e.stopPropagation();
