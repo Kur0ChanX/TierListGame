@@ -6,6 +6,7 @@
 // Stato in localStorage «jrpg_pet» (quindi sincronizzato con il Gist come gli altri dati).
 (function(){
   'use strict';
+  if(window.RT_OFF && window.RT_OFF.pet) return;
   const U = window.XUI; if(!U) return;
   const {sheet, toast, esc, LS} = U;
   const gi = n=> (typeof giIcon === 'function') ? giIcon(n) : '';

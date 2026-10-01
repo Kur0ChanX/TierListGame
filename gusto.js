@@ -2,6 +2,7 @@
 // Usa il modello dei gusti di extras3.js («I tuoi gusti»): niente AI, tutto sul dispositivo. Compare nella scheda dei giochi (dopo il verdetto) e in «I tuoi gusti».
 (function(){
   'use strict';
+  if(window.RT_OFF && window.RT_OFF.gusto) return;
   const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const ICON = {diff: '🔥', grind: '⏳', storia: '📖', ritmo: '🐢', ore: '🕐'};
   const W = 360, H = 300, CX = 180, CY = 150, R = 84, LR = 98;
