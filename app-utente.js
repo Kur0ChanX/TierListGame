@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v179', date:'2026-10-01', time:'03:47', items:[
+    'Correzione sulla vibrazione: funziona su Android e su iPhone (da iOS 17.4). L\'iPad non ha il motorino della vibrazione, quindi lì non si sente nulla: prima la schermata «Movimento e vibrazione» e questo elenco dicevano il contrario. Ora lo dicono chiaramente.'
+  ]},
   {version:'v178', date:'2026-10-01', time:'03:26', items:[
     'Temi grafici: le scritte dei contatori attivi (Tutti, S, A…) nei filtri ora si leggono bene in ogni tema, e il tier ND del tema Fumetto ha di nuovo il testo scuro sulla stella bianca. Controllo automatico dei contrasti su 15 schermate per tutti i 20 temi, chiaro e scuro.'
   ]},
@@ -12,7 +15,7 @@ const CHANGELOG = [
   ]},
   {version:'v176', date:'2026-10-01', time:'03:06', items:[
     'Animazioni più fluide: le righe della classifica entrano a cascata; sul telefono la scheda si apre «allargandosi» dalla riga che hai toccato; passando da una sezione all\'altra dalla barra in basso (o con lo swipe) la pagina scivola mentre le barre restano ferme; nella scheda il voto salta e conta fino al valore; i preferiti esplodono in scintille; i pulsanti si schiacciano e tornano con un piccolo rimbalzo.',
-    'Vibrazione brevissima al tocco: su Android una vibrazione, su iPhone/iPad (da iOS 17.4) il «tic» del sistema, anche quando compare e quando rilasci l\'anteprima a pressione. Si regola da ✨ → «Movimento e vibrazione», dove si spengono anche le animazioni (si fermano da sole con «riduci animazioni» del telefono).',
+    'Vibrazione brevissima al tocco: su Android una vibrazione, su iPhone (da iOS 17.4) il «tic» del sistema (l\'iPad non ha il motorino della vibrazione e non vibra), anche quando compare e quando rilasci l\'anteprima a pressione. Si regola da ✨ → «Movimento e vibrazione», dove si spengono anche le animazioni (si fermano da sole con «riduci animazioni» del telefono).',
     'Pagine vuote curate: quando non c\'è nessun risultato (filtri, ricerca nella tua tier list, saghe, wishlist) compare Frugu nel bidone con una frase chiara e il pulsante giusto (Azzera i filtri, Chiedi a Frugu, Cancella la ricerca, Scopri giochi).',
     'Più veloce a vedersi: la classifica mostra subito righe «scheletro» che brillano mentre arrivano i dati, la riga si illumina appena la tocchi, la copertina nella scheda ha un riflesso finché non è pronta e il sito si collega in anticipo al servizio delle copertine.',
     'Tipografia: cifre di voti, anni e contatori tutte della stessa larghezza (niente più «ballo» mentre cambiano), titoli bilanciati, paragrafi senza parole sole a fine riga, sillabazione italiana nei testi lunghi e righe più comode nelle trame.'

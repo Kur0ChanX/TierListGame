@@ -2,7 +2,7 @@
 // Si regola da ✨ → «Movimento e vibrazione». Si ferma da solo con «riduci animazioni» del telefono.
 // Cosa fa: le righe della classifica entrano a cascata · la scheda si apre «allargandosi» dalla riga toccata (sul telefono) · cambiando sezione dalla barra in basso
 // la pagina scivola (View Transitions, dove il browser le ha) · il preferito esplode in scintille · il voto della scheda conta fino al valore · vibrazione brevissima
-// (Android: vibrazione; iPhone/iPad da iOS 17.4: «tic» del sistema) · pagine vuote con Frugu e un pulsante utile.
+// (Android: vibrazione; iPhone da iOS 17.4: «tic» del sistema; l'iPad non ha il motorino e non vibra) · pagine vuote con Frugu e un pulsante utile.
 (function(){
   'use strict';
   const html = document.documentElement;
@@ -34,7 +34,7 @@
     if(IOS){ iosTick(); if(kind === 'success') setTimeout(iosTick, 90); }
   }
   window.rtHaptic = haptic;
-  // su iPhone/iPad il «tic» parte solo da un gesto completato: lo do alla fine del tocco
+  // su iPhone il «tic» parte solo da un gesto completato: lo do alla fine del tocco (sull'iPad non esiste, ma il tentativo è innocuo)
   if(IOS && !navigator.vibrate) document.addEventListener('click', e=>{
     if(e.target.closest && e.target.closest('button, .btn, .iconbtn, .view-tab, .qf-chip, .list-chip, .tagchip, #tbody tr')) haptic('tick');
   }, true);
@@ -177,7 +177,7 @@
     const U = window.XUI; if(!U) return;
     const body = U.sheet('xMotion', '🎛️ Movimento e vibrazione', `<div class="lp-sub">Righe che entrano a cascata, la scheda che si apre dalla riga toccata, il passaggio tra le sezioni, le scintille sul preferito. Si spengono da sole se il telefono chiede «riduci animazioni».</div>
       <label class="ask-toggle"><input type="checkbox" id="moOn" ${LSG(K_MO, 'on') !== 'off' ? 'checked' : ''}> Animazioni dell'interfaccia</label>
-      <label class="ask-toggle"><input type="checkbox" id="moHap" ${hapOn() ? 'checked' : ''}> Vibrazione brevissima al tocco <small>(Android; su iPhone/iPad un «tic» del sistema da iOS 17.4)</small></label>
+      <label class="ask-toggle"><input type="checkbox" id="moHap" ${hapOn() ? 'checked' : ''}> Vibrazione brevissima al tocco <small>(Android e iPhone da iOS 17.4; l'iPad non ha il motorino della vibrazione, quindi lì non si sente)</small></label>
       <button type="button" class="btn" id="moTry" style="margin-top:8px">${typeof giIcon === 'function' ? giIcon('star') : ''} Provala</button>`);
     body.querySelector('#moOn').addEventListener('change', e=>{ LSS(K_MO, e.target.checked ? 'on' : 'off'); syncMo(); });
     body.querySelector('#moHap').addEventListener('change', e=>{ try{ localStorage.setItem(K_HP, e.target.checked ? 'on' : 'off'); }catch(err){} if(e.target.checked) haptic('success'); });
