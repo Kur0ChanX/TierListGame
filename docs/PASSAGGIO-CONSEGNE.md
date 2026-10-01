@@ -17,7 +17,7 @@ Ultimo aggiornamento: v209 (1 ottobre 2026). Sito: https://kur0chanx.github.io/T
   - Vuole lavoro **accurato e professionale**, non sbrigativo. Se il lavoro è grande, dividilo in versioni (v203, v204…) e dillo.
 - **Obiettivo di fondo del programma (il cuore):** *capire i gusti di Mario e trovargli giochi che gli piacciono*, imparando nel tempo «come un cervello in sviluppo». Ogni funzione nuova va pensata anche come **segnale di apprendimento** per il modello dei gusti.
 - Gli piace: animazioni fluidissime stile iPhone (60/120 fps), grafica moderna e leggibile «a colpo d'occhio», icone piccole e belle, tutto raggruppato senza ripetizioni, scheda ordinata e personalizzabile. Non gli piace: roba che sembra «winmix anni della preistoria», pulsanti sparsi, testi minuscoli, cose che saltano o si bloccano.
-- Ha 765 giochi di base + giochi «aggiunti» (catalogo su gist pubblico). Pensa a un futuro con ~10.000 giochi.
+- Ha 765 giochi di base + giochi «aggiunti» (catalogo su gist pubblico): in tutto 1369 al 1/10/2026. Quando parli di numeri usa SEMPRE il totale reale (`GAMES.length`), mai 765. Pensa a un futuro con ~10.000 giochi.
 
 ## 2. Come si lavora (flusso fisso)
 1. Lavora SEMPRE sul branch di sessione (nome nel prompt di sistema, ultima volta `ccr-d50b3788-p04gyp`). Non creare PR se non richiesto; **l'utente di solito lo chiede a ogni versione** («pubblica»): commit → push → PR → squash merge → controllo `<meta name="build">` online → `git checkout -B <branch> origin/main` e `git push -f`.

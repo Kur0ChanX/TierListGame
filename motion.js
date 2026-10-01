@@ -154,10 +154,15 @@
       const R = tap && performance.now() - tap.t < 900 && tap.r && tap.r.width > 60 ? tap : null;
       if(!was && R && moOn() && VW <= 760 && document.body.animate){
         tap = null; haptic('soft');
-        const self = this, args = arguments, G = ghostOpen(R);
+        const self = this, G = ghostOpen(R); let args = arguments;
         setTimeout(()=>{ try{ if(G.gh.isConnected) G.gh.remove(); const c = document.getElementById('modalCard'); if(c && c.style.opacity === '0') c.style.opacity = ''; }catch(x){} }, 2500);   // rete di sicurezza: il cartoncino non resta MAI sopra l'app
         // lascio partire il cartoncino (un fotogramma), poi costruisco la scheda vera sotto di lui
-        requestAnimationFrame(()=> setTimeout(()=>{
+        // v210: se i testi lunghi del gioco non sono ancora arrivati, li aspetto (al massimo 450 ms) MENTRE il cartoncino si allarga:
+        // così la scheda si costruisce una volta sola, già completa (prima si disegnava vuota e poi di nuovo, con un salto)
+        const g0 = args[0], needTx = !!(g0 && window.rtTexts && !rtTexts.has(g0));
+        const wait = needTx ? Promise.race([rtTexts.ensure(g0).catch(()=>{}), new Promise(r=> setTimeout(r, 450))]) : Promise.resolve();
+        requestAnimationFrame(()=> wait.then(()=> setTimeout(()=>{
+          if(needTx && rtTexts.has(g0) && typeof GAMES !== 'undefined'){ const fresh = GAMES.find(x=> x.id === g0.id); if(fresh) args = [fresh].concat([].slice.call(args, 1)); }
           let card = null;
           try{ origOpen.apply(self, args); card = document.getElementById('modalCard'); if(card) card.style.opacity = '0'; }catch(e){ G.gh.remove(); throw e; }
           requestAnimationFrame(()=> requestAnimationFrame(async ()=>{
@@ -165,7 +170,7 @@
             if(card){ card.style.opacity = ''; try{ card.animate([{opacity: 0}, {opacity: 1}], {duration: 160, easing: 'ease-out'}); }catch(e){} countUp(card); }
             try{ G.gh.animate([{opacity: 1}, {opacity: 0}], {duration: 200, easing: 'ease-out', fill: 'forwards'}).finished.then(()=> G.gh.remove(), ()=> G.gh.remove()); }catch(e){ G.gh.remove(); }
           }));
-        }, 0));
+        }, 0)));
         return;
       }
       const r = origOpen.apply(this, arguments);

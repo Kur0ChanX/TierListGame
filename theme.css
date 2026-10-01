@@ -1534,3 +1534,29 @@ details.dna-cat[open]>summary.dna-ct small::after{content:' ▴'}
 .d2-strip i.sh{background:linear-gradient(180deg,#facc15,#ca8a04)}
 .dk-btns{grid-template-columns:repeat(5,1fr) !important}
 .dk-b.ni{background:rgba(250,204,21,.12);border-color:rgba(250,204,21,.45)}
+/* v210: le sezioni della barra in basso sono pagine a tutto schermo (testata con «‹ Classifica»; la parte alta della classifica sparisce) */
+.pg-head[hidden]{display:none !important}
+body.rt-page .wrap{padding-top:0 !important}
+body.rt-page .wrap > .topbar, body.rt-page #listBar, body.rt-page #tableWrap, body.rt-page #altView, body.rt-page #emptyMsg, body.rt-page .frugu-foot{display:none !important}
+.pg-head{position:sticky;top:0;z-index:55;display:flex;align-items:center;gap:10px;margin:0 -14px 12px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:color-mix(in srgb,var(--pk-bg,var(--bg,#0b0b14)) 82%,transparent);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--glass-line,rgba(127,127,127,.18))}
+@media (display-mode:fullscreen){ .pg-head{padding-top:calc(8px + env(safe-area-inset-top,0px) * .3)} }
+html:fullscreen .pg-head{padding-top:calc(8px + env(safe-area-inset-top,0px) * .3)}
+.pg-back{display:inline-flex;align-items:center;gap:2px;flex-shrink:0;min-height:40px;padding:4px 12px 4px 8px;border-radius:999px;border:1px solid var(--glass-line,rgba(127,127,127,.22));background:rgba(127,127,127,.12);color:inherit;font:600 .9rem/1 inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pg-back:active{transform:scale(.95)}
+.pg-chev{font-size:1.6rem;line-height:.8;margin-top:-3px}
+.pg-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.pg-title b{font-size:1.18rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg-ic svg{width:28px;height:28px;display:block}
+.pg-filt{flex-shrink:0;border:0;border-radius:999px;padding:7px 10px;font:600 .74rem/1.1 inherit;background:rgba(245,158,11,.18);color:#fbbf24;cursor:pointer}
+.pg-filt u{text-decoration:underline}
+html[data-vt] .pg-head{view-transition-name:vtpage}
+html[data-vt]::view-transition-new(vtpage){animation:moPgIn .36s cubic-bezier(.16,1,.3,1) both}
+html[data-vt]::view-transition-old(vtpage){animation:moPgOut .22s ease both}
+@keyframes moPgIn{from{transform:translateY(-12px);opacity:0}} @keyframes moPgOut{to{opacity:0}}
+/* v210: la barra «Per te / Il gioco / Altro», quando resta ferma in alto, sale fin quasi al bordo (resta fuori solo dalla fotocamera) */
+@media (max-width:760px){
+  .cd-tabs{top:calc(max(4px, env(safe-area-inset-top,0px) - 16px) - 14px - env(safe-area-inset-top,0px)) !important;padding-top:6px !important;padding-bottom:6px !important}
+  .cd-tabs::before{top:6px !important;bottom:6px !important}
+  .cd-tabs .cd-ind{top:6px !important;bottom:6px !important}
+  .cd-tabs.stuck{box-shadow:0 -64px 0 0 var(--card,#1c1c24),0 10px 20px -16px rgba(0,0,0,.7) !important}
+}
