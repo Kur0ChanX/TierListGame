@@ -318,7 +318,7 @@
     if(h) f.push('ore:' + (h < 20 ? 'brevi' : h <= 50 ? 'medie' : 'lunghe'));
     if(g.ysort) f.push('epoca:' + (Math.floor(g.ysort / 10) * 10));
     try{ mechOf(g).forEach(m=> f.push('mech:' + m)); }catch(e){}
-    try{ const cu = LS.get('jrpg_dna_custom', {}) || {}, ks = Object.keys(cu); if(ks.length){ const e = g.enrich || {}, txt = mnrm([g.story, e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (g.label || {}).ok].join(' . ')); ks.forEach(k=>{ const c = cu[k]; if((c.by || []).includes(g.id) || (c.kw || []).some(w=> w && w.length >= 4 && txt.includes(mnrm(w)))) f.push('mine:' + k); }); } }catch(e){}
+    try{ const cu = LS.get('jrpg_dna_custom', {}) || {}, ks = Object.keys(cu); if(ks.length){ const e = g.enrich || {}, txt = mnrm([g.story, e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (g.label || {}).ok].join(' . ')); ks.forEach(k=>{ const c = cu[k]; if((c.no || []).includes(g.id)) return; if((c.by || []).includes(g.id) || (c.games || []).includes(g.id) || (c.kw || []).some(w=> w && w.length >= 4 && txt.includes(mnrm(w)))) f.push('mine:' + k); }); } }catch(e){}
     return f;
   }
   const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mine'){ const c = (LS.get('jrpg_dna_custom', {}) || {})[b]; return c ? c.n : b; } if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
@@ -334,6 +334,8 @@
     // «cosa ti ha preso di questo gioco» (🧬 nella scheda): ogni tratto che indichi tu su un gioco pesa come un segnale forte
     const dwc = {}; Object.keys(dw).forEach(id=> Object.keys(dw[id] || {}).forEach(m=>{ if(MECH[m] && dw[id][m]) dwc[m] = (dwc[m] || 0) + dw[id][m]; }));
     Object.keys(dwc).forEach(m=>{ const k = 'mech:' + m, v = dwc[m]; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .55 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); });
+    // v200: i tratti che hai creato a parole contano subito (come quelli che segni con 👍/👎)
+    try{ const cu = LS.get('jrpg_dna_custom', {}) || {}; Object.keys(cu).forEach(m=>{ const c = cu[m], v = (c.by || []).length - (c.no || []).length; if(!v) return; const k = 'mine:' + m; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .7 + .3 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); }); }catch(e){}
     TM = {n: sig.length, wts, cnt, sig, dc, dw}; TMkey = key; return TM;
   }
   function tasteScore(g){

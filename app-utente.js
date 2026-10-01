@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v200', date:'2026-10-01', time:'16:35', items:[
+    'Scheda del gioco più fluida: prima si apriva scattando perché calcolava i «giochi simili» confrontando tutti i giochi durante l\'animazione. Ora la scheda si apre subito (3-4 volte più veloce la prima volta), l\'animazione parte solo quando è pronta e i simili arrivano un attimo dopo. Anche la chiusura scivola dolcemente.',
+    'Nuovo «A colpo d\'occhio»: riquadri con una parola chiara (es. «Durissima», «Al centro di tutto»), una barra colorata, la durata in settimane a 1h30 al giorno, una frase che riassume tutto e il segno 💜 «come piace a te» (o ⚠️ «di solito non ti piace») preso dal tuo DNA.',
+    '🧬 «Con parole tue» più intelligente: se scrivi qualcosa che non esiste tra i tratti (es. il combattimento a tempo di Legend of Dragoon), l\'AI crea un tratto nuovo preciso e cerca nel tuo catalogo quali giochi ce l\'hanno. Il tratto conta subito nella Sintonia e nei giochi simili. Anche i tuoi tratti si segnano 👍 / 👎.'
+  ]},
   {version:'v199', date:'2026-10-01', time:'16:14', items:[
     'Risolto l\'errore «Rate limit exceeded» di GitHub e Frugu che non partiva nel caricamento: immagini e caratteri ora vengono dalla memoria del telefono (ricontrollati al massimo una volta al giorno), il codice al massimo una richiesta al minuto, e se il sito rifiuta si usa la copia salvata.',
     '👑 I miei top: nella Sintonia di ogni gioco c\'è «È tra i miei giochi top», e in «I miei top» li metti in ordine (il n. 1 è il tuo preferito di sempre). Pesano più di tutto nel tuo DNA: un gioco dei tuoi top è sempre al 97–100%, anche nei «giochi simili» e nella stessa saga.',
