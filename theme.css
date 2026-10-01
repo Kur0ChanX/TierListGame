@@ -1617,3 +1617,19 @@ td.fav{white-space:nowrap}
   body:has(#askBackdrop.show) .ask-fab, body:has(#askBackdrop.show) .scrolltop-fab{display:none !important}
 }
 #gameTable.has-top td.fav{text-align:right}
+/* v213: stemma intero (orecchie e cornice di Mario), senza cerchio aggiunto; nella griglia piccolo nell'angolo (prima la regola delle copertine lo ingrandiva a tutta la locandina) */
+.row-badge{box-shadow:none !important; border-radius:50%; filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+.x-cover img.x-top{inset:auto !important; left:6px !important; top:auto !important; bottom:6px !important; width:34px !important; height:34px !important; object-fit:contain !important; box-shadow:none !important; border-radius:50%; filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
+.row-top-i{box-shadow:none !important}
+.x-card.is-top .x-cover{outline:none !important}
+.x-cover:has(.x-top) .x-fav{left:8px} .x-cover:has(.x-top) .x-plus{left:5px}
+/* v213: frecce ▲▼ su ogni riquadro della scheda per spostarlo */
+.modal-section-title{position:relative}
+.cd-mv{float:right; display:inline-flex; gap:4px; margin:-4px 0 0 8px}
+.cd-mv button{width:30px; height:28px; border-radius:9px; border:1px solid var(--glass-line,rgba(127,127,127,.25)); background:rgba(127,127,127,.12); color:inherit; font-size:.72rem; line-height:1; padding:0; cursor:pointer; opacity:.75}
+.cd-mv button:active{transform:scale(.9)}
+.cd-mv button:disabled{opacity:.2}
+.cd-tabs{-webkit-backdrop-filter:none !important; backdrop-filter:none !important}      /* v213: lo sfondo è già pieno: la sfocatura costava solo fatica allo scorrimento */
+.cd-mvrow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:14px 2px -6px; font-size:.7rem; opacity:.75}
+.cd-mvrow small{text-transform:uppercase; letter-spacing:.04em; opacity:.7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.cd-mvrow .cd-mv{float:none; margin:0}

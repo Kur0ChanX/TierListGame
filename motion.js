@@ -74,7 +74,7 @@
   // ---------------------------------------------------------------- la scheda si apre dalla riga toccata
   let tap = null;
   document.addEventListener('pointerdown', e=>{
-    const el = e.target.closest && e.target.closest('tr[data-gid], [data-gid]');
+    const el = e.target.closest && e.target.closest('tr[data-gid], [data-gid], .x-card[data-id], .x-row[data-id]');
     tap = {x: e.clientX, y: e.clientY, t: performance.now(), r: el ? el.getBoundingClientRect() : null, el};
   }, true);
   let VW = innerWidth, VH = innerHeight;
@@ -124,12 +124,12 @@
     try{ const src = R.el && [...R.el.querySelectorAll('img')].find(x=>{ const b = x.getBoundingClientRect(); return b.width >= 40 && b.height >= b.width * 1.15; }); if(src && src.currentSrc){ /* solo una vera locandina (verticale), non le iconcine */ im = document.createElement('img'); im.className = 'rt-ghost-i'; im.src = src.currentSrc; im.decoding = 'sync'; gh.appendChild(im); im._r = src.getBoundingClientRect(); } }catch(e){}
     document.body.appendChild(gh);
     const sx = Math.max(.05, r.width / W), sy = Math.max(.02, r.height / H);
-    const anims = [panel.animate([{transform: `translate(${r.left}px, ${r.top}px) scale(${sx}, ${sy})`, opacity: .5}, {opacity: 1, offset: .35}, {transform: 'none', opacity: 1}], {duration: 380, easing: EASE, fill: 'both'})];
+    const anims = [panel.animate([{transform: `translate(${r.left}px, ${r.top}px) scale(${sx}, ${sy})`, opacity: .5}, {opacity: 1, offset: .35}, {transform: 'none', opacity: 1}], {duration: 300, easing: EASE, fill: 'both'})];
     if(im && im._r && im._r.width > 4){
       const fw = Math.min(W * .74, 340), fh = fw * 1.33, fx = (W - fw) / 2, fy = 120;       // dove starà più o meno la locandina
       im.style.cssText = `left:${fx}px;top:${fy}px;width:${fw}px;height:${fh}px`;
       const k = im._r.width / fw;
-      anims.push(im.animate([{transform: `translate(${im._r.left - fx}px, ${im._r.top - fy}px) scale(${k}, ${im._r.height / fh})`}, {transform: 'none'}], {duration: 380, easing: EASE, fill: 'both'}));
+      anims.push(im.animate([{transform: `translate(${im._r.left - fx}px, ${im._r.top - fy}px) scale(${k}, ${im._r.height / fh})`}, {transform: 'none'}], {duration: 300, easing: EASE, fill: 'both'}));
     }
     return {gh, done: Promise.all(anims.map(a=> a.finished.catch(()=>{})))};
   }

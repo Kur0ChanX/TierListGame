@@ -3,6 +3,15 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v213', date:'2026-10-02', time:'01:36', items:[
+    'Velocità: trovato il vero freno. 155 copertine della lista base puntavano a un indirizzo che esiste solo dentro Claude; nella griglia ogni copertina rotta veniva ritentata all\'infinito (centinaia di volte al secondo) e rallentava TUTTO: scorrimento della scheda, cambio sezione, apertura dei giochi. Ora la copertina rotta si prova una volta sola e quelle 155 vengono cercate da capo. Scorrimento nella scheda: da «frenato» a 60 fotogrammi al secondo.',
+    'Apertura di un gioco più pulita: la scheda veniva riordinata due volte (e «saltava»); ora una volta sola, già completa. Anche dalla griglia parte l\'animazione veloce che si allarga dalla copertina toccata (prima no: si vedeva la scheda trasparente sopra la lista).',
+    'Scopri si apre molto prima: la sintonia fine si calcola solo sui giochi più promettenti, non su tutti i 1500.',
+    'Stemma del procione: ora è il tuo disegno intero (orecchie e cornice comprese), senza il cerchio dorato aggiunto, e nella griglia è piccolo nell\'angolo della copertina (prima, per errore, copriva tutta la locandina). Anche il pulsante «Nel cuore» usa il tuo stemma.',
+    'Previsione del voto: usa lo stesso «cervello» della Sintonia (prima un vecchio calcolo che dava voti bassissimi). I pulsanti per dare il tuo voto ci sono sempre, anche su un gioco nuovo; al voto si «congela» la previsione che avevi visto, così il confronto è onesto.',
+    'Riquadri della scheda: ogni riquadro ha le sue frecce ▲▼ per spostarlo più su o più giù, lì dove sei (il riquadro resta sotto il dito).',
+    'Eredi e radici spirituali: cerca col nome inglese ufficiale, riconosce anche «ispirato a / influenzato da» (es. Like a Dragon → Dragon Quest) e, se Wikipedia non dice niente, cerca subito sul web con Gemini.'
+  ]},
   {version:'v212', date:'2026-10-02', time:'00:50', items:[
     'Sezioni in basso fulminee: si cambiano appena il dito tocca l\'icona (prima solo quando lo alzavi, più un\'animazione che doveva «fotografare» la pagina: da lì il ritardo). Niente più animazioni di passaggio, niente scorrimenti automatici: ogni sezione, Classifica compresa, si apre sempre in cima, di colpo. Tornando alla Classifica le righe non «scendono» più.',
     'Chiedi si apre di colpo e la barra in basso resta visibile: tocchi un\'altra sezione e Chiedi si chiude da solo.',

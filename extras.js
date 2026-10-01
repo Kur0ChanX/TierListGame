@@ -39,8 +39,8 @@
     const c = coverOf(g), st = (typeof STATUSES !== 'undefined') && STATUSES[g.id];
     const fav = FAVS.has(g.id) ? '<span class="x-fav">★</span>' : '';
     // v212: i tuoi top in assoluto: lo stemma del procione con gli occhi a cuore sulla copertina
-    const heart = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : []; return Array.isArray(t) && t.includes(g.id) ? '<img class="x-top" src="icons/top-procione-mini-72.webp" srcset="icons/top-procione-mini-72.webp 1x, icons/top-procione-mini-144.webp 2x" alt="Nei tuoi top" title="Nei tuoi top" width="30" height="30" loading="lazy">' : ''; }catch(e){ return ''; } })();
-    const img = c ? `<img src="${esc(coverThumb(c, 360))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onload="this.style.visibility=''" onerror="this.style.visibility='hidden';if(this.dataset.orig&&this.src!==this.dataset.orig){this.src=this.dataset.orig}else{this.remove()}">` : '';
+    const heart = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : []; return Array.isArray(t) && t.includes(g.id) ? '<img class="x-top" src="icons/top-procione-64.webp" srcset="icons/top-procione-64.webp 1x, icons/top-procione-128.webp 2x" alt="Nei tuoi top" title="Nei tuoi top" width="30" height="30" loading="lazy">' : ''; }catch(e){ return ''; } })();
+    const img = c ? `<img src="${esc(coverThumb(c, 360))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onload="this.style.visibility=''" onerror="this.style.visibility='hidden';if(this.dataset.orig&&!this.dataset.tr){this.dataset.tr=1;this.src=this.dataset.orig}else{this.onerror=null;this.remove()}">` : '';
     const ph = `<div class="x-ph" style="--tc:${TIER_COL[g.tier] || '#7c5cff'}"><span>${esc(g.name)}</span></div>`;
     const badge = `<span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>`;
     if(MODE === 'grid'){
