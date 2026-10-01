@@ -15,7 +15,7 @@
   // la locandina bloccata non si sostituisce in automatico (Update+, giochi nuovi, catalogo…): solo da qui, con «force»
   if(window.XCOVER && XCOVER.save){
     const orig = XCOVER.save;
-    XCOVER.save = async function(g, url, opts){ if(g && (lockOf(g) || {}).cover && !(opts && opts.force)) return false; return orig.call(this, g, url); };
+    XCOVER.save = async function(g, url, opts){ if(g && (lockOf(g) || {}).cover && !(opts && opts.force)) return false; return orig.call(this, g, url, opts); };
   }
   const reopen = g=>{ try{ const ng = GAMES.find(x=> x.id === g.id) || g; if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) openModal(ng); }catch(e){} };
 
@@ -38,38 +38,103 @@
     }));
   }
 
-  // ---------- 🎞️ Scegli le schermate del carosello ----------
+  // ---------- 🎞️ Schermate del carosello (v199): tocchi una foto → tante alternative → tocchi quella nuova: la sostituisce e la blocca 🔒 ----------
+  const thumbOf = new Map();          // foto grande -> miniatura (per la griglia, più leggera)
+  async function steamId(g){
+    try{ const f = window.SearchHub && SearchHub.factsFor(g), id = f && f.s && f.s.id; if(id) return id; }catch(e){}
+    try{
+      const j = await SearchHub.json('https://store.steampowered.com/api/storesearch/?l=english&cc=us&term=' + encodeURIComponent(String(g.name).replace(/[:™®]/g, ' ')), {timeout: 12000});
+      const n = s=> String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''), it = ((j && j.items) || []).find(x=> n(x.name) === n(g.name)) || ((j && j.items) || [])[0];
+      return it ? it.id : null;
+    }catch(e){ return null; }
+  }
   async function steamAll(g){
     try{
-      const f = window.SearchHub && SearchHub.factsFor(g), id = f && f.s && f.s.id; if(!id) return [];
-      const j = await SearchHub.json('https://store.steampowered.com/api/appdetails?appids=' + id + '&filters=screenshots', {timeout: 15000});
-      const d = j && j[id] && j[id].success ? j[id].data : null;
-      return ((d && d.screenshots) || []).map(x=> String(x.path_thumbnail || x.path_full || '').replace(/\?.*$/, '')).filter(Boolean).slice(0, 24);
+      const id = await steamId(g); if(!id) return [];
+      const j = await SearchHub.json('https://store.steampowered.com/api/appdetails?appids=' + id + '&filters=screenshots,movies', {timeout: 15000});
+      const d = j && j[id] && j[id].success ? j[id].data : null, out = [];
+      ((d && d.screenshots) || []).forEach(x=>{ const full = String(x.path_full || x.path_thumbnail || '').replace(/\?.*$/, ''); if(full){ out.push(full); thumbOf.set(full, String(x.path_thumbnail || full).replace(/\?.*$/, '')); } });
+      ((d && d.movies) || []).forEach(m=>{ const u = String(m.thumbnail || '').replace(/\?.*$/, ''); if(u) out.push(u); });      // fotogrammi dei trailer
+      return out;
     }catch(e){ return []; }
   }
-  async function openShots(g){
-    const lk = lockOf(g) || {};
-    const body = sheet('xShots', '🎞️ Scegli le schermate', `<div class="lp-sub">Spunta le schermate che vuoi nel carosello della scheda (almeno una), poi «Salva e blocca»: restano quelle 🔒 finché non le sblocchi.</div>
-      <div id="shRes" class="lp-sub">Cerco…</div>
-      <div class="lp-tools"><button class="btn primary" id="shSave" type="button">✅ Salva e blocca 🔒</button>${lk.shots ? '<button class="btn" id="shUnlock" type="button">🔓 Torna automatiche</button>' : ''}</div>`);
-    const un = body.querySelector('#shUnlock'); if(un) un.addEventListener('click', ()=>{ setLock(g, {shots: null}); toast('Schermate di nuovo automatiche', 1800); const sh = document.getElementById('xShots'); if(sh) sh.classList.remove('show'); reopen(g); });
-    const res = body.querySelector('#shRes');
-    const pool = [], add = u=>{ if(u && !pool.includes(u)) pool.push(u); };
-    (lk.shots || []).forEach(add);
-    try{ (window.rtSteamShots ? rtSteamShots(g) : []).forEach(add); }catch(e){}
-    try{ (await steamAll(g)).forEach(add); }catch(e){}
-    try{ (window.rtRawgShots ? await rtRawgShots(g) : []).forEach(add); }catch(e){}
-    if(!res.isConnected) return;
-    if(!pool.length){ res.textContent = 'Non trovo schermate per questo gioco (servono Steam o la chiave RAWG).'; return; }
-    const sel = new Set(lk.shots && lk.shots.length ? lk.shots : pool.slice(0, 8));
-    res.innerHTML = `<div class="cv-grid sh">${pool.map((u, i)=> `<button type="button" class="cv-it${sel.has(u) ? ' on' : ''}" data-i="${i}"><img src="${esc(u)}" alt="" loading="lazy" decoding="async"><span class="cv-ck">✓</span></button>`).join('')}</div><small>${pool.length} schermate trovate · tocca per scegliere</small>`;
-    res.querySelectorAll('[data-i]').forEach(b=> b.addEventListener('click', ()=>{ const u = pool[+b.dataset.i]; if(sel.has(u)) sel.delete(u); else sel.add(u); b.classList.toggle('on', sel.has(u)); }));
-    body.querySelector('#shSave').addEventListener('click', ()=>{
-      const list = pool.filter(u=> sel.has(u)); if(!list.length){ toast('Scegline almeno una', 2000); return; }
-      setLock(g, {shots: list}); toast('🔒 ' + list.length + ' schermate scelte e bloccate', 2200);
-      const sh = document.getElementById('xShots'); if(sh) sh.classList.remove('show'); reopen(g);
-    });
+  // anteprima grande (tieni premuto su una foto, o tocca 🔍)
+  function preview(src){
+    let ov = document.getElementById('rtPrev');
+    if(!ov){ ov = document.createElement('div'); ov.id = 'rtPrev'; ov.className = 'rt-prev'; ov.innerHTML = '<img alt=""><small>Tocca per chiudere</small>'; ov.addEventListener('click', ()=> ov.classList.remove('show')); document.body.appendChild(ov); }
+    ov.querySelector('img').src = src; ov.classList.add('show');
   }
+  window.rtPreview = preview;
+  let lpT = 0, lpDone = false, lpX = 0, lpY = 0;
+  document.addEventListener('pointerdown', e=>{
+    const it = e.target.closest && e.target.closest('.cv-it'), im = it && it.querySelector('img'); if(!im) return;
+    lpDone = false; lpX = e.clientX; lpY = e.clientY; clearTimeout(lpT);
+    lpT = setTimeout(()=>{ lpDone = true; preview(im.dataset.full || im.src); try{ navigator.vibrate && navigator.vibrate(15); }catch(x){} }, 450);
+  }, true);
+  document.addEventListener('pointermove', e=>{ if(lpT && Math.hypot(e.clientX - lpX, e.clientY - lpY) > 12){ clearTimeout(lpT); lpT = 0; } }, true);
+  ['pointerup', 'pointercancel'].forEach(t=> document.addEventListener(t, ()=>{ clearTimeout(lpT); lpT = 0; }, true));
+  document.addEventListener('click', e=>{ if(lpDone && e.target.closest && e.target.closest('.cv-it')){ e.stopPropagation(); e.preventDefault(); lpDone = false; } }, true);
+  document.addEventListener('contextmenu', e=>{ if(e.target.closest && e.target.closest('.cv-it')) e.preventDefault(); }, true);
+
+  async function openShots(g){
+    const body = sheet('xShots', '🎞️ Foto del carosello', `<div class="lp-sub"><b>Tocca la foto che non ti piace</b>: ti mostro tante alternative, tocchi quella nuova e la sostituisce, bloccata 🔒. <b>Tieni premuto</b> su una foto per vederla in grande.</div>
+      <div id="shCur" class="lp-sub">Cerco…</div><div id="shAlt"></div>
+      <div class="lp-tools"><button class="btn" id="shUnlock" type="button">🔓 Torna automatiche</button></div>`);
+    const cur = body.querySelector('#shCur'), alt = body.querySelector('#shAlt');
+    body.querySelector('#shUnlock').addEventListener('click', ()=>{ setLock(g, {shots: null}); toast('Foto di nuovo automatiche', 1800); const sh = document.getElementById('xShots'); if(sh) sh.classList.remove('show'); reopen(g); });
+    let slots = [];
+    try{ slots = (await (window.rtShotsFor ? rtShotsFor(g) : [])).slice(0, 12); }catch(e){}
+    const pool = [], add = u=>{ if(u && !pool.includes(u)) pool.push(u); };
+    let poolReady = (async()=>{
+      try{ (window.rtSteamShots ? rtSteamShots(g) : []).forEach(add); }catch(e){}
+      const [a, b] = await Promise.all([steamAll(g).catch(()=> []), (window.rtRawgShots ? rtRawgShots(g) : Promise.resolve([])).catch(()=> [])]);
+      a.forEach(add); (b || []).forEach(add);
+    })();
+    if(!cur.isConnected) return;
+    const locked = ()=> !!((lockOf(g) || {}).shots || []).length;
+    const img = u=> `<img src="${esc(thumbOf.get(u) || u)}" data-full="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.closest('.cv-it').classList.add('bad')">`;
+    let sel = -1, page = 0;
+    const drawCur = ()=>{
+      cur.innerHTML = `<div class="cv-grid sh cur">${slots.map((u, i)=> `<button type="button" class="cv-it on${sel === i ? ' pick' : ''}" data-s="${i}">${img(u)}<span class="cv-n">${i + 1}${locked() ? ' 🔒' : ''}</span></button>`).join('')}${slots.length < 12 ? '<button type="button" class="cv-it cv-plus" data-s="new">＋<small>Aggiungi una foto</small></button>' : ''}</div>`;
+    };
+    const save = ()=>{ setLock(g, {shots: slots.slice()}); };
+    const drawAlt = async ()=>{
+      if(sel === -1){ alt.innerHTML = ''; return; }
+      alt.innerHTML = '<div class="lp-sub">Cerco le alternative…</div>';
+      await poolReady; if(!alt.isConnected) return;
+      const free = pool.filter(u=> !slots.includes(u));
+      if(!free.length){ alt.innerHTML = '<div class="lp-sub">Non trovo altre foto di questo gioco (Steam e, con la chiave, RAWG).</div>'; return; }
+      const per = 12, pages = Math.ceil(free.length / per); page = page % pages;
+      const show = free.slice(page * per, page * per + per);
+      alt.innerHTML = `<div class="gs2-h">${sel === 'new' ? 'Scegli la foto da aggiungere' : 'Al posto della foto ' + (sel + 1) + ':'} <small>(${free.length} disponibili${pages > 1 ? ', gruppo ' + (page + 1) + ' di ' + pages : ''})</small></div>
+        <div class="cv-grid sh">${show.map(u=> `<button type="button" class="cv-it" data-a="${esc(u)}">${img(u)}</button>`).join('')}</div>
+        <div class="lp-tools">${pages > 1 ? '<button class="btn" type="button" id="shMore">🔄 Altre foto diverse</button>' : ''}${sel !== 'new' && slots.length > 1 ? '<button class="btn" type="button" id="shDel">🗑️ Togli questa foto</button>' : ''}<button class="btn" type="button" id="shCancel">Annulla</button></div>`;
+      const m = alt.querySelector('#shMore'); if(m) m.addEventListener('click', ()=>{ page++; drawAlt(); });
+      const d = alt.querySelector('#shDel'); if(d) d.addEventListener('click', ()=>{ slots.splice(sel, 1); sel = -1; save(); toast('Foto tolta 🔒', 1500); drawCur(); drawAlt(); });
+      alt.querySelector('#shCancel').addEventListener('click', ()=>{ sel = -1; drawCur(); drawAlt(); });
+      alt.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{
+        const u = b.dataset.a; if(sel === 'new') slots.push(u); else slots[sel] = u;
+        save(); toast('🔒 Foto ' + (sel === 'new' ? slots.length : sel + 1) + ' cambiata e bloccata', 1800);
+        sel = -1; drawCur(); drawAlt(); reopenSoft(g);
+      }));
+      try{ alt.scrollIntoView({behavior: 'smooth', block: 'start'}); }catch(e){}
+    };
+    cur.addEventListener('click', e=>{
+      const b = e.target.closest('[data-s]'); if(!b) return;
+      const v = b.dataset.s === 'new' ? 'new' : +b.dataset.s;
+      if(sel === v){ page++; } else { sel = v; page = 0; }      // ritocchi la stessa foto: altre alternative
+      drawCur(); drawAlt();
+    });
+    if(!slots.length){ await poolReady; slots = pool.slice(0, 6); }
+    if(!slots.length){ cur.textContent = 'Non trovo foto per questo gioco (servono Steam o la chiave RAWG).'; return; }
+    drawCur();
+  }
+  // quando chiudi il pannello, la scheda riparte con le foto nuove
+  const reopenSoft = g=>{
+    const sh = document.getElementById('xShots'); if(!sh || sh._rtObs) return;
+    const mo = new MutationObserver(()=>{ if(!sh.classList.contains('show')){ mo.disconnect(); sh._rtObs = null; reopen(g); } });
+    sh._rtObs = mo; mo.observe(sh, {attributes: true, attributeFilter: ['class']});
+  };
 
   // ---------- pulsanti nella scheda (vicino agli strumenti della copertina) ----------
   function addButtons(g){

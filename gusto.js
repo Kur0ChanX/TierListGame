@@ -15,6 +15,10 @@
   // coppie che dicono la stessa cosa: ne tengo una sola (prima «Storia che coinvolge» e «storia forte» comparivano entrambe)
   const SAME = {'storia:forte': 'mech:STORY'};
 
+  // v199: «👑 I miei top» — i giochi che ami di più, in ordine (jrpg_top). Pesano più di tutto nel DNA e non vanno mai «indovinati».
+  const topList = ()=>{ try{ const v = JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; } };
+  const topSave = a=>{ try{ localStorage.setItem('jrpg_top', JSON.stringify(a)); }catch(e){} SINT = new Map(); AXtm = null; };
+  window.rtTopList = topList;
   let AXtm = null, AXc = null, SINT = new Map();
   function axes(){
     const tm = window.rtTasteModel && window.rtTasteModel(); if(!tm || tm.n < 3) return null;
@@ -49,7 +53,9 @@
     // quello che SAI già: un gioco che ami non va indovinato, uno che hai mollato nemmeno
     const own = (tm.sig.find(x=> x.g.id === g.id) || {}).w || 0;
     let known = '';
-    if(own >= 1.8){ known = 'love'; pct = Math.max(pct, Math.min(99, 90 + Math.round(own * 2))); }
+    const ti = topList().indexOf(g.id);
+    if(ti >= 0){ known = 'love'; pct = Math.max(pct, ti < 3 ? 100 : ti < 10 ? 99 : 97); }
+    else if(own >= 1.8){ known = 'love'; pct = Math.max(pct, Math.min(99, 90 + Math.round(own * 2))); }
     else if(own <= -1){ known = 'drop'; pct = Math.min(pct, 30); }
     pct = Math.max(0, Math.min(100, pct));
     const approved = pct >= 85 && !neg.length && tm.n >= 6 && known !== 'drop';
@@ -70,20 +76,57 @@
     if(!r) return '';
     const {tm, ax} = r;
     if(!g){
-      return `<div class="gs-card gs2" id="gsCard"><div class="gs-head">🎯 <b>I tuoi gusti più forti</b></div><div class="gs2-list">${ax.map(a=> bar(a)).join('')}</div><div class="gs2-sub">Imparati da ${tm.n} giochi (preferiti, voti, stati, tier e i tratti che segni con 🧬): più la barra è lunga, più ti piace.</div></div>`;
+      return `<div class="gs-card gs2" id="gsCard"><div class="gs-head">🎯 <b>I tuoi gusti più forti</b></div><div class="gs2-list">${ax.map(a=> bar(a)).join('')}</div><div class="gs2-topb"><button class="btn" type="button" data-gtopall="1">👑 I miei giochi top (${topList().length})</button></div><div class="gs2-sub">Imparati da ${tm.n} giochi (preferiti, voti, stati, tier e i tratti che segni con 🧬): più la barra è lunga, più ti piace.</div></div>`;
     }
     const s = window.rtSintonia(g); if(!s) return '';
     const {pct, neg, has, approved, known, near} = s;
     const word = known === 'love' ? 'È uno dei giochi che ami' : known === 'drop' ? 'L\'hai mollato' : pct >= 85 ? 'Sintonia altissima' : pct >= 70 ? 'Sintonia alta' : pct >= 50 ? 'Sintonia buona' : pct >= 30 ? 'Sintonia parziale' : 'Sintonia bassa';
     const hits = ax.filter(a=> has.has(a.k)), miss = ax.filter(a=> !has.has(a.k));
-    const sub2 = known === 'love' ? 'La % rispecchia quello che sai già: lo uso per imparare i tuoi gusti' : `Ha ${hits.length} dei tuoi ${ax.length} gusti più forti`;
+    const ti = topList().indexOf(g.id);
+    const sub2 = ti >= 0 ? `👑 N. ${ti + 1} dei tuoi top: è il metro con cui misuro tutto il resto` : known === 'love' ? 'La % rispecchia quello che sai già: lo uso per imparare i tuoi gusti' : `Ha ${hits.length} dei tuoi ${ax.length} gusti più forti`;
+    const topBtn = `<div class="gs2-topb"><button class="btn${ti >= 0 ? ' on' : ''}" type="button" data-gtop="${g.id}">${ti >= 0 ? '👑 Nei miei top (tocca per togliere)' : '👑 È tra i miei giochi top'}</button><button class="btn" type="button" data-gtopall="1">📋 I miei top</button></div>`;
     const top = `<div class="gs2-top${approved ? ' appr' : ''}"><div class="gs2-ring" style="--p:${pct}"><b>${pct}%</b></div><div class="gs2-verd"><b>${approved && known !== 'love' ? 'Approvato dal procione!' : word}</b><span>${sub2}</span>${approved ? '<small>Sintonia altissima con il tuo DNA di giocatore</small>' : ''}</div>${approved ? '<img class="gs2-appr" src="icons/approved.webp" alt="Approvato" width="86" height="91" loading="lazy">' : ''}</div>`;
     const nearHtml = near.length ? `<div class="gs2-near">💞 Somiglia a giochi che ami: ${near.map(x=> `<b>${esc(x.g.name)}</b>`).join(', ')}</div>` : '';
     const hitHtml = hits.length ? `<div class="gs2-h">✓ Ha queste cose che ami</div><div class="gs2-list">${hits.map(a=> bar(a, true)).join('')}</div>` : '';
     const missHtml = miss.length ? `<div class="gs2-h dim">Cose che ami ma che qui non ci sono (non è un difetto del gioco)</div><div class="gs2-miss">${miss.map(a=> `<span>${a.icon} ${esc(a.full)}</span>`).join('')}</div>` : '';
     const negHtml = neg.length ? `<div class="gs2-neg">⚠️ Ha anche cose che di solito eviti: ${neg.map(([k])=> esc(labOf(k))).join(', ')}.</div>` : '';
-    return `<div class="gs-card gs2" id="gsCard"><div class="gs-head">🎯 <b>Sintonia con i tuoi gusti</b></div>${top}${nearHtml}${symbols(g, tm)}${hitHtml}${missHtml}${negHtml}<div class="gs2-sub">Barre = quanto ti piace ogni cosa, imparato dai tuoi giochi e dai tratti che segni con 🧬 qui sotto.</div></div>`;
+    return `<div class="gs-card gs2" id="gsCard"><div class="gs-head">🎯 <b>Sintonia con i tuoi gusti</b></div>${top}${topBtn}${nearHtml}${symbols(g, tm)}${hitHtml}${missHtml}${negHtml}<div class="gs2-sub">Barre = quanto ti piace ogni cosa, imparato dai tuoi giochi e dai tratti che segni con 🧬 qui sotto.</div></div>`;
   };
+  const reopen = id=>{ try{ if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === id) openModal(GAMES.find(x=> x.id === id) || currentModalGame); }catch(e){} try{ if(window.renderWhenIdle) renderWhenIdle({}); }catch(e){} };
+  function openTop(){
+    const U = window.XUI; if(!U) return;
+    const body = U.sheet('xTop', '👑 I miei giochi top', `<div class="lp-sub">I giochi che ami di più, in ordine (il primo è il tuo preferito di sempre). Sono il metro della Sintonia e dei «giochi simili»: più in alto, più pesano.</div><div id="tpL"></div><input id="tpQ" type="search" placeholder="Cerca un gioco da aggiungere…" style="width:100%;box-sizing:border-box;padding:10px;border-radius:12px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font:inherit;margin-top:10px"><div id="tpR"></div>`);
+    const L = body.querySelector('#tpL'), Q = body.querySelector('#tpQ'), R = body.querySelector('#tpR');
+    const nm = id=>{ const x = GAMES.find(y=> y.id === id); return x ? x.name : '?'; };
+    const draw = ()=>{
+      const t = topList();
+      L.innerHTML = t.length ? t.map((id, i)=> `<div class="tp-row"><b>${i + 1}</b><span>${esc(nm(id))}</span><button type="button" data-tpm="${i}:-1" ${i ? '' : 'disabled'}>▲</button><button type="button" data-tpm="${i}:1" ${i < t.length - 1 ? '' : 'disabled'}>▼</button><button type="button" data-tpx="${i}">✕</button></div>`).join('') : '<div class="lp-sub">Ancora vuota: cerca qui sotto i tuoi preferiti di sempre.</div>';
+    };
+    const find = ()=>{
+      const q = Q.value.trim().toLowerCase(), t = topList(); if(q.length < 2){ R.innerHTML = ''; return; }
+      R.innerHTML = GAMES.filter(x=> !t.includes(x.id) && String(x.name).toLowerCase().includes(q)).slice(0, 12).map(x=> `<button type="button" class="tp-add" data-tpa="${x.id}">＋ ${esc(x.name)}</button>`).join('') || '<div class="lp-sub">Nessun gioco trovato</div>';
+    };
+    body.addEventListener('click', e=>{
+      const b = e.target.closest('button'); if(!b) return; const t = topList();
+      if(b.dataset.tpm){ const [i, d] = b.dataset.tpm.split(':').map(Number), j = i + d; if(j < 0 || j >= t.length) return; [t[i], t[j]] = [t[j], t[i]]; topSave(t); draw(); }
+      else if(b.dataset.tpx != null){ t.splice(+b.dataset.tpx, 1); topSave(t); draw(); find(); }
+      else if(b.dataset.tpa){ t.push(+b.dataset.tpa); topSave(t); draw(); find(); }
+      else return;
+      if(typeof currentModalGame !== 'undefined' && currentModalGame) reopen(currentModalGame.id);
+    });
+    Q.addEventListener('input', find); draw();
+  }
+  window.rtOpenTop = openTop;
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('[data-gtop],[data-gtopall]'); if(!b) return;
+    e.preventDefault();
+    if(b.dataset.gtopall){ openTop(); return; }
+    const id = +b.dataset.gtop, t = topList(), i = t.indexOf(id);
+    if(i >= 0) t.splice(i, 1); else t.push(id);
+    topSave(t);
+    try{ window.XUI && XUI.toast(i >= 0 ? 'Tolto dai tuoi top' : '👑 Aggiunto ai tuoi top (n. ' + t.length + ') — riordinali in «I miei top»', 2600); }catch(x){}
+    reopen(id);
+  });
   // nella scheda del gioco, subito dopo il verdetto d'acquisto
   if(typeof window.openModal === 'function'){
     const prev = window.openModal;

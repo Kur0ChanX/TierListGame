@@ -175,8 +175,10 @@
     const out = [];
     let MT = {}; try{ MT = MYTIER || {}; }catch(e){}
     const MV = LS.get('jrpg_myvote', {}) || {};
+    const TOP = LS.get('jrpg_top', []) || [];        // v199: «👑 I miei top» in ordine: il n.1 pesa più di tutti
     GAMES.forEach(g=>{
-      let w = 0; const s = STATUSES[g.id];
+      let w = 0; const s = STATUSES[g.id], ti = TOP.indexOf(g.id);
+      if(ti >= 0) w += Math.max(2.4, 4 - ti * .08);
       if(MV[g.id] != null) w += (MV[g.id] - 6) * .5;          // il tuo voto personale insegna molto
       if(FAVS.has(g.id)) w += 2;
       if(s === 'played') w += 1; else if(s === 'playing') w += .6; else if(s === 'backlog') w += .25; else if(s === 'dropped') w -= 2;

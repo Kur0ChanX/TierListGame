@@ -158,7 +158,9 @@
     const p = ((j.query && j.query.pages) || []).sort((a, b)=> a.index - b.index).find(p=> p.thumbnail && normGameName(p.title.replace(/\s*\([^)]*\)\s*$/, '')) === target);
     return p ? p.thumbnail.source : null;
   }
-  async function saveAutoCover(g, url){
+  const coverLocked = g=>{ try{ return !!(window.rtMediaLock && (window.rtMediaLock(g) || {}).cover); }catch(e){ return false; } };
+  async function saveAutoCover(g, url, opts){
+    if(coverLocked(g) && !(opts && opts.force)) return false;     // v199: locandina 🔒 scelta da te: niente la cambia, nemmeno i pulsanti vecchi
     USER_COVERS[String(g.id)] = url;
     try{ if(COVER_DB) await COVER_DB.doc('covers/' + String(g.id)).set({url, name: g.name, auto: true, updatedAt: new Date().toISOString()}); }catch(e){}
   }
@@ -324,6 +326,7 @@
       return;
     }
     if(altBtn.disabled) return;
+    if(coverLocked(g)){ toast('🔒 Locandina bloccata: per cambiarla usa «Locandina 🔒»', 3000); return; }
     const cur0 = coverOf(g);
     if(!ALT[g.id]){
       if(typeof USER_COVER_IDS !== 'undefined' && USER_COVER_IDS[String(g.id)] && !confirm('Hai caricato una tua foto per questo gioco. La sostituisco con un\'altra immagine trovata online?')) return;
@@ -554,6 +557,7 @@
     const block = document.getElementById('coverBlock'); if(!block) return;
     const my = ++assistToken;
     if(coverOf(g)){                                   // ha già una locandina: pulsante per riscaricarla dalle fonti online (mai in automatico)
+      if(coverLocked(g)) return;                      // bloccata 🔒: niente «Aggiorna locandina»
       const r2 = document.createElement('div'); r2.className = 'x-autocover';
       r2.innerHTML = '<button class="btn" type="button">' + giIcon('refresh') + ' Aggiorna locandina</button><span class="x-ac-st"></span>';
       const tl = block.querySelector('.cover-tools'); (tl || block).insertAdjacentElement('afterend', r2);
