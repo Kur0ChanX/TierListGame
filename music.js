@@ -159,7 +159,7 @@
   function paint(){
     const d = dock(), t = cur.list[cur.i];
     placeDock(d);
-    d.classList.toggle('show', !!t && ON());
+    d.classList.toggle('show', !!t);                                  // v214: resta visibile anche fermo (con ▶ per ripartire), non sparisce allo Stop
     d.querySelector('[data-m="toggle"]').textContent = cur.playing ? '❚❚' : '▶';
     d.querySelector('.rm-t b').textContent = t ? t[1] : '';
     const g = GAMES.find(x=> x.id === cur.id); d.querySelector('.rm-t small').textContent = g ? g.name + ' · ' + (cur.i + 1) + '/' + cur.list.length : '';
@@ -331,7 +331,7 @@
   function pause(){ try{ yt && yt.pauseVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); }
   function resume(){ LS.set('jrpg_music', 'on'); const t = cur.list[cur.i]; if(isIA(t)){ if(au && au.src) au.play().catch(()=>{}); else playTrack(); } else { try{ yt && yt.playVideo(); }catch(e){} } cur.playing = true; paint(); }
   function next(auto){ if(!cur.list.length) return; cur.i = (cur.i + 1) % cur.list.length; if(!auto){ const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); } playTrack(); }
-  function stopAll(){ LS.set('jrpg_music', 'off'); try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Musica spenta ovunque: premi ▶ in una scheda per riaccenderla', 3000); }
+  function stopAll(){ LS.set('jrpg_music', 'off'); try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Musica ferma: premi ▶ per farla ripartire', 2200); }
   window.rtMusic = {playFor, stop: stopAll, on: ON, dock};
   // barra nella scheda del gioco
   // ---- lettore nella scheda (v198): titolo grande, album/fonte, barra di avanzamento toccabile, ⏮ ⏯ ⏭, elenco dei brani, 🔁 cambia, 🔎 cerca ----

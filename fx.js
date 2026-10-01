@@ -45,8 +45,9 @@
     return {bytes: tot, mb: (tot / 1e6).toFixed(2), pct: Math.round(100 * tot / 5e6), top: per.slice(0, 5)};   // il limite di Chrome è circa 5 milioni di caratteri per sito
   };
   setTimeout(()=>{ try{
-    const m = rtStorageUse(), day = new Date().toISOString().slice(0, 10);
-    if(m.pct >= 70 && localStorage.getItem('rt_storage_warn') !== day){ localStorage.setItem('rt_storage_warn', day); if(window.showToast) showToast('💾 La memoria del browser è piena al ' + m.pct + '%: dillo a Claude (va spostata in una memoria più grande prima che si riempia).', 7000); }
+    let m = rtStorageUse(); const day = new Date().toISOString().slice(0, 10);
+    if(m.pct >= 70){ try{ window.__emergencyClean && __emergencyClean(); }catch(e){} m = rtStorageUse(); }      // v214: prima libero da solo quello che si può rigenerare
+    if(m.pct >= 70 && localStorage.getItem('rt_storage_warn') !== day){ localStorage.setItem('rt_storage_warn', day); if(window.showToast) showToast('💾 La memoria del browser è piena al ' + m.pct + '%: fai un backup da ✨ → Backup e spazio, e dillo a Claude (le voci più pesanti: ' + m.top.slice(0, 3).map(x=> x[0].replace(/^jrpg_|^rt_/, '')).join(', ') + ').', 9000); }
   }catch(e){} }, 20000);
 })();
 // ---- Effetti funzionali: barra voto nelle righe, vibrazione leggera, transizione morbida tra le schede ----

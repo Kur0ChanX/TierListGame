@@ -37,7 +37,7 @@
   function startKey(el){
     if(el.classList.contains('cd-layer')) return null;
     if(el.classList.contains('modal-section-title')) return titleKey(el.textContent);
-    if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'rtRate') return 'valuta'; if(el.id === 'mzBar') return 'musica'; if(el.classList.contains('modal-plat') || el.classList.contains('modal-badges')) return 'punteggi'; if(el.id === 'voteSrc') return 'affidabilita'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
+    if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'rtRate') return 'valuta'; if(el.id === 'mzBar') return null;      /* v214: il lettore musicale sta sempre in alto, visibile in tutte e tre le parti */ if(el.classList.contains('modal-plat') || el.classList.contains('modal-badges')) return 'punteggi'; if(el.id === 'voteSrc') return 'affidabilita'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
     if(el.classList.contains('modal-tags')) return 'generi'; if(el.classList.contains('enrich-highlights')) return 'simboli'; if(el.classList.contains('ds-chip')) return 'affidabilita';
     if(el.classList.contains('saga-note')) return 'saga'; if(el.matches('details.hist')) return 'cronologia';
     return null;
@@ -61,6 +61,7 @@
     let cur = null, inBottom = false;
     kids.forEach(el=>{
       if(inBottom || el.classList.contains('modal-links') || (el.classList.contains('modal-actions') && cur !== null)){ inBottom = true; bottom.push(el); return; }
+      if(el.id === 'mzBar'){ top.push(el); return; }                  // v214: il lettore musicale sta sempre in alto, sopra le linguette
       const k = startKey(el);
       if(k){ cur = k; if(!blocks.has(k)) blocks.set(k, []); blocks.get(k).push(el); }
       else if(cur) blocks.get(cur).push(el);

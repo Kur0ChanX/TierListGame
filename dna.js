@@ -393,7 +393,7 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
   function similarLazy(g){
     if(!g || g.id == null) return '';
     const id = g.id;
-    setTimeout(()=> idleDo(()=>{
+    setTimeout(()=> warmAll(()=>{                                         // v214: prima i tratti pronti (a pezzetti), poi i simili: niente blocco unico
       const box = document.querySelector('.sim-lazy[data-sim="' + id + '"]'); if(!box) return;
       if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id !== id) return;
       const h = similarHtml(GAMES.find(x=> x.id === id) || g);
@@ -405,17 +405,28 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
   }
   try{ if(typeof similarGamesHtml === 'function'){ window.similarGamesHtml = similarLazy; similarGamesHtml = similarLazy; window.rtSimilarHtmlNow = similarHtml; } }catch(e){}
   // preparo in anticipo, a pezzetti e quando il telefono è libero, i tratti di tutti i giochi: la prima scheda aperta non deve calcolarli
-  (function warm(){
-    let i = 0;
+  // v214: lo stesso lavoro, ma riavviabile: quando arrivano i testi completi dei giochi (circa 7 s dopo l'avvio) i tratti si ricalcolano
+  // qui, a pezzetti da pochi millesimi nei momenti liberi. Prima li ricalcolava tutti insieme il riquadro «Se ti è piaciuto…»
+  // alla prima scheda aperta: un blocco unico di ~0,2 s proprio mentre la scheda si apriva.
+  const WARM = {i: 0, run: false, wait: []};
+  function warmAll(done){
+    if(done) WARM.wait.push(done);
+    if(WARM.run) return; WARM.run = true;
     const step = dl=>{
-      try{ if(typeof GAMES === 'undefined' || !GAMES.length){ setTimeout(()=> idleDo(step, 3000), 1500); return; }
-        while(i < GAMES.length && (!dl || !dl.timeRemaining || dl.timeRemaining() > 4)){ mechOf(GAMES[i]); i++; if(!dl || !dl.timeRemaining) { if(i % 40 === 0) break; } }
-        if(i < GAMES.length){ idleDo(step, 3000); return; }
+      try{
+        if(typeof GAMES === 'undefined' || !GAMES.length){ WARM.run = false; setTimeout(()=> warmAll(), 1500); return; }
+        const t0 = performance.now();
+        while(WARM.i < GAMES.length && performance.now() - t0 < 7 && (!dl || !dl.timeRemaining || dl.timeRemaining() > 2)){ mechOf(GAMES[WARM.i]); WARM.i++; }
+        if(WARM.i < GAMES.length){ (WARM.wait.length ? setTimeout(step, 0) : idleDo(step, 3000)); return; }
         idf(); try{ window.rtTasteModel && rtTasteModel(); }catch(e){}
       }catch(e){}
+      WARM.run = false; const w = WARM.wait.splice(0); w.forEach(f=>{ try{ f(); }catch(e){} });
     };
-    setTimeout(()=> idleDo(step, 4000), 2500);
-  })();
+    idleDo(step, 3000);
+  }
+  window.rtWarmTraits = warmAll;
+  setTimeout(()=> warmAll(), 2500);
+  window.addEventListener('rt-texts', ()=>{ WARM.i = 0; if(!WARM.run) setTimeout(()=> warmAll(), 300); });
 
   // ---------- una sola percentuale in tutta l'app ----------
   // il vecchio «DNA di compatibilità» (solo generi e voto) diventa la stessa % della Sintonia: ordinamento «Più adatti a te», righe, verdetto

@@ -14,7 +14,7 @@ await ctx.addInitScript(MODE=>{ if(sessionStorage.getItem('seed')) return; sessi
   const mv={}; ids.slice(0,80).forEach((id,i)=>mv[id]=5+i%6); localStorage.setItem('jrpg_myvote',JSON.stringify(mv));
   const rx={}; ids.slice(100,160).forEach(id=>rx[id]={like:1,t:now}); localStorage.setItem('jrpg_react',JSON.stringify(rx));
 }, MODE);
-await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html');await p.waitForTimeout(12000);
+await p.goto('file://'+(process.env.ROOT||'/home/user/TierListGame').replace(/ /g,'%20')+'/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html');await p.waitForTimeout(12000);
 await p.evaluate(()=>{const i=document.getElementById('intro'); if(i) i.remove();});
 console.log('giochi', await p.evaluate(()=>GAMES.length), 'modo', MODE);
 const cdp=await ctx.newCDPSession(p); await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
@@ -28,6 +28,7 @@ const sel = MODE==='grid' ? '.x-card' : '#tbody tr';
 await p.locator(sel).nth(1).scrollIntoViewIfNeeded();
 await p.evaluate(()=>{ window.__marks=[]; const m=n=>__marks.push(n+'@'+Math.round(performance.now()-(window.__t0||0))); ['pointerdown','pointerup','click'].forEach(t=>document.addEventListener(t,()=>m(t),true)); const o=window.openModal; window.openModal=function(){ m('openModal'); const r=o.apply(this,arguments); m('openModal fine'); return r; }; new MutationObserver(ms=>ms.forEach(x=>x.addedNodes.forEach(n=>n.classList&&n.classList.contains('rt-ghost')&&m('ghost')))).observe(document.body,{childList:true}); });
 if(process.env.SECOND){ await p.evaluate(()=>{ openModal(GAMES[40]); }); await p.waitForTimeout(1500); await p.evaluate(()=>document.getElementById('modalBackdrop').classList.remove('show')); await p.waitForTimeout(800); }
+if(process.env.PROFTAP){ const prof=require(process.env.SP+'/prof.js'); const bb=await p.locator(sel+':nth-child(2)').first().boundingBox(); await prof(p,cdp,'0','tocco+2,5s', async()=>{ await p.touchscreen.tap(bb.x+bb.width/2,bb.y+bb.height/2); await p.waitForTimeout(2500); }); }
 let t; if(process.env.TRACETAP){ const tr=require(process.env.SP+'/trace.js'); const bb=await p.locator(sel+':nth-child(2)').first().boundingBox(); await tr(p,cdp,null,'tocco gioco',async()=>{ await p.touchscreen.tap(bb.x+bb.width/2,bb.y+bb.height/2); }); t=0; } else t=await frameAfterTap(sel+':nth-child(2)');
 await p.waitForTimeout(1200); console.log('tempi:', (await p.evaluate(()=>__marks)).join(' '));
 await p.waitForTimeout(1500);

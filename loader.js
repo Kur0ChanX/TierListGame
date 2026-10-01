@@ -8,6 +8,7 @@
 (function(){
   const KEY = 'rt_debuglog';                                   // niente prefisso jrpg_: non viene sincronizzato sul Gist
   let buf = []; try{ buf = JSON.parse(localStorage.getItem(KEY) || '[]') || []; }catch(e){}
+  try{ if(window.rtBig && rtBig.ready) rtBig.ready.then(ok=>{ if(!ok) return; try{ const old = JSON.parse(localStorage.getItem(KEY) || '[]') || []; if(Array.isArray(old) && old !== buf) buf = old.concat(buf.filter(x=> old.indexOf(x) < 0)).slice(-200); }catch(e){} }); }catch(e){}      // v214: registro nell'archivio grande
   let saveT = 0;
   const persist = ()=>{ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(buf.slice(-200))); }catch(e){} }, 1500); };
   const cut = (x, n)=> String(x == null ? '' : x).slice(0, n || 220);

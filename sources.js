@@ -602,6 +602,8 @@
   const enSim = (a, b)=>{ const A = new Set(enTok(a)), B = new Set(enTok(b)); if(!A.size || !B.size) return 0; let n = 0; A.forEach(w=>{ if(B.has(w)) n++; }); return n / Math.min(A.size, B.size); };
   const enClean = t=> String(t || '').replace(/[®™©]/g, '').replace(/\s+/g, ' ').trim();
   const ENC = (()=>{ try{ return JSON.parse(localStorage.getItem(ENK) || '{}') || {}; }catch(e){ return {}; } })();
+  // v214: rt_en_name sta nell'archivio grande, che si apre un attimo dopo: appena è pronto unisco i nomi già salvati
+  try{ if(window.rtBig && rtBig.ready) rtBig.ready.then(()=>{ try{ const x = JSON.parse(localStorage.getItem(ENK) || '{}') || {}; Object.keys(x).forEach(k=>{ if(!(k in ENC)) ENC[k] = x[k]; }); }catch(e){} }); }catch(e){}
   const enSave = ()=>{ try{ const ks = Object.keys(ENC); if(ks.length > 3000) ks.slice(0, ks.length - 3000).forEach(k=> delete ENC[k]); localStorage.setItem(ENK, JSON.stringify(ENC)); }catch(e){} };
   const ENP = new Map();
   H.enNameSync = g=>{ const e = g && ENC[g.id]; return e && e.n ? e.n : (g ? g.name : ''); };

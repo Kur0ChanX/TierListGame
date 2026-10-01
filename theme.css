@@ -1633,3 +1633,13 @@ td.fav{white-space:nowrap}
 .cd-mvrow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:14px 2px -6px; font-size:.7rem; opacity:.75}
 .cd-mvrow small{text-transform:uppercase; letter-spacing:.04em; opacity:.7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .cd-mvrow .cd-mv{float:none; margin:0}
+/* v214: ingresso — il pulsante aspetta il tocco, poi «pop» con anello di luce e la schermata si apre in avanti */
+.intro-start{position:relative; cursor:pointer; transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .2s}
+.intro-start.ready{box-shadow:0 0 24px #ff6ec7, 0 0 46px rgba(255,110,199,.45), inset 0 0 12px rgba(var(--a3rgb),.5)}
+#intro:active .intro-start{transform:scale(.94)}
+.intro-start.hit{animation:introHit .34s cubic-bezier(.2,.9,.25,1) both !important}
+.intro-start.hit::after{content:''; position:absolute; inset:-4px; border-radius:inherit; border:3px solid #ffe066; animation:introRing .5s ease-out both; pointer-events:none}
+@keyframes introHit{0%{transform:scale(.92)}45%{transform:scale(1.14); filter:brightness(1.5)}100%{transform:scale(1.04); filter:brightness(1.2)}}
+@keyframes introRing{from{opacity:1; transform:scale(1)}to{opacity:0; transform:scale(1.9)}}
+#intro.entering .intro-frame{transition:transform .5s cubic-bezier(.32,.72,0,1), opacity .45s ease; transform:scale(1.12); opacity:0}
+#intro.entering .intro-bg{transition:opacity .45s ease; opacity:0}

@@ -1,5 +1,5 @@
 // ---- Schermata d'apertura animata (Raccoon Tier) ----
-// Tocca o premi un tasto per entrare; si chiude da sola. Si vede una volta per sessione; si disattiva da ⚙️ Impostazioni.
+// Tocca «Inizia a frugare» (o premi un tasto) per entrare: aspetta il tuo tocco. Si vede una volta per sessione; si disattiva da ⚙️ Impostazioni.
 (function(){
   const el = document.getElementById('intro');
   if(!el) return;
@@ -29,24 +29,47 @@
   function swallow(e){ e.stopPropagation(); e.preventDefault(); }
   function guardTaps(){ ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.addEventListener(n, swallow, true)); setTimeout(()=> ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.removeEventListener(n, swallow, true)), 330); }
   // il browser permette lo schermo intero solo dopo un tocco: il tocco su "ENTRA" lo attiva e apre il programma
-  function enter(){
-    if(closed) return;
-    guardTaps();
-    if(canFull && wantFs){ try{ document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){} }
-    close();
+  // v214: piccolo suono d'ingresso (due note rapide, creato nel telefono: nessun file). Niente suono se i suoni sono spenti in ✨ → Suoni.
+  function chime(){
+    try{
+      if(localStorage.getItem('jrpg_sfx') === 'off') return;
+      const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+      const ac = new AC(), now = ac.currentTime, vol = Math.max(0, Math.min(1, +(localStorage.getItem('jrpg_sfx_vol') || .6))) * .22, out = ac.createGain(); out.gain.value = vol; out.connect(ac.destination);
+      [[659.25, 0], [987.77, .09], [1318.5, .18]].forEach(([f, t], i)=>{
+        const o = ac.createOscillator(), g = ac.createGain(); o.type = i === 2 ? 'sine' : 'triangle'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, now + t); g.gain.linearRampToValueAtTime(1, now + t + .012); g.gain.exponentialRampToValueAtTime(.001, now + t + (i === 2 ? .5 : .22));
+        o.connect(g); g.connect(out); o.start(now + t); o.stop(now + t + .55);
+      });
+      setTimeout(()=>{ try{ ac.close(); }catch(e){} }, 900);
+    }catch(e){}
   }
+  let entering = false;
+  function enter(){
+    if(closed || entering) return;
+    const ready = typeof GAMES !== 'undefined' && GAMES.length;
+    if(!ready){ wantIn = true; if(start) start.textContent = '⏳ UN ATTIMO…'; return; }     // toccato prima che i giochi siano pronti: entro appena lo sono
+    entering = true;
+    guardTaps();
+    chime();
+    try{ navigator.vibrate && navigator.vibrate(14); }catch(e){}
+    if(canFull && wantFs){ try{ document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){} }
+    if(start) start.classList.add('hit');                              // il pulsante fa «pop» con un anello di luce…
+    el.classList.add('entering');                                      // …e la schermata si apre in avanti
+    setTimeout(close, reduce ? 0 : 230);
+  }
+  let wantIn = false;
   function onKey(e){ enter(); }
   el.addEventListener('click', e=>{ e.stopPropagation(); e.preventDefault(); enter(); });
   window.addEventListener('keydown', onKey);
-  setTimeout(()=>{ if(typeof GAMES !== 'undefined' && GAMES.length) close(); }, 12000);   // rete di sicurezza (non chiudo su una pagina vuota)
-  if(start && canFull && wantFs) start.textContent = '▶ INIZIA A FRUGARE';
+  if(start) start.textContent = '▶ INIZIA A FRUGARE';                  // v214: aspetta SEMPRE il tuo tocco (anche nell'app installata)
 
   // si chiude da sola (2,2 s) solo se non c'è lo schermo intero da attivare; altrimenti aspetta il tocco
   function check(){
     if(closed) return;
     const ready = typeof GAMES !== 'undefined' && GAMES.length;
     if(ready && msg) msg.textContent = `${GAMES.length} giochi pronti`;
-    if(timeUp && ready && !(canFull && wantFs)){ close(); return; }
+    if(ready && start && !start.classList.contains('ready')){ start.classList.add('ready'); if(!wantIn) start.textContent = '▶ INIZIA A FRUGARE'; }
+    if(ready && wantIn){ enter(); return; }
     setTimeout(check, 150);
   }
   setTimeout(()=>{ timeUp = true; }, reduce ? 1200 : 2200);
@@ -73,5 +96,6 @@
     sp.innerHTML = h;
   }
   // rete di sicurezza finale: se per qualsiasi motivo la schermata d'apertura resta in piedi con i giochi pronti, la tolgo (non deve mai coprire l'app)
-  setInterval(()=>{ const e = document.getElementById('intro'); if(e && !closed && typeof GAMES !== 'undefined' && GAMES.length && performance.now() > 20000){ close(); } if(!e) document.documentElement.classList.remove('intro-on'); }, 2000);
+  // (v214: solo se hai GIÀ toccato e qualcosa si è inceppato; altrimenti aspetta il tuo tocco quanto vuoi)
+  setInterval(()=>{ const e = document.getElementById('intro'); if(e && !closed && (wantIn || entering) && typeof GAMES !== 'undefined' && GAMES.length){ close(); } if(!e) document.documentElement.classList.remove('intro-on'); }, 2000);
 })();
