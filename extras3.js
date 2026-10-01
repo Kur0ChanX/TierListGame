@@ -194,7 +194,26 @@
     DOPA:   {ic: '⚡', n: 'Effetto dopamina', d: 'un ciclo che ti premia di continuo: «ancora un turno»'},
     EFFORT: {ic: '💪', n: 'Gratificazione dello sforzo', d: 'più ti impegni, più vieni ricompensato'},
     FARM:   {ic: '🌾', n: 'Farming con beneficio tangibile', d: 'ripetere un\'attività se porta vantaggi concreti'},
-    COLL:   {ic: '🏆', n: 'Collezionabili', d: 'raccogliere, completare, catturare tutto'}
+    COLL:   {ic: '🏆', n: 'Collezionabili', d: 'raccogliere, completare, catturare tutto'},
+    // v195 — il DNA si allarga: non solo «cosa ti tiene incollato», ma anche mondo, storia, sistemi e sensazioni
+    LORE:   {ic: '📜', n: 'Lore profonda', d: 'mitologia, segreti del mondo, storia da scoprire in documenti e dettagli'},
+    WORLD:  {ic: '🗺️', n: 'World building', d: 'un mondo coerente e vivo, con culture, luoghi e regole propri'},
+    EXPLO:  {ic: '🧭', n: 'Esplorazione e segreti', d: 'esplorare ogni angolo, aree nascoste, scorciatoie e scoperte'},
+    CRAFT:  {ic: '🔨', n: 'Crafting', d: 'creare e migliorare oggetti, armi, ricette'},
+    RES:    {ic: '🎒', n: 'Gestione delle risorse', d: 'risorse limitate da amministrare: munizioni, cure, soldi, inventario'},
+    SAND:   {ic: '🏖️', n: 'Libertà sandbox', d: 'fai quello che vuoi, come vuoi: sistemi liberi e approcci diversi'},
+    BASE:   {ic: '🏰', n: 'Costruzione e gestione', d: 'costruire una base, una città, gestire un\'economia o una squadra'},
+    TACT:   {ic: '♟️', n: 'Tattica e pianificazione', d: 'pensare prima di agire: posizionamento, turni, strategia'},
+    COMBAT: {ic: '⚔️', n: 'Combattimento appagante', d: 'un sistema di combattimento con ritmo, combo, parate e tempismo'},
+    STORY:  {ic: '📖', n: 'Storia che coinvolge', d: 'trama forte, colpi di scena, emozioni'},
+    CHAR:   {ic: '🫂', n: 'Personaggi e legami', d: 'un cast che ti resta nel cuore, rapporti tra i personaggi'},
+    CHOICE: {ic: '🔀', n: 'Scelte e conseguenze', d: 'le tue decisioni cambiano la storia o il finale'},
+    ATMO:   {ic: '🌫️', n: 'Atmosfera e stile', d: 'ambientazione, direzione artistica, sensazione unica'},
+    MUSIC:  {ic: '🎼', n: 'Colonna sonora che resta', d: 'musiche memorabili che fanno il gioco'},
+    SOCIAL: {ic: '👥', n: 'Gioco con gli altri', d: 'cooperativa, multiplayer, comunità, MMO'},
+    PUZZ:   {ic: '🧠', n: 'Enigmi e ingegno', d: 'rompicapi, meccanismi da capire, soluzioni intelligenti'},
+    HUMOR:  {ic: '😄', n: 'Umorismo e leggerezza', d: 'ironia, situazioni assurde, toni scanzonati'},
+    LIFE:   {ic: '📅', n: 'Vita quotidiana e legami', d: 'calendario, routine, tempo libero, rapporti da coltivare giorno per giorno'}
   };
   const MRX = {
     LOOT: /\b(loot\w*|drop|drop rate|bottin\w*|oggetti rari|oggetti leggendari|equipaggiament\w* (raro|rari|unico|unici|leggendari\w*|casuali)|item world|tesori|casse|ricompense casuali|looter|rarita|reliquie|artefatti|armi (rare|uniche|leggendarie)|dungeon generat\w*|generazion\w* procedural\w*)/,
@@ -204,15 +223,44 @@
     DOPA: /(dopamin\w*|ancora un turno|ricompens\w* (continu\w*|frequent\w*)|gratificazion\w*|loop (coinvolgent\w*|appagant\w*)|incollat\w*|assuefa\w*|dipendenza)/,
     EFFORT: /(premia (l.?impegno|la dedizione|lo sforzo|la pazienza|la perseveranza|la padronanza|l.?ottimizzazione)|gratificant\w*|appagant\w*|soddisfazion\w*|dedizione|sforzo|perseveranz\w*|ricompensa chi)/,
     FARM: /(\bfarm\w*|\bgrind\w*|ripetere|ripetizion\w*|raccolta (di )?risorse|coltivazion\w*|allevament\w*)/,
-    COLL: /(collezion\w*|completist\w*|catturare (mostri|creature|pokemon)|cattura di (mostri|creature)|bestiario|reclutare|tutti i (personaggi|mostri)|trofei|oggetti nascosti)/
+    COLL: /(collezion\w*|completist\w*|catturare (mostri|creature|pokemon)|cattura di (mostri|creature)|bestiario|reclutare|tutti i (personaggi|mostri)|trofei|oggetti nascosti)/,
+    LORE: /(\blore\b|mitologi\w*|leggend\w* (del mondo|antich\w*)|storia del mondo|segreti del mondo|documenti|descrizioni degli oggetti|narrazione ambientale|criptic\w*|frammenti di storia|retroscena)/,
+    WORLD: /(world ?building|mondo (vivo|coerente|ricco|dettagliato|vasto|affascinante|credibile|unico|originale)|ambientazione (ricca|originale|unica|dettagliata)|culture|fazioni|nazioni|regni|cosmologi\w*|universo (narrativo|coerente|ricco))/,
+    EXPLO: /(esplorazion\w*|esplorare|segreti|aree (nascoste|segrete|opzionali)|scorciatoie|metroidvania|scoperta|scoprire|mappa (aperta|vasta)|open world|mondo aperto|dungeon (opzionali|segreti|nascosti))/,
+    CRAFT: /(crafting|craft\w*|creare (oggetti|armi|equipaggiament\w*)|forgiare|fabbricare|alchimia|sintesi|ricette|forgia|potenziare (le )?armi)/,
+    RES: /(gestione (delle )?risorse|risorse (limitate|scarse)|scarsita|munizioni (limitate|scarse)|inventario (limitato|ristretto)|economia (del gioco|interna)|survival|sopravvivenza|razion\w*)/,
+    SAND: /(sandbox|liberta (totale|di approccio|d.azione)|approcci (diversi|multipli|liberi)|sistemi(c\w*)? (emergent\w*|liber\w*)|emergent\w*|fai (quello|cio) che vuoi|immersive sim|mondo aperto sistemico)/,
+    BASE: /(costruzion\w* (della|di una|di) (base|citta|villaggio|accampamento|fortezza)|gestionale|gestire (la|il|un|una) (citta|base|villaggio|squadra|regno|economia)|base operativa|quartier generale|insediament\w*|colonia)/,
+    TACT: /(tattic\w*|posizionament\w*|pianific\w*|strategia profonda|profondita strategica|scacchi|formazion\w* (della|di) squadra|sinergie di squadra)/,
+    COMBAT: /(combattiment\w* (fluido|appagante|frenetico|profondo|tecnico|spettacolare|preciso|reattivo|stratificato)|parat\w*|parry|schivat\w*|combo|tempismo|sistema di combattimento (eccellente|profondo|appagante|tecnico)|action (fluido|frenetico|tecnico))/,
+    STORY: /(trama (avvincente|coinvolgente|memorabile|profonda|emozionante|epica|intricata|matura)|colpi di scena|narrativa (forte|eccellente|matura|coinvolgente|memorabile)|storia (coinvolgente|emozionante|memorabile|epica|toccante|profonda|matura)|finale (memorabile|emozionante|toccante))/,
+    CHAR: /(personaggi (carismatic\w*|memorabil\w*|ben scritt\w*|indimenticabil\w*|caratterizzat\w*|profond\w*)|cast (memorabile|carismatico|eccellente|ben scritto|indimenticabile)|legam\w* tra (i )?personaggi|compagni (di viaggio|memorabili)|rapporti tra (i )?personaggi)/,
+    CHOICE: /(scelte (morali|che contano|con conseguenze|importanti)|conseguenze|finali multipli|diversi finali|piu finali|bivi|decisioni (che contano|morali)|ramificat\w*)/,
+    ATMO: /(atmosfer\w*|direzione artistica|stile (artistico|visivo|unico|inconfondibile)|ambientazione (suggestiva|cupa|onirica|evocativa|gotica)|suggestiv\w*|evocativ\w*|onirico|malinconic\w*|inquietant\w*)/,
+    MUSIC: /(colonna sonora (memorabile|splendida|eccellente|indimenticabile|epica|iconica|straordinaria|bellissima|stupenda)|musiche (memorabili|splendide|iconiche|indimenticabili|epiche|bellissime|stupende)|soundtrack (memorabile|iconica)|compost\w* da|uematsu|shimomura|mitsuda|sakimoto|kondo)/,
+    SOCIAL: /(cooperativ\w*|\bco-?op\b|multigiocatore|multiplayer|online con|comunita|\bmmo\w*|giocare con (gli )?amici|raid|gilda|pvp)/,
+    PUZZ: /(enigm\w*|rompicap\w*|puzzle|indovinell\w*|meccanismi da (capire|risolvere)|logica|ingegno)/,
+    LIFE: /(calendari\w*|vita (scolastica|quotidiana|di tutti i giorni)|routine|tempo libero|gestione del tempo|legami social\w*|social link|confidant|confidenti|attivita (quotidiane|del giorno)|simulazione (di vita|sociale)|giorno dopo giorno)/,
+    HUMOR: /(umoris\w*|ironi\w*|divertente|comic\w*|scanzonat\w*|esilarant\w*|assurd\w*|parodi\w*|battute)/
   };
   const mnrm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const MC = new Map();
   function mechOf(g){
-    const e = g.enrich || {}, c = MC.get(g.id), sig = (g.tags || []).join(',') + '|' + (e.whyLikeIt || '').length + '|' + ((e.pros || []).length) + '|' + ((g.label || {}).d || 0);
+    const e = g.enrich || {}, c = MC.get(g.id), dwS = (()=>{ try{ return JSON.stringify((LS.get('jrpg_dna_why', {}) || {})[g.id] || ''); }catch(x){ return ''; } })(), sig = (g.tags || []).join(',') + '|' + (e.whyLikeIt || '').length + '|' + ((e.pros || []).length) + '|' + ((g.label || {}).d || 0) + '|' + String(g.story || '').length + '|' + dwS;
     if(c && c.sig === sig) return c.list;
-    const dop = e.dopa || {}, txt = mnrm([e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (dop.loop || []).join(' '), dop.hook].join(' . ')), out = new Set(), tg = g.tags || [], l = g.label || {};
-    Object.keys(MRX).forEach(k=>{ if(MRX[k].test(txt)) out.add(k); });
+    const dop = e.dopa || {}, txt = mnrm([e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (dop.loop || []).join(' '), dop.hook, (g.label || {}).ok].join(' . ')), out = new Set(), tg = g.tags || [], l = g.label || {};
+    const STORYK = new Set(['LORE', 'WORLD', 'CHAR', 'CHOICE', 'ATMO', 'HUMOR']), txtS = mnrm([g.story, e.agingNote].join(' . '));
+    Object.keys(MRX).forEach(k=>{ if(MRX[k].test(txt) || (STORYK.has(k) && MRX[k].test(txtS))) out.add(k); });
+    // indizi dai dati della scheda (generi, etichette, simboli)
+    if(l.s >= 4 || e.storyTag === 'wow') out.add('STORY');
+    if(e.storyTag === 'affinity' || e.storyTag === 'romance') out.add('CHAR');
+    if(tg.includes('TAC') || tg.includes('WAR')) out.add('TACT');
+    if(tg.includes('METR')) out.add('EXPLO');
+    if(tg.includes('SOUL') || tg.includes('ACT')){ if(/(combattiment|parat|schivat|combo)/.test(txt)) out.add('COMBAT'); }
+    if(tg.includes('VN')){ out.add('STORY'); }
+    if(tg.includes('HOR')) out.add('ATMO');
+    if(tg.includes('LIFE')) out.add('BASE');
+    try{ const dw = (LS.get('jrpg_dna_why', {}) || {})[g.id] || {}; Object.keys(dw).forEach(k=>{ if(dw[k] > 0) out.add(k); else if(dw[k] < 0) out.delete(k); }); }catch(x){}   // quello che hai detto tu di questo gioco vale più dei testi
     if(e.dopamine === true) out.add('DOPA');
     if(tg.includes('MON')) out.add('COLL');
     if(tg.includes('CARD')){ out.add('COLL'); out.add('BUILD'); }
@@ -242,14 +290,17 @@
   const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
   let TM = null, TMkey = '';
   function tasteModel(){
-    const sig = signals(), dc = declared(), key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc);
+    const sig = signals(), dc = declared(), dw = LS.get('jrpg_dna_why', {}) || {}, key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc) + ':' + JSON.stringify(dw);
     if(TM && TMkey === key) return TM;
     const sum = {}, cnt = {};
     sig.forEach(({g, w})=> feats(g).forEach(k=>{ sum[k] = (sum[k] || 0) + w; cnt[k] = (cnt[k] || 0) + 1; }));
     const wts = {}; Object.keys(sum).forEach(k=> wts[k] = sum[k] / (cnt[k] + 2));
     // quello che dici tu pesa subito (anche con pochi giochi segnati); il resto lo imparo dai tuoi giochi
     Object.keys(dc).forEach(m=>{ if(!MECH[m] || !dc[m]) return; const k = 'mech:' + m; wts[k] = (wts[k] || 0) + dc[m] * 1.1; cnt[k] = Math.max(cnt[k] || 0, 2); });
-    TM = {n: sig.length, wts, cnt, sig, dc}; TMkey = key; return TM;
+    // «cosa ti ha preso di questo gioco» (🧬 nella scheda): ogni tratto che indichi tu su un gioco pesa come un segnale forte
+    const dwc = {}; Object.keys(dw).forEach(id=> Object.keys(dw[id] || {}).forEach(m=>{ if(MECH[m] && dw[id][m]) dwc[m] = (dwc[m] || 0) + dw[id][m]; }));
+    Object.keys(dwc).forEach(m=>{ const k = 'mech:' + m, v = dwc[m]; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .55 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); });
+    TM = {n: sig.length, wts, cnt, sig, dc, dw}; TMkey = key; return TM;
   }
   function tasteScore(g){
     const m = tasteModel(); if(m.n < 3 && !Object.keys(m.dc || {}).some(k=> m.dc[k])) return 0;
@@ -302,7 +353,7 @@
     const mrow = k=>{ const v = dc[k] || 0, kk = 'mech:' + k, w = m.wts[kk] || 0, learned = m.cnt[kk] >= 2 && !v ? (w > .25 ? 'imparato: ti piace' : w < -.2 ? 'imparato: lo eviti' : '') : '';
       const w2 = why(m, kk);
       return `<div class="tg-mech"><button type="button" class="tg-mbtn${v > 0 ? ' like' : v < 0 ? ' no' : ''}" data-mech="${k}" aria-label="${esc(MECH[k].n)}"><span class="tg-mi">${MECH[k].ic}</span><span class="tg-mt"><b>${esc(MECH[k].n)}</b><small>${esc(MECH[k].d)}</small>${learned ? `<small class="tg-lrn">${learned}${w2.length ? ' · da ' + esc(w2.join(', ')) : ''}</small>` : ''}</span><span class="tg-ms">${v > 0 ? '👍' : v < 0 ? '👎' : '＋'}</span></button></div>`; };
-    const mech = `<h4>Le tue meccaniche preferite</h4><div class="lp-sub">Dimmelo tu: tocca una meccanica per «mi piace» 👍, ancora per «la evito» 👎, ancora per toglierla. Quello che dici pesa subito; il resto lo imparo dai tuoi giochi.</div><div class="tg-mechs">${Object.keys(MECH).map(mrow).join('')}</div>`;
+    const mech = `<h4>🧬 Il tuo DNA: cosa ti prende in un gioco</h4><div class="lp-sub">Dimmelo tu: tocca una meccanica per «mi piace» 👍, ancora per «la evito» 👎, ancora per toglierla. Quello che dici pesa subito; il resto lo imparo dai tuoi giochi.</div><div class="tg-mechs">${Object.keys(MECH).map(mrow).join('')}</div>`;
     if(m.n < 3 && !hasDecl){
       const body0 = sheet('xTaste', gi('dna') + ' I tuoi gusti', `${intro}<div class="lp-sub">Per cominciare segna almeno <b>3 giochi</b> come preferiti, giocati o droppati (o spostali nella tua tier list), oppure scegli qui sotto le meccaniche che ami.</div>${mech}`);
       wireMech(body0); return;

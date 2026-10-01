@@ -1087,7 +1087,7 @@ function render(){
     const tr = document.createElement('tr');
     tr.dataset.gid = g.id;
     const isFav = FAVS.has(g.id);
-    const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};">${d.pct}%</span>` : ''; })();
+    const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip${d.approved ? ' appr' : ''}" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};"${d.approved ? ' title="Approvato dal procione: sintonia altissima con i tuoi gusti"' : ''}>${d.approved ? '<img src="icons/approved.webp" alt="" width="16" height="17">' : ''}${d.pct}%</span>` : ''; })();
     tr.innerHTML = `
       <td class="fav" data-role="fav"><svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>
       <td class="rank mobhide">${g.id}</td>
