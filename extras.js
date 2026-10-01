@@ -237,8 +237,23 @@
     try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(g.name); if(i && i.cover) return {url: i.cover, source: 'RAWG'}; } }catch(e){}
     return null;
   }
+  // TUTTE le locandine trovabili (per «Cambia locandina»): Steam (verticale, HD, orizzontale), Libretro (tutte le regioni), Wikipedia, Wikimedia, RAWG
+  async function allCovers(g, onStep){
+    const say = onStep || (()=>{}), out = [], add = (url, source)=>{ if(url && !out.some(o=> o.url === url)) out.push({url, source}); };
+    let wd = null; say('Wikidata…'); try{ wd = await wikidataInfo(g.name); }catch(e){}
+    const steamIds = new Set((wd && wd.steam) || []); try{ const f = window.SearchHub && SearchHub.factsFor(g); if(f && f.s && f.s.id) steamIds.add(String(f.s.id)); }catch(e){}
+    [...steamIds].slice(0, 2).forEach(id=>{ const B = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/`; add(B + 'library_600x900_2x.jpg', 'Steam HD'); add(B + 'library_600x900.jpg', 'Steam'); add(B + 'header.jpg', 'Steam (orizzontale)'); });
+    const sys = lrSystems(g.plat);
+    if(sys.length){ say('Libretro…'); const urls = []; lrTitles([wd && wd.label, g.name]).forEach(t=> sys.forEach(sy=> LR_REG.forEach(r=> urls.push(LR + encodeURIComponent(sy) + '/Named_Boxarts/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png'))))); urls.slice(0, 40).forEach(u=> add(u, 'Libretro')); }
+    say('Wikipedia…'); try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); add(u, 'Wikipedia'); }catch(e){}
+    ((wd && wd.img) || []).slice(0, 2).forEach(f=> add('https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(f) + '?width=600', 'Wikimedia'));
+    try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(g.name); if(i && i.cover) add(i.cover, 'RAWG'); } }catch(e){}
+    say('Controllo quali immagini esistono…');
+    const ok = await Promise.all(out.map(o=> probeImg(o.url, 7000)));
+    return out.filter((o, i)=> ok[i]);
+  }
   window.findGameCover = findCover;
-  window.XCOVER = {find: findCover, save: saveAutoCover, has: coverOf};
+  window.XCOVER = {find: findCover, save: saveAutoCover, has: coverOf, all: allCovers};
 
   // ---- «Cerca un'altra immagine»: raccoglie TUTTE le immagini trovate (box art in verticale prima, poi Wikipedia, RAWG, banner e schermate) e le fa scorrere una per volta ----
   async function okAll(urls, par){

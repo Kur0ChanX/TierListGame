@@ -81,6 +81,12 @@
   const ON = ()=> LS.get('jrpg_music', 'off') === 'on';
   const PICK = 'jrpg_music_pick';
   let yt = null, ytReady = null, cur = {id: null, list: [], i: 0, playing: false}, ostP = null;
+  // brani «ia:…» = file musicali di Internet Archive: si suonano con un normale lettore audio, quindi SENZA pubblicità
+  let au = null;
+  const isIA = t=> t && String(t[0]).indexOf('ia:') === 0;
+  // un brano che non si carica passa al successivo; se non se ne carica nessuno mi fermo (prima girava all'infinito senza rete)
+  function failNext(){ cur.fails = (cur.fails || 0) + 1; if(cur.fails >= Math.max(1, cur.list.length)){ cur.playing = false; cur.fails = 0; paint(); toast('La colonna sonora non si carica ora (rete o sito): riprova tra poco', 3200); return; } next(true); }
+  function audio(){ if(!au){ au = new Audio(); au.preload = 'auto'; au.addEventListener('ended', ()=> next(true)); au.addEventListener('error', ()=> failNext()); au.addEventListener('playing', ()=>{ cur.fails = 0; cur.playing = true; paint(); }); au.addEventListener('pause', ()=>{ if(!au.ended){ cur.playing = false; paint(); } }); } return au; }
   function loadYT(){
     if(ytReady) return ytReady;
     ytReady = new Promise((res, rej)=>{
@@ -183,8 +189,36 @@
     .sort((a, b)=> (secsOf(b[2]) > 1800) - (secsOf(a[2]) > 1800)).slice(0, 5);
   const searchYT = async q=> parseYT(await SearchHub.text('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), {timeout: 15000}));
   const setStat = (id, t)=>{ if(t) STAT[id] = t; else delete STAT[id]; paintBar(); };
+  // ---- Internet Archive: album interi caricati dagli utenti, file mp3 diretti (niente pubblicità). Cache 30 giorni (anche i «non trovato»). ----
+  const IA = 'rt_ost_ia', SRC = 'jrpg_music_src';                 // fonte preferita: 'ia' (senza pubblicità, predefinita) | 'yt'
+  const IA_BAD = /piano|cover|remix|arrang|orchestra|8.?bit|lo-?fi|tribute|guitar|acoustic|metal version|karaoke|ringtone|medley|chiptune/i;
+  const fmt = sec=>{ sec = Math.round(+sec || 0); return sec ? Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') : ''; };
+  async function iaAlbum(g){
+    const c = LS.get(IA, {}) || {}, e = c[g.id]; if(e && Date.now() - e.t < 30 * 864e5) return e.l ? e : null;
+    let res = null;
+    try{
+      const nm = cleanN(g.name).replace(/[()"]/g, ' ');
+      const q = 'title:(' + nm + ') AND (soundtrack OR ost OR "original sound" OR music) AND mediatype:audio';
+      const j = await SearchHub.json('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(q) + '&fl[]=identifier&fl[]=title&fl[]=downloads&rows=10&output=json', {timeout: 15000, relays: false});
+      const docs = ((j && j.response && j.response.docs) || []).filter(d=> d && d.title && namesGame(d.title, g.name) && /ost|soundtrack|sound track|music|score|original/i.test(d.title) && !IA_BAD.test(d.title)).sort((a, b)=> (b.downloads || 0) - (a.downloads || 0));
+      for(const d of docs.slice(0, 2)){
+        const m = await SearchHub.json('https://archive.org/metadata/' + encodeURIComponent(d.identifier), {timeout: 15000, relays: false});
+        const seen = new Set(), files = ((m && m.files) || []).filter(f=> /\.mp3$/i.test(f.name || '') && !/_64kb\.mp3$/i.test(f.name) && (+f.length || 0) >= 40)
+          .map(f=>{ const tt = String(f.title || f.name.replace(/\.mp3$/i, '').replace(/^[\d\s.\-_]+/, '')).trim(); return ['ia:https://archive.org/download/' + encodeURIComponent(d.identifier) + '/' + f.name.split('/').map(encodeURIComponent).join('/'), tt.slice(0, 70), fmt(f.length)]; })
+          .filter(x=>{ const k = x[1].toLowerCase(); if(seen.has(k)) return false; seen.add(k); return true; });
+        if(files.length >= 3){ res = {all: files, album: d.title, id: d.identifier}; break; }
+      }
+    }catch(err){ return null; }                                     // rete/blocco: non salvo, riprovo la prossima volta
+    // 5 brani sparsi lungo l'album (non solo i primi), il resto resta come «alternative» per il tasto 🔁
+    let l = null;
+    if(res){ const n = res.all.length, idx = [...new Set([0, 1, 2, 3, 4].map(i=> Math.round(i * (n - 1) / 4)))]; l = idx.map(i=> res.all[i]); }
+    c[g.id] = {t: Date.now(), l, alt: res ? res.all.slice(0, 60) : null, album: res && res.album};
+    const ks = Object.keys(c); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k=> delete c[k]);
+    LS.set(IA, c); return l ? c[g.id] : null;
+  }
   async function tracksFor(g){
-    const u = (LS.get(USER, {}) || {})[g.id]; if(u && u.length) return u;                      // scelto da te con 🔎
+    const u = (LS.get(USER, {}) || {})[g.id]; if(u && u.length) return u;                      // scelto da te (🔎 o 🔁): bloccato, nessun aggiornamento lo cambia
+    if(LS.get(SRC, 'ia') === 'ia'){ setStat(g.id, 'Cerco l\'album senza pubblicità…'); const a = await iaAlbum(g); setStat(g.id, ''); if(a && a.l && a.l.length) return a.l; }
     if(!ostP) ostP = load('ost.js').catch(()=>{});
     await ostP;
     const t = (typeof OST !== 'undefined' && OST.games && OST.games[g.id]) || null;
@@ -223,13 +257,39 @@
     body.querySelectorAll('[data-q]').forEach(b=> b.addEventListener('click', ()=>{ inp.value = nm + ' ' + b.dataset.q; go(); }));
     setTimeout(go, 50);
   }
+  // 🔁 cambia il brano che sta suonando con un'alternativa (dallo stesso album senza pubblicità o da YouTube); la scelta resta bloccata 🔒
+  async function openSwap(g){
+    if(!(cur.id === g.id && cur.list.length)){ toast('Fai partire la musica di questo gioco, poi cambia il brano', 2500); return; }
+    const body = sheet('xOstSwap', '🔁 Cambia questo brano', `<div class="lp-sub">Sta suonando: <b>${esc(cur.list[cur.i][1])}</b>. Scegli quello che preferisci: prende il suo posto e resta salvato 🔒 per questo gioco (nessun aggiornamento lo cambia).</div><div id="swRes" class="lp-sub">Cerco le alternative…</div>
+      <div class="lp-tools"><button class="btn" id="swAuto" type="button">↩️ Torna alla scelta automatica</button></div>`);
+    body.querySelector('#swAuto').addEventListener('click', ()=>{ const u = LS.get(USER, {}) || {}; delete u[g.id]; LS.set(USER, u); const sh = document.getElementById('xOstSwap'); if(sh) sh.classList.remove('show'); cur = {id: null, list: [], i: 0, playing: false}; playFor(g, true); toast('Brani di nuovo automatici', 2000); });
+    const inList = new Set(cur.list.map(x=> x[0])), alts = [];
+    try{ const a = await iaAlbum(g); if(a && a.alt) a.alt.filter(x=> !inList.has(x[0])).slice(0, 25).forEach(x=> alts.push(x)); }catch(e){}
+    try{ (await searchYT(queriesFor(g.name)[0])).filter(v=> !BAD.test(v[1]) && secsOf(v[2]) >= 60 && namesGame(v[1], g.name) && !inList.has(v[0])).slice(0, 10).forEach(v=> alts.push(v)); }catch(e){}
+    const res = body.querySelector('#swRes'); if(!res) return;
+    if(!alts.length){ res.textContent = 'Non trovo alternative ora: prova con 🔎 e parole tue.'; return; }
+    res.innerHTML = alts.map((v, i)=> `<button type="button" class="btn" data-i="${i}" style="display:block;width:100%;text-align:left;margin:4px 0">${isIA(v) ? '🚫📢' : '▶'} ${esc(v[1])}${v[2] ? ' <small>(' + esc(v[2]) + ')</small>' : ''}</button>`).join('');
+    res.querySelectorAll('[data-i]').forEach(b=> b.addEventListener('click', ()=>{
+      const v = alts[+b.dataset.i], list = cur.list.slice(); list[cur.i] = v;
+      const u = LS.get(USER, {}) || {}; u[g.id] = list; LS.set(USER, u);
+      cur.list = list; LS.set('jrpg_music', 'on'); playTrack();
+      const sh = document.getElementById('xOstSwap'); if(sh) sh.classList.remove('show'); toast('🔒 Brano cambiato e bloccato per questo gioco', 2400);
+    }));
+  }
   async function playTrack(){
     const t = cur.list[cur.i]; if(!t) return;
+    if(isIA(t)){
+      try{ yt && yt.pauseVideo(); }catch(e){}
+      dock(); const a = audio(); a.src = t[0].slice(3); a.volume = .7;
+      try{ await a.play(); cur.playing = true; }catch(e){ cur.playing = false; if(e && e.name === 'NotAllowedError') toast('Tocca ▶ per far partire la musica', 2500); }
+      paint(); return;
+    }
+    try{ au && au.pause(); }catch(e){}
     try{ await loadYT(); }catch(e){ toast('La musica non parte: YouTube non è raggiungibile ora', 3500); return; }
     dock();
     if(!yt){
-      yt = new YT.Player('rtYt', {width: 200, height: 113, videoId: t[0], playerVars: {autoplay: 1, playsinline: 1, controls: 0, rel: 0, modestbranding: 1},
-        events: {onReady: e=>{ try{ e.target.setVolume(70); e.target.playVideo(); }catch(x){} }, onStateChange: e=>{ cur.playing = e.data === 1; if(e.data === 0) next(true); paint(); }, onError: ()=> next(true)}});
+      yt = new YT.Player('rtYt', {host: 'https://www.youtube-nocookie.com', width: 200, height: 113, videoId: t[0], playerVars: {autoplay: 1, playsinline: 1, controls: 0, rel: 0, modestbranding: 1},
+        events: {onReady: e=>{ try{ e.target.setVolume(70); e.target.playVideo(); }catch(x){} }, onStateChange: e=>{ cur.playing = e.data === 1; if(e.data === 1) cur.fails = 0; if(e.data === 0) next(true); paint(); }, onError: ()=> failNext()}});
     } else { try{ yt.loadVideoById(t[0]); }catch(e){} }
     cur.playing = true; paint();
   }
@@ -242,16 +302,16 @@
     cur = {id: g.id, list, i: Math.min(pick, list.length - 1), playing: false};
     paintBar(); playTrack();
   }
-  function pause(){ try{ yt && yt.pauseVideo(); }catch(e){} cur.playing = false; paint(); }
-  function resume(){ LS.set('jrpg_music', 'on'); try{ yt && yt.playVideo(); }catch(e){} cur.playing = true; paint(); }
+  function pause(){ try{ yt && yt.pauseVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); }
+  function resume(){ LS.set('jrpg_music', 'on'); const t = cur.list[cur.i]; if(isIA(t)){ if(au && au.src) au.play().catch(()=>{}); else playTrack(); } else { try{ yt && yt.playVideo(); }catch(e){} } cur.playing = true; paint(); }
   function next(auto){ if(!cur.list.length) return; cur.i = (cur.i + 1) % cur.list.length; if(!auto){ const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); } playTrack(); }
-  function stopAll(){ LS.set('jrpg_music', 'off'); try{ yt && yt.stopVideo(); }catch(e){} cur.playing = false; paint(); toast('Musica spenta ovunque: premi ▶ in una scheda per riaccenderla', 3000); }
+  function stopAll(){ LS.set('jrpg_music', 'off'); try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Musica spenta ovunque: premi ▶ in una scheda per riaccenderla', 3000); }
   window.rtMusic = {playFor, stop: stopAll, on: ON, dock};
   // barra nella scheda del gioco
   function barHtml(g){
     const mine = cur.id === g.id && cur.list.length, t = mine ? cur.list[cur.i] : null;
     const opts = mine ? cur.list.map((x, i)=> `<option value="${i}"${i === cur.i ? ' selected' : ''}>${esc(x[1])}${x[2] ? ' (' + esc(x[2]) + ')' : ''}</option>`).join('') : '';
-    return `<div class="mz-bar" id="mzBar"><button type="button" class="btn${ON() && mine && cur.playing ? ' primary' : ''}" data-mz="play">${ON() && mine && cur.playing ? '❚❚' : '▶'}</button><button type="button" class="btn" data-mz="stop" title="Ferma la musica ovunque">■</button><button type="button" class="btn" data-mz="next" title="Altro brano">⏭</button><button type="button" class="btn" data-mz="find" title="Cerca la colonna sonora con altre parole">🔎</button>
+    return `<div class="mz-bar" id="mzBar"><button type="button" class="btn${ON() && mine && cur.playing ? ' primary' : ''}" data-mz="play">${ON() && mine && cur.playing ? '❚❚' : '▶'}</button><button type="button" class="btn" data-mz="stop" title="Ferma la musica ovunque">■</button><button type="button" class="btn" data-mz="next" title="Altro brano">⏭</button><button type="button" class="btn" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato)">🔁</button><button type="button" class="btn" data-mz="find" title="Cerca la colonna sonora con altre parole">🔎</button>${(LS.get(USER, {}) || {})[g.id] ? '<span class="mz-lock" title="Brani scelti da te: nessun aggiornamento li cambia">🔒</span>' : ''}${mine && isIA(t) ? '<span class="mz-noad" title="File musicale di Internet Archive: senza pubblicità">🚫📢</span>' : ''}
       <div class="mz-t">${mine ? `<select data-mz="sel">${opts}</select>` : `<small>${STAT[g.id] || (cur.id === g.id && cur.none ? 'Non trovata: prova col tasto 🔎' : (ON() ? 'Cerco la colonna sonora…' : 'Colonna sonora: premi ▶ (resta accesa per tutti i giochi)'))}</small>`}</div></div>`;
   }
   function wireBar(g){
@@ -259,6 +319,7 @@
     b.addEventListener('click', e=>{ const x = e.target.closest('[data-mz]'); if(!x || x.tagName === 'SELECT') return; const m = x.dataset.mz;
       if(m === 'play'){ if(cur.id === g.id && cur.list.length){ cur.playing ? pause() : resume(); } else { LS.set('jrpg_music', 'on'); playFor(g, true); } }
       else if(m === 'find') openFind(g);
+      else if(m === 'swap') openSwap(g);
       else if(m === 'stop') stopAll(); else if(m === 'next'){ if(cur.id === g.id) next(); else { LS.set('jrpg_music', 'on'); playFor(g, true); } } });
     const s = b.querySelector('select'); if(s) s.addEventListener('change', ()=>{ cur.i = +s.value; const p = LS.get(PICK, {}) || {}; p[g.id] = cur.i; LS.set(PICK, p); LS.set('jrpg_music', 'on'); playTrack(); });
   }
@@ -281,6 +342,7 @@
     const cur0 = theme(), vol = sfxVol();
     const body = sheet('xSound', gi('pad') + ' Suoni e musica', `<div class="lp-sub">Suoni dei pulsanti creati nel telefono (nessun download). Scegli un tema: toccalo per sentirlo.</div>
       <label class="ask-toggle"><input type="checkbox" id="muOn" ${ON() ? 'checked' : ''}> ${gi('play')} Colonna sonora automatica quando apri un gioco</label>
+      <label class="ask-toggle"><input type="checkbox" id="muIA" ${LS.get(SRC, 'ia') === 'ia' ? 'checked' : ''}> 🚫📢 Prima le colonne sonore SENZA pubblicità (album completi su Internet Archive); YouTube solo se l'album non c'è</label>
       <label class="gs-row">Volume dei suoni <input type="range" min="0" max="1" step="0.05" value="${vol}" id="sfxVol"></label>
       <label class="ask-toggle"><input type="checkbox" id="muFloat" ${LS.get(MODE, 'dock') === 'float' ? 'checked' : ''}> Player mobile (lo sposti tu) invece che fisso sotto la ricerca <small>(si applica al riavvio)</small></label>
       <button class="btn" type="button" id="muReset">Rimetti il player al suo posto</button>
@@ -290,6 +352,7 @@
     body.querySelector('#sfxVol').addEventListener('change', ()=> rtSfx('fav'));
     body.querySelector('#muReset').addEventListener('click', ()=>{ LS.set(POS, null); const d = document.getElementById('rtMusic'); if(d){ d.style.left = ''; d.style.top = ''; d.style.bottom = ''; } toast('Player rimesso al suo posto', 1800); });
     body.querySelector('#muFloat').addEventListener('change', e=>{ LS.set(MODE, e.target.checked ? 'float' : 'dock'); toast('Fatto: si applica al prossimo avvio del programma', 2600); });
+    body.querySelector('#muIA').addEventListener('change', e=>{ LS.set(SRC, e.target.checked ? 'ia' : 'yt'); toast(e.target.checked ? 'Prima gli album senza pubblicità' : 'Prima YouTube', 2000); });
     body.querySelector('#muOn').addEventListener('change', e=>{ LS.set('jrpg_music', e.target.checked ? 'on' : 'off'); if(!e.target.checked){ try{ yt && yt.stopVideo(); }catch(x){} cur.playing = false; paint(); } });
   }
   menu(gi('pad') + ' Suoni e musica (15 temi)', openSound);

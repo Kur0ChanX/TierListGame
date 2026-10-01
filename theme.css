@@ -1219,3 +1219,16 @@ body[data-view]:not([data-view="list"]) #todayBox{display:none}
 .sim2-saga{margin:10px 2px 6px;font-size:.86rem}
 .dna-chip.appr{display:inline-flex;align-items:center;gap:2px;color:#f472b6 !important;border-color:#f472b6 !important}
 .dna-chip.appr img{width:16px;height:auto}
+/* v196 — musica: brani bloccati e senza pubblicità */
+.mz-lock,.mz-noad{display:inline-flex;align-items:center;font-size:.8rem;padding:0 4px;opacity:.9}
+/* v196 — scegli locandina e schermate */
+.cv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:8px 0}
+.cv-grid.sh{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.cv-it{position:relative;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:rgba(127,127,127,.12);cursor:pointer;display:flex;flex-direction:column}
+.cv-it img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.cv-grid.sh .cv-it img{aspect-ratio:16/9}
+.cv-it small{font-size:.68rem;padding:2px 4px;color:var(--sub)}
+.cv-it.busy{opacity:.5}
+.cv-it .cv-ck{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;display:none;place-items:center;background:var(--pk-good,#22c55e);color:#fff;font-weight:800}
+.cv-it.on{border-color:var(--pk-good,#22c55e)}.cv-it.on .cv-ck{display:grid}
+.cv-grid.sh .cv-it:not(.on){opacity:.55}

@@ -54,7 +54,7 @@
     ls.set(HK, health);
   }
   // siti che permettono l'accesso diretto dal browser: non vanno mai spostati sui ponti (i ponti sono lenti e spesso morti)
-  const CORS_OK = new Set(['en.wikipedia.org', 'it.wikipedia.org', 'www.wikidata.org', 'query.wikidata.org', 'www.pcgamingwiki.com', 'api.rawg.io', 'www.cheapshark.com']);
+  const CORS_OK = new Set(['archive.org', 'en.wikipedia.org', 'it.wikipedia.org', 'www.wikidata.org', 'query.wikidata.org', 'www.pcgamingwiki.com', 'api.rawg.io', 'www.cheapshark.com']);
   function flagNeedsRelay(host){
     if(CORS_OK.has(host)) return; if(typeof navigator !== 'undefined' && navigator.onLine === false) return; needsRelay[host] = Date.now() + 30 * 60e3; ls.set(NRK, needsRelay); }
   H.relayStatus = ()=> RELAYS.map(r=> ({name: r.name, score: Math.round(relayScore(r.name) * 100), cooling: relayCooling(r.name), ...(health[r.name] || {})}));
@@ -104,7 +104,7 @@
   // ---- Memoria persistente delle risposte (IndexedDB «rt_srccache», solo su questo dispositivo) ----
   // La stessa domanda allo stesso sito non si rifà per giorni: meno «troppe richieste», ricerche istantanee, e se il sito è giù
   // uso l'ultima risposta buona (fino a 90 giorni). Le chiavi negli indirizzi vengono tolte dal nome in memoria.
-  const TTL = {'backend.metacritic.com': 7, 'en.wikipedia.org': 14, 'it.wikipedia.org': 14, 'www.wikidata.org': 14, 'query.wikidata.org': 14, 'www.pcgamingwiki.com': 30, 'store.steampowered.com': 2, 'www.cheapshark.com': 1, 'api.rawg.io': 7, 'www.youtube.com': 7, 'steamspy.com': 7, 'catalog.gog.com': 3};
+  const TTL = {'archive.org': 30, 'backend.metacritic.com': 7, 'en.wikipedia.org': 14, 'it.wikipedia.org': 14, 'www.wikidata.org': 14, 'query.wikidata.org': 14, 'www.pcgamingwiki.com': 30, 'store.steampowered.com': 2, 'www.cheapshark.com': 1, 'api.rawg.io': 7, 'www.youtube.com': 7, 'steamspy.com': 7, 'catalog.gog.com': 3};
   const STALE_MAX = 90 * 864e5, PMAX = 4000;
   const pkey = u=> String(u).replace(/([?&](?:key|api_key|apikey|token|access_token)=)[^&]+/gi, '$1*');
   let pdb = null;
@@ -568,7 +568,8 @@
       generi: ['Wikidata', 'RAWG', 'Wikipedia'],
       prezzo: ['facts.js (Steam in euro)', 'CheapShark dal vivo'],
       copertina: ['Steam', 'Libretro', 'Wikidata/Wikipedia'],
-      testi: ['Wikipedia + RAWG riscritti dall\'AI', 'AI con ricerca web (ultima spiaggia)']
+      testi: ['Wikipedia + RAWG riscritti dall\'AI', 'AI con ricerca web (ultima spiaggia)'],
+      musica: ['Internet Archive (album completi, senza pubblicità)', 'ost.js (YouTube, dal server)', 'YouTube dal vivo']
     }
   };
   const RANK = {}; H.PRIORITY.discover.forEach((k, i)=> RANK[k] = i);
