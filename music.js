@@ -7,6 +7,7 @@
 // 22) Suoni dell'interfaccia: 15 temi sintetizzati nel telefono (nessun file da scaricare), spenti di default, scegli tu tema e volume.
 (function(){
   'use strict';
+  if(window.RT_OFF && window.RT_OFF.music) return;
   const U = window.XUI; if(!U) return;
   const {sheet, toast, esc, LS} = U;
   const gi = n=> (typeof giIcon === 'function') ? giIcon(n) : '';

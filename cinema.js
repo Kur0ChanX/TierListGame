@@ -2,6 +2,7 @@
 // Le schermate vengono da shots.js (Steam, costruito dai server ogni settimana) e, per i giochi senza Steam, da RAWG (serve la tua chiave).
 // Si spegne da ✨ → «Anteprima cinematografica» (o da solo con il risparmio dati / «riduci animazioni» del telefono). La musica non si tocca.
 (function(){
+  if(window.RT_OFF && window.RT_OFF.cinema) return;
   const LSG = (k, d)=>{ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } };
   const LSS = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
   const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));

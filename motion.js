@@ -5,6 +5,7 @@
 // (Android: vibrazione; iPhone da iOS 17.4: «tic» del sistema; l'iPad non ha il motorino e non vibra) · pagine vuote con Frugu e un pulsante utile.
 (function(){
   'use strict';
+  if(window.RT_OFF && window.RT_OFF.motion) return;
   const html = document.documentElement;
   const LSG = (k, d)=>{ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } };
   const LSS = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };

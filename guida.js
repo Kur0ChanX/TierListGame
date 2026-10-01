@@ -2,6 +2,7 @@
 // Tutto nasce da Gemini con le fonti aperte (Wikipedia, RAWG) e la ricerca web; se non è sicuro di un dato scrive null.
 // La guida si prepara una volta sola per gioco e resta salvata (e condivisa nel catalogo). Il compagno tiene un diario di dove sei arrivato.
 (function(){
+  if(window.RT_OFF && window.RT_OFF.guida) return;
   const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const LSG = (k, d)=>{ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } };
   const LSS = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };

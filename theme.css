@@ -1124,3 +1124,22 @@ body[data-view="mytier"][data-mtmode="mine"] #filtersPanel, body[data-view="myti
 .mn-it{display:flex; align-items:center; gap:6px} .mn-it > .btn,.mn-it > a.btn,.mn-it > label{flex:1; min-width:0; text-align:left}
 .mn-pin{flex:none; width:34px; height:34px; border:0; border-radius:50%; background:transparent; opacity:.35; filter:grayscale(1); cursor:pointer} .mn-pin.on{opacity:1; filter:none; background:rgba(var(--a1rgb),.22)}
 .mn-it[hidden],.mn-room[hidden]{display:none !important}
+
+/* ---- v186: moduli, «Oggi», impostazioni ---- */
+.md-row{display:flex; align-items:flex-start; gap:10px; padding:8px 4px} .md-row span{display:flex; flex-direction:column; gap:1px} .md-row small{opacity:.72; font-size:.76rem}
+.today-box{margin:8px 0; border-radius:16px; border:1px solid rgba(var(--a1rgb),.3); background:rgba(var(--a1rgb),.07)}
+.today-box > summary{display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer; list-style:none; min-height:44px}
+.today-box > summary::-webkit-details-marker{display:none} .today-box > summary::after{content:'▾'; margin-left:auto; opacity:.7; transition:transform .25s} .today-box[open] > summary::after{transform:rotate(180deg)}
+.td-n{font-size:.82rem; opacity:.75}
+.td-body{padding:0 12px 12px}
+.td-w{margin:8px 0; padding:10px 12px; border-radius:12px; background:var(--card); border:1px solid var(--border)}
+.td-t{font-size:.8rem; font-weight:700; opacity:.8; margin-bottom:6px}
+.td-list{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; font-size:.86rem} .td-list small{opacity:.75}
+.td-chips{display:flex; flex-wrap:wrap; gap:6px} .td-g{padding:5px 10px; min-height:0}
+.td-line{font-size:.86rem; margin:4px 0} .td-act{padding:4px 10px; min-height:0; margin-left:6px}
+.td-foot{margin-top:8px; display:flex; justify-content:flex-end}
+.td-ed{display:flex; align-items:center; gap:6px; margin:6px 0} .td-ed .ask-toggle{flex:1}
+.st-sec{margin:12px 0} .st-h{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px}
+.st-row{display:flex; flex-direction:column; align-items:flex-start; gap:1px; width:100%; text-align:left; margin:4px 0; padding:10px 12px} .st-row small{opacity:.72; font-size:.76rem}
+.st-reset{padding:4px 10px; min-height:0; font-size:.76rem} .st-row[hidden],.st-sec[hidden]{display:none !important}
+body[data-view]:not([data-view="list"]) #todayBox{display:none}
