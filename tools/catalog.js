@@ -4,11 +4,14 @@
 async function customGames(){
   try{
     const owner = process.env.GITHUB_REPOSITORY_OWNER || 'kur0chanx';
-    const h = {'User-Agent': 'raccoon-tier', Accept: 'application/vnd.github+json'}; if(process.env.GITHUB_TOKEN) h.Authorization = 'Bearer ' + process.env.GITHUB_TOKEN;
+    // l'elenco dei gist pubblici si legge SENZA chiave: il token di GitHub Actions lì riceve «403 accesso negato»; il token si usa solo come riserva
+    const base = {'User-Agent': 'raccoon-tier', Accept: 'application/vnd.github+json'};
+    const tries = [base].concat(process.env.GITHUB_TOKEN ? [Object.assign({}, base, {Authorization: 'Bearer ' + process.env.GITHUB_TOKEN})] : []);
     let f = null;
     for(let page = 1; page <= 3 && !f; page++){
-      const r = await fetch('https://api.github.com/users/' + owner + '/gists?per_page=100&page=' + page, {headers: h});
-      if(!r.ok){ console.log('catalogo: elenco gist non letto (HTTP ' + r.status + ')'); return []; }
+      let r = null;
+      for(const h of tries){ r = await fetch('https://api.github.com/users/' + owner + '/gists?per_page=100&page=' + page, {headers: h}); if(r.ok) break; }
+      if(!r || !r.ok){ console.log('catalogo: elenco gist non letto (HTTP ' + (r && r.status) + ')'); return []; }
       const l = await r.json(); f = Array.isArray(l) && l.find(g=> g.description === 'RaccoonTier-catalogo'); if(!Array.isArray(l) || l.length < 100) break;
     }
     const file = f && f.files && f.files['catalogo.json']; if(!file){ console.log('catalogo: gist non trovato'); return []; }
