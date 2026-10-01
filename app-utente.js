@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v193', date:'2026-10-01', time:'13:54', items:[
+    'Gemini, falso allarme corretto: Google spesso elenca insieme il limite al minuto e quello al giorno; bastava la parola «giorno» per mettere in pausa il modello principale fino al mattino dopo. Ora la pausa scatta solo se è davvero finita la quota del giorno; altrimenti aspetto i secondi indicati e riprovo. Le pause messe per errore sono state tolte.',
+    'La Diagnostica prova DAVVERO il modello principale di Gemini: se risponde toglie la pausa; se è al limite dice se è il limite del minuto o del giorno e che intanto il modello leggero funziona.',
+    'Orari in ora italiana: nel rapporto e nel registro (prima alcuni erano nell\'ora di Londra, 2 ore indietro) e la pausa di Gemini dice «oggi/domani alle … (ora italiana)».',
+  ]},
   {version:'v192', date:'2026-10-01', time:'13:09', items:[
     'Diagnostica: per il ponte personale da aggiornare il rapporto diceva per errore «LIMITE» e non mostrava il pulsante «🌉 Copia il codice nuovo del ponte». Ora dice «PONTE da aggiornare» e il pulsante compare.',
   ]},
