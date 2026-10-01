@@ -9,6 +9,42 @@
     }
   }catch(e){}
 })();
+// ---- Versione nuova pubblicata mentre l'app è aperta (app installata o scheda lasciata aperta): avviso e aggiorno con un tocco ----
+(function(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  const cur = (document.querySelector('meta[name="build"]') || {}).content || '';
+  let last = 0, shown = false;
+  async function check(){
+    if(shown || document.hidden || Date.now() - last < 10 * 60e3) return; last = Date.now();
+    try{
+      const t = await (await fetch(location.pathname + '?vchk=' + Date.now(), {cache: 'no-store'})).text();
+      const m = /<meta name="build" content="(v\d+)"/.exec(t); if(!m || !cur || m[1] === cur) return;
+      if(+m[1].slice(1) <= +cur.slice(1)) return;
+      shown = true;
+      const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'rt-newver';
+      bar.textContent = '✨ È uscita la ' + m[1] + ' (tu hai la ' + cur + '): tocca per aggiornare';
+      bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:100950;padding:10px 16px;border-radius:999px;border:0;background:var(--pk-accent,#3b82f6);color:#fff;font:600 14px/1.2 inherit;box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:92vw';
+      bar.addEventListener('click', ()=>{ try{ sessionStorage.removeItem('jrpg_build_reload'); }catch(e){} bar.textContent = 'Aggiorno…'; const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href)); Promise.all(urls.map(u=> fetch(u, {cache: 'reload'}).catch(()=>{}))).then(()=> location.reload()); });
+      document.body.appendChild(bar);
+    }catch(e){}
+  }
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) check(); });
+  setInterval(check, 15 * 60e3);
+  setTimeout(check, 60e3);
+})();
+// ---- Misuratore della memoria del browser (localStorage, circa 5 MB): avviso una volta al giorno sopra il 70% ----
+(function(){
+  window.rtStorageUse = function(){
+    let tot = 0; const per = [];
+    try{ for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i), v = localStorage.getItem(k) || ''; const n = k.length + v.length; tot += n; per.push([k, n]); } }catch(e){}
+    per.sort((a, b)=> b[1] - a[1]);
+    return {bytes: tot, mb: (tot / 1e6).toFixed(2), pct: Math.round(100 * tot / 5e6), top: per.slice(0, 5)};   // il limite di Chrome è circa 5 milioni di caratteri per sito
+  };
+  setTimeout(()=>{ try{
+    const m = rtStorageUse(), day = new Date().toISOString().slice(0, 10);
+    if(m.pct >= 70 && localStorage.getItem('rt_storage_warn') !== day){ localStorage.setItem('rt_storage_warn', day); if(window.showToast) showToast('💾 La memoria del browser è piena al ' + m.pct + '%: dillo a Claude (va spostata in una memoria più grande prima che si riempia).', 7000); }
+  }catch(e){} }, 20000);
+})();
 // ---- Effetti funzionali: barra voto nelle righe, vibrazione leggera, transizione morbida tra le schede ----
 (function(){
   // 1) barra del voto (variabile CSS --sc) su ogni riga della classifica
