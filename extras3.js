@@ -185,6 +185,48 @@
     });
     return out;
   }
+  // ---- MECCANICHE: cosa ti tiene incollato a un gioco, oltre al genere (loot, build, crescita…). Si riconoscono da testi, pro, loop e dati di ogni scheda ----
+  const MECH = {
+    LOOT:   {ic: '🎁', n: 'Caccia al loot e drop rate', d: 'oggetti rari e drop casuali che ti tengono incollato'},
+    BUILD:  {ic: '🧩', n: 'Build e min-maxing', d: 'costruire la build perfetta, combinare sistemi, «rompere» il gioco'},
+    POWER:  {ic: '📈', n: 'Crescita e potenza visibile', d: 'il personaggio diventa sempre più forte e si vede'},
+    CHALL:  {ic: '🎯', n: 'Sfida che premia strategia e ottimizzazione', d: 'boss duri che si battono preparandosi e ottimizzando'},
+    DOPA:   {ic: '⚡', n: 'Effetto dopamina', d: 'un ciclo che ti premia di continuo: «ancora un turno»'},
+    EFFORT: {ic: '💪', n: 'Gratificazione dello sforzo', d: 'più ti impegni, più vieni ricompensato'},
+    FARM:   {ic: '🌾', n: 'Farming con beneficio tangibile', d: 'ripetere un\'attività se porta vantaggi concreti'},
+    COLL:   {ic: '🏆', n: 'Collezionabili', d: 'raccogliere, completare, catturare tutto'}
+  };
+  const MRX = {
+    LOOT: /\b(loot\w*|drop|drop rate|bottin\w*|oggetti rari|oggetti leggendari|equipaggiament\w* (raro|rari|unico|unici|leggendari\w*|casuali)|item world|tesori|casse|ricompense casuali|looter|rarita|reliquie|artefatti|armi (rare|uniche|leggendarie)|dungeon generat\w*|generazion\w* procedural\w*)/,
+    BUILD: /(\bbuild\b|min-?max\w*|sinergi\w*|ottimizz\w* (le |la |il |l.)?(build|equipaggiament\w*|party|squadra|personagg\w*|abilita)|sperimentaz\w* (con|nelle|delle|di) (build|combinazion\w*|abilita|materia|classi|equipaggiament\w*)|premia la sperimentazione|albero (di )?(abilita|talent\w*)|sistema (materia|job|classi|licenze|sfera|di classi|di creazione|di fusione)|multiclasse|crafting|artigianato|fusione (di|dei|delle) (demoni|mostri|persona|armi|abilita|creature)|assemblaggio|personalizzazione (profonda|estrema|totale|quasi infinita|ampia|delle armi|dell.equipaggiamento|del party|dei personaggi|del personaggio|di build)|liberta di (personalizzare|costruire|creare))/,
+    POWER: /(potenziament\w*|progressione|crescita (del|dei|di)|diventare (sempre )?piu forte|piu forte|livellare|statistiche|numeri (di danno|enormi|esagerati|giganti)|potenza|upgrade|evoluzion\w*|sviluppo del personaggio|power fantasy)/,
+    CHALL: /(sfida (appagante|punitiva|estrema|impegnativa|dura|esigente|che premia)|boss (opzional\w*|segret\w*|superboss)|superboss|punitiv\w*|premia (la|i|il|lo|le|chi) (strateg\w*|prepar\w*|rifless\w*|ottimizz\w*|padronanza)|padronanza|preparazione|curva di difficolta|soulslike|roguelike|difficolta (elevata|estrema|alta))/,
+    DOPA: /(dopamin\w*|ancora un turno|ricompens\w* (continu\w*|frequent\w*)|gratificazion\w*|loop (coinvolgent\w*|appagant\w*)|incollat\w*|assuefa\w*|dipendenza)/,
+    EFFORT: /(premia (l.?impegno|la dedizione|lo sforzo|la pazienza|la perseveranza|la padronanza|l.?ottimizzazione)|gratificant\w*|appagant\w*|soddisfazion\w*|dedizione|sforzo|perseveranz\w*|ricompensa chi)/,
+    FARM: /(\bfarm\w*|\bgrind\w*|ripetere|ripetizion\w*|raccolta (di )?risorse|coltivazion\w*|allevament\w*)/,
+    COLL: /(collezion\w*|completist\w*|catturare (mostri|creature|pokemon)|cattura di (mostri|creature)|bestiario|reclutare|tutti i (personaggi|mostri)|trofei|oggetti nascosti)/
+  };
+  const mnrm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const MC = new Map();
+  function mechOf(g){
+    const e = g.enrich || {}, c = MC.get(g.id), sig = (g.tags || []).join(',') + '|' + (e.whyLikeIt || '').length + '|' + ((e.pros || []).length) + '|' + ((g.label || {}).d || 0);
+    if(c && c.sig === sig) return c.list;
+    const dop = e.dopa || {}, txt = mnrm([e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (dop.loop || []).join(' '), dop.hook].join(' . ')), out = new Set(), tg = g.tags || [], l = g.label || {};
+    Object.keys(MRX).forEach(k=>{ if(MRX[k].test(txt)) out.add(k); });
+    if(e.dopamine === true) out.add('DOPA');
+    if(tg.includes('MON')) out.add('COLL');
+    if(tg.includes('CARD')){ out.add('COLL'); out.add('BUILD'); }
+    if(tg.includes('ROG')){ out.add('LOOT'); out.add('BUILD'); }
+    if(tg.includes('SOUL')) out.add('CHALL');
+    if(tg.includes('LIFE')){ out.add('FARM'); out.add('COLL'); }
+    if(l.d >= 4) out.add('CHALL');
+    if(e.hoursCompletionist && e.hoursMain && e.hoursCompletionist >= e.hoursMain * 3) out.add('COLL');
+    if(l.g >= 4 && (out.has('LOOT') || out.has('BUILD') || out.has('POWER'))) out.add('FARM');
+    const list = [...out]; MC.set(g.id, {sig, list}); return list;
+  }
+  window.rtMech = MECH; window.rtMechOf = mechOf;
+  const DECL = 'jrpg_taste_mech';                                  // le meccaniche che dici tu: 1 = mi piace, -1 = evito
+  const declared = ()=> LS.get(DECL, {}) || {};
   function feats(g){
     const l = g.label || {}, h = l.h || (g.enrich && g.enrich.hoursMain) || 0, f = [];
     (g.tags || []).forEach(t=> f.push('tag:' + t));
@@ -194,20 +236,23 @@
     if(l.p) f.push('ritmo:' + ({L: 'lento', M: 'medio', V: 'veloce'}[l.p] || l.p));
     if(h) f.push('ore:' + (h < 20 ? 'brevi' : h <= 50 ? 'medie' : 'lunghe'));
     if(g.ysort) f.push('epoca:' + (Math.floor(g.ysort / 10) * 10));
+    try{ mechOf(g).forEach(m=> f.push('mech:' + m)); }catch(e){}
     return f;
   }
-  const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
+  const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
   let TM = null, TMkey = '';
   function tasteModel(){
-    const sig = signals(), key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0);
+    const sig = signals(), dc = declared(), key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc);
     if(TM && TMkey === key) return TM;
     const sum = {}, cnt = {};
     sig.forEach(({g, w})=> feats(g).forEach(k=>{ sum[k] = (sum[k] || 0) + w; cnt[k] = (cnt[k] || 0) + 1; }));
     const wts = {}; Object.keys(sum).forEach(k=> wts[k] = sum[k] / (cnt[k] + 2));
-    TM = {n: sig.length, wts, cnt, sig}; TMkey = key; return TM;
+    // quello che dici tu pesa subito (anche con pochi giochi segnati); il resto lo imparo dai tuoi giochi
+    Object.keys(dc).forEach(m=>{ if(!MECH[m] || !dc[m]) return; const k = 'mech:' + m; wts[k] = (wts[k] || 0) + dc[m] * 1.1; cnt[k] = Math.max(cnt[k] || 0, 2); });
+    TM = {n: sig.length, wts, cnt, sig, dc}; TMkey = key; return TM;
   }
   function tasteScore(g){
-    const m = tasteModel(); if(m.n < 3) return 0;
+    const m = tasteModel(); if(m.n < 3 && !Object.keys(m.dc || {}).some(k=> m.dc[k])) return 0;
     const f = feats(g); if(!f.length) return 0;
     const v = f.reduce((a, k)=> a + (m.wts[k] || 0), 0) / Math.sqrt(f.length);
     return Math.max(-1, Math.min(1, v / 2.2));
@@ -244,21 +289,50 @@
     window[fn] = function(){ const r = o.apply(this, arguments); try{ return typeof r === 'string' ? r + window.tasteSummary() : r; }catch(e){ return r; } };
     try{ if(fn === 'askInstructions') askInstructions = window[fn]; else if(fn === 'buildNovitaPrompt') buildNovitaPrompt = window[fn]; else buildNovitaGenrePrompt = window[fn]; }catch(e){}
   });
+  // un'etichetta chiara per ogni «gusto»: le meccaniche con la loro icona
+  const tlab = k=>{ const [a, b] = k.split(':'); return a === 'mech' && MECH[b] ? MECH[b].ic + ' ' + MECH[b].n : FLAB(k); };
+  function why(m, k){          // i giochi che ti hanno «insegnato» questo gusto
+    return m.sig.filter(x=> x.w > .5 && feats(x.g).includes(k)).sort((a, b)=> b.w - a.w).slice(0, 2).map(x=> x.g.name);
+  }
   function openTaste(){
-    const m = tasteModel();
-    if(m.n < 3){ sheet('xTaste', gi('dna') + ' I tuoi gusti', '<div class="lp-sub">Segna almeno 3 giochi come preferiti, giocati o droppati (o sposta qualcosa nella tua tier list) e l\'app inizierà a capire i tuoi gusti.</div>'); return; }
+    const m = tasteModel(), dc = declared();
+    const hasDecl = Object.keys(dc).some(k=> dc[k]);
+    const intro = `<div class="lp-sub"><b>A cosa serve:</b> guardo i giochi che hai segnato (preferiti, giocati, droppati, i tuoi voti e la tua tier list) e capisco cosa hanno in comune: non solo il genere, ma anche <b>le meccaniche che ti tengono incollato</b> (loot, build, crescita del personaggio, farming, collezionabili…). Poi lo uso per «Più adatti a te», per i verdetti, per il Radar e per i consigli di Chiedi.</div>`;
+    // 1) le meccaniche: le dici tu (tocca per ciclare: 👍 mi piace → 👎 evito → neutro) e le imparo io
+    const mrow = k=>{ const v = dc[k] || 0, kk = 'mech:' + k, w = m.wts[kk] || 0, learned = m.cnt[kk] >= 2 && !v ? (w > .25 ? 'imparato: ti piace' : w < -.2 ? 'imparato: lo eviti' : '') : '';
+      const w2 = why(m, kk);
+      return `<div class="tg-mech"><button type="button" class="tg-mbtn${v > 0 ? ' like' : v < 0 ? ' no' : ''}" data-mech="${k}" aria-label="${esc(MECH[k].n)}"><span class="tg-mi">${MECH[k].ic}</span><span class="tg-mt"><b>${esc(MECH[k].n)}</b><small>${esc(MECH[k].d)}</small>${learned ? `<small class="tg-lrn">${learned}${w2.length ? ' · da ' + esc(w2.join(', ')) : ''}</small>` : ''}</span><span class="tg-ms">${v > 0 ? '👍' : v < 0 ? '👎' : '＋'}</span></button></div>`; };
+    const mech = `<h4>Le tue meccaniche preferite</h4><div class="lp-sub">Dimmelo tu: tocca una meccanica per «mi piace» 👍, ancora per «la evito» 👎, ancora per toglierla. Quello che dici pesa subito; il resto lo imparo dai tuoi giochi.</div><div class="tg-mechs">${Object.keys(MECH).map(mrow).join('')}</div>`;
+    if(m.n < 3 && !hasDecl){
+      const body0 = sheet('xTaste', gi('dna') + ' I tuoi gusti', `${intro}<div class="lp-sub">Per cominciare segna almeno <b>3 giochi</b> come preferiti, giocati o droppati (o spostali nella tua tier list), oppure scegli qui sotto le meccaniche che ami.</div>${mech}`);
+      wireMech(body0); return;
+    }
     const e = Object.entries(m.wts).filter(([k])=> m.cnt[k] >= 2);
-    const bar = (k, v)=> `<div class="tg-row"><span>${esc(FLAB(k))}</span><i class="${v >= 0 ? 'p' : 'n'}" style="width:${Math.min(100, Math.abs(v) * 60)}%"></i><small>${v >= 0 ? '+' : ''}${Math.round(v * 50)}</small></div>`;
-    const pos = e.filter(x=> x[1] > 0).sort((a, b)=> b[1] - a[1]).slice(0, 12), neg = e.filter(x=> x[1] < 0).sort((a, b)=> a[1] - b[1]).slice(0, 8);
+    const bar = (k, v)=> `<div class="tg-row"><span>${esc(tlab(k))}</span><i class="${v >= 0 ? 'p' : 'n'}" style="width:${Math.min(100, Math.abs(v) * 60)}%"></i><small>${v >= 0 ? '+' : ''}${Math.round(v * 50)}</small></div>`;
+    const pos = e.filter(x=> x[1] > 0 && !x[0].startsWith('mech:')).sort((a, b)=> b[1] - a[1]).slice(0, 10), neg = e.filter(x=> x[1] < 0).sort((a, b)=> a[1] - b[1]).slice(0, 8);
     const tol = tolerances(m);
-    const recs = GAMES.filter(g=> !STATUSES[g.id] && !FAVS.has(g.id)).map(g=> ({g, s: tasteScore(g)})).sort((a, b)=> b.s - a.s).slice(0, 6);
-    const body = sheet('xTaste', gi('dna') + ' I tuoi gusti', `<div class="lp-sub">Imparati da ${m.n} giochi (preferiti, stati e la tua tier list). Li uso per ordinare «Più adatti a te», per i consigli di Chiedi e per le ricerche di Novità.</div>
+    const likedMech = Object.keys(MECH).filter(k=> (m.wts['mech:' + k] || 0) > .25);
+    const recs = GAMES.filter(g=> !STATUSES[g.id] && !FAVS.has(g.id)).map(g=> ({g, s: tasteScore(g)})).sort((a, b)=> b.s - a.s).slice(0, 8);
+    const body = sheet('xTaste', gi('dna') + ' I tuoi gusti', `${intro}
+      <div class="tg-status">${m.n >= 3 ? `Ho imparato da <b>${m.n}</b> giochi` : 'Per ora conto solo su quello che mi hai detto'} · ${m.n >= 25 ? '🟢 profilo affidabile' : m.n >= 10 ? '🟡 profilo discreto: più giochi segni, meglio è' : '🔴 profilo ancora debole: segna altri giochi'}</div>
+      ${mech}
       ${window.rtRadar ? window.rtRadar(null) : ''}
-      <h4>Ti piace</h4>${pos.map(x=> bar(...x)).join('') || '<small>ancora poco chiaro</small>'}
+      <h4>Generi e stile che ti piacciono</h4>${pos.map(x=> bar(...x)).join('') || '<small>ancora poco chiaro</small>'}
       <h4>Tendi a evitare</h4>${neg.map(x=> bar(...x)).join('') || '<small>niente di netto</small>'}
       ${tol.length ? '<h4>Nonostante…</h4>' + tol.map(t=> `<div class="tg-tol">${esc(t)}</div>`).join('') : ''}
-      ${(()=>{ const ps = window.rtPredictStats && rtPredictStats(); return ps ? `<h4>Quanto ti conosce l'app</h4><div class="tg-tol">Previsioni azzeccate (entro 1 punto): <b>${ps.hit}%</b> su ${ps.n} giochi votati · errore medio ${ps.avg.toFixed(1)}</div>` : ''; })()}<h4>Da provare secondo i tuoi gusti</h4><div class="tg-recs">${recs.map(r=> `<button class="btn" type="button" data-tg="${r.g.id}">${esc(r.g.name)}</button>`).join('')}</div>`);
+      ${(()=>{ const ps = window.rtPredictStats && rtPredictStats(); return ps ? `<h4>Quanto ti conosce l'app</h4><div class="tg-tol">Previsioni azzeccate (entro 1 punto): <b>${ps.hit}%</b> su ${ps.n} giochi votati · errore medio ${ps.avg.toFixed(1)}</div>` : ''; })()}
+      <h4>Da provare secondo i tuoi gusti</h4><div class="tg-recs">${recs.map(r=>{ const mm = mechOf(r.g).filter(k=> likedMech.includes(k) || (dc[k] || 0) > 0); return `<button class="btn" type="button" data-tg="${r.g.id}">${esc(r.g.name)}${mm.length ? ` <span class="tg-why">${mm.map(k=> MECH[k].ic).join('')}</span>` : ''}</button>`; }).join('')}</div>${likedMech.length ? '<div class="lp-sub">Le icone dicono quali delle tue meccaniche preferite ha ogni gioco.</div>' : ''}`);
     body.querySelectorAll('[data-tg]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xTaste').classList.remove('show'); openModal(GAMES.find(g=> g.id == b.dataset.tg)); }));
+    wireMech(body);
+  }
+  function wireMech(body){
+    body.querySelectorAll('[data-mech]').forEach(b=> b.addEventListener('click', ()=>{
+      const k = b.dataset.mech, d = declared(), cur = d[k] || 0, nx = cur === 0 ? 1 : cur === 1 ? -1 : 0;
+      if(nx) d[k] = nx; else delete d[k];
+      LS.set(DECL, d); TM = null; try{ window.rtHaptic && rtHaptic('tick'); }catch(e){}
+      const sc = document.querySelector('#xTaste .lp-card'), top = sc ? sc.scrollTop : 0;
+      openTaste(); const sc2 = document.querySelector('#xTaste .lp-card'); if(sc2) sc2.scrollTop = top;
+    }));
   }
   menu(gi('dna') + ' I tuoi gusti (imparati)', openTaste);
 

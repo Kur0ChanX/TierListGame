@@ -1067,3 +1067,15 @@ body:has(#modalBackdrop.show) .rt-music.docked{display:none !important}
 .mt-how > summary{cursor:pointer; font-size:.84rem; opacity:.85; margin:6px 0 0; list-style:none} .mt-how > summary::-webkit-details-marker{display:none} .mt-how > summary::before{content:'ⓘ '}
 /* nella mia tier list (solo i miei) i filtri della classifica e le liste per genere non servono: tolgo il rumore */
 body[data-view="mytier"][data-mtmode="mine"] #filtersPanel, body[data-view="mytier"][data-mtmode="mine"] #listBar{display:none !important}
+
+/* ---- v183: I tuoi gusti con le meccaniche ---- */
+.tg-status{margin:8px 0; padding:8px 12px; border-radius:12px; background:rgba(var(--a1rgb),.1); font-size:.84rem}
+.tg-mechs{display:grid; grid-template-columns:1fr; gap:6px; margin:6px 0 10px}
+@media (min-width:760px){ .tg-mechs{grid-template-columns:1fr 1fr} }
+.tg-mbtn{display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:9px 12px; border-radius:14px; border:1px solid var(--border); background:var(--card); color:inherit; cursor:pointer}
+.tg-mbtn.like{border-color:rgba(60,190,110,.8); background:rgba(60,190,110,.14)}
+.tg-mbtn.no{border-color:rgba(220,70,70,.75); background:rgba(220,70,70,.12)}
+.tg-mi{font-size:1.4rem; flex:none} .tg-mt{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px} .tg-mt b{font-size:.88rem} .tg-mt small{opacity:.75; font-size:.74rem; line-height:1.25}
+.tg-mt .tg-lrn{opacity:.95; color:var(--a1,#6a7bff)}
+.tg-ms{flex:none; font-size:1.2rem; min-width:26px; text-align:center}
+.tg-why{margin-left:4px; font-size:.8rem}
