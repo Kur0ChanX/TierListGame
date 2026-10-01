@@ -5,7 +5,7 @@
   const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const ICON = {diff: '🔥', grind: '⏳', storia: '📖', ritmo: '🐢', ore: '🕐'};
   const W = 360, H = 300, CX = 180, CY = 150, R = 84, LR = 98;
-  const iconOf = k=>{ const [a, b] = k.split(':'); let t = null; try{ t = typeof TAG_INFO !== 'undefined' ? TAG_INFO : null; }catch(e){} return a === 'tag' ? ((t && t[b] && t[b].icon) || '•') : (ICON[a] || '•'); };
+  const iconOf = k=>{ const [a, b] = k.split(':'); let t = null; try{ t = typeof TAG_INFO !== 'undefined' ? TAG_INFO : null; }catch(e){} if(a === 'mech' && window.rtMech && window.rtMech[b]) return window.rtMech[b].ic; return a === 'tag' ? ((t && t[b] && t[b].icon) || '•') : (ICON[a] || '•'); };
   const shortLab = s=>{ s = String(s).replace(/\s*\(.*?\)\s*/g, ' ').trim(); return s.length > 19 ? s.slice(0, 18).trim() + '…' : s; };
 
   function axes(){
