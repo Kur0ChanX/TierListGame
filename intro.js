@@ -37,7 +37,7 @@
   function onKey(e){ enter(); }
   el.addEventListener('click', e=>{ e.stopPropagation(); e.preventDefault(); enter(); });
   window.addEventListener('keydown', onKey);
-  setTimeout(close, 12000);                            // rete di sicurezza
+  setTimeout(()=>{ if(typeof GAMES !== 'undefined' && GAMES.length) close(); }, 12000);   // rete di sicurezza (non chiudo su una pagina vuota)
   if(start && canFull && wantFs) start.textContent = '▶ INIZIA A FRUGARE';
 
   // si chiude da sola (2,2 s) solo se non c'è lo schermo intero da attivare; altrimenti aspetta il tocco
@@ -49,6 +49,15 @@
     setTimeout(check, 150);
   }
   setTimeout(()=>{ timeUp = true; }, reduce ? 1200 : 2200);
+  // v202: se dopo 9 secondi i giochi non ci sono, quasi sempre è GitHub che rifiuta (troppe richieste dalla tua rete):
+  // lo dico chiaramente e riprovo da solo (al massimo 3 volte), invece di restare fermo su «Carico la tua collezione…»
+  setTimeout(()=>{
+    if(closed || (typeof GAMES !== 'undefined' && GAMES.length)) return;
+    let n = 0; try{ n = +(sessionStorage.getItem('rt_boot_retry') || 0); }catch(e){}
+    if(msg) msg.textContent = n < 3 ? 'Il sito di GitHub è sovraccarico in questo momento: riprovo da solo…' : 'GitHub non risponde dalla tua rete. Prova a spegnere e riaccendere i dati (o il Wi-Fi) e riapri.';
+    if(n < 3){ try{ sessionStorage.setItem('rt_boot_retry', String(n + 1)); }catch(e){} setTimeout(()=> location.reload(), 4000 + n * 6000); }
+  }, 9000);
+  window.addEventListener('load', ()=>{ setTimeout(()=>{ if(typeof GAMES !== 'undefined' && GAMES.length){ try{ sessionStorage.removeItem('rt_boot_retry'); }catch(e){} } }, 500); });
   check();
 
   // stelline e coriandoli (solo CSS, partono subito)

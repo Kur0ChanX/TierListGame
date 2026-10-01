@@ -4,8 +4,12 @@
     const mb = document.querySelector('meta[name="build"]');
     if(typeof DATA_BUILD_VERSION === 'string' && (!mb || mb.content !== DATA_BUILD_VERSION) && /^https?:$/.test(location.protocol) && !sessionStorage.getItem('jrpg_build_reload')){
       sessionStorage.setItem('jrpg_build_reload', '1');
-      const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href));
-      Promise.all(urls.map(u=> fetch(u, {cache:'reload'}).catch(()=>{}))).then(()=> location.reload());
+      // v202: con il service worker attivo basta ricaricare (lui sa quali file sono vecchi): niente raffica di richieste a GitHub
+      if(navigator.serviceWorker && navigator.serviceWorker.controller){ location.reload(); }
+      else {
+        const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href));
+        Promise.all(urls.map(u=> fetch(u, {cache:'reload'}).catch(()=>{}))).then(()=> location.reload());
+      }
     }
   }catch(e){}
 })();
@@ -24,7 +28,7 @@
       const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'rt-newver';
       bar.textContent = '✨ È uscita la ' + m[1] + ' (tu hai la ' + cur + '): tocca per aggiornare';
       bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:100950;padding:10px 16px;border-radius:999px;border:0;background:var(--pk-accent,#3b82f6);color:#fff;font:600 14px/1.2 inherit;box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:92vw';
-      bar.addEventListener('click', ()=>{ try{ sessionStorage.removeItem('jrpg_build_reload'); }catch(e){} bar.textContent = 'Aggiorno…'; const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href)); Promise.all(urls.map(u=> fetch(u, {cache: 'reload'}).catch(()=>{}))).then(()=> location.reload()); });
+      bar.addEventListener('click', ()=>{ try{ sessionStorage.removeItem('jrpg_build_reload'); }catch(e){} bar.textContent = 'Aggiorno…'; const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href)); if(navigator.serviceWorker && navigator.serviceWorker.controller) location.reload(); else Promise.all(urls.map(u=> fetch(u, {cache: 'reload'}).catch(()=>{}))).then(()=> location.reload()); });
       document.body.appendChild(bar);
     }catch(e){}
   }

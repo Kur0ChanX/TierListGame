@@ -466,7 +466,8 @@
     async find(name){
       const j = await rawgGet('games', {search: name, search_precise: 'true', page_size: '6'});
       const strip = x=> norm(String(x).replace(/\s*\([^)]*\)/g, '')), t = strip(name), list = j.results || [];
-      return list.find(g=> strip(g.name) === t) || list.find(g=> { const n = strip(g.name); return n.length > 4 && (n.startsWith(t) || t.startsWith(n)); }) || null;
+      // v202: «Dragon Quest» NON è «Dragon Quest XI S: Echi…»: un nome più corto vale solo se copre quasi tutto il titolo cercato
+      return list.find(g=> strip(g.name) === t) || list.find(g=> { const n = strip(g.name); return n.length > 4 && ((n.startsWith(t) && t.length >= n.length * .6) || (t.startsWith(n) && n.length >= t.length * .75)); }) || null;
     },
     async info(name){
       const g = await H.rawg.find(name); if(!g) return null;
@@ -606,15 +607,16 @@
   H.resolveGame = function(g){
     if(!g) return Promise.resolve({en: '', sid: null});
     const e = ENC[g.id];
-    if(e && (e.n || Date.now() - e.t < 20 * 864e5) && e.q === g.name) return Promise.resolve({en: e.n || g.name, sid: e.sid || null});
+    if(e && (e.n || Date.now() - e.t < 7 * 864e5) && e.q === g.name) return Promise.resolve({en: e.n || g.name, sid: e.sid || null});
     if(ENP.has(g.id)) return ENP.get(g.id);
     const p = (async()=>{
-      let sid = null, en = null;
+      let sid = null, en = null, answered = false;      // answered: Steam ha risposto (anche «nessun risultato»); se la rete era giù non salvo il fallimento
       try{ const f = H.factsFor(g); if(f && f.s && f.s.id){ sid = f.s.id; if(f.s.en){ ENC[g.id] = {n: f.s.en, sid, t: Date.now(), q: g.name}; enSave(); return {en: f.s.en, sid}; } } }catch(x){}
       if(!sid){
         for(const [l, cc] of [['italian', 'it'], ['english', 'us']]){
           try{
             const j = await H.json('https://store.steampowered.com/api/storesearch/?l=' + l + '&cc=' + cc + '&term=' + encodeURIComponent(g.name.replace(/[:™®]/g, ' ')), {timeout: 12000});
+            if(j && Array.isArray(j.items)) answered = true;
             const best = ((j && j.items) || []).map(x=> ({x, s: enSim(g.name, x.name)})).sort((a, b)=> b.s - a.s)[0];
             if(best && best.s >= .6){ sid = best.x.id; break; }
           }catch(x){}
@@ -623,7 +625,7 @@
       if(sid){
         try{ const j = await H.json('https://store.steampowered.com/api/appdetails?appids=' + sid + '&filters=basic&l=english&cc=us', {timeout: 12000}); const d = j && j[sid] && j[sid].success ? j[sid].data : null; if(d && d.name) en = enClean(d.name); }catch(x){}
       }
-      ENC[g.id] = {n: en || '', sid: sid || 0, t: Date.now(), q: g.name}; enSave();
+      if(en || answered){ ENC[g.id] = {n: en || '', sid: sid || 0, t: Date.now(), q: g.name}; enSave(); }
       return {en: en || g.name, sid};
     })().finally(()=> ENP.delete(g.id));
     ENP.set(g.id, p); return p;

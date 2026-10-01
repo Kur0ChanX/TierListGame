@@ -29,7 +29,7 @@
     }catch(e){ return []; }
   }
   async function rawgShots(g){
-    const c = LSG('rt_shots_rawg3', {}), e = c[g.id];      // v201: chiave nuova, le vecchie cercate col nome italiano potevano essere di un altro gioco
+    const c = LSG('rt_shots_rawg4', {}), e = c[g.id];      // v201: chiave nuova, le vecchie cercate col nome italiano potevano essere di un altro gioco
     if(e && Date.now() - e.t < 30 * 864e5) return e.u || [];
     try{
       if(!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has() && SearchHub.rawg.shots)) return [];
@@ -37,7 +37,7 @@
       const u = await SearchHub.rawg.shots(nm);
       c[g.id] = {t: Date.now(), u: u || []};
       const ks = Object.keys(c); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k=> delete c[k]);
-      LSS('rt_shots_rawg3', c); return u || [];
+      LSS('rt_shots_rawg4', c); return u || [];
     }catch(e2){ return []; }
   }
   async function shotsFor(g){
