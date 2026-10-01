@@ -861,6 +861,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     if(ai && day.n >= auCap()){ auPause = 'Limite giornaliero raggiunto (' + day.n + ' giochi): riprendo domani.'; return auSchedule(30 * 60e3); }
     auPause = '';
     const g = auNext(); if(!g) return auSchedule(6 * 3600e3);
+    try{ if(window.rtTexts) await rtTexts.ensure(g); }catch(e){}
     auBusy = true;
     try{
       let ge = g; try{ if(SearchHub.enGame) ge = await SearchHub.enGame(g); }catch(e){}
@@ -1016,6 +1017,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
   let fpTextN = 0;                       // trame riscritte dall'AI in questa sessione (con limite, per non consumare le richieste gratuite)
   async function updatePlus(g, manual){
+    try{ if(window.rtTexts) await rtTexts.ensure(g); }catch(e){}      // v209: confronto con i testi completi del gioco, non con l'indice
     g = latest(g);
     const src = await gather(g, false);
     const names = Object.keys(FP_SRC).filter(k=> src[k]).map(k=> FP_SRC[k]);

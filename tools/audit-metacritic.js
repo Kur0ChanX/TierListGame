@@ -1,7 +1,7 @@
 // Audit dei voti su Metacritic (uso: node tools/audit-metacritic.js risultati.json). Cerca ogni gioco nell'autosuggest di Metacritic e salva titolo, data, generi, piattaforme e Metascore.
 // Con un proxy: NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=<ca> node tools/audit-metacritic.js out.json. Confrontare poi il Metascore con 'score' e correggere solo se la differenza è >6 e le recensioni ≥15.
 const fs=require('fs');const OUT=process.argv[2];
-const D=JSON.parse(fs.readFileSync(require('path').join(__dirname,'..','giochi.js'),'utf8').replace(/^const GIOCHI_DATA = /,'').replace(/;\s*$/,''));const G=D.games;
+const D=require('./data-io').load();const G=D.games;
 const UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const norm=n=>String(n||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\([^)]*\)/g,' ').replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').replace(/\bthe\b/g,' ').replace(/\s+/g,' ').trim();

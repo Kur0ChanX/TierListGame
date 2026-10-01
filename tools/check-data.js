@@ -4,7 +4,7 @@
 // Non modifica nulla. Esce con codice 0: sono avvisi da leggere, non errori.
 const fs = require('fs');
 const path = require('path');
-const D = require('./data-io').load();          // giochi.js + giochi-dettagli.js insieme
+const D = require('./data-io').load();          // indice giochi.js + testi dati/testi-*.js insieme (formato v3)
 const NOW = new Date();
 const YEAR = NOW.getFullYear();
 const TIME_RE = /essendo [^;.]{0,40}recente|titolo (relativamente |indipendente )?recente|capitolo (più )?recente|reinvenzione recente|invecchia (bene|benissimo) essendo|panorama indie recente|in corso di rilascio|terzo capitolo in sviluppo|uscito da poco|appena uscit|uscita recente|troppo (presto|recente|fresc)|di recente|poco valutabil|ancora presto|da poco (uscit|sul mercato)|pochi mesi|primi mesi|ancora (poche|pochi) (recension|dati|mesi)|non ancora (valutabil|consolidat|giudicabil)|recentissim|troppo nuov|troppo giovane/i;
@@ -48,6 +48,20 @@ for (const g of D.games) {
   if (!/^<!DOCTYPE html>/i.test(html)) { warnings++; console.log('L\'HTML deve iniziare con <!DOCTYPE html>.'); }
 }
 
+// v209: l'indice e i pezzi di testi devono combaciare (ogni gioco con «hs» ha la sua trama nel pezzo giusto)
+{
+  const fsx = require('fs'), px = require('path');
+  try{
+    const I = JSON.parse(fsx.readFileSync(px.join(__dirname, '..', 'giochi.js'), 'utf8').replace(/^const GIOCHI_DATA = /, '').replace(/;\s*$/, ''));
+    if (I.enc === 't1') Object.assign(I, require('./data-io').decodeT1(I.t));
+    if (I.v === 3) {
+      const miss = I.games.filter(g=> g.hs && !(D.games.find(x=> x.id === g.id) || {}).story);
+      if (miss.length) { warnings++; console.log('Trama mancante nei pezzi dati/testi-*.js per ' + miss.length + ' giochi (es. id ' + miss[0].id + '): rigenera con data-io save'); }
+      const noMx = I.games.filter(g=> D.enrich[g.id] && !(I.lite || {})[g.id]);
+      if (noMx.length) { warnings++; console.log('Indice senza «lite» per ' + noMx.length + ' giochi: rigenera con data-io save'); }
+    }
+  }catch(e){ warnings++; console.log('Indice giochi.js illeggibile: ' + e.message); }
+}
 // nessun marcatore di conflitto git rimasto nei file (successo una volta con un nome file con spazi)
 {
   const fs3 = require('fs'), path3 = require('path'), root3 = path3.join(__dirname, '..');

@@ -9,7 +9,8 @@
       "Read(radar.js)",
       "Read(quality.js)",
       "Read(qrcode.min.js)",
-      "Read(backup-aurora/**)"
+      "Read(backup-aurora/**)",
+      "Read(dati/**)"
     ]
   }
 }

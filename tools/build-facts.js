@@ -27,8 +27,7 @@ async function getJson(url, tries = 3){
   }
   return null;
 }
-const raw = fs.readFileSync(path.join(ROOT, 'giochi.js'), 'utf8').replace(/^const GIOCHI_DATA = /, '').replace(/;\s*$/, '');
-const D = JSON.parse(raw), GAMES = D.games;
+const D = require('./data-io').load(), GAMES = D.games;      // v209: l'indice è «a tabella», lo legge data-io
 let prev = {games: {}};
 try{ const t = fs.readFileSync(path.join(ROOT, 'facts.js'), 'utf8'); prev = JSON.parse(t.replace(/^const GAME_FACTS = /, '').replace(/;\s*$/, '')); }catch(e){}
 

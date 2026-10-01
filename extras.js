@@ -38,11 +38,13 @@
   function cardHtml(g){
     const c = coverOf(g), st = (typeof STATUSES !== 'undefined') && STATUSES[g.id];
     const fav = FAVS.has(g.id) ? '<span class="x-fav">★</span>' : '';
+    // v209: «Nel cuore» 😍 anche nella griglia e nelle copertine
+    const heart = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : []; return Array.isArray(t) && t.includes(g.id) ? '<img class="x-heart" src="icons/approved.webp" alt="Nel cuore" width="30" height="32" loading="lazy">' : ''; }catch(e){ return ''; } })();
     const img = c ? `<img src="${esc(coverThumb(c, 360))}" data-orig="${esc(c)}" alt="" loading="lazy" decoding="async" onload="this.style.visibility=''" onerror="this.style.visibility='hidden';if(this.dataset.orig&&this.src!==this.dataset.orig){this.src=this.dataset.orig}else{this.remove()}">` : '';
     const ph = `<div class="x-ph" style="--tc:${TIER_COL[g.tier] || '#7c5cff'}"><span>${esc(g.name)}</span></div>`;
     const badge = `<span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span>`;
     if(MODE === 'grid'){
-      return `<div class="x-card" data-id="${g.id}"><div class="x-cover">${ph}${img}${fav}<div class="x-corner">${badge}<b>${g.score}</b></div></div><div class="x-name">${esc(g.name)}</div></div>`;
+      return `<div class="x-card" data-id="${g.id}"><div class="x-cover">${ph}${img}${fav}${heart}<div class="x-corner">${badge}<b>${g.score}</b></div></div><div class="x-name">${esc(g.name)}</div></div>`;
     }
     const tags = (g.tags || []).slice(0, 2).map(t=> TAG_INFO[t] ? `<span class="x-tag">${TAG_INFO[t].icon} ${esc(TAG_INFO[t].label)}</span>` : '').join('');
     const stl = st && STATUS_INFO[st] ? `<span class="x-st">${esc(STATUS_INFO[st].label)}</span>` : '';
@@ -764,6 +766,7 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
     if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ Impostazioni in Chiedi) per cercare sul web', 3500); return; }
     busy = true; refresh();
     try{
+      try{ if(window.rtTexts) await rtTexts.ensure(favs.slice(0, 14)); }catch(e){}      // v209: i «perché ti piace» dei preferiti servono completi
       const arr = await novitaSearchParallel(n=> buildPrompt(favs, n), 12, VIBES_STRATEGIES, null, {directKeys: ['reddit', 'rawgsimilar'], seeds: favs.slice(0, 8).map(f=> f.name)});
       const have = new Set(results.map(c=> c.name.toLowerCase()));
       const fresh = arr.filter(c=> !have.has(c.name.toLowerCase()));
