@@ -183,6 +183,7 @@
       if(FAVS.has(g.id)) w += 2;
       if(s === 'played') w += 1; else if(s === 'playing') w += .6; else if(s === 'backlog') w += .25; else if(s === 'dropped') w -= 2;
       if(MT[g.id]) w += (TI(g.tier) - TI(MT[g.id])) * .8;
+      try{ if(window.rtBrain) w += rtBrain.sigFor(g, MV[g.id] != null); }catch(e){}      // v203: icone 👍👎🚫💔🔁 e valutazioni a 6 voci (cervello.js)
       if(w) out.push({g, w});
     });
     return out;
@@ -324,7 +325,7 @@
   const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mine'){ const c = (LS.get('jrpg_dna_custom', {}) || {})[b]; return c ? c.n : b; } if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
   let TM = null, TMkey = '';
   function tasteModel(){
-    const sig = signals(), dc = declared(), dw = LS.get('jrpg_dna_why', {}) || {}, key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc) + ':' + JSON.stringify(dw) + ':' + JSON.stringify(LS.get('jrpg_dna_custom', {}) || {});
+    const sig = signals(), dc = declared(), dw = LS.get('jrpg_dna_why', {}) || {}, key = sig.length + ':' + sig.reduce((a, x)=> a + x.w * x.g.id, 0) + ':' + JSON.stringify(dc) + ':' + JSON.stringify(dw) + ':' + JSON.stringify(LS.get('jrpg_dna_custom', {}) || {}) + ':' + (window.rtBrain ? rtBrain.key() : '');
     if(TM && TMkey === key) return TM;
     const sum = {}, cnt = {};
     sig.forEach(({g, w})=> feats(g).forEach(k=>{ sum[k] = (sum[k] || 0) + w; cnt[k] = (cnt[k] || 0) + 1; }));
@@ -336,6 +337,7 @@
     Object.keys(dwc).forEach(m=>{ const k = 'mech:' + m, v = dwc[m]; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .55 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); });
     // v200: i tratti che hai creato a parole contano subito (come quelli che segni con 👍/👎)
     try{ const cu = LS.get('jrpg_dna_custom', {}) || {}; Object.keys(cu).forEach(m=>{ const c = cu[m], v = (c.by || []).length - (c.no || []).length; if(!v) return; const k = 'mine:' + m; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .7 + .3 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); }); }catch(e){}
+    try{ if(window.rtBrain) rtBrain.adjust(wts, cnt); }catch(e){}
     TM = {n: sig.length, wts, cnt, sig, dc, dw}; TMkey = key; return TM;
   }
   function tasteScore(g){
