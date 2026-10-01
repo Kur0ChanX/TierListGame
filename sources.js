@@ -119,7 +119,8 @@
     }
     if(o.relays){
       // al massimo 3 ponti per richiesta (i migliori per esito recente, con un po' di casualità sui pari merito): una fonte muta non deve bloccare la ricerca
-      const list = RELAYS.filter(r=> !relayCooling(r.name) && !(o.as === 'json' && r.textOnly)).map(r=> ({r, k: relayScore(r.name) + Math.random() * 0.05})).sort((a, b)=> b.k - a.k).slice(0, o.maxRelays || 3).map(x=> x.r);
+      const dead = r=>{ const h = health[r.name]; return !!(h && h.fail >= 20 && relayScore(r.name) < 0.1); };   // ponti pubblici morti da sempre: non perdo tempo
+      const list = RELAYS.filter(r=> !relayCooling(r.name) && !dead(r) && !(o.as === 'json' && r.textOnly)).map(r=> ({r, k: relayScore(r.name) + Math.random() * 0.05})).sort((a, b)=> b.k - a.k).slice(0, o.maxRelays || (customRelay() ? 2 : 3)).map(x=> x.r);
       { const cr = customRelay(); if(cr && !relayCooling(cr.name)){ list.unshift(cr); if(list.length > (o.maxRelays || 3)) list.pop(); } }
       for(const R of list){
         const full = R.url(url);
