@@ -481,6 +481,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const t0 = Date.now(), ok = ()=> ({s: 'ok', ms: Date.now() - t0});
     try{
       const H = window.SearchHub;
+      if(key === 'gist'){ const j = await H.json('https://api.github.com/rate_limit', {timeout: 12000, relays: false, cache: false}); const r = j && j.resources && j.resources.core; if(!r) throw new Error('risposta vuota'); return {s: 'ok', ms: Date.now() - t0, note: 'richieste GitHub rimaste: ' + r.remaining + '/' + r.limit}; }
+      if(key === 'ponte'){ if(!(H && H.hasCustomRelay && H.hasCustomRelay())) return {s: 'off', why: 'non impostato (consigliato: è la via più affidabile per Steam)'}; await H.testCustomRelay(); return ok(); }
       if(key === 'voti'){ if(typeof VOTI === 'undefined' || !VOTI.games) return {s: 'err', why: 'archivio voti.js non ancora scaricato dal server (parte da solo ogni notte)'}; const n = Object.values(VOTI.games).filter(x=> x && x.s).length; return {s: 'ok', ms: n + ' voti, aggiornati al ' + VOTI.built}; }
       if(key === 'wiki'){ await wp({action: 'query', meta: 'siteinfo'}); return ok(); }
       if(key === 'wd'){ await fj('https://www.wikidata.org/w/api.php?action=query&meta=siteinfo&format=json&origin=*'); return ok(); }
@@ -491,16 +493,42 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       if(key === 'rawg'){ if(!(H && H.rawg && H.rawg.has())) return {s: 'off', why: 'chiave non impostata'}; await H.rawg.ping(); return ok(); }
       if(key === 'oc'){ if(!(H && H.opencritic && H.opencritic.has())) return {s: 'off', why: 'chiave non impostata'}; await H.opencritic.ping(); return ok(); }
       if(key === 'gem'){ if(!(typeof geminiKey === 'function' && geminiKey())) return {s: 'off', why: 'chiave Gemini non impostata'}; await geminiGenerate('Rispondi solo con: ok', {}); return ok(); }
-    }catch(e){ return {s: 'err', why: whyFail(e)}; }
+    }catch(e){ return {s: 'err', why: whyFail(e), raw: String((e && e.message) || e)}; }
     return {s: 'off', why: 'non controllabile'};
   }
-  const SRC_NAMES = {voti: 'Metacritic ufficiale (server)', wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', cheap: 'CheapShark', rawg: 'RAWG', oc: 'OpenCritic', gem: 'Gemini'};
+  const SRC_NAMES = {ponte: 'Ponte personale (Cloudflare)', gist: 'GitHub (sincronizzazione)', voti: 'Metacritic ufficiale (server)', wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', cheap: 'CheapShark', rawg: 'RAWG', oc: 'OpenCritic', gem: 'Gemini'};
   // dove sta il problema quando una fonte non risponde: il sito, il browser (blocchi CORS) o il limite di una chiave
   const SRC_HINT = {steam: 'Steam funziona (dal server rispondo sempre) ma blocca il browser: serve un ponte. Soluzione stabile: i dati arrivano ogni notte dal server (dati settimanali); in più puoi attivare il «ponte personale» (Cloudflare) in ⚙️.',
     oc: 'OpenCritic ha chiuso l\'accesso libero (solo chiave a pagamento/limitata): ora il voto arriva da Metacritic ufficiale dal server.',
     gem: 'Gemini: limite di richieste del piano gratuito (errore 429). Riprovo da solo con il modello più leggero; passa l\'ora e torna.',
     rawg: 'RAWG: chiave scaduta o quota giornaliera finita.', wiki: 'Wikipedia limita le richieste molto ravvicinate: aspetto e riprovo da solo.', wd: 'Wikidata limita le richieste ravvicinate (errore 429): passa dopo qualche minuto.'};
-  window.openSourceMap = function(){
+  const hintFor = (k, r)=> (/^LIMITE/.test(r.layer || '') || /^(steam|oc|gem|rawg)$/.test(k)) && SRC_HINT[k] ? SRC_HINT[k] : (/^BROWSER/.test(r.layer || '') ? 'il telefono non riesce a raggiungerla adesso (rete assente, bloccata o ponti spenti): riprova con un\'altra rete o più tardi' : '');
+  // sonda con dettagli: via usata (diretto o quale ponte), errore grezzo, livello del problema
+  async function probeFull(k){
+    const n0 = (window.DebugLog ? DebugLog.all().length : 0), t0 = Date.now(); let r;
+    try{ r = await probe(k); }catch(e){ r = {s: 'err', why: whyFail(e), raw: String(e && e.message || e)}; }
+    r.ms = r.ms == null ? Date.now() - t0 : r.ms;
+    try{ const ev = DebugLog.all().slice(n0); const via = ev.filter(e=> e.kind === 'relay' && e.ok).map(e=> e.src).pop(); r.via = via || 'diretto'; r.log = ev.filter(e=> e.ok === false).slice(-4).map(e=> (e.src || '') + ': ' + (e.err || e.note || '') + (e.status != null ? ' [HTTP ' + e.status + ']' : '')); }catch(e){}
+    if(r.s === 'err'){
+      const m = (r.raw || '') + ' ' + (r.log || []).join(' ');
+      r.layer = /429|quota|troppe richieste/i.test(m) ? 'LIMITE: il sito/la chiave ha finito le richieste' : /401|403|chiave|accesso negato/i.test(m) ? 'CHIAVE o permessi' : /CORS|Failed to fetch|rete|nessuna via/i.test(m) ? 'BROWSER: blocco CORS e ponti non raggiungibili' : /5\d\d|problema/i.test(m) ? 'SITO: errore del server remoto' : 'DA CAPIRE';
+    }
+    return r;
+  }
+  function reportTexts(keys, res){
+    const okN = keys.filter(k=> res[k] && res[k].s === 'ok').length, bad = keys.filter(k=> res[k] && res[k].s === 'err'), now = new Date().toLocaleString('it-IT');
+    const ic = r=> r.s === 'ok' ? '✅' : r.s === 'off' ? '➖' : '⚠️';
+    let easy = '📋 Controllo fonti — ' + now + '\n' + okN + ' fonti su ' + keys.length + ' funzionano.\n\n';
+    easy += keys.map(k=>{ const r = res[k]; return ic(r) + ' ' + SRC_NAMES[k] + ': ' + (r.s === 'ok' ? 'funziona' + (r.via && r.via !== 'diretto' ? ' (passando da ' + r.via + ')' : '') : r.s === 'off' ? r.why : r.why + (hintFor(k, r) ? '\n    → ' + hintFor(k, r) : '')); }).join('\n');
+    easy += '\n\n' + (bad.length ? 'In sintesi: ' + bad.length + ' fonti con problemi. Il voto resta al sicuro perché arriva dall\'archivio ufficiale Metacritic scaricato ogni notte dal server.' : 'Tutto in ordine.');
+    let H = window.SearchHub, tech = '# Rapporto fonti Raccoon Tier\n- ora: ' + now + '\n- versione: ' + ((document.querySelector('meta[name=build]') || {}).content || '?') + '\n- online: ' + navigator.onLine + '\n- dispositivo: ' + navigator.userAgent + '\n- ponte personale: ' + (H && H.hasCustomRelay && H.hasCustomRelay() ? 'impostato' : 'NON impostato') + '\n- archivio voti.js: ' + (typeof VOTI !== 'undefined' ? VOTI.built + ', ' + Object.keys(VOTI.games).length + ' giochi' : 'non caricato') + '\n- facts.js: ' + (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.built ? GAME_FACTS.built : 'non caricato') + '\n\n## Esito per fonte\n';
+    tech += keys.map(k=>{ const r = res[k]; return '- ' + SRC_NAMES[k] + ' [' + k + ']: ' + (r.s === 'ok' ? 'OK ' + (typeof r.ms === 'number' ? r.ms + ' ms' : r.ms) + ', via ' + (r.via || 'diretto') + (r.note ? ', ' + r.note : '') : r.s === 'off' ? 'SALTATA (' + r.why + ')' : 'ERRORE ' + r.ms + ' ms — ' + (r.layer || '') + ' — ' + (r.raw || r.why) + (r.log && r.log.length ? '\n    tentativi: ' + r.log.join(' | ') : '')); }).join('\n');
+    try{ tech += '\n\n## Ponti pubblici (punteggio 0-100)\n' + H.relayStatus().map(x=> '- ' + x.name + ': ' + x.score + '%' + (x.cooling ? ' (in pausa)' : '') + ' ok=' + (x.ok || 0) + ' errori=' + (x.fail || 0)).join('\n'); }catch(e){}
+    try{ const nr = JSON.parse(localStorage.getItem('rt_needs_relay') || '{}'); tech += '\n\n## Siti che richiedono un ponte\n' + (Object.keys(nr).join(', ') || 'nessuno'); }catch(e){}
+    try{ tech += '\n\n## Ultimi errori del registro\n' + DebugLog.all().filter(e=> e.ok === false).slice(-12).map(e=> '- ' + e.t.slice(11, 19) + ' ' + (e.src || e.kind) + ' ' + (e.err || e.note || '')).join('\n'); }catch(e){}
+    return {easy, tech};
+  }
+  window.openSourceMap = function(autorun){
     let el = document.getElementById('srcMapBackdrop');
     if(!el){ el = document.createElement('div'); el.id = 'srcMapBackdrop'; el.className = 'dup-backdrop'; el.style.zIndex = 100900; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
     const esc = t=> String(t == null ? '' : t).replace(/[&<>]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
@@ -513,13 +541,22 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     el.classList.add('show');
     el.querySelector('#smRun').addEventListener('click', async ()=>{
       const b = el.querySelector('#smRun'); b.disabled = true; b.textContent = 'Verifico…';
-      await Promise.all(keys.map(async k=>{
-        const row = el.querySelector('#sm_' + k); row.querySelector('span').textContent = '… provo'; const r = await probe(k);
-        row.querySelector('span').textContent = r.s === 'ok' ? '✅ funziona (' + (typeof r.ms === 'number' ? r.ms + ' ms' : r.ms) + ')' : r.s === 'off' ? '➖ ' + r.why : '⚠️ ' + r.why + (SRC_HINT[k] ? ' — ' + SRC_HINT[k] : '');
+      const res = {};
+      for(const k of keys){
+        const row = el.querySelector('#sm_' + k); row.querySelector('span').textContent = '… provo'; const r = res[k] = await probeFull(k);
+        row.querySelector('span').textContent = r.s === 'ok' ? '✅ funziona (' + (typeof r.ms === 'number' ? r.ms + ' ms' : r.ms) + (r.via && r.via !== 'diretto' ? ', via ' + r.via : '') + ')' : r.s === 'off' ? '➖ ' + r.why : '⚠️ ' + r.why + (hintFor(k, r) ? ' — ' + hintFor(k, r) : '');
         el.querySelectorAll('.sm_ic_' + k).forEach(n=>{ n.textContent = (r.s === 'ok' ? '✅ ' : r.s === 'off' ? '➖ ' : '⚠️ ') + SRC_NAMES[k] + ' ·'; });
-      }));
+      }
+      const rep = reportTexts(keys, res);
+      let box = el.querySelector('#smReport'); if(!box){ box = document.createElement('div'); box.id = 'smReport'; el.querySelector('.lp-tools').after(box); }
+      box.innerHTML = '<div class="dbg-rows"><div class="dbg-row"><b>📋 Rapporto facile</b><pre style="white-space:pre-wrap;margin:6px 0"></pre></div></div><div class="lp-tools"><button class="btn primary" id="smCopyTech">📋 Copia rapporto per Claude</button><button class="btn" id="smCopyEasy">Copia quello facile</button></div>';
+      box.querySelector('pre').textContent = rep.easy;
+      const cp = async t=>{ try{ await navigator.clipboard.writeText(t); }catch(e){ const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(x){} ta.remove(); } if(window.showToast) showToast('Copiato', 1800); };
+      box.querySelector('#smCopyTech').addEventListener('click', ()=> cp(rep.tech)); box.querySelector('#smCopyEasy').addEventListener('click', ()=> cp(rep.easy));
+      window.__srcReport = rep;
       b.disabled = false; b.textContent = '🔎 Verifica di nuovo';
     });
+    if(autorun) el.querySelector('#smRun').click();
   };
   // voto reale di un titolo (per la ricerca di nuovi giochi): Metacritic da Wikipedia → Metacritic da RAWG → OpenCritic. null = nessuna fonte lo conferma
   window.rtScoreCheck = async function(c){

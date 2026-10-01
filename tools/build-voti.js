@@ -7,7 +7,7 @@ const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const D = require('./data-io').load();
 const arg = n=>{ const i = process.argv.indexOf('--' + n); return i > -1 ? +process.argv[i + 1] : null; };
-const LIMIT = arg('limit') || 99999, OFFSET = arg('offset') || 0, ALL = process.argv.includes('--all');
+const LIMIT = arg('limit') || 99999, CAP = arg('cap') || 3000, OFFSET = arg('offset') || 0, ALL = process.argv.includes('--all');
 const sleep = ms=> new Promise(r=> setTimeout(r, ms));
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36';
 const FILE = path.join(ROOT, 'voti.js');
@@ -39,9 +39,12 @@ async function customGames(){
   const seen = new Set(), list = D.games.concat(custom).filter(g=> g && g.name && !seen.has(String(g.id)) && seen.add(String(g.id))).slice(OFFSET, OFFSET + LIMIT);
   const today = new Date().toISOString().slice(0, 10), fresh = d=> d && (Date.parse(today) - Date.parse(d)) < 30 * 864e5;
   const save = ()=> fs.writeFileSync(FILE, 'const VOTI = ' + JSON.stringify({built: today, games}) + ';\n');
+  // prima i giochi mai controllati (i nuovi), poi i controlli più vecchi; al massimo CAP a notte (con 10.000 giochi si ripartisce su più notti)
+  list.sort((a, b)=> ((games[a.id] || {}).d || '') < ((games[b.id] || {}).d || '') ? -1 : 1);
   let n = 0, hit = 0, fail = 0;
   for(const g of list){
     if(!ALL && games[g.id] && fresh(games[g.id].d)) continue;
+    if(n >= CAP){ console.log('limite di', CAP, 'giochi per notte: il resto alla prossima'); break; }
     const nm = clean(g.name), t = norm(nm);
     let items = await q(nm);
     if(items === null){ if(++fail >= 8){ console.log('Metacritic non risponde: mi fermo'); break; } continue; }
