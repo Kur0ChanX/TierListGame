@@ -1103,3 +1103,24 @@ body[data-view="mytier"][data-mtmode="mine"] #filtersPanel, body[data-view="myti
 .ld-g .nm{flex:1; min-width:0; font-weight:600} .ld-g small{opacity:.75}
 .sh-row{display:flex; gap:10px; margin:10px 0; align-items:flex-start} .sh-row img{width:84px; height:84px; object-fit:cover; border-radius:10px; flex:none}
 .sh-f{flex:1; min-width:0; display:flex; flex-direction:column; gap:6px} .sh-f input{width:100%; box-sizing:border-box; padding:9px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:inherit; font-size:1rem}
+
+/* ---- v185: scheda a strati con la pulce + menu ✨ in stanze ---- */
+.cd-layer{margin:18px 0 6px; padding-bottom:4px; font-size:.76rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; opacity:.75; border-bottom:1px solid rgba(var(--a1rgb),.35)}
+.cd-has-pin{position:relative}
+.cd-pin{position:absolute; right:4px; top:50%; transform:translateY(-50%); width:30px; height:30px; padding:0; border:0; border-radius:50%; background:transparent; font-size:.95rem; line-height:1; cursor:pointer; opacity:.35; filter:grayscale(1); transition:opacity .2s, filter .2s}
+.cd-pin:hover,.cd-pin.on{opacity:1; filter:none}
+.cd-pin.on{background:rgba(var(--a1rgb),.25)}
+.vd-card .cd-pin,.gd-card .cd-pin,.gs-card .cd-pin,.cp-card .cd-pin,.modal-tags .cd-pin,.enrich-highlights .cd-pin,.ds-chip .cd-pin,.saga-note .cd-pin,details.cd-has-pin .cd-pin{top:8px; transform:none}
+.modal-section-title.cd-has-pin{padding-right:36px}
+.mn-search{margin:6px 0 10px} .mn-search input{width:100%; box-sizing:border-box; padding:11px 14px; border-radius:14px; border:1px solid var(--border); background:var(--card); color:inherit; font-size:16px}
+.mn-h{font-size:.78rem; font-weight:700; opacity:.75; margin:10px 2px 4px}
+.mn-row{display:flex; flex-wrap:wrap; gap:6px}
+.mn-sc{padding:7px 11px}
+.mn-room{margin:6px 0; border-radius:14px; border:1px solid var(--border); background:rgba(var(--a1rgb),.05)}
+.mn-room > summary{padding:11px 14px; cursor:pointer; font-weight:700; list-style:none; display:flex; align-items:center; gap:8px; min-height:44px}
+.mn-room > summary::-webkit-details-marker{display:none} .mn-room > summary small{margin-left:auto; opacity:.6}
+.mn-room > summary::after{content:'▾'; opacity:.6; transition:transform .2s} .mn-room[open] > summary::after{transform:rotate(180deg)}
+.mn-items{display:flex; flex-direction:column; gap:6px; padding:0 10px 10px}
+.mn-it{display:flex; align-items:center; gap:6px} .mn-it > .btn,.mn-it > a.btn,.mn-it > label{flex:1; min-width:0; text-align:left}
+.mn-pin{flex:none; width:34px; height:34px; border:0; border-radius:50%; background:transparent; opacity:.35; filter:grayscale(1); cursor:pointer} .mn-pin.on{opacity:1; filter:none; background:rgba(var(--a1rgb),.22)}
+.mn-it[hidden],.mn-room[hidden]{display:none !important}
