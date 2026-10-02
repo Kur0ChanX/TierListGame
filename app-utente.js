@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v232', date:'2026-10-02', time:'13:27', items:[
+    'Musica + voce: con «Auto» della musica acceso, quando parte la voce della storia controllo che la musica stia suonando e, se non è partita, la faccio partire. Se il telefono blocca l\'avvio della musica, riparte da sola al primo tocco sullo schermo.',
+    'Mentre la voce parla la musica scende meno (al 45% del volume scelto, prima al 25%) e non va mai sotto una soglia udibile: con un volume già basso sembrava che la musica non partisse.',
+  ]},
   {version:'v231', date:'2026-10-02', time:'13:15', items:[
     'Il «flash» di icone e locandina appena aperto un gioco: nel video si vede che, finito il movimento, per 2 fotogrammi la scheda diventava vuota (locandina a metà). Il telefono la ridisegnava da zero perché a fine animazione il programma toglieva lo «strato pronto per muoversi». Ora quello strato resta sempre: niente più ridisegno né fotogrammi vuoti (aiuta anche la chiusura).',
   ]},

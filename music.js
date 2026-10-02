@@ -95,7 +95,7 @@
   const VOLK = 'jrpg_music_vol', VOLL = 'jrpg_music_vol_lock';
   let duckK = 1, duckT = 0;
   const baseVol = ()=>{ const v = +LS.get(VOLK, 70); return Math.max(0, Math.min(100, isNaN(v) ? 70 : v)) / 100; };
-  const curVol = ()=> baseVol() * duckK;
+  const curVol = ()=>{ const b = baseVol(); if(duckK >= 1) return b; return Math.max(b * duckK, Math.min(b, .12)); };      // v232: con la voce la musica scende, ma resta sempre udibile
   function applyVol(){ try{ if(au) au.volume = Math.max(0, Math.min(1, curVol())); }catch(e){} try{ if(yt && yt.setVolume) yt.setVolume(Math.round(curVol() * 100)); }catch(e){} }
   function volRow(){ const vl = !!LS.get(VOLL, false), vv = Math.round(baseVol() * 100);
     return `<div class="mz2-volrow"><span aria-hidden="true">🔈</span><input type="range" class="mz2-vol" min="0" max="100" step="5" value="${vv}" ${vl ? 'disabled' : ''} aria-label="Volume della musica"><b class="mz2-vv">${vv}%</b><button type="button" class="mz2-vl${vl ? ' on' : ''}" data-m="vlock" data-mz="vlock" aria-label="${vl ? 'Sblocca il volume' : 'Blocca il volume'}">${vl ? '🔒' : '🔓'}</button></div>`; }
@@ -104,7 +104,7 @@
     vr.addEventListener('change', ()=>{ LS.set(VOLL, true); vr.disabled = true; const l = root.querySelector('.mz2-vl'); if(l){ l.classList.add('on'); l.textContent = '🔒'; } toast('Volume impostato e bloccato 🔒', 1800); }); }
   function toggleVolLock(root){ const on = !LS.get(VOLL, false); LS.set(VOLL, on); if(root){ const r = root.querySelector('.mz2-vol'), l = root.querySelector('.mz2-vl'); if(r) r.disabled = on; if(l){ l.classList.toggle('on', on); l.textContent = on ? '🔒' : '🔓'; } } toast(on ? 'Volume bloccato 🔒: resta così anche riaprendo l\'app' : 'Volume sbloccato: puoi modificarlo', 2200); }
   function duck(on){        // con la voce che parla la musica scende al 25% in 0,4 s e poi risale piano
-    const to = on ? .25 : 1; clearInterval(duckT); const from = duckK, t0 = performance.now(), dur = on ? 400 : 900;
+    const to = on ? .45 : 1; clearInterval(duckT); const from = duckK, t0 = performance.now(), dur = on ? 400 : 900;
     duckT = setInterval(()=>{ const f = Math.min(1, (performance.now() - t0) / dur); duckK = from + (to - from) * f; applyVol(); if(f >= 1) clearInterval(duckT); }, 50);
   }
   function audio(){ if(!au){ au = new Audio(); au.preload = 'auto'; au.addEventListener('ended', endTrack); au.addEventListener('error', ()=> failNext()); au.addEventListener('playing', ()=>{ cur.fails = 0; cur.playing = true; paint(); }); au.addEventListener('pause', ()=>{ if(!au.ended){ cur.playing = false; paint(); } }); } return au; }
@@ -358,7 +358,7 @@
     if(isIA(t)){
       try{ yt && yt.pauseVideo(); }catch(e){}
       dock(); const a = audio(); a.src = t[0].slice(3); a.volume = curVol();
-      try{ await a.play(); cur.playing = true; }catch(e){ cur.playing = false; if(e && e.name === 'NotAllowedError') toast('Tocca ▶ per far partire la musica', 2500); }
+      try{ await a.play(); cur.playing = true; }catch(e){ cur.playing = false; if(e && e.name === 'NotAllowedError'){ const once = ()=>{ document.removeEventListener('pointerdown', once, true); if(!cur.playing && cur.list[cur.i] === t) resume(); }; document.addEventListener('pointerdown', once, true); } }      // v232: il telefono ha bloccato l'avvio: riparte da sola al primo tocco
       paint(); return;
     }
     try{ au && au.pause(); }catch(e){}
@@ -384,7 +384,8 @@
   function resume(){ const t = cur.list[cur.i]; if(isIA(t)){ if(au && au.src) au.play().catch(()=>{}); else playTrack(); } else { try{ yt && yt.playVideo(); }catch(e){} } cur.playing = true; paint(); }
   function next(auto){ if(!cur.list.length) return; cur.i = (cur.i + 1) % cur.list.length; if(!auto){ const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); } playTrack(); }
   function stopAll(){ try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Brano fermo: premi ▶ per farlo ripartire', 2200); }
-  window.rtMusic = {duck, vol: baseVol, playFor, stop: stopAll, on: ON, dock, _test: {namesGame, queriesFor}};      // _test: per i controlli automatici
+  function ensure(g){ try{ if(!g || !apCard()) return; if(cur.id === g.id && cur.list.length && cur.playing) return; playFor(g, true); }catch(e){} }
+  window.rtMusic = {duck, ensure, vol: baseVol, playFor, stop: stopAll, on: ON, dock, _test: {namesGame, queriesFor}};      // _test: per i controlli automatici
   // barra nella scheda del gioco
   // ---- lettore nella scheda (v198): titolo grande, album/fonte, barra di avanzamento toccabile, ⏮ ⏯ ⏭, elenco dei brani, 🔁 cambia, 🔎 cerca ----
   const albumOf = g=>{ try{ const e = (LS.get(IA, {}) || {})[g.id]; return e && e.album ? e.album : ''; }catch(e){ return ''; } };
