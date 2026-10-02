@@ -1,0 +1,25 @@
+// v215: apertura di un gioco dalla griglia, fotogramma per fotogramma (screencast): la locandina deve scivolare al suo posto senza salti
+const {chromium}=require('playwright');const SP=process.env.SP||'/tmp';
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:412,height:915},isMobile:true,hasTouch:true,colorScheme:'dark'});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+const IMG=require('fs').readFileSync('/home/user/TierListGame/icons/intro.jpg');
+await ctx.route('**/*',r=>{const u=r.request().url(); if(u.startsWith('file:')) return r.continue(); if(r.request().resourceType()==='image') return r.fulfill({status:200,contentType:'image/jpeg',body:IMG}); return r.abort();});
+await ctx.addInitScript(()=>{ localStorage.setItem('jrpg_view_mode', JSON.stringify('grid'));  });
+await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html'); await p.waitForTimeout(4000);
+await p.evaluate(()=>{ [...document.querySelectorAll('.x-card')].slice(0,12).forEach(c=> COVER_DB.doc('covers/'+c.dataset.id).set({url:'https://x.test/c'+c.dataset.id+'.jpg'})); }); await p.waitForTimeout(600);
+await p.reload(); await p.waitForTimeout(6000); console.log('img griglia:', await p.evaluate(()=>[...document.querySelectorAll('.x-card')].slice(0,4).map(c=>{const i=c.querySelector('img'); return i?(i.style.visibility||'ok')+' '+i.naturalWidth+' '+String(i.src).slice(0,50):'nessuna';}).join(' | ')));
+const cdp=await ctx.newCDPSession(p); if(process.env.TH) await cdp.send('Emulation.setCPUThrottlingRate',{rate:+process.env.TH});
+const frames=[]; cdp.on('Page.screencastFrame', async f=>{ frames.push({t:f.metadata.timestamp, d:f.data}); try{ await cdp.send('Page.screencastFrameAck',{sessionId:f.sessionId}); }catch(e){} });
+const card=p.locator('.x-card').nth(1); await card.scrollIntoViewIfNeeded(); const bb=await card.boundingBox();
+await cdp.send('Page.startScreencast',{format:'jpeg',quality:50,maxWidth:206,maxHeight:458,everyNthFrame:1});
+await p.evaluate(()=>{ window.__M=[]; const T=()=>Math.round(performance.now()-(window.__T0||0)); document.addEventListener('pointerdown',()=>{window.__T0=performance.now(); __M.push('down@0');},{capture:true}); document.addEventListener('click',()=>__M.push('click@'+T()),true);
+ new MutationObserver(ms=>ms.forEach(m=>{ m.addedNodes.forEach(n=>{ if(n.classList&&n.classList.contains('rt-ghost')) __M.push('ghost+@'+T()); }); m.removedNodes.forEach(n=>{ if(n.classList&&n.classList.contains('rt-ghost')) __M.push('ghost-@'+T()); }); })).observe(document.body,{childList:true});
+ const bd=document.getElementById('modalBackdrop'); new MutationObserver(()=>__M.push('bd '+bd.className.replace('modal-backdrop','').trim()+'@'+T())).observe(bd,{attributes:true,attributeFilter:['class']});
+ const c=document.getElementById('modalCard'); new MutationObserver(()=>__M.push('card op='+c.style.opacity+'@'+T())).observe(c,{attributes:true,attributeFilter:['style']}); });
+const t0=Date.now()/1000; await p.touchscreen.tap(bb.x+bb.width/2,bb.y+bb.height/2); await p.waitForTimeout(1600);
+await cdp.send('Page.stopScreencast');
+const fs=require('fs'); fs.mkdirSync(SP+'/open',{recursive:true}); fs.readdirSync(SP+'/open').forEach(f=>fs.unlinkSync(SP+'/open/'+f));
+frames.forEach((f,i)=> fs.writeFileSync(SP+'/open/f'+String(i).padStart(3,'0')+'_'+Math.round((f.t-t0)*1000)+'.jpg', Buffer.from(f.d,'base64')));
+console.log('fotogrammi', frames.length, 'tempi(ms):', frames.map(f=>Math.round((f.t-t0)*1000)).join(','));
+console.log('tempi:', (await p.evaluate(()=>__M)).join('  '));
+console.log('ERR',errs);await b.close();})();

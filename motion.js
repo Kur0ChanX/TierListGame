@@ -116,6 +116,7 @@
   // si muove solo con transform/opacity, quindi lo anima la scheda grafica a 60/120 Hz anche mentre il telefono costruisce la scheda vera.
   // Quando la scheda vera è impaginata, il cartoncino sfuma e lascia il posto a lei. Niente attese, niente scatti.
   const EASE = 'cubic-bezier(.32,.72,0,1)';          // la curva delle animazioni di iOS
+  let LASTC = null;
   function ghostOpen(R){
     const W = VW, H = VH, r = R.r;
     const gh = document.createElement('div'); gh.className = 'rt-ghost';
@@ -126,12 +127,13 @@
     const sx = Math.max(.05, r.width / W), sy = Math.max(.02, r.height / H);
     const anims = [panel.animate([{transform: `translate(${r.left}px, ${r.top}px) scale(${sx}, ${sy})`, opacity: .5}, {opacity: 1, offset: .35}, {transform: 'none', opacity: 1}], {duration: 300, easing: EASE, fill: 'both'})];
     if(im && im._r && im._r.width > 4){
-      const fw = Math.min(W * .74, 340), fh = fw * 1.33, fx = (W - fw) / 2, fy = 120;       // dove starà più o meno la locandina
+      const fw = LASTC ? LASTC.w : Math.min(W * .74, 340), fh = LASTC ? LASTC.h : fw * 1.33, fx = LASTC ? LASTC.l : (W - fw) / 2, fy = LASTC ? LASTC.t : 120;       // dove starà la locandina (v215: dove stava l'ultima volta)
       im.style.cssText = `left:${fx}px;top:${fy}px;width:${fw}px;height:${fh}px`;
+      im._fin = {l: fx, t: fy, w: fw, h: fh};
       const k = im._r.width / fw;
       anims.push(im.animate([{transform: `translate(${im._r.left - fx}px, ${im._r.top - fy}px) scale(${k}, ${im._r.height / fh})`}, {transform: 'none'}], {duration: 300, easing: EASE, fill: 'both'}));
     }
-    return {gh, done: Promise.all(anims.map(a=> a.finished.catch(()=>{})))};
+    return {gh, panel, im, done: Promise.all(anims.map(a=> a.finished.catch(()=>{})))};
   }
   function countUp(card){
     setTimeout(()=>{
@@ -154,21 +156,45 @@
       const R = tap && performance.now() - tap.t < 900 && tap.r && tap.r.width > 60 ? tap : null;
       if(!was && R && moOn() && VW <= 760 && document.body.animate){
         tap = null; haptic('soft');
-        const self = this, G = ghostOpen(R); let args = arguments;
+        const self = this, G = ghostOpen(R), T0 = performance.now(); let args = arguments;
         setTimeout(()=>{ try{ if(G.gh.isConnected) G.gh.remove(); const c = document.getElementById('modalCard'); if(c && c.style.opacity === '0') c.style.opacity = ''; }catch(x){} }, 2500);   // rete di sicurezza: il cartoncino non resta MAI sopra l'app
         // lascio partire il cartoncino (un fotogramma), poi costruisco la scheda vera sotto di lui
         // v210: se i testi lunghi del gioco non sono ancora arrivati, li aspetto (al massimo 450 ms) MENTRE il cartoncino si allarga:
         // così la scheda si costruisce una volta sola, già completa (prima si disegnava vuota e poi di nuovo, con un salto)
         const g0 = args[0], needTx = !!(g0 && window.rtTexts && !rtTexts.has(g0));
-        const wait = needTx ? Promise.race([rtTexts.ensure(g0).catch(()=>{}), new Promise(r=> setTimeout(r, 450))]) : Promise.resolve();
+        const wait = needTx ? Promise.race([rtTexts.ensure(g0).catch(()=>{}), new Promise(r=> setTimeout(r, 160))]) : Promise.resolve();      // v215: al massimo 160 ms (prima 450: locandina sola sul nero); i testi ora arrivano quasi sempre prima
         requestAnimationFrame(()=> wait.then(()=> setTimeout(()=>{
           if(needTx && rtTexts.has(g0) && typeof GAMES !== 'undefined'){ const fresh = GAMES.find(x=> x.id === g0.id); if(fresh) args = [fresh].concat([].slice.call(args, 1)); }
           let card = null;
           try{ origOpen.apply(self, args); card = document.getElementById('modalCard'); if(card) card.style.opacity = '0'; }catch(e){ G.gh.remove(); throw e; }
           requestAnimationFrame(()=> requestAnimationFrame(async ()=>{
-            await Promise.race([G.done, new Promise(r=> setTimeout(r, 700))]);      // v208: mai aspettare all'infinito (animazioni sospese, schermo intero…)
-            if(card){ card.style.opacity = ''; try{ card.animate([{opacity: 0}, {opacity: 1}], {duration: 160, easing: 'ease-out'}); }catch(e){} countUp(card); }
-            try{ G.gh.animate([{opacity: 1}, {opacity: 0}], {duration: 200, easing: 'ease-out', fill: 'forwards'}).finished.then(()=> G.gh.remove(), ()=> G.gh.remove()); }catch(e){ G.gh.remove(); }
+            await Promise.race([G.done, new Promise(r=> setTimeout(r, Math.max(0, 210 - (performance.now() - T0))))]);      // v215: la scheda pronta non aspetta la fine del cartoncino (prima fino a 700 ms)
+            // v215: la locandina del cartoncino SCIVOLA esattamente dove sta nella scheda vera (prima si fermava in un punto fisso e poi «saltava»);
+            // intanto lo sfondo del cartoncino sfuma e sotto compare la scheda; la locandina sparisce solo quando quella vera è caricata
+            const ci = card && card.querySelector('#coverBlock img.modal-cover, #coverBlock img');
+            const tr = ci && ci.getBoundingClientRect(), ir = G.im && G.im.isConnected && G.im._fin;
+            if(tr && tr.width > 40) LASTC = {l: tr.left, t: tr.top, w: tr.width, h: tr.height};
+            if(card && G.im && ir && tr && tr.width > 40 && tr.top < VH && tr.bottom > 0){
+              card.style.opacity = '';
+              // FLIP: l'immagine prende SUBITO misure, taglio e angoli di quella vera, e parte da dov'è adesso: arriva identica, niente cambio a fine volo
+              try{
+                const from = G.im.getBoundingClientRect(), cs = getComputedStyle(ci);
+                G.im.getAnimations().forEach(a=> a.cancel());
+                G.im.style.left = tr.left + 'px'; G.im.style.top = tr.top + 'px'; G.im.style.width = tr.width + 'px'; G.im.style.height = tr.height + 'px';
+                G.im.style.objectFit = cs.objectFit || 'cover'; G.im.style.objectPosition = cs.objectPosition || ''; G.im.style.borderRadius = cs.borderRadius || '';
+                if(ci.complete && ci.naturalWidth && ci.currentSrc) G.im.src = ci.currentSrc;
+                G.im.animate([{transform: `translate(${from.left - tr.left}px, ${from.top - tr.top}px) scale(${from.width / tr.width}, ${from.height / tr.height})`}, {transform: 'none'}], {duration: 240, easing: EASE, fill: 'both'});
+              }catch(e){}
+              try{ G.panel.animate([{opacity: 1}, {opacity: 0}], {duration: 220, easing: 'ease-out', fill: 'forwards'}); }catch(e){}
+              countUp(card);
+              const loaded = ()=> ci.complete && ci.naturalWidth > 0 && (!ci.closest('.cover-frame') || ci.classList.contains('ld') || getComputedStyle(ci).opacity === '1');
+              const t0 = performance.now();
+              await new Promise(res=>{ const chk = ()=>{ if(loaded() || performance.now() - t0 > 600) res(); else setTimeout(chk, 40); }; setTimeout(chk, 250); });
+              try{ G.gh.animate([{opacity: 1}, {opacity: 0}], {duration: 140, easing: 'ease-out', fill: 'forwards'}).finished.then(()=> G.gh.remove(), ()=> G.gh.remove()); }catch(e){ G.gh.remove(); }
+              return;
+            }
+            if(card){ card.style.opacity = ''; countUp(card); }                  // v215: la scheda è già sotto, al suo posto: sfuma solo il cartoncino sopra (niente doppia dissolvenza «nera»)
+            try{ G.gh.animate([{opacity: 1}, {opacity: 0}], {duration: 150, easing: 'ease-out', fill: 'forwards'}).finished.then(()=> G.gh.remove(), ()=> G.gh.remove()); }catch(e){ G.gh.remove(); }
           }));
         }, 0)));
         return;

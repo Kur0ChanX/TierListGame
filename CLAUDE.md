@@ -14,7 +14,7 @@ App statica (si apre anche con doppio clic, file://), senza server né build. Ut
 
 ## Regole fisse
 - Numero dei giochi: SEMPRE quello reale (`GAMES.length`, comprende i giochi aggiunti dall'utente: 1369 al 1/10/2026), mai i 765 di base.
-- Ad OGNI versione: `DATA_BUILD_VERSION` e `DATA_BUILD_DATE` in `app-ai.js`, `<meta name="build" content="vNN">` nell'HTML (devono coincidere), voce nel CHANGELOG di `app-utente.js` con data E ORARIO (`date:'AAAA-MM-GG', time:'HH:MM'`, ora italiana: `TZ=Europe/Rome date`). Poi `node tools/check-data.js` (deve dire «Nessun avviso»).
+- Ad OGNI versione: `DATA_BUILD_VERSION` e `DATA_BUILD_DATE` in `app-ai.js`, `<meta name="build" content="vNN">` nell'HTML (devono coincidere), voce nel CHANGELOG di `app-utente.js` con data E ORARIO (`date:'AAAA-MM-GG', time:'HH:MM'`, ora italiana: `TZ=Europe/Rome date`). Poi `node tools/check-data.js` (deve dire «Nessun avviso») e `node tools/check-conflitti.js` («Nessun conflitto»).
 - Ogni nuovo file JS: nell'HTML (ordine!), in `sw.js` (SHELL) e in `.github/workflows/pages.yml`. I nuovi moduli vanno in fondo, prima di `motion.js` (che resta l'ultimo).
 - L'HTML inizia con `<!DOCTYPE html>`. Dati locali con `<script src>`, mai fetch (file:// li blocca).
 - Chiavi/token dell'utente (Gemini `jrpg_gemini_key`, RAWG, OpenCritic, GitHub `jrpg_sync_token`) solo in localStorage: mai nel codice, nei commit o nei file. Richieste con chiave: SEMPRE `relays:false`.

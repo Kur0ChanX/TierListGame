@@ -83,7 +83,7 @@
     return m ? m[1] : null;
   }
   function addLog(t){ P.log = [{t: now(), x: t}].concat(P.log || []).slice(0, 20); }
-  function reward(xp, coins, why){ P.xp += xp; P.coins += coins; const lv0 = level(); save(); if(why) toast('🦝 ' + P.name + ': ' + why + (coins ? ' (+' + coins + ' monete)' : ''), 3500); if(level() > lv0){ toast('🦝 ' + P.name + ' è salito al livello ' + level() + '!', 4000); try{ window.rtSfx && rtSfx('success'); }catch(e){} } }
+  function reward(xp, coins, why){ P.xp += xp; P.coins += coins; const lv0 = level(); save(); if(why && (()=>{ const x = document.getElementById('xPet'); return x && x.classList.contains('show'); })()) toast('🦝 ' + P.name + ': ' + why + (coins ? ' (+' + coins + ' monete)' : ''), 3500); if(level() > lv0 && (()=>{ const x = document.getElementById('xPet'); return x && x.classList.contains('show'); })()){ toast('🦝 ' + P.name + ' è salito al livello ' + level() + '!', 4000); try{ window.rtSfx && rtSfx('success'); }catch(e){} } }
 
   // ---------- disegno (SVG che cambia con umore, età, forma e accessori) ----------
   function svg(big){
@@ -224,7 +224,8 @@
   tick();
   const away = (now() - (P.last || now())) / H;
   avatar();
-  setTimeout(()=>{ const n = need(); if(P.hatched && P.shown && (n || away > 8)) toast('🦝 ' + P.name + (n ? ': ' + n.toLowerCase() + '!' : ' è felice di rivederti!'), 4500); }, 6000);
+  // v215: niente più palloncino automatico all'avvio («Frugu: ha sporcato!» ecc.): il bisogno si vede solo come puntino sull'avatar
+  // setTimeout(()=>{ const n = need(); if(P.hatched && P.shown && (n || away > 8)) toast('🦝 ' + P.name + (n ? ': ' + n.toLowerCase() + '!' : ' è felice di rivederti!'), 4500); }, 6000);
   setInterval(()=>{ tick(); avatar(); paint(); }, 60e3);
   (window.XMENU = window.XMENU || []).push({html: '🦝 ' + esc(P.name) + ' (il tuo procione)', run: openPet});
 })();

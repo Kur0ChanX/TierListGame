@@ -459,8 +459,11 @@ function attachDbListeners(){
           if(typeof v.asset === 'string' && /^[0-9a-f]{32}$/.test(v.asset)){ next[d.id] = localBlobs()[v.asset] || ('/_blob/' + v.asset); nextIds[d.id] = v.asset; }
           else if(typeof v.url === 'string' && /^https?:\/\//i.test(v.url)){ next[d.id] = v.url; }
         });
+        const changed = JSON.stringify(Object.keys(next).sort().map(k=> k + '=' + next[k].length)) !== JSON.stringify(Object.keys(USER_COVERS || {}).sort().map(k=> k + '=' + String(USER_COVERS[k]).length));
         USER_COVERS = next; USER_COVER_IDS = nextIds;
         if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
+        // v215: le tue copertine arrivano dall'archivio grande un attimo DOPO il primo disegno: se sono cambiate ridisegno la lista/griglia (in sottofondo, senza scatti)
+        if(changed){ try{ if(typeof renderWhenIdle === 'function') renderWhenIdle({list: true}); }catch(e){} }
       }, ()=>{});
     }catch(e){}
     try{

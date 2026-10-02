@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v215', date:'2026-10-02', time:'02:27', items:[
+    'Apertura di un gioco rifatta: prima la locandina restava da sola sul nero per quasi un secondo (il programma aspettava i testi completi, che cominciava a caricare solo dopo 7 secondi) e poi «saltava» in un altro punto. Ora i testi arrivano in sottofondo già dopo 2,5 s (prima quelli dei tuoi giochi), e la locandina si allarga dalla copertina toccata e SCIVOLA esattamente al suo posto nella scheda, con lo stesso taglio: niente salto, niente nero.',
+    'Notifiche nuove: gli avvisi importanti (Oggi, Radar, prezzi, backup, memoria…) compaiono in basso come una scheda e RESTANO finché li tocchi: toccandoli ti portano alla cosa di cui parlano, con ✕ li chiudi. Se ne arrivano più insieme vedi «+1». In alto c\'è la 🔔 campanella con il numero di quelli che non hai visto (anche dopo aver riaperto l\'app) e l\'elenco completo. I palloncini brevi di conferma restano come prima.',
+    'Tamagotchi: niente più popup automatici («Frugu: ha sporcato!», premi, livelli) fuori dalla sua pagina.',
+    'Le copertine scelte da te ora compaiono subito anche nella griglia (dalla v211 arrivavano un attimo dopo il primo disegno e la griglia non si aggiornava).',
+    'Check completo: controllo automatico dei conflitti tra i file (nomi doppi, id doppi, file mancanti, sintassi: nessuno) e un «utente robot» che usa tutto il programma con un profilo pesante (12 cambi di sezione, 30 giochi aperti in tabella e griglia, tutte le 31 voci del menu ✨, ricerca, filtri, Chiedi, avvisi): nessun errore, nessun blocco lungo, memoria e timer stabili (nessuna perdita).'
+  ]},
   {version:'v214', date:'2026-10-02', time:'01:52', items:[
     'Memoria piena al 70%: spostati nell\'archivio grande anche gli archivi d\'appoggio più pesanti (diagnosi dei voti, controlli di Update+, album delle colonne sonore, nomi inglesi, schermate RAWG, registro…). La memoria normale torna quasi vuota e non si perde niente. Se mai si riempisse di nuovo, prima libero da solo quello che si può rigenerare.',
     'Lettore musicale sempre al suo posto: nella Classifica resta visibile anche dopo Stop (con ▶ per ripartire); nella scheda sta in alto, sopra «Per te / Il gioco / Altro», e si vede in tutte e tre le parti (prima era dentro «Il gioco»).',
