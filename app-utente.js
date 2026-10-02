@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v250', date:'2026-10-03', time:'00:37', items:[
+    'Novità in ELENCO: tutte le proposte in una lista con ✓ (aggiungi) e ✕ (scarta) su ogni gioco e «Accetta tutte» in alto. Tieni premuto un gioco (o tocca il nome) per vedere locandina, foto, gameplay e recensioni. «Una alla volta» resta disponibile in alto.',
+    'Il controllo dei giochi nuovi con Wikipedia/Wikidata non apre più un avviso grande per ogni gioco: una barretta piccola in basso mostra «2/60 · 3%» e l\'ultimo gioco aggiornato.',
+    'Previsione rifatta: un cerchio che si riempie con un\'animazione e una barra con 10 perline (tocchi o fai scorrere il dito), colori viola, indaco e rosa.',
+    'Voce Gemini: se Google chiede di aspettare (anche 60 secondi) non aspetto più: continuo subito con la voce di riserva.',
+    'Locandina da internet: la prima volta il telefono chiede il permesso di leggere gli appunti; da lì, dopo «Copia immagine», tornando nell\'app la locandina la metto io, senza toccare niente.'
+  ]},
   {version:'v249', date:'2026-10-03', time:'00:19', items:[
     'Nuovo tasto grande «🎮 Sto giocando ora» in ogni scheda: apre la Modalità gioco con tutti gli aiuti in un posto solo. Domanda a voce, foto dello schermo («capisco dove sei»), indizio/strategia/soluzione, passo passo da spuntare, «Dove eravamo?» per riprendere, equipaggiamento consigliato, cose da non perdere, appunti, tempo di gioco e link rapidi (video guida, soluzione, mappa, wiki, trofei). Le risposte si possono ascoltare.',
     'Voce: se una voce non funziona la lettura non si ferma più, continua con la successiva (Google Traduttore, poi il telefono). Google Traduttore ora funziona di nuovo. Messaggio chiaro quando la chiave Gemini non vale per Google Cloud.',

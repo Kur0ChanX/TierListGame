@@ -183,16 +183,34 @@
     const my = (LS.get(MV, {}) || {})[g.id], pr = (LS.get(PR, {}) || {})[g.id], st = STATUSES[g.id];
     let now = SHOWN.get(g.id); if(now == null || my != null){ now = predict(g); if(my == null) SHOWN.set(g.id, now); }
     const words = n=> n >= 9 ? 'lo adorerai' : n >= 7 ? 'ti piacerà' : n >= 5 ? 'potrebbe piacerti' : 'probabilmente non fa per te';
-    // v249: riquadro grande e colorato (prima era una riga piccola e si perdeva nella scheda): cerchio con la previsione, 10 tasti grandi in due file
+    // v250: niente quadratini: un cerchio che si riempie (animato) e una barra con 10 perline; colori viola/indaco/rosa che si scaldano col voto
     const shownN = my != null && pr != null ? pr : now, d = my != null ? my - shownN : 0;
-    const hue = n=> Math.round((n - 1) / 9 * 130);            // 1 rosso → 10 verde
-    let h = `<div class="pv-box pv2" style="--pvh:${hue(shownN)}">
-      <div class="pv2-head"><div class="pv2-ring" style="--p:${shownN * 10}"><b>${shownN}</b><small>/10</small></div>
-        <div class="pv2-txt"><div class="pv-top">🔮 <b>Previsione:</b> ${shownN}/10 · <small>${esc(words(shownN))}</small></div>
-        ${my != null ? `<div class="pv-res">Il tuo voto: <b>${my}/10</b> · ${Math.abs(d) <= 1 ? '🎯 previsione azzeccata' : d > 0 ? 'ti è piaciuto più del previsto (+' + d + ')' : 'ti è piaciuto meno del previsto (' + d + ')'}</div>` : '<div class="pv2-sub">Calcolata dai tuoi gusti: il tuo voto insegna al cervello</div>'}</div></div>
-      <div class="pv2-q">${my != null ? 'Cambia voto' : (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : 'L\'hai giocato? Il tuo voto')}</div>
-      <div class="pv-votes pv2-grid">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}" style="--vh:${hue(n)}" data-vote="${n}" aria-pressed="${my === n ? 'true' : 'false'}">${n}</button>`).join('')}</div>`;
+    const pal = n=> n <= 3 ? ['#64748b', '#94a3b8'] : n <= 5 ? ['#4f46e5', '#818cf8'] : n <= 7 ? ['#7c3aed', '#c084fc'] : n <= 8 ? ['#8b5cf6', '#ec4899'] : ['#a855f7', '#fb7185'];
+    const [c1, c2] = pal(shownN), [m1, m2] = pal(my || shownN);
+    let h = `<div class="pv-box pv3" style="--c1:${c1};--c2:${c2};--m1:${m1};--m2:${m2}">
+      <div class="pv3-head"><div class="pv3-ring" style="--p:${shownN * 10}"><b>${shownN}</b><small>/10</small></div>
+        <div class="pv3-txt"><div class="pv3-k">🔮 Previsione</div><div class="pv-top"><b>Previsione:</b> ${shownN}/10 · <small>${esc(words(shownN))}</small></div>
+        ${my != null ? `<div class="pv-res">Il tuo voto: <b>${my}/10</b> · ${Math.abs(d) <= 1 ? '🎯 previsione azzeccata' : d > 0 ? 'ti è piaciuto più del previsto (+' + d + ')' : 'ti è piaciuto meno del previsto (' + d + ')'}</div>` : '<div class="pv3-sub">Dai tuoi gusti. Il tuo voto insegna al cervello.</div>'}</div></div>
+      <div class="pv3-q">${my != null ? 'Cambia voto' : (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : 'L\'hai giocato? Il tuo voto')}</div>
+      <div class="pv-votes pv3-track${my != null ? ' has' : ''}" style="--f:${my != null ? ((my - 1) / 9).toFixed(4) : 0}"><i class="pv3-line"></i><i class="pv3-fill"></i>${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}${my != null && n < my ? ' lit' : ''}" data-vote="${n}" aria-pressed="${my === n ? 'true' : 'false'}" aria-label="Voto ${n}"><span>${n}</span></button>`).join('')}</div>`;
     return h + '</div>';
+  }
+  // v250: tocchi una perlina o fai scorrere il dito: la barra si riempie con un'animazione, poi salvo
+  function paintTrack(tr, n){
+    const [m1, m2] = (n <= 3 ? ['#64748b', '#94a3b8'] : n <= 5 ? ['#4f46e5', '#818cf8'] : n <= 7 ? ['#7c3aed', '#c084fc'] : n <= 8 ? ['#8b5cf6', '#ec4899'] : ['#a855f7', '#fb7185']);
+    const box = tr.closest('.pv3'); if(box){ box.style.setProperty('--m1', m1); box.style.setProperty('--m2', m2); }
+    tr.classList.add('has'); tr.style.setProperty('--f', ((n - 1) / 9).toFixed(4));
+    tr.querySelectorAll('[data-vote]').forEach(b=>{ const v = +b.dataset.vote; b.classList.toggle('on', v === n); b.classList.toggle('lit', v < n); });
+  }
+  function wireTrack(card, g, save){
+    const tr = card.querySelector('.pv3-track'); if(!tr) return;
+    let drag = false, last = 0;
+    const at = x=>{ const bs = [...tr.querySelectorAll('[data-vote]')]; let best = null, bd = 1e9; bs.forEach(b=>{ const r = b.getBoundingClientRect(), dd = Math.abs(r.left + r.width / 2 - x); if(dd < bd){ bd = dd; best = b; } }); return best ? +best.dataset.vote : 0; };
+    tr.addEventListener('pointerdown', e=>{ drag = true; last = at(e.clientX); paintTrack(tr, last); try{ tr.setPointerCapture(e.pointerId); }catch(x){} try{ window.rtHaptic && rtHaptic('tick'); }catch(x){} });
+    tr.addEventListener('pointermove', e=>{ if(!drag) return; const n = at(e.clientX); if(n && n !== last){ last = n; paintTrack(tr, n); try{ window.rtHaptic && rtHaptic('tick'); }catch(x){} } });
+    const end = ()=>{ if(!drag) return; drag = false; if(last) save(last); };
+    tr.addEventListener('pointerup', end); tr.addEventListener('pointercancel', ()=>{ drag = false; });
+    tr.addEventListener('click', e=>{ e.preventDefault(); const b = e.target.closest && e.target.closest('[data-vote]'); if(b && e.detail === 0){ paintTrack(tr, +b.dataset.vote); save(+b.dataset.vote); } });      // tastiera / lettori di schermo
   }
   function reviewHtml(g){
     const r = (LS.get(RV, {}) || {})[g.id];
@@ -227,12 +245,13 @@
       const card = document.getElementById('modalCard'); if(!card || !g) return r;
       const own = card.querySelector('.own-row') || document.getElementById('statusRow');
       if(own) own.insertAdjacentHTML('afterend', voteHtml(g) + reviewHtml(g));
-      card.querySelectorAll('[data-vote]').forEach(b=> b.addEventListener('click', ()=>{
-        const v = +b.dataset.vote, mv = LS.get(MV, {}) || {}, pr = LS.get(PR, {}) || {};
+      wireTrack(card, g, v=>{
+        const mv = LS.get(MV, {}) || {}, pr = LS.get(PR, {}) || {};
         if(pr[g.id] == null) pr[g.id] = SHOWN.has(g.id) ? SHOWN.get(g.id) : predict(g);          // la previsione si «congela» al primo voto, così il confronto è onesto
-        mv[g.id] = v; LS.set(MV, mv); LS.set(PR, pr); try{ window.rtSfx && rtSfx('fav'); }catch(e){} openModal(g);
-        try{ const nb = document.querySelector('#modalCard .pv2 [data-vote="' + v + '"]'); if(nb) nb.animate([{transform: 'scale(1)'}, {transform: 'scale(1.25)'}, {transform: 'scale(1)'}], {duration: 320, easing: 'cubic-bezier(.32,.72,0,1)'}); window.rtHaptic && rtHaptic('soft'); }catch(e){}
-      }));
+        mv[g.id] = v; LS.set(MV, mv); LS.set(PR, pr); try{ window.rtSfx && rtSfx('fav'); window.rtHaptic && rtHaptic('soft'); }catch(e){}
+        const id = g.id;
+        setTimeout(()=>{ if(typeof currentModalGame === 'undefined' || !currentModalGame || currentModalGame.id !== id) return; openModal(g); }, 520);      // prima finisce l'animazione, poi aggiorno la scheda (resta dov'era)
+      });
       const box = card.querySelector('.rv-edit');
       const w = document.getElementById('rvWrite'); if(w) w.addEventListener('click', ()=> editReview(g, box, ((LS.get(RV, {}) || {})[g.id] || {}).text || ''));
       const rd = document.getElementById('rvRead'); if(rd) rd.addEventListener('click', ()=> speak(((LS.get(RV, {}) || {})[g.id] || {}).text || '', rd));

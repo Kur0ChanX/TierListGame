@@ -811,8 +811,24 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   // ----- giochi nuovi: controllo automatico di voto, generi e anno (senza AI) -----
   // i giochi aggiunti (anche 30 di fila con il ♥) vengono verificati UNO alla volta, con fonti leggere: niente raffiche che intasano Wikipedia e i ponti
   let vngQueue = Promise.resolve();
+  // v250: niente più un avviso grande per ogni gioco: una barretta piccola in basso (stile «Nuova versione») con «2/60 · 3%» e l'ultimo aggiornamento
+  let vngTot = 0, vngDone = 0, vngUpd = 0, vngLast = '', vngHideT = 0;
+  function vngPaint(){
+    let el = document.getElementById('rtVng');
+    if(!el){ el = document.createElement('div'); el.id = 'rtVng'; el.className = 'rt-vng'; el.setAttribute('role', 'status'); el.innerHTML = '<span class="vg-ic">🔎</span><span class="vg-tx"><b></b><small></small></span><span class="vg-n"></span><i class="vg-bar"><i></i></i>'; document.body.appendChild(el); }
+    const end = vngDone >= vngTot, pct = vngTot ? Math.round(vngDone / vngTot * 100) : 0;
+    el.querySelector('b').textContent = end ? '✅ Giochi nuovi controllati' : 'Controllo i giochi nuovi';
+    el.querySelector('small').textContent = end ? (vngUpd ? vngUpd + ' aggiornati con Wikipedia/Wikidata' : 'tutto già in ordine') : (vngLast || 'voto, generi e anno da Wikipedia/Wikidata');
+    el.querySelector('.vg-n').innerHTML = `${vngDone}/${vngTot}<small>${pct}%</small>`;
+    el.querySelector('.vg-bar i').style.width = pct + '%';
+    el.classList.add('show'); el.classList.toggle('done', end);
+    clearTimeout(vngHideT);
+    if(end) vngHideT = setTimeout(()=>{ el.classList.remove('show'); vngTot = vngDone = vngUpd = 0; vngLast = ''; }, 3500);
+  }
   window.verifyNewGameGenres = function(id, doc){
-    vngQueue = vngQueue.then(()=> verifyNewOne(id, doc)).catch(()=>{}).then(()=> new Promise(r=> setTimeout(r, 1200)));
+    if(vngDone >= vngTot && vngTot){ vngTot = vngDone = vngUpd = 0; vngLast = ''; }
+    vngTot++; vngPaint();
+    vngQueue = vngQueue.then(()=> verifyNewOne(id, doc)).catch(()=>{}).then(()=>{ vngDone++; vngPaint(); }).then(()=> new Promise(r=> setTimeout(r, 1200)));
     return vngQueue;
   };
   async function verifyNewOne(id, doc){
@@ -822,7 +838,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       const ch = factChanges(g, src).filter(c=> !c.off);   // in automatico solo le correzioni sicure
       if(!ch.length) return;
       await applyPatch(g, mergePatch(ch));
-      showToast('🔎 Verificato su Wikipedia/Wikidata: ' + ch.map(c=> c.label).join(', ') + ' aggiornati', 5000);
+      vngUpd++; vngLast = (g.name || doc.name) + ': ' + ch.map(c=> c.label.replace(/\s*\(.*?\)/g, '')).join(', ').toLowerCase() + ' aggiornati';
     }catch(e){}
   };
 

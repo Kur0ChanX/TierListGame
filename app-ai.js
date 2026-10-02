@@ -573,6 +573,73 @@ function novitaCheckShown(c, rerender, isCurrent){
   });
 }
 // v249: arrivato il voto vero aggiorno SOLO la riga del voto e i generi della proposta in vista (prima si ridisegnava tutta la pagina: la scheda tremava di 1-2 pixel)
+// v250: le proposte in ELENCO (come la tabella dei giochi accettati): ✓ / ✕ su ogni riga, «Accetta tutte» in alto,
+// tieni premuto una riga (o tocca il nome) per aprire «Guarda meglio» con locandina, foto, gameplay e recensioni. «Una alla volta» resta disponibile.
+const novitaListMode = ()=>{ try{ return localStorage.getItem('jrpg_novita_mode') !== 'card'; }catch(e){ return true; } };
+function novitaModeHtml(){
+  const l = novitaListMode();
+  return `<div class="nl-mode" role="tablist"><button type="button" data-nl-mode="list" class="${l ? 'on' : ''}">☰ Elenco</button><button type="button" data-nl-mode="card" class="${l ? '' : 'on'}">🃏 Una alla volta</button></div>`;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest && e.target.closest('[data-nl-mode]'); if(!b) return;
+  try{ localStorage.setItem('jrpg_novita_mode', b.dataset.nlMode); }catch(x){}
+  if(b.closest('#novitaGenrePanel')) renderNovitaGenreCard(); else renderNovitaCard();
+});
+function novitaRowHtml(c){
+  const t = (c.tags || []).filter(x=> TAG_INFO[x]).slice(0, 2).map(x=> TAG_INFO[x].icon + ' ' + escHtml(TAG_INFO[x].label)).join(' · ');
+  const chk = c._chk !== true ? '<i class="nl-chk" title="controllo il voto vero…">⏳</i>' : c.m === 'V' ? '<i class="nl-ok" title="voto verificato">✔</i>' : '';
+  return `<div class="nl-row" data-nl-name="${escHtml(c.name)}">
+    <div class="nl-main" data-nl-peek><b>${escHtml(c.name)}</b><small>${escHtml(c.year || '?')} · ${escHtml(c.plat || '?')}${t ? ' · ' + t : ''}</small></div>
+    <div class="nl-sc"><span class="badge ${TIER_LABEL[c.tier] || ''}">${escHtml(c.tier || '?')}</span><small>${c.score != null ? c.score : '–'}${chk}</small></div>
+    <button type="button" class="nl-btn nl-no" data-nl-act="no" aria-label="Non fa per me">✕</button>
+    <button type="button" class="nl-btn nl-yes" data-nl-act="yes" aria-label="Aggiungi alla libreria">✓</button>
+  </div>`;
+}
+function novitaListHtml(q){
+  const v = novitaVisible(q);
+  return `${novitaModeHtml()}<div class="nl-head"><b class="nl-count">${v.length} ${v.length === 1 ? 'proposta' : 'proposte'}</b>${v.length >= 2 ? `<button class="btn primary" type="button" data-accept-all>${giIcon('check')} Accetta tutte (<span class="nl-n">${v.length}</span>)</button>` : ''}</div>
+    <div class="nl-list">${v.map(novitaRowHtml).join('')}</div>
+    <div class="discover-hint">✓ aggiungi · ✕ scarta · <b>tieni premuto</b> (o tocca il nome) per vedere locandina, gameplay e recensioni</div>`;
+}
+function wireNovitaList(panel, kind, rerender){
+  const list = panel.querySelector('.nl-list'); if(!list) return;
+  const q = ()=> kind === 'genre' ? novitaGenreQueue : novitaQueue;
+  const find = row=> q().find(x=> x.name === row.dataset.nlName);
+  const counts = ()=>{ const n = novitaVisible(q()).length; const c = panel.querySelector('.nl-count'); if(c) c.textContent = n + ' ' + (n === 1 ? 'proposta' : 'proposte'); const a = panel.querySelector('.nl-n'); if(a) a.textContent = n; if(n < 2){ const b = panel.querySelector('[data-accept-all]'); if(b) b.remove(); } };
+  const act = (row, yes)=>{
+    const c = find(row); if(!c || row._gone) return;
+    if(yes){ try{ askToolAddCustomGame(c, kind === 'genre' ? 'Novità per genere' : 'Novità'); }catch(e){ showToast((e && e.message) || 'Non sono riuscito ad aggiungere il gioco.'); return; } }
+    else novitaSkipCandidate(c);
+    const i = q().indexOf(c); if(i >= 0) q().splice(i, 1);
+    row._gone = 1; try{ window.rtHaptic && rtHaptic('soft'); }catch(e){}
+    if(!novitaVisible(q()).length){ rerender(); return; }
+    counts();
+    try{ const nf = panel.querySelector('.nf-row'), h2 = novitaFilterHtml(q()); if(nf && h2){ nf.outerHTML = h2; wireNovitaFilter(panel, rerender); } }catch(e){}       // numeri dei generi aggiornati sul posto
+    let reduce = false; try{ reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+    if(!row.animate || reduce){ row.remove(); return; }
+    const h = row.offsetHeight;
+    const a = row.animate([{transform: 'none', opacity: 1}, {transform: 'translateX(' + (yes ? 48 : -48) + 'px)', opacity: 0}], {duration: 180, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards'});
+    a.onfinish = ()=>{ row.style.overflow = 'hidden'; const b = row.animate([{height: h + 'px', marginBottom: getComputedStyle(row).marginBottom}, {height: '0px', marginBottom: '0px', paddingTop: '0px', paddingBottom: '0px'}], {duration: 200, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards'}); b.onfinish = ()=> row.remove(); };
+  };
+  const peek = row=>{ const c = find(row); if(!c || !window.rtSus) return; try{ window.rtHaptic && rtHaptic('tick'); }catch(e){} rtSus.peek(c, {like: ()=> act(row, true), nope: ()=> act(row, false)}); };
+  list.addEventListener('click', e=>{
+    const row = e.target.closest('.nl-row'); if(!row) return;
+    if(row._lp){ row._lp = 0; e.preventDefault(); return; }               // dopo la pressione lunga non conto il tocco
+    const b = e.target.closest('[data-nl-act]'); if(b){ act(row, b.dataset.nlAct === 'yes'); return; }
+    if(e.target.closest('[data-nl-peek]')) peek(row);
+  });
+  // pressione lunga (0,45 s) su qualunque punto della riga
+  let tm = 0, sx = 0, sy = 0, cur = null;
+  const cancel = ()=>{ clearTimeout(tm); tm = 0; if(cur) cur.classList.remove('nl-press'); cur = null; };
+  list.addEventListener('pointerdown', e=>{
+    const row = e.target.closest('.nl-row'); if(!row || e.target.closest('[data-nl-act]')) return;
+    cancel(); cur = row; sx = e.clientX; sy = e.clientY; row.classList.add('nl-press');
+    tm = setTimeout(()=>{ const r = cur; cancel(); if(r){ r._lp = 1; peek(r); setTimeout(()=>{ r._lp = 0; }, 700); } }, 450);
+  });
+  list.addEventListener('pointermove', e=>{ if(tm && (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10)) cancel(); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev=> list.addEventListener(ev, ()=>{ if(tm) cancel(); }));
+  list.addEventListener('contextmenu', e=>{ if(e.target.closest('.nl-row')) e.preventDefault(); });
+}
 function novitaPatchCard(c){
   const card = document.getElementById('novitaCard'), t = card && card.querySelector('.discover-title');
   if(!t || t.textContent !== String(c.name)) return false;
@@ -944,7 +1011,8 @@ function renderNovitaCard(){
     wireNovitaCard(); wireNovitaTopbar();
     return;
   }
-  panel.innerHTML = `<div class="novita-wrap">${topBar}
+  if(novitaListMode()){ panel.innerHTML = `<div class="novita-wrap">${topBar}${novitaListHtml(novitaQueue)}${novitaFilterHtml(novitaQueue)}</div>`; wireNovitaCard(); wireNovitaTopbar(); wireNovitaAccept(panel, 'novita', renderNovitaCard); wireNovitaList(panel, 'novita', renderNovitaCard); return; }
+  panel.innerHTML = `<div class="novita-wrap">${topBar}${novitaModeHtml()}
     <div class="discover-stage">${novitaCardHtml(c)}</div>
     <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaQueue)}${novitaFilterHtml(novitaQueue)}
   </div>`;
@@ -1059,7 +1127,8 @@ function renderNovitaGenreCard(){
     wireNovitaGenreCard(); wireNovitaGenreTopbar();
     return;
   }
-  panel.innerHTML = `<div class="novita-wrap">${topBar}
+  if(novitaListMode()){ panel.innerHTML = `<div class="novita-wrap">${topBar}${novitaListHtml(novitaGenreQueue)}${novitaFilterHtml(novitaGenreQueue)}</div>`; wireNovitaGenreCard(); wireNovitaGenreTopbar(); wireNovitaAccept(panel, 'genre', renderNovitaGenreCard); wireNovitaList(panel, 'genre', renderNovitaGenreCard); return; }
+  panel.innerHTML = `<div class="novita-wrap">${topBar}${novitaModeHtml()}
     <div class="discover-stage">${novitaCardHtml(c, {nope:'novitaGenreNopeBtn', like:'novitaGenreLikeBtn'})}</div>
     <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaGenreQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaGenreQueue)}${novitaFilterHtml(novitaGenreQueue)}
   </div>`;
@@ -1115,7 +1184,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-03';
-const DATA_BUILD_VERSION = 'v249';
+const DATA_BUILD_VERSION = 'v250';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

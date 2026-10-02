@@ -80,7 +80,7 @@
   // Se Google dice «aspetta N secondi» aspetto e riprovo da sola; se è finita la quota del giorno di un modello passo al successivo (ognuno ha la sua).
   let queue = Promise.resolve();
   const serial = fn=>{ const p = queue.catch(()=>{}).then(fn); queue = p.catch(()=>{}); return p; };
-  const badModels = new Set(), dayOut = {};
+  const badModels = new Set(), dayOut = {}, coolUntil = {};      // v250: coolUntil = modello «occupato» fino a quell'ora: non aspetto, uso un'altra voce
   const sleep = ms=> new Promise(r=> setTimeout(r, ms));
   let onWait = null;          // chi aspetta (il tasto) riceve il messaggio «riprovo tra N s»
   async function aiAudio(text, voiceOver, tk){
@@ -90,7 +90,8 @@
     let c = null; try{ c = window.caches ? await caches.open(CACHE) : null; if(c){ const hit = await c.match(key); if(hit) return await hit.blob(); } }catch(e){}
     return serial(async ()=>{
       const ok = ls.get(OK_K), today = new Date().toDateString();
-      const order = MODELS.filter(([m])=> !badModels.has(m) && dayOut[m] !== today).sort((x, y)=> (y[0] === ok) - (x[0] === ok));
+      const order = MODELS.filter(([m])=> !badModels.has(m) && dayOut[m] !== today && !(coolUntil[m] > Date.now())).sort((x, y)=> (y[0] === ok) - (x[0] === ok));
+      if(!order.length && MODELS.some(([m])=> coolUntil[m] > Date.now())){ ls.set(ERR_K, 'Gemini è occupato in questo momento'); throw Object.assign(new Error('occupato'), {status: 429}); }
       let last = null;
       for(const [m, kind] of order){
         for(let tries = 0; tries < 4; tries++){
@@ -104,14 +105,14 @@
             last = e;
             if(e.status === 401 || e.status === 403 || (e.status === 400 && /api key/i.test(e.message))){ ls.set(ERR_K, 'la chiave Gemini non è valida'); e.fatal = true; throw e; }
             if(e.status === 404 || (e.status === 400 && /model|not found|not supported|unknown/i.test(e.message))){ badModels.add(m); break; }      // modello che non c'è: il prossimo
-            if(e.status === 429 && !e.perDay && tries < 3){ const w = Math.min(60000, Math.max(1500, e.retryMs || 4000 * (tries + 1))); if(onWait) onWait(Math.ceil(w / 1000)); await sleep(w + 300); continue; }
+            if(e.status === 429 && !e.perDay && tries < 3){ const w = Math.max(1500, e.retryMs || 4000 * (tries + 1)); if(w > 6000){ coolUntil[m] = Date.now() + w; break; } if(onWait) onWait(Math.ceil(w / 1000)); await sleep(w + 300); continue; }      // v250: attese lunghe (anche 60 s) = niente attesa, passo alla voce di riserva
             if(e.status === 429){ dayOut[m] = today; break; }                        // quota del giorno di questo modello: il prossimo
             if((e.status === -1 || e.status >= 500 || e.status === 0) && tries < 2){ if(onWait) onWait(2); await sleep(1500 * (tries + 1)); continue; }   // rete o Google occupato: riprovo
             break;
           }
         }
       }
-      ls.set(ERR_K, last && last.status === 429 ? 'oggi la quota gratuita della voce Gemini è finita su tutti i modelli (torna domani)' : 'Gemini non risponde (' + (last && last.message || 'errore') + ')');
+      ls.set(ERR_K, last && last.status === 429 ? (last.perDay ? 'oggi la quota gratuita della voce Gemini è finita su tutti i modelli (torna domani)' : 'Gemini è occupato in questo momento') : 'Gemini non risponde (' + (last && last.message || 'errore') + ')');
       throw last || new Error('tts');
     });
   }
