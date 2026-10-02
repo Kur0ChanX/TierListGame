@@ -1875,3 +1875,15 @@ html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1
 /* v231: la scheda ha SEMPRE il suo strato pronto per muoversi. Prima lo strato nasceva all'inizio dell'animazione e spariva alla fine:
    il telefono ridisegnava la scheda da zero e per 2 fotogrammi la mostrava vuota (il «flash» di icone e locandina nel video). */
 #modalCard{will-change:transform, scroll-position}
+
+/* v233: freccette ▲▼ dei riquadri intere: niente margini negativi (i riquadri della scheda «tagliano» ciò che esce dai bordi) */
+.modal-section-title .cd-mv, .cd-mv{margin:0 0 0 8px !important}
+.cd-mvrow{margin:14px 2px 6px !important; min-height:30px}
+.modal-section-title:has(> .cd-mv){min-height:30px; display:flow-root}
+/* v233: riga «Ordina» nelle viste a copertine/schede + procione accanto alla stella */
+.alt-sort{display:flex; align-items:center; gap:6px; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; padding:8px 2px 8px; margin-top:6px; min-height:46px; box-sizing:border-box; position:relative; z-index:1; -webkit-overflow-scrolling:touch}
+.alt-sort::-webkit-scrollbar{display:none}
+.alt-sort small{flex:none; font-size:.7rem; color:var(--sub); text-transform:uppercase; letter-spacing:.04em; margin-right:2px}
+.as-c{flex:none; height:30px; padding:0 11px; border-radius:999px; border:1px solid color-mix(in srgb, var(--text) 14%, transparent); background:color-mix(in srgb, var(--text) 4%, transparent); color:var(--text); font:600 .76rem/1 inherit; cursor:pointer; white-space:nowrap}
+.as-c.on{background:var(--accent); border-color:var(--accent); color:#fff}
+.x-name .row-top-i{margin:0 6px 0 2px}

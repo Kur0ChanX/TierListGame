@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v233', date:'2026-10-02', time:'13:40', items:[
+    'Viste a copertine e a schede: sopra i giochi c\'è una riga discreta «Ordina»: 🏆 Classifica · 😍 Nel cuore (il procione con gli occhi a cuore: prima i tuoi «Nel cuore», poi i preferiti) · ⭐ Preferiti · Tier · Voto · Anno · A-Z. Toccando di nuovo lo stesso tasto si inverte l\'ordine (↑). La scelta resta salvata.',
+    'Vista a schede: il procione «Nel cuore» ora è accanto alla stella dei preferiti, prima del nome.',
+    'Scheda del gioco: le freccette ▲▼ per spostare i riquadri non sono più tagliate.',
+  ]},
   {version:'v232', date:'2026-10-02', time:'13:27', items:[
     'Musica + voce: con «Auto» della musica acceso, quando parte la voce della storia controllo che la musica stia suonando e, se non è partita, la faccio partire. Se il telefono blocca l\'avvio della musica, riparte da sola al primo tocco sullo schermo.',
     'Mentre la voce parla la musica scende meno (al 45% del volume scelto, prima al 25%) e non va mai sotto una soglia udibile: con un volume già basso sembrava che la musica non partisse.',
