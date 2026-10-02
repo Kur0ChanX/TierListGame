@@ -30,7 +30,7 @@ self.addEventListener('install', e=>{
 self.addEventListener('activate', e=>{
   e.waitUntil(caches.keys().then(ks=> Promise.all(ks.filter(k=> k !== CACHE && k !== COVERS).map(k=> caches.delete(k)))).then(()=> self.clients.claim()));
 });
-const STATIC = /\/(icons|packs|fonts)\/|\.(png|jpe?g|webp|gif|svg|woff2?|ttf|otf|mp3|ogg|webmanifest)(\?|$)/i;
+const STATIC = /\/(icons|packs|fonts)\/|\.(png|jpe?g|webp|gif|svg|woff2?|ttf|otf|mp3|ogg)(\?|$)/i;      // v229: il manifest NON in cache: Chrome deve vedere subito «schermo intero»
 const DATA = /\/(voti|facts|ost|shots|radar|quality|discoveries)\.js$|\/dati\/notte-/;      // v211: anche i pezzi notturni (cambiano ogni notte, non con la versione)
 const DAY = 864e5, DATA_TTL = 6 * 3600e3;
 let BUILD = '';                                   // versione dell'ultima pagina scaricata dal sito

@@ -138,7 +138,7 @@
   window.openModal = function(g){
     stop(); openAt = performance.now();
     const r = origOpen.apply(this, arguments);
-    try{ if(g && g.id != null) setTimeout(()=> run(g), 60); }catch(e){}
+    try{ if(g && g.id != null) setTimeout(()=> run(g), Math.max(60, (window.__rtOpenUntil || 0) - performance.now() + 60)); }catch(e){}      // v229: il carosello si prepara a scheda aperta, non durante l'animazione
     return r;
   };
   try{ openModal = window.openModal; }catch(e){}
