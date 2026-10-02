@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'a4', date:'2026-10-02', time:'17:41', items:[
+    'Generi degli anime riconosciuti ovunque: controllo dei dati, intelligenza artificiale (Novità e Chiedi), titoli simili e verifica su Wikidata non usano più i generi dei videogiochi',
+    'I tre film «Justice League - Crisi sulle Terre infinite» ora si chiamano Parte 1, 2 e 3'
+  ]},
   {version:'a3', date:'2026-10-02', time:'17:35', items:[
     'Tratti nuovi pensati per anime e manga (storia, colpi di scena, personaggi, crescita, amicizia, combattimenti, poteri, atmosfera, animazione, musica, comicità, toni rilassanti, isekai, mecha, sport e altri): calcolati per 2272 titoli su 2273',
     'Il tuo DNA dei gusti ora usa questi tratti al posto di quelli dei videogiochi'

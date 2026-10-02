@@ -3,45 +3,20 @@
 // Sui giochi NUOVI aggiunti da Novità/Chiedi aggiunge in automatico i generi che Wikidata conferma.
 (function(){
   const WD = 'https://www.wikidata.org/w/api.php';
+  // etichette inglesi dei generi di Wikidata → codici dei tag anime (meta.tags nei dati)
   const MAP = [
-    [/tactical role|strategy role|turn-based tactic|tactical rpg|grid-based tactic/i, 'TAC'],
-    [/action role|action rpg|hack and slash|hack & slash/i, 'ACT'],
-    [/dungeon crawl/i, 'DUN'],
-    [/monster[- ]?(taming|collecting|raising|hunting rpg)|creature[- ]collect/i, 'MON'],
-    [/card game|deck[- ]?build|collectible card|digital collectible/i, 'CARD'],
-    [/roguelike|roguelite|rogue-lite/i, 'ROG'],
-    [/metroidvania/i, 'METR'],
-    [/soulslike|souls-like/i, 'SOUL'],
-    [/visual novel/i, 'VN'],
-    [/survival horror|horror/i, 'HOR'],
-    [/mecha/i, 'MECH'],
-    [/life simulation|farming simulation|farm/i, 'LIFE'],
-    [/platform/i, 'PLAT'],
-    [/fighting game/i, 'FIGHT'],
-    [/real-time strategy|\brts\b/i, 'RTS'],
-    [/tower defen/i, 'TOWERDEF'],
-    [/puzzle/i, 'PUZ'],
-    [/stealth/i, 'STEALTH'],
-    [/first-person shooter/i, 'FPS'],
-    [/third-person shooter/i, 'TPS'],
-    [/shoot 'em up|shoot em up|shmup/i, 'SHMUP'],
-    [/racing/i, 'RACE'],
-    [/sports? (video )?game|association football/i, 'SPORT'],
-    [/city[- ]building|construction and management/i, 'CITY'],
-    [/action-adventure|action adventure/i, 'ACTADV'],
-    [/open[- ]world/i, 'OPENW'],
-    [/massively multiplayer online|\bmmo/i, 'MMO'],
-    [/flight simulat|vehicle simulat|train simulat/i, 'SIMVEH'],
-    [/quiz|trivia/i, 'TRIVIA'],
-    [/point[- ]and[- ]click|graphic adventure/i, 'ADV'],
-    [/walking simulator/i, 'WALK'],
-    [/battle royale/i, 'BR'],
-    [/rhythm|music video game/i, 'RHY'],
-    [/party game/i, 'PARTY'],
-    [/sandbox|survival game/i, 'SAND'],
-    [/multiplayer online battle arena|\bmoba\b/i, 'MOBA'],
-    [/4x|turn-based strategy/i, 'TBS4X'],
-    [/beat 'em up|beat em up/i, 'BEAT']
+    [/\baction\b/i, 'ACT'], [/adventure/i, 'ADV'], [/comedy|comedic|humor/i, 'COM'], [/drama/i, 'DRA'],
+    [/fantasy/i, 'FAN'], [/science fiction|sci-fi|cyberpunk|space opera/i, 'SCI'], [/horror/i, 'HOR'],
+    [/mystery|whodunit/i, 'MYS'], [/psycholog/i, 'PSY'], [/thriller/i, 'THR'], [/romance|romantic|love story/i, 'ROM'],
+    [/slice of life/i, 'SOL'], [/sport/i, 'SPO'], [/supernatural|occult|ghost/i, 'SUP'], [/mecha|giant robot|real robot|super robot/i, 'MEC'],
+    [/music|musical/i, 'MUS'], [/magical girl|mahou shoujo|mahō shōjo/i, 'MAH'], [/ecchi/i, 'ECC'],
+    [/sh[oō]nen|shounen/i, 'SHO'], [/seinen/i, 'SEI'], [/sh[oō]jo|shoujo/i, 'SHJ'], [/josei/i, 'JOS'],
+    [/children|kodomo/i, 'KID'], [/family film|family/i, 'FAM'], [/isekai/i, 'ISE'], [/school/i, 'SCH'],
+    [/martial arts|wuxia|kung fu/i, 'MAR'], [/superhero|super power/i, 'POW'], [/historical|period drama|jidaigeki|samurai/i, 'HIS'],
+    [/\bwar\b|military/i, 'MIL'], [/survival|death game|battle royale/i, 'SUR'], [/gambling|game/i, 'GAM'], [/iyashikei/i, 'IYA'],
+    [/cooking|food|gourmet/i, 'FOO'], [/\bidol/i, 'IDO'], [/time travel|time loop/i, 'TIM'], [/vampire/i, 'VAM'],
+    [/splatter|gore/i, 'GOR'], [/crime|detective|yakuza|gangster|police/i, 'CRI'], [/post-apocalyptic|dystopi/i, 'DYS'],
+    [/harem/i, 'HAR'], [/yuri|boys.? love|yaoi|lgbt/i, 'LGB'], [/webtoon/i, 'WEB']
   ];
   const codesFrom = labels=>{ const out = []; labels.forEach(l=> MAP.forEach(([re, c])=>{ if(re.test(l) && !out.includes(c)) out.push(c); })); return out; };
   const fj = (u, o)=> window.SearchHub ? SearchHub.json(u, o) : fetch(u).then(r=>{ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
@@ -52,7 +27,7 @@
   async function genreCodes(name){
     const s = await wd({action:'wbsearchentities', search: cleanName(name), language:'en', type:'item', limit:'8'});
     const target = normGameName(cleanName(name));
-    const cand = (s.search || []).find(x=> /video ?game|role-playing|game/i.test(x.description || '') && !/series|franchise|soundtrack/i.test(x.description || '') && (normGameName(x.label) === target || normGameName(x.label).includes(target) || target.includes(normGameName(x.label))));
+    const cand = (s.search || []).find(x=> /anime|manga|manhwa|manhua|webtoon|animated|animation|film|television series|light novel/i.test(x.description || '') && !/franchise|soundtrack|video ?game|episode|character/i.test(x.description || '') && (normGameName(x.label) === target || normGameName(x.label).includes(target) || target.includes(normGameName(x.label))));
     if(!cand) return null;
     const e = await wd({action:'wbgetentities', ids: cand.id, props:'claims'});
     const claims = (e.entities && e.entities[cand.id] && e.entities[cand.id].claims) || {};
@@ -110,13 +85,12 @@
     GAMES.forEach(g=>{
       const codes = cache[g.id] || [], wl = labs[g.id];
       const add = codes.filter(c=> TAG_INFO[c] && !g.tags.includes(c));
-      // "Avventura punta e clicca" è un genere preciso: se Wikidata conosce i generi del gioco e non lo indica, propongo di toglierlo (errore tipico: Elden Ring, Portal, Stardew finiti lì)
-      const remove = (g.tags.includes('ADV') && wl && wl.length && !codes.includes('ADV') && (g.tags.filter(t=> t !== 'ADV').length || add.length)) ? ['ADV'] : [];
+      const remove = [];      // versione Anime: si propongono solo aggiunte (i generi di Wikidata sono troppo larghi per togliere)
       if(add.length || remove.length) rows.push({g, add, remove, wl});
     });
     const body = el.querySelector('#gcBody');
-    if(!rows.length){ body.innerHTML = `<div class="lp-sub">✅ Nessuna differenza: i generi che ho salvato coincidono con quelli di Wikidata${fail ? ` (${fail} giochi non trovati o non raggiungibili)` : ''}.</div>`; return; }
-    body.innerHTML = `<div class="lp-sub">Wikidata suggerisce correzioni ai generi di <b>${rows.length}</b> giochi (aggiunte e tag da togliere). Togli la spunta a quelli che non ti convincono. ⚠️ = sposta il gioco fuori da JRPG / RPG.${fail ? ` (${fail} giochi non trovati)` : ''}</div>
+    if(!rows.length){ body.innerHTML = `<div class="lp-sub">✅ Nessuna differenza: i generi che ho salvato coincidono con quelli di Wikidata${fail ? ` (${fail} titoli non trovati o non raggiungibili)` : ''}.</div>`; return; }
+    body.innerHTML = `<div class="lp-sub">Wikidata suggerisce correzioni ai generi di <b>${rows.length}</b> titoli. Togli la spunta a quelli che non ti convincono.${fail ? ` (${fail} titoli non trovati)` : ''}</div>
       <div class="gc-rows">${rows.map((r,i)=> `<label class="gc-row"><input type="checkbox" data-i="${i}" checked> <span><b>${escHtml(r.g.name)}</b><br>${(r.remove.length ? `❌ togliere ${TAG_INFO.ADV.icon} ${escHtml(TAG_INFO.ADV.label)} <small>(Wikidata: ${escHtml((r.wl || []).join(', '))})</small><br>` : '') + r.add.map(c=> `${TAG_INFO[c].icon} ${escHtml(TAG_INFO[c].label)}${EXTRA_GENRE_INFO[c] ? ' ⚠️' : ''}`).join(' · ')}</span></label>`).join('')}</div>
       <div class="lp-tools"><button class="btn primary" id="gcApply">Applica i selezionati</button></div>`;
     body.querySelector('#gcApply').addEventListener('click', ()=>{

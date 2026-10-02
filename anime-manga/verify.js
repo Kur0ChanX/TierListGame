@@ -267,7 +267,7 @@
     // GENERI dalle fonti (Wikidata, RAWG, Steam): i generi che le fonti sanno riconoscere diventano quelli del gioco (si aggiungono i confermati, si tolgono quelli che nessuna fonte conferma).
     // JRPG/WRPG, «a turni», Crossover, Remake, Guerra, Gacha… non si possono verificare e restano. Se le fonti non dicono nulla di preciso (solo «RPG») non si cambia niente.
     {
-      const VER = new Set(['TAC','ACT','DUN','MON','CARD','ROG','METR','SOUL','VN','HOR','MECH','LIFE','PLAT','FIGHT','RTS','TOWERDEF','PUZ','STEALTH','FPS','TPS','SHMUP','RACE','SPORT','CITY','ACTADV','OPENW','MMO','SIMVEH','TRIVIA','ADV','WALK','BR','RHY','PARTY','SAND','MOBA','TBS4X','BEAT']);
+      const VER = new Set(['ACT','ADV','COM','DRA','FAN','SCI','HOR','MYS','PSY','THR','ROM','SOL','SPO','SUP','MEC','MUS','MAH']);      // versione Anime: solo i generi «larghi» che Wikidata sa riconoscere
       const info = c=> TAG_INFO[c] || EXTRA_GENRE_INFO[c];
       const hy = x=> String(x).replace(/[-_]/g, ' ');
       const raw = [].concat((src.rawg && src.rawg.genres) || [], ((src.rawg && src.rawg.tags) || []).map(t=> t.name), (src.steam && src.steam.genres) || []).filter(Boolean);
@@ -277,7 +277,7 @@
       const found = [...new Set(fromWd.concat(fromWeb))];                       // tutto ciò che le fonti riconoscono (basta una fonte per NON togliere)
       const addOk = c=> fromWd.includes(c) || (fromWeb.includes(c) && (fromWd.length === 0 || (src.rawg && src.steam)));   // per AGGIUNGERE: Wikidata, oppure RAWG/Steam quando Wikidata tace
       if(found.length){
-        const mine = g.tags.slice(), add = found.filter(c=> !mine.includes(c) && addOk(c)), drop = mine.filter(t=> VER.has(t) && !found.includes(t));
+        const mine = g.tags.slice(), add = found.filter(c=> !mine.includes(c) && addOk(c)), drop = [];      // versione Anime: i generi di AniList valgono di più, da Wikidata si aggiunge soltanto
         if(add.length || drop.length){
           const keep = mine.filter(t=> !drop.includes(t)).concat(add).slice(0, 6);
           const extra = add.concat(drop).some(c=> EXTRA_GENRE_INFO[c]);

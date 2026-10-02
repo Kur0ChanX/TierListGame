@@ -10,6 +10,8 @@ const YEAR = NOW.getFullYear();
 const TIME_RE = /essendo [^;.]{0,40}recente|titolo (relativamente |indipendente )?recente|capitolo (più )?recente|reinvenzione recente|invecchia (bene|benissimo) essendo|panorama indie recente|in corso di rilascio|terzo capitolo in sviluppo|uscito da poco|appena uscit|uscita recente|troppo (presto|recente|fresc)|di recente|poco valutabil|ancora presto|da poco (uscit|sul mercato)|pochi mesi|primi mesi|ancora (poche|pochi) (recension|dati|mesi)|non ancora (valutabil|consolidat|giudicabil)|recentissim|troppo nuov|troppo giovane/i;
 // i tag validi sono quelli definiti in app.js (TAG_INFO + EXTRA_GENRE_INFO): li leggo da lì, così l'elenco non invecchia
 const KNOWN_TAGS = new Set([...fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8').matchAll(/^  ([A-Z][A-Z0-9]+):\{icon:/gm)].map(m => m[1]));
+// versione Anime: i generi stanno nei dati (GIOCHI_DATA.meta.tags)
+((D.meta && D.meta.tags) || []).forEach(t => KNOWN_TAGS.add(t.c));
 const norm = n => n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
 let warnings = 0;
 const warn = m => { warnings++; console.log('⚠️  ' + m); };
@@ -24,7 +26,7 @@ const warn = m => { warnings++; console.log('⚠️  ' + m); };
 function walk(o, p, cb){ if (typeof o === 'string') cb(p, o); else if (Array.isArray(o)) o.forEach((x, i) => walk(x, p + '[' + i + ']', cb)); else if (o && typeof o === 'object') for (const k in o) walk(o[k], p ? p + '.' + k : k, cb); }
 const seen = {};
 for (const g of D.games) {
-  const k = norm(g.name);
+  const k = norm(g.name) + "|" + g.kind + "|" + g.ysort;      // versione Anime: stesso titolo come anime e come manga (o remake di anni diversi) non è un doppione
   if (seen[k]) warn(`Nome duplicato: "${g.name}" (id ${g.id} e ${seen[k]})`); else seen[k] = g.id;
   if (!g.tags.length) warn(`Nessun tag: ${g.name} (id ${g.id})`);
   g.tags.forEach(t => { if (!KNOWN_TAGS.has(t)) warn(`Tag sconosciuto "${t}": ${g.name}`); });
@@ -41,7 +43,7 @@ for (const g of D.games) {
 {
   const fs2 = require('fs'), path2 = require('path');
   const root = path2.join(__dirname, '..');
-  const html = fs2.readFileSync(path2.join(root, 'Tier List RPG & JRPG di Mario.html'), 'utf8');
+  const html = fs2.readFileSync(path2.join(root, 'index.html'), 'utf8');
   const ai = fs2.readFileSync(path2.join(root, 'app-ai.js'), 'utf8');
   const mb = (html.match(/<meta name="build" content="([^"]+)"/) || [])[1], jv = (ai.match(/DATA_BUILD_VERSION = '([^']+)'/) || [])[1];
   if (mb !== jv) { warnings++; console.log(`Versione non coerente: <meta name="build"> = ${mb}, DATA_BUILD_VERSION = ${jv}. Aggiorna il meta nell'HTML.`); }
@@ -74,16 +76,16 @@ for (const g of D.games) {
 // ogni script locale caricato dall'HTML deve esistere, essere copiato dal workflow Pages e stare nella cache offline (sw.js)
 {
   const root4 = path.join(__dirname, '..');
-  const html4 = fs.readFileSync(path.join(root4, 'Tier List RPG & JRPG di Mario.html'), 'utf8');
-  const pages = fs.readFileSync(path.join(root4, '.github', 'workflows', 'pages.yml'), 'utf8');
+  const html4 = fs.readFileSync(path.join(root4, 'index.html'), 'utf8');
+  const pyml = path.join(root4, '.github', 'workflows', 'pages.yml'), pages = fs.existsSync(pyml) ? fs.readFileSync(pyml, 'utf8') : null;      // versione Anime: non ancora pubblicata con un suo workflow
   const sw = fs.readFileSync(path.join(root4, 'sw.js'), 'utf8');
   const scripts = [...html4.matchAll(/<script[^>]*\ssrc="([^"]+)"/g)].map(m => m[1]).filter(u => !/^(https?:)?\/\//.test(u));
   for (const u of scripts) {
     if (!fs.existsSync(path.join(root4, u))) { warnings++; console.log('Script nell\'HTML che non esiste: ' + u); continue; }
-    if (!new RegExp('(^|\\s)' + u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s|$)', 'm').test(pages)) { warnings++; console.log('Script non copiato dal workflow Pages (.github/workflows/pages.yml): ' + u); }
+    if (pages != null && !new RegExp('(^|\\s)' + u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s|$)', 'm').test(pages)) { warnings++; console.log('Script non copiato dal workflow Pages (.github/workflows/pages.yml): ' + u); }
     if (u !== 'intro.js' && u !== 'palettes.js' && sw.indexOf("'" + u + "'") < 0) { warnings++; console.log('Script mancante nella cache offline (sw.js, elenco SHELL): ' + u); }
   }
-  for (const f of ['facts.js', 'discoveries.js']) {
+  for (const f of ['facts.js', 'discoveries.js'].filter(f => html4.includes('src="' + f + '"'))) {      // versione Anime: solo se l'HTML li carica
     const fp = path.join(root4, f);
     if (!fs.existsSync(fp)) { warnings++; console.log('File dati mancante: ' + f + ' (il workflow Pages lo copia: senza, la pubblicazione fallisce). Lancia: node tools/' + (f === 'facts.js' ? 'build-facts' : 'build-discoveries') + '.js'); continue; }
     try { JSON.parse(fs.readFileSync(fp, 'utf8').replace(/^const [A-Z_]+ = /, '').replace(/;\s*$/, '')); } catch (e) { warnings++; console.log('File dati non valido (JSON rotto): ' + f); }

@@ -238,7 +238,7 @@ function fixSecondPerson(t){
 // coerenza tra «peso storia» e «ore storia»: se la trama è minima le ore non possono essere quelle di un gioco lungo
 function labelCoherent(l, tags){
   if(!l) return true;
-  const noStory = ['ROG','TAC','PUZ','ARCADE','SHMUP','PLAT','RACE','SPORT','RTS','TOWERDEF','FPS','BR','MOBA','FIGHT','BEAT','RHY','CITY','SAND'];
+  const noStory = [];      // versione Anime: ogni genere ha una storia
   const genreNoStory = (tags || []).some(t=> noStory.includes(t));
   if(l.s != null && l.s <= 1 && l.h != null && l.h > 10) return false;
   if(l.s != null && l.s <= 2 && genreNoStory && l.h != null && l.h > 15) return false;
@@ -1109,7 +1109,7 @@ function soundtrackHtml(g){
 function findSimilarGames(g, n){
   // Affinità reale, non solo «stesso tag»: genere principale, tag condivisi, saga, stessa epoca, stessa struttura (ritmo, peso storia, difficoltà),
   // e nessun genere incompatibile (mai horror per chi guarda un action indie, mai sport per un JRPG…). Meglio pochi consigli buoni che quattro sbagliati.
-  const EXCL = [['HOR','SURV'], ['SPORT','RACE','SIMVEH'], ['FIGHT'], ['PARTY','TRIVIA','RHY'], ['FPS','TPS','BR'], ['CITY','ECOSIM','SIMLIFE','LIFE'], ['MECH']];
+  const EXCL = [['HOR', 'GOR'], ['SPO'], ['MEC'], ['KID'], ['ECC', 'HAR'], ['IDO'], ['MAH']];      // versione Anime
   const gt = new Set(g.tags || []);
   const gYear = g.ysort || (parseInt(String(g.year || '').slice(0,4), 10) || null);
   const gs = new Set((g.plat || '').toLowerCase().split(/[\/,]/).map(x=> x.trim()).filter(Boolean));

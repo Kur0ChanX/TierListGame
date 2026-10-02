@@ -278,7 +278,7 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
   }
 
   // ---------- 2) giochi simili ----------
-  const EXCL = [['HOR', 'SURV'], ['SPORT', 'RACE', 'SIMVEH'], ['FIGHT'], ['PARTY', 'TRIVIA', 'RHY'], ['FPS', 'TPS', 'BR'], ['CITY', 'ECOSIM', 'SIMLIFE', 'LIFE'], ['MECH']];
+  const EXCL = [['HOR', 'GOR'], ['SPO'], ['MEC'], ['KID'], ['ECC', 'HAR'], ['IDO'], ['MAH']];      // versione Anime
   const yearOf = x=> x.ysort || (parseInt(String(x.year || '').slice(0, 4), 10) || null);
   const sagaK = x=>{ try{ return typeof sagaKeyOf === 'function' ? sagaKeyOf(x) : ''; }catch(e){ return ''; } };
   const keyN = t=> String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');

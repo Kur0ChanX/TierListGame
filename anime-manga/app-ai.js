@@ -223,7 +223,7 @@ const ASK_TOOLS = [
         year: {type:'string', description:'anno di uscita'},
         tier: {type:'string', enum:['S+','S','A','B','C','D','E','F','ND'], description:'la tua stima onesta di quanto sia un buon RPG/JRPG (ND se non hai un voto Metacritic/OpenCritic verificato)'},
         score: {type:'number', description:'voto stimato 0-100, coerente con il tier'},
-        tags: {type:'array', items:{type:'string', enum:['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG']}, description:'generi: TAC=tattico a griglia, ACT=action-RPG, DUN=dungeon crawler, TUR=a turni classico, MON=cattura mostri, CARD=carte, WAR=guerra su larga scala, CROSS=crossover, VN=visual novel ibrido, MECH=mecha, METR=metroidvania, SOUL=soulslike, HOR=horror, REMAKE=remake/remaster, LIFE=vita/crafting, ROG=roguelike'},
+        tags: {type:'array', items:{type:'string', enum: TAG_ORDER.slice()}, description:'generi (il primo è il principale): ' + genreGlossary(TAG_ORDER)},
         story: {type:'string', description:'1-2 frasi di trama senza spoiler pesanti, nello stesso stile narrativo degli altri giochi del database'},
         hours: {type:'number', description:'ore indicative per finire la storia principale'},
         difficulty: {type:'number', description:'difficoltà 1-5'},
@@ -496,7 +496,7 @@ let novitaGenreLoading = false;
 let novitaGenreErrorMsg = null;
 let novitaGenreEverFetched = false;
 let novitaGenreSkippedListOpen = false;
-const NOVITA_TAG_ENUM = ['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG','WRPG','JRPG'];
+const NOVITA_TAG_ENUM = TAG_ORDER.slice();      // versione Anime: i generi stanno nei dati (meta.tags)
 function novitaKnownNames(){
   const s = new Set();
   GAMES.forEach(g=> s.add(g.name.toLowerCase().trim()));
@@ -600,10 +600,9 @@ function parseNovitaJson(text){
   t = t.slice(start, end+1);
   try{ const arr = JSON.parse(t); return Array.isArray(arr) ? arr : null; }catch(e){ return null; }
 }
-// rete di sicurezza: "punta e clicca" non convive con generi d'azione/RPG/sandbox (l'AI tendeva a metterlo su qualsiasi avventura)
+// rete di sicurezza: niente doppioni e al massimo 6 generi
 function fixNovitaTags(tags){
-  if(tags.includes('ADV') && tags.some(t=> ['ACT','SOUL','OPENW','SAND','LIFE','SIMLIFE','ROG','METR','TAC','TUR','DUN','MON','ACTADV','FPS','TPS','PLAT','SHMUP'].includes(t))) return tags.filter(t=> t !== 'ADV');
-  return tags;
+  return [...new Set(tags)].slice(0, 6);
 }
 function cleanNovitaCandidate(raw, tagEnum){
   const enumList = tagEnum || NOVITA_TAG_ENUM;
@@ -1075,7 +1074,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-02';
-const DATA_BUILD_VERSION = 'a3';
+const DATA_BUILD_VERSION = 'a4';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

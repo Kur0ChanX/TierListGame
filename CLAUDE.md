@@ -29,3 +29,7 @@ App statica (si apre anche con doppio clic, file://), senza server né build. Ut
 
 ## Pubblicazione
 Commit → push sul branch di sessione → PR → squash merge → controllo del `<meta name="build">` online → `git checkout -B <branch> origin/main`.
+
+## Salvataggi (regole permanenti dell'utente)
+1. **Salvataggio automatico**: alla fine di ogni lavoro impegnativo o modifica importante al codice, esegui SEMPRE da solo: `git add . && git commit -m "salvataggio automatico" && git push origin HEAD` (il commit chiude con le righe di attribuzione richieste dalla sessione).
+2. **Comando «Salva» / «Salva tutto»**: se l'utente scrive solo questo, esegui subito la stessa sequenza (add, commit, push).
