@@ -224,7 +224,7 @@ async function askLLM(input, opts, extra){
     const v = ocEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_opencritic_key', v); else localStorage.removeItem('jrpg_opencritic_key'); }catch(e){}
     if(!v){ say('Chiave OpenCritic rimossa.'); return; }
     say('Verifico la chiave OpenCritic…');
-    try{ await window.SearchHub.opencritic.ping(); say('✅ OpenCritic funziona: la uso come seconda fonte dei voti (richieste oggi: ' + window.SearchHub.opencritic.usage() + ' su circa 200).', true); }
+    try{ const m = await window.SearchHub.opencritic.ping(); say(m === 'chiave' ? '✅ OpenCritic funziona con la chiave (richieste oggi: ' + window.SearchHub.opencritic.usage() + ').' : '✅ OpenCritic funziona senza chiave (pagina pubblica): la chiave RapidAPI risponde «troppe richieste», la riprovo tra 12 ore.', true); }
     catch(e){ say('❌ OpenCritic non risponde con questa chiave: ' + String(e && e.message || e).slice(0, 120), false); }
   }); }
   const relEl = document.getElementById('relayUrlInput');
@@ -248,7 +248,7 @@ async function askLLM(input, opts, extra){
     const rows = [
       ['Gemini', 'jrpg_gemini_key', async ()=>{ await geminiGenerate('Rispondi solo con la parola: ok', {}); return 'funziona (' + (geminiCustomModel() || GEMINI_MODEL) + ')'; }, e=> askErrorCopy(e && e.code)],
       ['RAWG', 'jrpg_rawg_key', async ()=>{ await H.rawg.ping(); return 'funziona (richieste questo mese: ' + H.rawg.usage() + ' su 20.000)'; }],
-      ['OpenCritic', 'jrpg_opencritic_key', async ()=>{ await H.opencritic.ping(); return 'funziona (richieste oggi: ' + H.opencritic.usage() + ' su circa 200)'; }],
+      ['OpenCritic', H.hasCustomRelay && H.hasCustomRelay() ? 'jrpg_relay_url' : 'jrpg_opencritic_key', async ()=>{ const m = await H.opencritic.ping(); return m === 'chiave' ? 'funziona con la chiave (richieste oggi: ' + H.opencritic.usage() + ')' : 'funziona senza chiave, dalla pagina pubblica di OpenCritic' + (localStorage.getItem('jrpg_opencritic_key') ? ' (la chiave RapidAPI ha finito le richieste o è rifiutata: la riprovo tra 12 ore)' : ''); }],
       ['Ponte', 'jrpg_relay_url', async ()=>{ const n = await H.testCustomRelay(); const info = await H.relayInfo(true).catch(()=> null); return 'funziona (' + n + ' negozi letti)' + (info && info.v >= 2 ? ', versione ' + info.v : ' ma è la versione vecchia: aggiornalo dalla Diagnostica fonti'); }],
       ['Token GitHub', 'jrpg_sync_token', async ()=>{ const t = localStorage.getItem('jrpg_sync_token').trim(); const j = await H.json('https://api.github.com/user', {headers: {'Authorization': 'Bearer ' + t, 'Accept': 'application/vnd.github+json'}, relays: false, cache: false}); return 'funziona (account ' + (j && j.login || '?') + ')'; }]
     ];

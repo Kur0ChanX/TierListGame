@@ -132,7 +132,7 @@ window.rtCalm = ()=>{ try{ return localStorage.getItem('rt_calm') === 'on'; }cat
     el.classList.toggle('waiting', waiting);
     const el2 = Math.round((performance.now() - t0) / 1000);
     el.querySelector('.rt-title').textContent = label;
-    const cEl = el.querySelector('.rt-count'); cEl.hidden = !cnt; if(cnt) cEl.textContent = `🗑️ Giochi trovati nel bidone: ${cnt.n} / ${cnt.max}`;
+    const cEl = el.querySelector('.rt-count'); cEl.hidden = !cnt; if(cnt) cEl.textContent = cnt.lbl ? `🔎 ${cnt.lbl}: ${cnt.n} / ${cnt.max}` : `🗑️ Giochi trovati nel bidone: ${cnt.n} / ${cnt.max}`;
     const sEl = el.querySelector('.rt-stop'); sEl.hidden = !stopFn;
     el.querySelector('.rt-sub').textContent = logText ? logText : waiting ? 'Ci sta mettendo più del solito: sto ancora aspettando la risposta…' : FLAVOR[Math.min(FLAVOR.length - 1, Math.floor(shown / 22))] + (el2 >= 4 ? ` · ${el2}s` : '');
     el.classList.toggle('done', shown >= 100);
@@ -185,11 +185,12 @@ window.rtCalm = ()=>{ try{ return localStorage.getItem('rt_calm') === 'on'; }cat
   window.Progress = {
     begin(txt){ manual++; exact = true; open(txt); },
     set(p, txt){ exact = true; target = Math.max(target, Math.min(100, p)); if(txt) label = txt; open(); },
+    restart(p, txt){ exact = true; target = pct = Math.max(0, Math.min(100, p || 0)); if(txt) label = txt; open(); if(el) paint(); },   // v241: seconda fase (es. controllo dei voti) che riparte da 0
     end(){ manual = Math.max(0, manual - 1); if(!manual) close(); },
     log(t){ logText = t || ''; holdUntil = t ? Date.now() + 3200 : 0; if(el) paint(); },
     source(k){ setSource(k); },
     active(){ return depth > 0 || manual > 0; },                       // riga di log a tema Frugu Frugu (fonte attuale, giochi trovati…)
-    counter(n, max){ cnt = (n == null) ? null : {n, max}; if(el) paint(); },
+    counter(n, max, lbl){ cnt = (n == null) ? null : {n, max, lbl}; if(el) paint(); },
     onStop(fn){ stopFn = fn || null; if(el){ const b = el.querySelector('.rt-stop'); if(b){ b.disabled = false; b.hidden = !fn; } } },
     hideNow(){ clearTimeout(hideT); manual = 0; depth = 0; if(el){ el.classList.remove('show'); } exact = false; logText = ''; cnt = null; stopFn = null; stopSource(); },
     reset(){ logText = ''; cnt = null; stopFn = null; stopSource(); if(el) paint(); }

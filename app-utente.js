@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v241', date:'2026-10-02', time:'21:30', items:[
+    'OpenCritic funziona anche senza chiave: quando la chiave RapidAPI risponde «troppe richieste» (o manca), il voto arriva dalla pagina pubblica di OpenCritic, trovata con Wikidata e letta passando dal tuo ponte. La chiave si riprova da sola dopo 12 ore.',
+    'Controllo dati: le caselle «Update+ all\'avvio» e «Controlla da solo in background» erano grigie perché è accesa la Modalità calma. Ora si possono toccare: ti chiedo se spegnerla e la casella si attiva.',
+    'Frugu Frugu «cerca nuovi giochi»: meno spazzatura. Da RAWG non arrivano più giochi per adulti né titoli che quasi nessuno ha in libreria, e il voto delle stelline degli utenti (che dava 96-99 a giochi sconosciuti) non vale più come voto.',
+    'Frugu Frugu: arrivato a 60 giochi non era bloccato, stava controllando il voto vero di ognuno. Ora lo dice e mostra «Voti controllati: N / 60» con la barra che riparte da zero.',
+  ]},
   {version:'v240', date:'2026-10-02', time:'21:08', items:[
     'Pulsante «🧪 Prova tutto»: sul telefono i risultati finivano sotto, fuori dal riquadro visibile, e sembravano nascosti. Ora la pagina scorre da sola fino ai risultati, che stanno in un riquadro ben leggibile.',
   ]},
