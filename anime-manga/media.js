@@ -22,7 +22,7 @@
   // ---------- 🔄 Cambia locandina ----------
   async function openCovers(g){
     const lk = lockOf(g) || {};
-    const body = sheet('xCovers', '🔄 Cambia locandina', `<div class="lp-sub">Tutte le locandine ufficiali che trovo (Steam, Libretro, Wikipedia, RAWG…). Tocca quella che ti piace: diventa la locandina del titolo e resta <b>bloccata 🔒</b>, nessun aggiornamento la cambia.</div>
+    const body = sheet('xCovers', '🔄 Cambia locandina', `<div class="lp-sub">Tutte le locandine ufficiali che trovo (AniList, TMDB, Wikipedia, Wikimedia…). Tocca quella che ti piace: diventa la locandina del titolo e resta <b>bloccata 🔒</b>, nessun aggiornamento la cambia.</div>
       ${lk.cover ? '<div class="lp-tools"><button class="btn" id="cvUnlock" type="button">🔓 Sblocca la locandina (torna automatica)</button></div>' : ''}<div id="cvRes" class="lp-sub">Cerco…</div>`);
     const un = body.querySelector('#cvUnlock'); if(un) un.addEventListener('click', ()=>{ setLock(g, {cover: null}); toast('Locandina sbloccata', 1800); un.remove(); });
     const res = body.querySelector('#cvRes');
@@ -115,7 +115,7 @@
       await poolReady; if(!alt.isConnected) return;
       let free = pool.filter(u=> !slots.includes(u));
       if(free.length <= (page + 1) * 12){ alt.innerHTML = '<div class="lp-sub">Cerco altre foto (anche dai video di gameplay)…</div>'; await more(); if(!alt.isConnected) return; free = pool.filter(u=> !slots.includes(u)); }
-      if(!free.length){ alt.innerHTML = '<div class="lp-sub">Non trovo altre foto di questo titolo (Steam e, con la chiave, RAWG).</div>'; return; }
+      if(!free.length){ alt.innerHTML = '<div class="lp-sub">Non trovo altre foto di questo titolo (nessuna foto trovata nelle fonti).</div>'; return; }
       const per = 12, pages = Math.ceil(free.length / per); if(page >= pages) page = 0;
       const show = free.slice(page * per, page * per + per);
       alt.innerHTML = `<div class="gs2-h">${sel === 'new' ? 'Scegli la foto da aggiungere' : 'Al posto della foto ' + (sel + 1) + ':'} <small>(gruppo ${page + 1}${qi < QS.length ? ' · ne cerco sempre altre' : ' di ' + pages})</small></div>
@@ -138,7 +138,7 @@
       drawCur(); drawAlt();
     });
     if(!slots.length){ await poolReady; if(!pool.length) await more(); slots = pool.slice(0, 6); }
-    if(!slots.length){ cur.textContent = 'Non trovo foto per questo titolo (servono Steam o la chiave RAWG).'; return; }
+    if(!slots.length){ cur.textContent = 'Non trovo foto per questo titolo (nessuna foto trovata nelle fonti).'; return; }
     drawCur();
   }
   // quando chiudi il pannello, la scheda riparte con le foto nuove
