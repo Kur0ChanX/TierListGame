@@ -469,7 +469,7 @@ label.cover-pill.busy input[type=file]{pointer-events:none;}
 .rt-relay-row{display:flex;gap:8px;align-items:stretch}
 .rt-relay-row input{flex:1;min-width:0}
 .rt-relay-row .btn{flex:none;white-space:nowrap}
-#keysTestAll{white-space:pre-line;line-height:1.5}
+#keysTestAll{white-space:pre-line;line-height:1.55;padding:8px 10px;border-radius:10px;background:rgba(127,127,127,.12);opacity:1;font-size:.85rem;scroll-margin:12px}
 .ask-engine-status{font-size:.8rem;opacity:.9}
 
 .novita-topbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}

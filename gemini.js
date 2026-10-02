@@ -255,12 +255,14 @@ async function askLLM(input, opts, extra){
     const out = rows.map(r=> [r[0], has(r[1]) ? '⏳ provo…' : '➖ non inserito']);
     const show = ()=>{ tAllEl.hidden = false; tAllEl.textContent = out.map(o=> o[0] + ': ' + o[1]).join('\n'); };
     tAllBtn.disabled = true; show();
+    try{ tAllEl.scrollIntoView({block: 'nearest', behavior: 'smooth'}); }catch(e){ tAllEl.scrollIntoView(false); }   // sul telefono il riquadro è piccolo: porto i risultati in vista
     await Promise.all(rows.map(async (r, i)=>{
       if(!has(r[1])) return;
       try{ out[i][1] = '✅ ' + await r[2](); }catch(e){ out[i][1] = '❌ ' + (r[3] ? r[3](e) : msg(e)); }
       show();
     }));
     tAllBtn.disabled = false;
+    try{ tAllEl.scrollIntoView({block: 'nearest', behavior: 'smooth'}); }catch(e){}
   });
   // trasferimento delle chiavi tra dispositivi: si copia un codice e lo si incolla sull'altro (le chiavi non passano mai da file, backup o sincronizzazione)
   const KEYS_T = [['jrpg_gemini_key', 'g'], ['jrpg_rawg_key', 'r'], ['jrpg_opencritic_key', 'o'], ['jrpg_relay_url', 'p']];
