@@ -1,0 +1,23 @@
+plugins { id 'com.android.application' }
+android {
+  namespace 'it.mario.raccoontier'
+  compileSdk 35
+  defaultConfig {
+    applicationId 'it.mario.raccoontier'
+    minSdk 30
+    targetSdk 35
+    versionCode 1
+    versionName '1.0'
+  }
+  signingConfigs {
+    rel {
+      storeFile file(System.getenv('RT_KEYSTORE') ?: 'none.jks')
+      storePassword System.getenv('RT_KEYPASS') ?: ''
+      keyAlias 'raccoon'
+      keyPassword System.getenv('RT_KEYPASS') ?: ''
+    }
+  }
+  buildTypes { release { minifyEnabled false; signingConfig signingConfigs.rel } }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'androidx.webkit:webkit:1.12.1' }
