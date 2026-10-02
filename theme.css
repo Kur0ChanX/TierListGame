@@ -361,7 +361,7 @@ html.intro-on{overflow:hidden}
 .pal-pv s{position:absolute; left:16%; width:28%; top:64%; height:12%; border-radius:999px; background:var(--pa)}
 .pal-n{font-size:.72rem; font-weight:600; text-align:center; line-height:1.15}
 /* con i filtri aperti la barra in alto smette di restare fissa e la lista resta lunga: scorri giù e la vedi tutta */
-.topbar:has(#filtersPanel.open){position:relative}
+.topbar.rt-filt{position:relative}
 .wrap.rt-filt .table-wrap, .wrap.rt-filt .alt-view{min-height:62vh}
 @media (max-width:760px){ #filtersPanel.open{max-height:40vh} .wrap.rt-filt{padding-bottom:calc(var(--navh) + 10px) !important} .wrap.rt-filt .table-wrap, .wrap.rt-filt .alt-view{margin-bottom:calc(var(--navh) + 12px)} }
 html.rt-filt, body.rt-filt{height:auto; min-height:100%}
@@ -1766,3 +1766,12 @@ html:not(.mo-off) .x-sheet.show .lp-card{animation:var(--an-sheet,none)}
 .an-opt.on{border-color:var(--pk-accent,#6366f1); background:color-mix(in srgb,var(--pk-accent,#6366f1) 16%,transparent); box-shadow:0 0 0 1px var(--pk-accent,#6366f1) inset}
 .an-opt:last-child{grid-column:1/-1}
 .an-demo{margin:10px 0 4px; padding:22px 12px; text-align:center; border-radius:16px; background:linear-gradient(135deg,rgba(var(--a1rgb),.28),rgba(var(--a2rgb),.2)); font-size:.85rem; opacity:.95}
+/* v218+: miniatura immediata nella locandina della scheda (vedi seedCover in motion.js) */
+.cover-frame img.cv-seed{position:absolute; inset:0; width:100%; height:100% !important; object-fit:contain; background:none !important; border:0 !important; padding:0 !important; margin:0 !important; border-radius:0; opacity:1; transition:none; pointer-events:none}
+.cover-frame.has-seed::after{display:none}
+
+/* v220: il pannello Filtri non anima più l'altezza (obbligava il telefono a rifare l'impaginazione di tutta la pagina a ogni fotogramma per 0,3 s:
+   9-13 impaginazioni per aprirlo). Ora si apre subito, con una breve dissolvenza (solo opacità e spostamento: li fa la scheda grafica). */
+#filtersPanel{transition:none !important}
+html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1) both}
+@keyframes fpIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}

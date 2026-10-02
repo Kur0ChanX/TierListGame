@@ -104,6 +104,21 @@
     const s = Math.max(.12, Math.min(.6, r.width / box.width));
     return {kf: [{scale: String(s), translate: (r.left + r.width / 2 - (box.left + box.width / 2)) + 'px ' + (r.top + r.height / 2 - (box.top + box.height / 2)) + 'px'}, {scale: '1', translate: '0 0'}], dur: 240, ease: EASE_PH, round: true};
   }
+  // locandina IMMEDIATA: la miniatura del gioco toccato è già nella lista (caricata e decodificata): la metto subito nella scheda, sotto l'immagine nitida,
+  // che arriva dopo e si sovrappone in dissolvenza. Prima: riquadro viola vuoto (con un bordino chiaro) per circa 0,4 s, poi sfocata, poi nitida.
+  function seedCover(card, T){
+    try{
+      if(!card || !T || !T.el || !T.el.querySelector)return;
+      const th = T.el.querySelector('.x-cover img, .x-thumb img'); if(!th || !th.complete || !th.naturalWidth)return;
+      const fr = card.querySelector('.cover-frame'); if(!fr)return;
+      const big = fr.querySelector('img.modal-cover'); if(!big || (big.complete && big.naturalWidth))return;
+      const src = th.currentSrc || th.src; if(!src || /^data:/.test(src) && src.length > 4000) return;
+      const im = document.createElement('img'); im.className = 'cv-seed'; im.alt = ''; im.decoding = 'sync'; im.src = src;
+      fr.insertBefore(im, big); fr.classList.add('has-seed'); fr.style.setProperty('--cov', "url('" + src.replace(/'/g, '%27') + "')");
+      const off = ()=>{ setTimeout(()=>{ try{ im.remove(); fr.classList.remove('has-seed'); }catch(e){} }, 320); };
+      big.addEventListener('load', off, {once: true}); big.addEventListener('error', off, {once: true}); setTimeout(()=>{ try{ im.remove(); }catch(e){} }, 6000);
+    }catch(e){}
+  }
   function playOpen(card, T, box){
     if(!card || !card.animate) return;
     const id = animId(); if(!box) box = card.getBoundingClientRect();
@@ -237,6 +252,7 @@
         try{
           const card = document.getElementById('modalCard');
           if(card && card.animate){
+            seedCover(card, T);
             playOpen(card, T, {left: 0, top: 0, width: VW, height: VH});
             countUp(card);
           }
@@ -290,7 +306,7 @@
         return;
       }
       const r = origOpen.apply(this, arguments);
-      try{ if(!was){ if(animId() === 'zoom') reveal(); else { const T2 = tap && performance.now() - tap.t < 900 ? tap : null; tap = null; playOpen(document.getElementById('modalCard'), T2); } } }catch(e){}
+      try{ if(!was){ if(animId() === 'zoom') reveal(); else { const T2 = tap && performance.now() - tap.t < 900 ? tap : null; tap = null; seedCover(document.getElementById('modalCard'), T2); playOpen(document.getElementById('modalCard'), T2); } } }catch(e){}
       return r;
     };
     try{ openModal = window.openModal; }catch(e){}
@@ -302,9 +318,11 @@
     window.openModal = function(g){
       const c = document.getElementById('modalCard'), bd = document.getElementById('modalBackdrop');
       const same = !!(c && bd && bd.classList.contains('show') && typeof currentModalGame !== 'undefined' && currentModalGame && g && currentModalGame.id === g.id);
-      if(c && !same){ c.scrollTop = 0; if(bd) bd.scrollTop = 0; }
+      // (assegnare scrollTop obbliga il telefono a impaginare subito tutta la pagina: ~40 ms. Lo faccio solo se la scheda era davvero scorsa; la posizione la tengo da un ascoltatore, senza leggerla dal layout)
+      if(c && !c.__syw){ c.__syw = 1; c.__sy = 0; c.addEventListener('scroll', ()=>{ c.__sy = c.scrollTop; }, {passive: true}); }
+      if(c && !same && c.__sy){ c.scrollTop = 0; c.__sy = 0; }
       const r = inner.apply(this, arguments);
-      if(c && !same) requestAnimationFrame(()=>{ if(!window.__rtCardScrolling && c.scrollTop) c.scrollTop = 0; });         // (dopo la costruzione non lo assegno subito: costringeva a impaginare in anticipo)
+      if(c && !same) requestAnimationFrame(()=>{ if(!window.__rtCardScrolling && c.__sy) c.scrollTop = 0; });
       return r;
     };
     try{ openModal = window.openModal; }catch(e){}

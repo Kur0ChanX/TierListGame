@@ -74,7 +74,10 @@
       if(my !== altToken) return;
       if(!first){ const end = Math.min(list.length, shown + 60); let h = ''; for(; shown < end; shown++) h += cardHtml(list[shown]); const t2 = document.createElement('template'); t2.innerHTML = h; [...t2.content.children].forEach((n, k)=>{ n._sig = cardHtml(list[shown - t2.content.children.length + k]); }); alt.appendChild(t2.content); }
       if(shown < list.length && 'IntersectionObserver' in window && alt.lastElementChild){
-        altObs = new IntersectionObserver(es=>{ if(es.some(e=> e.isIntersecting)){ altObs.disconnect(); altObs = null; more(false); } }, {root: alt, rootMargin:'600px'});
+        // v220: con il pannello Filtri aperto la griglia NON scorre da sola (scorre la pagina): usare lei come «finestra» faceva credere che tutto fosse visibile
+        // e caricava a raffica un blocco dopo l'altro (fino a tutti i giochi, ognuno con una nuova impaginazione). Se non è un contenitore con scorrimento, uso lo schermo.
+        const scr = alt.scrollHeight > alt.clientHeight + 4;                    // scorre davvero (ha più contenuto dello spazio che ha)
+        altObs = new IntersectionObserver(es=>{ if(es.some(e=> e.isIntersecting)){ altObs.disconnect(); altObs = null; more(false); } }, scr ? {root: alt, rootMargin: '600px'} : {root: null, rootMargin: '600px 0px'});
         altObs.observe(alt.lastElementChild);
       }
     })(true);
@@ -94,7 +97,8 @@
   window.setView = function(v){ const r = origSetView.apply(this, arguments); try{ syncMode(); }catch(e){} return r; };
   const stb = document.getElementById('scrollTopBtn');
   if(stb) stb.addEventListener('click', ()=> alt.scrollTo({top:0, behavior:'smooth'}));
-  function setMode(m){ MODE = m; LS.set('jrpg_view_mode', m); syncMode(); }
+  window.rtAltMode = ()=> state.view === 'list' && MODE !== 'table';       // v219: la tabella è nascosta (vedi render in app.js)
+  function setMode(m){ MODE = m; LS.set('jrpg_view_mode', m); if(m === 'table'){ try{ render(); }catch(e){} } syncMode(); }
 
   // barra strumenti accanto al conteggio (non aggiunge altezza)
   const cl = document.querySelector('.count-line');

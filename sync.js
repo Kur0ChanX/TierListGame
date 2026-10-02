@@ -12,13 +12,13 @@
   const token = ()=> (ls.get('jrpg_sync_token') || '').trim();
   const loadMeta = ()=>{ try{ return JSON.parse(ls.get('jrpg_sync_meta') || '{}') || {}; }catch(e){ return {}; } };
   const saveMeta = m=> ls.set('jrpg_sync_meta', JSON.stringify(m));
-  let applying = false, timer = null, busy = false, statusEl = null;
+  let applying = false, timer = null, busy = false, statusEl = null, lastSync = 0;
 
   function setStatus(msg, ok){
     if(!statusEl) statusEl = document.getElementById('syncStatus');
     if(statusEl){ statusEl.textContent = msg; statusEl.style.color = ok === true ? '#2e7d32' : ok === false ? '#c62828' : ''; }
   }
-  function stamp(k){ const m = loadMeta(); m[k] = Date.now(); saveMeta(m); schedulePush(); }
+  function stamp(k){ const m = loadMeta(); m[k] = Date.now(); saveMeta(m); ls.set('rt_sync_dirty', '1'); schedulePush(); }      // v219: «ci sono modifiche da inviare» (resta anche se chiudi l'app)
   // Spazio del browser (circa 5 MB): se una scrittura non ci sta, prima libero ciò che si può rigenerare (registro diagnostico, cache dei ponti, dettagli dell'audit) e riprovo;
   // se ancora non basta, avviso l'utente invece di perdere i dati in silenzio.
   const isQuota = e=> !!e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014);
@@ -61,11 +61,12 @@
     if(changedMeta) saveMeta(meta);
     return out;
   }
-  async function gh(path, opts){
-    const r = await fetch(API + path, Object.assign({headers:{'Authorization':'Bearer ' + token(), 'Accept':'application/vnd.github+json', 'Content-Type':'application/json'}}, opts || {}));
-    if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
-    return r.json();
+  async function ghRaw(path, opts, extraHeaders){
+    const r = await fetch(API + path, Object.assign({headers: Object.assign({'Authorization':'Bearer ' + token(), 'Accept':'application/vnd.github+json', 'Content-Type':'application/json'}, extraHeaders || {})}, opts || {}));
+    if(!r.ok && r.status !== 304){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    return r;
   }
+  async function gh(path, opts){ return (await ghRaw(path, opts)).json(); }
   async function findOrCreateGist(){
     let id = ls.get('jrpg_sync_gist');
     if(id) return id;
@@ -127,7 +128,17 @@
     try{
       if(window.rtBig) await rtBig.ready;                                   // v211: prima di unire, l'archivio grande deve essere letto
       const id = await findOrCreateGist();
-      const g = await gh('/gists/' + id);
+      // v219: richiesta condizionale (ETag): se il tuo archivio su GitHub non è cambiato dall'ultima volta e qui non c'è niente da inviare, GitHub risponde «304 nessuna novità»
+      // senza corpo: niente da scaricare né da analizzare (prima ogni ritorno nell'app costava 0,2-0,3 s di calcolo per leggere tutto l'archivio).
+      const et = ls.get('rt_sync_etag'), dirty = ls.get('rt_sync_dirty') === '1';
+      const resp = await ghRaw('/gists/' + id, null, (et && !dirty && !opts.force) ? {'If-None-Match': et} : null);
+      if(resp.status === 304){
+        lastSync = Date.now();
+        setStatus('☁️ Sincronizzato ✓ ' + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}), true);
+        return false;
+      }
+      const newEt = resp.headers.get('etag'); if(newEt) ls.set('rt_sync_etag', newEt);
+      const g = await resp.json();
       let remote = {};
       try{
         const f = g.files && g.files[FILE];
@@ -139,8 +150,10 @@
       const snap = snapshot();
       const needPush = Object.keys(snap).some(k=> !remote[k] || snap[k].t > remote[k].t);
       if(needPush){
-        await gh('/gists/' + id, {method:'PATCH', body: JSON.stringify({files: {[FILE]: {content: JSON.stringify({keys: Object.assign({}, remote, snap)})}}})});
+        const pr = await ghRaw('/gists/' + id, {method:'PATCH', body: JSON.stringify({files: {[FILE]: {content: JSON.stringify({keys: Object.assign({}, remote, snap)})}}})});
+        const pe = pr.headers.get('etag'); if(pe) ls.set('rt_sync_etag', pe); else ls.rem('rt_sync_etag');
       }
+      ls.rem('rt_sync_dirty'); lastSync = Date.now();
       try{ publishCatalog().catch(()=>{}); }catch(e){}
       setStatus('☁️ Sincronizzato ✓ ' + new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}), true);
       if(changed && !opts.noReload){ showToast('Dati aggiornati da un altro dispositivo: ricarico…', 2500); const fl = window.rtBig ? rtBig.flush() : Promise.resolve(); setTimeout(()=> fl.then(()=> location.reload(), ()=> location.reload()), 900); }
@@ -224,10 +237,10 @@
       const v = tk.value.trim();
       if(!v){ setStatus('Incolla prima il token.', false); return; }
       ls.set('jrpg_sync_token', v); ls.rem('jrpg_sync_gist');
-      const ch = await syncNow();
+      const ch = await syncNow({force: true});
       if(ch === false && statusEl && statusEl.textContent.indexOf('✓') === -1) return;
     });
-    document.getElementById('syncNowBtn').addEventListener('click', ()=> syncNow());
+    document.getElementById('syncNowBtn').addEventListener('click', ()=> syncNow({force: true}));
     document.getElementById('syncOffBtn').addEventListener('click', ()=>{
       ls.rem('jrpg_sync_token'); ls.rem('jrpg_sync_gist'); ls.rem('jrpg_sync_meta'); tk.value = '';
       setStatus('Sincronizzazione disattivata su questo dispositivo (i dati sul tuo GitHub restano).');
@@ -235,5 +248,10 @@
     if(token()) setStatus('Sincronizzazione attiva.');
   });
   window.addEventListener('load', ()=>{ if(token()) setTimeout(()=> syncNow(), 800); });
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible' && token()) syncNow(); });
+  // v219: tornando nell'app NON si sincronizza a ogni volta: al massimo ogni 3 minuti, e mai mentre stai toccando lo schermo
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState !== 'visible' || !token() || Date.now() - lastSync < 180e3) return;
+    const go = ()=>{ try{ if(typeof rtLastInput !== 'undefined' && Date.now() - rtLastInput < 3000){ setTimeout(go, 2500); return; } }catch(e){} syncNow(); };
+    setTimeout(go, 2500);
+  });
 })();
