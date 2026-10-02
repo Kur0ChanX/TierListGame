@@ -441,15 +441,18 @@
     });
   }
   let tintOn = false;
+  // v222: i colori del tema dalla copertina stanno SOLO sullo sfondo della scheda (#modalBackdrop), non su tutta la pagina: prima cambiavano su <html> e,
+  // essendo ereditati da ~1650 elementi e animati per 0,7 s, il telefono ricalcolava gli stili di tutta la pagina a ogni fotogramma mentre la scheda si apriva.
+  const tintEl = ()=> document.getElementById('modalBackdrop');
   function tintClear(){
     if(!tintOn) return; tintOn = false;
-    const r = document.documentElement; r.classList.remove('rt-tinted');
+    const r = tintEl(); if(!r) return; r.classList.remove('rt-tinted');
     ['--a1rgb', '--a2rgb', '--a3rgb', '--rt-tint'].forEach(k=> r.style.removeProperty(k));
   }
   const TINT_K = 'rt_tint_cache';
   const tintGet = id=>{ try{ return (JSON.parse(localStorage.getItem(TINT_K) || '{}') || {})[id] || null; }catch(e){ return null; } };
   const tintPut = (id, cols)=>{ try{ const c = JSON.parse(localStorage.getItem(TINT_K) || '{}') || {}; c[id] = cols; const ks = Object.keys(c); if(ks.length > 400) ks.slice(0, ks.length - 400).forEach(k=> delete c[k]); localStorage.setItem(TINT_K, JSON.stringify(c)); }catch(e){} };
-  function tintSet(cols, instant){ const r = document.documentElement, v = c=> c.join(', '); if(instant){ r.classList.add('rt-notrans'); requestAnimationFrame(()=> requestAnimationFrame(()=> r.classList.remove('rt-notrans'))); } r.style.setProperty('--a1rgb', v(cols[0])); r.style.setProperty('--a2rgb', v(cols[1])); r.style.setProperty('--a3rgb', v(cols[2])); r.style.setProperty('--rt-tint', v(cols[0])); r.classList.add('rt-tinted'); tintOn = true; }
+  function tintSet(cols){ const r = tintEl(), v = c=> c.join(', '); if(!r) return; r.style.setProperty('--a1rgb', v(cols[0])); r.style.setProperty('--a2rgb', v(cols[1])); r.style.setProperty('--a3rgb', v(cols[2])); r.style.setProperty('--rt-tint', v(cols[0])); r.classList.add('rt-tinted'); tintOn = true; }
   async function tintApp(g){
     const cached = tintGet(g.id);
     if(!TINT_ON()){ tintClear(); return; }

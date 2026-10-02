@@ -164,7 +164,19 @@
       return false;
     }finally{ busy = false; }
   }
-  function schedulePush(){ clearTimeout(timer); timer = setTimeout(()=> syncNow({noReload:true}), 15000); }   // 15 s: durante Update+ le modifiche arrivano a raffica, meglio una sincronizzazione sola
+  // v222: la sincronizzazione completa (scarica e analizza tutto l'archivio: 160-260 ms di blocco sul telefono) non parte più mentre usi l'app.
+  // Aspetta: almeno 15 s dall'ultima modifica, almeno 5 minuti dall'ultima sincronizzazione, e che tu non stia toccando lo schermo.
+  // Le modifiche non inviate partono comunque appena lasci l'app (passi a un'altra app o chiudi): lì il blocco non si sente.
+  const idleNow = ()=>{ try{ return typeof rtLastInput === 'undefined' || Date.now() - rtLastInput > 4000; }catch(e){ return true; } };
+  function schedulePush(){
+    clearTimeout(timer);
+    const wait = Math.max(15000, 5 * 60e3 - (Date.now() - lastSync));
+    const run = ()=>{ if(!idleNow() || document.visibilityState !== 'visible'){ timer = setTimeout(run, 4000); return; } syncNow({noReload: true}); };
+    timer = setTimeout(run, wait);
+  }
+  const flushHidden = ()=>{ if(token() && ls.get('rt_sync_dirty') === '1' && !busy){ clearTimeout(timer); syncNow({noReload: true}); } };
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') flushHidden(); });
+  window.addEventListener('pagehide', flushHidden);
 
   // ---- Catalogo condiviso (dati NON personali): giochi aggiunti, correzioni, Update+ già fatto, note sul voto ----
   // Il dispositivo di Mario lo pubblica in un gist pubblico; ogni altro dispositivo lo scarica da solo all'avvio, così non parte da zero e non rifà gli Update+ già fatti.
@@ -247,7 +259,7 @@
     });
     if(token()) setStatus('Sincronizzazione attiva.');
   });
-  window.addEventListener('load', ()=>{ if(token()) setTimeout(()=> syncNow(), 800); });
+  window.addEventListener('load', ()=>{ if(token()) setTimeout(function go(){ if(!idleNow()){ setTimeout(go, 3000); return; } syncNow(); }, 6000); });      // v222: all'avvio non subito: dopo 6 s e a schermo fermo
   // v219: tornando nell'app NON si sincronizza a ogni volta: al massimo ogni 3 minuti, e mai mentre stai toccando lo schermo
   document.addEventListener('visibilitychange', ()=>{
     if(document.visibilityState !== 'visible' || !token() || Date.now() - lastSync < 180e3) return;
