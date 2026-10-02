@@ -101,6 +101,7 @@
     async function show(){
       if(!same()) return;
       if(document.hidden){ later(show, 1000); return; }
+      if(window.__rtCardScrolling){ later(show, 350); return; }          // v216: mentre scorri la scheda le foto non cambiano (riparte appena ti fermi)
       const frame = mount(); if(!frame) return;
       if(cur >= urls.length){                                          // fine giro: torna la copertina
         playing = false; frame.classList.remove('hero-play'); imgs.forEach(im=> im.classList.remove('on')); setBar(-1); cycles++;
@@ -112,7 +113,8 @@
       if(!ok){ urls.splice(cur, 1); const sg = segs.pop(); if(sg) sg.remove(); return show(); }
       const next = imgs[face], prev = imgs[1 - face];
       next.src = urls[cur]; face = 1 - face;
-      next.classList.remove('on'); void next.offsetWidth; next.classList.add('on');       // riparte il lento zoom
+      // v216: riparte il lento zoom SENZA ricalcolare la scheda intera (prima «void offsetWidth» la impaginava tutta a ogni foto: uno scatto ogni 4 s)
+      next.classList.remove('on'); requestAnimationFrame(()=> requestAnimationFrame(()=>{ if(same()) next.classList.add('on'); }));
       prev.classList.remove('on');
       playing = true; mount().classList.add('hero-play'); setBar(cur);
       cur++; later(show, slideMs());

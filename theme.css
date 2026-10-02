@@ -1537,7 +1537,10 @@ details.dna-cat[open]>summary.dna-ct small::after{content:' ▴'}
 /* v210: le sezioni della barra in basso sono pagine a tutto schermo (testata con «‹ Classifica»; la parte alta della classifica sparisce) */
 .pg-head[hidden]{display:none !important}
 body.rt-page .wrap{padding-top:0 !important}
-body.rt-page .wrap > .topbar, body.rt-page #listBar, body.rt-page #tableWrap, body.rt-page #altView, body.rt-page #emptyMsg, body.rt-page .frugu-foot{display:none !important}
+body.rt-page .wrap > .topbar, body.rt-page #listBar, body.rt-page #emptyMsg, body.rt-page .frugu-foot{display:none !important}
+/* v216: la classifica (tabella o griglia) nelle altre pagine NON si toglie dalla pagina: si «addormenta» tenendo pronta l'impaginazione
+   (content-visibility), così tornando alla Classifica compare subito invece di essere ricalcolata da capo */
+body.rt-page #tableWrap, body.rt-page #altView, .pg-sleep{content-visibility:hidden !important; contain-intrinsic-size:auto 0 !important; height:0 !important; min-height:0 !important; max-height:0 !important; margin:0 !important; padding:0 !important; border:0 !important; overflow:hidden !important}
 .pg-head{position:sticky;top:0;z-index:55;display:flex;align-items:center;gap:10px;margin:0 -14px 12px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:color-mix(in srgb,var(--pk-bg,var(--bg,#0b0b14)) 82%,transparent);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--glass-line,rgba(127,127,127,.18))}
 @media (display-mode:fullscreen){ .pg-head{padding-top:calc(8px + env(safe-area-inset-top,0px) * .3)} }
 html:fullscreen .pg-head{padding-top:calc(8px + env(safe-area-inset-top,0px) * .3)}
@@ -1683,3 +1686,13 @@ body:has(.rt-note.show) .scrolltop-fab, body:has(.rt-note.show) .au-badge{transf
   .topbar-row1:has(#fsBtn:not([style*="none"])) .iconbtn.lbl{width:38px !important}
   .topbar-row1:has(#fsBtn:not([style*="none"])) .iconbtn.lbl .ib-ic{width:34px !important; height:34px !important}
 }
+/* v216: scheda più leggera da scorrere — lo sfondo sfocato della locandina si calcola una volta sola (strato a parte),
+   le foto della modalità cinema senza ombra calcolata a ogni fotogramma, e ferme mentre scorri */
+.cover-frame::before{will-change:transform; transform:translateZ(0)}
+.hero-shots .hs{filter:none !important}
+.hero-shots{box-shadow:inset 0 -30px 40px -30px rgba(0,0,0,.5)}
+#modalCard.scrolling .hero-shots .hs.on, #modalCard.scrolling .mz2-art.spin{animation-play-state:paused !important}
+/* v216: il gioco toccato si schiaccia subito */
+html:not(.mo-off) .x-card, html:not(.mo-off) .x-row, html:not(.mo-off) #tbody tr{transition:transform .12s ease-out, filter .12s}
+html:not(.mo-off) .x-card.rt-press, html:not(.mo-off) .x-row.rt-press{transform:scale(.95); filter:brightness(1.15)}
+html:not(.mo-off) #tbody tr.rt-press{filter:brightness(1.25)}

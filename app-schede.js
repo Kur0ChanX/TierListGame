@@ -426,8 +426,11 @@ function makeLocalAssets(){
 // ---- Fuori da Claude non c'è il database: un piccolo archivio in localStorage con la stessa interfaccia ----
 function makeLocalDb(){
   const key = c=> 'jrpg_db_' + c;
-  const load = c=>{ try{ return JSON.parse(localStorage.getItem(key(c)) || '{}') || {}; }catch(e){ return {}; } };
-  const save = (c, m)=>{ try{ localStorage.setItem(key(c), JSON.stringify(m)); }catch(e){ try{ showToast('⚠️ Spazio del browser esaurito: la modifica non è stata salvata. Fai un backup da ✨ → Backup e libera spazio.', 6000); }catch(x){} } };
+  // v216: lettura «ricordata» — se il testo salvato non è cambiato riuso l'oggetto già letto (con 700+ giochi aggiunti l'archivio è di MB:
+  // prima lo rileggevo e lo ricostruivo da capo a OGNI modifica di Update+, bloccando il telefono proprio mentre toccavi)
+  const MEMO = {};
+  const load = c=>{ try{ const raw = localStorage.getItem(key(c)) || '{}', m = MEMO[c]; if(m && m.raw === raw) return m.obj; const obj = JSON.parse(raw) || {}; MEMO[c] = {raw, obj}; return obj; }catch(e){ return {}; } };
+  const save = (c, m)=>{ try{ const raw = JSON.stringify(m); localStorage.setItem(key(c), raw); MEMO[c] = {raw: localStorage.getItem(key(c)), obj: m}; }catch(e){ try{ showToast('⚠️ Spazio del browser esaurito: la modifica non è stata salvata. Fai un backup da ✨ → Backup e libera spazio.', 6000); }catch(x){} } };
   const listeners = {};
   // ogni documento porta la data di modifica (_u); le cancellazioni lasciano una «lapide» (_d) così la sincronizzazione tra dispositivi le propaga
   const live = m=> Object.keys(m).filter(id=> !(m[id] && typeof m[id] === 'object' && m[id]._d));

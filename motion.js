@@ -76,6 +76,8 @@
   document.addEventListener('pointerdown', e=>{
     const el = e.target.closest && e.target.closest('tr[data-gid], [data-gid], .x-card[data-id], .x-row[data-id]');
     tap = {x: e.clientX, y: e.clientY, t: performance.now(), r: el ? el.getBoundingClientRect() : null, el};
+    // v216: risposta immediata al tocco — il gioco toccato si «schiaccia» subito (prima ancora che la scheda sia pronta)
+    try{ if(el && el.classList && moOn()){ el.classList.add('rt-press'); const off = ()=>{ el.classList.remove('rt-press'); }; setTimeout(off, 450); window.addEventListener('pointercancel', off, {once: true}); } }catch(x){}
   }, true);
   let VW = innerWidth, VH = innerHeight;
   addEventListener('resize', ()=>{ VW = innerWidth; VH = innerHeight; }, {passive: true});
@@ -154,6 +156,23 @@
     window.openModal = function(){
       const bd = document.getElementById('modalBackdrop'), was = bd && bd.classList.contains('show');
       const R = tap && performance.now() - tap.t < 900 && tap.r && tap.r.width > 60 ? tap : null;
+      // v216: apertura SEMPLICE e leggera — niente più «prima la locandina e poi il resto»: la scheda si costruisce subito e compare tutta insieme,
+      // avvicinandosi dal punto toccato (solo transform/opacity: lo fa la scheda grafica, non pesa sul telefono). Il cartoncino resta solo come riserva (RT_GHOST).
+      if(!was && moOn() && VW <= 760 && !window.RT_GHOST){
+        const T = tap && performance.now() - tap.t < 900 ? tap : null; tap = null; haptic('soft');
+        const r = origOpen.apply(this, arguments);
+        try{
+          const card = document.getElementById('modalCard');
+          if(card && card.animate){
+            const ox = T ? Math.round(T.x) : VW / 2, oy = T ? Math.round(T.y) : VH * .6;
+            card.style.transformOrigin = ox + 'px ' + oy + 'px';
+            card.animate([{scale: '.93', translate: '0 14px'}, {scale: '1', translate: '0 0'}], {duration: 280, easing: 'cubic-bezier(.2,.9,.25,1)'})      /* «scale/translate»: proprietà a parte, non le blocca il «transform:none» dei CSS; la dissolvenza la fa già il CSS */.finished.then(()=>{ card.style.transformOrigin = ''; }, ()=>{});
+            countUp(card);
+          }
+          if(T && T.el && T.el.classList) T.el.classList.remove('rt-press');
+        }catch(e){}
+        return r;
+      }
       if(!was && R && moOn() && VW <= 760 && document.body.animate){
         tap = null; haptic('soft');
         const self = this, G = ghostOpen(R), T0 = performance.now(); let args = arguments;

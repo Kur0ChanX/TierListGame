@@ -38,7 +38,8 @@
   };
   function touch(k){
     dirty.add(k);
-    try{ bc && bc.postMessage({k, v: MEM.get(k)}); }catch(e){}
+    // v216: alle altre schede mando solo il NOME della voce (prima copiavo ogni volta tutto il contenuto, anche megabyte): la rileggono dall'archivio
+    if(bc){ clearTimeout(touch._bc); touch._bc = setTimeout(()=>{ try{ bc.postMessage({k}); }catch(e){} }, 400); }
     clearTimeout(tmr); tmr = setTimeout(flush, 150);
   }
   function tx(mode){ return db.transaction('kv', mode).objectStore('kv'); }
@@ -115,7 +116,10 @@
       };
     };
   });
-  if(bc) bc.onmessage = e=>{ const m = e.data || {}; if(ok && isBig(m.k)) MEM.set(m.k, m.v == null ? null : m.v); };
+  if(bc) bc.onmessage = e=>{
+    const m = e.data || {}; if(!ok || !db || !isBig(m.k) || dirty.has(m.k)) return;
+    setTimeout(()=>{ try{ const r = tx('readonly').get(m.k); r.onsuccess = ()=>{ if(!dirty.has(m.k)) MEM.set(m.k, r.result == null ? null : String(r.result)); }; }catch(x){} }, 500);      // l'altra scheda ha appena scritto: rileggo dall'archivio
+  };
   const bye = ()=>{ if(dirty.size) flush(); };
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') bye(); });
   addEventListener('pagehide', bye);

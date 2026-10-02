@@ -71,14 +71,19 @@
     PANELS.forEach(id=>{ const el = document.getElementById(id); if(el && el.offsetParent !== null && el.scrollTop) try{ el.scrollTo({top: 0, behavior: 'instant'}); }catch(e){ el.scrollTop = 0; } });
   }
   window.rtViewTop = toTop;
+  let LISTVIS = null;
   const prev = window.setView;
   window.setView = function(v){
     const from = (typeof state !== 'undefined' && state.view) || 'list';
     window.__rtInstantViews = true; window.__rtViewSwitch = true;
+    const twE = document.getElementById('tableWrap'), avE = document.getElementById('altView');
+    if(from === 'list' && v !== 'list'){ LISTVIS = {tw: !!(twE && twE.style.display !== 'none'), av: !!(avE && avE.style.display !== 'none')}; }
     let r;
     try{ toTop(); r = prev.apply(this, arguments); }
     finally{ window.__rtViewSwitch = false; }
     try{
+      // v216: nelle altre pagine la classifica resta «addormentata» al suo posto (vedi CSS body.rt-page #tableWrap): rimetto visibile quella che c'era
+      if(v !== 'list' && LISTVIS){ if(twE && LISTVIS.tw) twE.style.display = ''; if(avE && LISTVIS.av) avE.style.display = ''; }
       paint(v);
       requestAnimationFrame(toTop);                                 // le sezioni nascoste ripartono già da 0 da sole; qui solo una verifica a disegno fatto (costa zero)                                 // se qualcosa nella pagina nuova prova a spostarla, la rimetto in cima
       if(v !== 'list' && v !== from) markPage();
@@ -101,6 +106,12 @@
       const lim = card.getBoundingClientRect().top + (parseFloat(cs.paddingTop) || 0) + top + 1;
       t.classList.toggle('stuck', card.scrollTop > 4 && t.getBoundingClientRect().top <= lim);
     };
-    card.addEventListener('scroll', ()=>{ if(!raf) raf = requestAnimationFrame(check); }, {passive: true});
+    let stopT = 0;
+    card.addEventListener('scroll', ()=>{
+      if(!raf) raf = requestAnimationFrame(check);
+      // v216: «sto scorrendo»: le animazioni pesanti della scheda (foto della modalità cinema) si fermano finché non ti fermi
+      if(!window.__rtCardScrolling){ window.__rtCardScrolling = true; card.classList.add('scrolling'); }
+      clearTimeout(stopT); stopT = setTimeout(()=>{ window.__rtCardScrolling = false; card.classList.remove('scrolling'); }, 220);
+    }, {passive: true});
   }
 })();

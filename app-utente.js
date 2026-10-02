@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v216', date:'2026-10-02', time:'03:15', items:[
+    'Apertura del gioco: niente più «prima la locandina e poi il resto». La scheda intera compare insieme con una piccola zoomata che parte dal punto che hai toccato, leggera per il telefono.',
+    'Tocco più reattivo: la copertina o la riga che tocchi si «schiaccia» subito, così senti che il tocco è arrivato.',
+    'Scroll dentro la scheda più fluido: mentre scorri si fermano il carosello delle foto e il disco che gira, e ripartono quando ti fermi. Le foto non hanno più la sfocatura pesante.',
+    'Tasti di sotto (Classifica, Novità…) più leggeri: la lista resta «addormentata» mentre sei su un\'altra pagina e i lavori in sottofondo (Update+, archivio) aspettano qualche secondo dopo un tuo tocco.',
+    'Nuovo: ✨ → 🐢 Rapporto lentezza. L\'app annota da sola i tocchi lenti: tocca «Copia» e mandamelo, così vedo cosa rallenta sul tuo telefono.',
+    'Sistemati piccoli difetti trovati dal controllo completo (riquadro Sintonia doppio in «I tuoi gusti»).'
+  ]},
   {version:'v215', date:'2026-10-02', time:'02:27', items:[
     'Apertura di un gioco rifatta: prima la locandina restava da sola sul nero per quasi un secondo (il programma aspettava i testi completi, che cominciava a caricare solo dopo 7 secondi) e poi «saltava» in un altro punto. Ora i testi arrivano in sottofondo già dopo 2,5 s (prima quelli dei tuoi giochi), e la locandina si allarga dalla copertina toccata e SCIVOLA esattamente al suo posto nella scheda, con lo stesso taglio: niente salto, niente nero.',
     'Notifiche nuove: gli avvisi importanti (Oggi, Radar, prezzi, backup, memoria…) compaiono in basso come una scheda e RESTANO finché li tocchi: toccandoli ti portano alla cosa di cui parlano, con ✕ li chiudi. Se ne arrivano più insieme vedi «+1». In alto c\'è la 🔔 campanella con il numero di quelli che non hai visto (anche dopo aver riaperto l\'app) e l\'elenco completo. I palloncini brevi di conferma restano come prima.',
