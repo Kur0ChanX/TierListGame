@@ -120,3 +120,10 @@ App statica, si apre anche con doppio clic (file://), senza server né build.
 - v234 app.js: `EXTRA_SORT` (st_romance/st_affinity/st_wow/dopa/status) + `SORT_MENU`/`openSortMenu()` aperto dalla ★ della tabella (`th[data-key=fav]`), salvato in `jrpg_alt_sort`; via lo `status-dot` dalla riga; `STORY_TAG_INFO.wow.icon` = 🤯. Nome «Gioco che amo» per `jrpg_top` (cervello.js, gusto.js, app.js, extras.js). Test: tools/test/tsort234.js.
 - v235 theme.css: in `display-mode: fullscreen` (e `html:fullscreen`) `.view-tabs` con 18 px ai lati e 6 px sotto (angoli arrotondati dello schermo); `th[data-key=fav]` con 14 px a sinistra.
 - v236 Avvio: manifest `background_color`/`theme_color` = #0a0620 (come `#intro`), `<link rel=preload>` di icons/intro.jpg, `.intro-frame` senza `introIn`, `.intro-bg` (sfocatura a tutto schermo) nascosto. `.view-tabs` a schermo intero 20/28 px.
+
+## APK Android (cartella `android/`)
+Guscio WebView che apre il sito online (`https://kur0chanx.github.io/TierListGame/`): ogni nuova versione del sito arriva da sola, l'APK non va rifatto. Va rifatto solo se cambia il guscio (`MainActivity.java`, `assets/rt-apk.js`).
+- `rt-apk.js` (iniettato solo sul sito): rende vere le regole `@media (display-mode: fullscreen)` e `matchMedia`, salva i download `blob:`/`data:` in Download/Raccoon Tier, sostituisce `speechSynthesis` con la voce di Android.
+- Il guscio: schermo intero, autoplay della musica, scelta file + fotocamera, link esterni nel browser, tasto indietro = `history.back()`.
+- I dati (localStorage) dell'APK sono separati da quelli di Chrome: si passano con Salva backup → Ripristina da file.
+- Compilazione: Android SDK in `/opt/android-sdk` (sdkmanager `platforms;android-35` `build-tools;35.0.0`), `local.properties` con `sdk.dir`, poi `RT_KEYSTORE=… RT_KEYPASS=… gradle assembleRelease`. La firma (`.jks`) NON è nel repository: ce l'ha l'utente; con un'altra firma l'APK non si aggiorna sopra quello vecchio.
