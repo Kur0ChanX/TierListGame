@@ -3,6 +3,15 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v218', date:'2026-10-02', time:'07:39', items:[
+    'Gesto «scorri dal basso» di Android: nella striscia più bassa dello schermo i tasti non scattano più al tocco (il gesto cambiava pagina per sbaglio e dovevi riprovare). Il tocco normale funziona come prima.',
+    'Apertura del gioco più leggera in verticale: durante l\'animazione i lavori di sottofondo aspettano, e la lista non si ridisegna sotto la scheda aperta.',
+    'Carosello: ora parte anche per i vecchi giochi senza foto su Steam (es. Suikoden V): schermata di gioco e schermata del titolo da Libretro. «Nessuna foto» si ricorda 3 giorni, non 30.',
+    'Carosello, impostazioni: nel menu 🖼️ della locandina c\'è «⚙️ Impostazioni del carosello» (acceso/spento, secondi per foto, attesa della locandina, velocità del passaggio, effetto). Il lucchetto 🔒 serve solo a non far cambiare locandina e foto dagli aggiornamenti.',
+    'Player: tasto «Auto» separato. Nella scheda decide se aprendo un gioco la sua musica parte da sola; nel player in home decide se, finito un brano, parte il successivo. «■» ferma solo il brano.',
+    'La scheda del gioco parte sempre in alto (nome e locandina in vista): prima, aprendo un gioco dopo averne scorso un altro, restava a metà.',
+    'Aprendo un gioco, Update+, ricerca locandina e foto partono dopo qualche secondo a scheda ferma, e solo se mancano: Update+ non si ripete se il gioco è già stato aggiornato (o provato negli ultimi 7 giorni). Con la 🧘 Modalità calma non parte niente.'
+  ]},
   {version:'v217', date:'2026-10-02', time:'03:40', items:[
     'Sistemato: a volte il gioco appena aperto si richiudeva da solo e tornavi in Classifica. Era un «indietro» che arrivava in ritardo dopo un cambio di pagina.',
     'Pagine ferme: ogni tasto di sotto parte sempre dall\'alto e la pagina non si muove da sola. Ritoccare «Classifica» quando ci sei già ti riporta in cima, di colpo. Tornando da un gioco resti dov\'eri.',

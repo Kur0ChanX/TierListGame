@@ -160,12 +160,14 @@
       // avvicinandosi dal punto toccato (solo transform/opacity: lo fa la scheda grafica, non pesa sul telefono). Il cartoncino resta solo come riserva (RT_GHOST).
       if(!was && moOn() && VW <= 760 && !window.RT_GHOST){
         const T = tap && performance.now() - tap.t < 900 ? tap : null; tap = null; haptic('soft');
+      window.__rtOpenUntil = performance.now() + 420;                     // v218: per questa frazione di secondo i lavori di sottofondo aspettano (l'animazione ha tutta la forza)
         const r = origOpen.apply(this, arguments);
         try{
           const card = document.getElementById('modalCard');
           if(card && card.animate){
             const ox = T ? Math.round(T.x) : VW / 2, oy = T ? Math.round(T.y) : VH * .6;
-            card.style.transformOrigin = ox + 'px ' + oy + 'px';
+            card.style.transformOrigin = ox + 'px ' + oy + 'px'; card.style.willChange = 'transform, opacity';
+            const cleanW = ()=>{ card.style.willChange = ''; }; setTimeout(cleanW, 420);
             card.animate([{scale: '.93', translate: '0 14px'}, {scale: '1', translate: '0 0'}], {duration: 280, easing: 'cubic-bezier(.2,.9,.25,1)'})      /* «scale/translate»: proprietà a parte, non le blocca il «transform:none» dei CSS; la dissolvenza la fa già il CSS */.finished.then(()=>{ card.style.transformOrigin = ''; }, ()=>{});
             countUp(card);
           }
@@ -224,6 +226,20 @@
     };
     try{ openModal = window.openModal; }catch(e){}
   }
+  // v218: la scheda di un gioco parte SEMPRE in alto (nome e locandina in vista): prima, aprendo un gioco dopo averne scorso un altro, restava a metà.
+  // Solo se è lo stesso gioco già aperto (ridisegno sul posto, es. dopo Update+) la posizione si mantiene.
+  if(typeof window.openModal === 'function'){
+    const inner = window.openModal;
+    window.openModal = function(g){
+      const c = document.getElementById('modalCard'), bd = document.getElementById('modalBackdrop');
+      const same = !!(c && bd && bd.classList.contains('show') && typeof currentModalGame !== 'undefined' && currentModalGame && g && currentModalGame.id === g.id);
+      if(c && !same){ c.scrollTop = 0; if(bd) bd.scrollTop = 0; }
+      const r = inner.apply(this, arguments);
+      if(c && !same){ c.scrollTop = 0; requestAnimationFrame(()=>{ if(!window.__rtCardScrolling) c.scrollTop = 0; }); }
+      return r;
+    };
+    try{ openModal = window.openModal; }catch(e){}
+  }
 
   // ---------------------------------------------------------------- v212: cambio sezione FULMINEO
   // Prima: passaggio animato (View Transition) che partiva al «click», cioè dopo che il dito si alzava, e doveva prima fotografare la pagina:
@@ -232,20 +248,34 @@
   const bar = document.getElementById('viewTabs');
   if(bar){
     let swallowUntil = 0, swallowTab = null;
+    // v218: il gesto «scorri su dal bordo basso» di Android (schede app / casa) parte proprio dalla barra dei tasti. Quindi la sezione non cambia
+    // nell'istante del tocco ma 70 millesimi dopo, e solo se il dito è ancora fermo (se scorre, o Android prende il gesto = pointercancel, non succede nulla).
+    // Negli ultimi 14 px dello schermo il tasto scatta solo al «click», quando alzi il dito.
+    window.rtEdgeZone = e=> e.clientY > (window.innerHeight || 0) - 14;
     bar.addEventListener('pointerdown', e=>{
       if(e.button > 0 || e.isPrimary === false) return;
+      if(window.rtEdgeZone(e)) return;
       const tab = e.target.closest && e.target.closest('.view-tab'); if(!tab) return;
       if(typeof state === 'undefined' || typeof setView !== 'function') return;
-      swallowTab = tab; swallowUntil = performance.now() + 900;
-      const ab = document.getElementById('askBackdrop');
-      if(tab.dataset.view && ab && ab.classList.contains('show')){ const cb = document.getElementById('askCloseBtn'); if(cb) cb.click(); else ab.classList.remove('show'); }      // da «Chiedi» a un'altra sezione: chiudo Chiedi
-      if(tab.dataset.view){ if(tab.dataset.view !== state.view) setView(tab.dataset.view); else { try{ if(window.rtViewTop) rtViewTop(); else scrollTo({top: 0, behavior: 'instant'}); }catch(x){} } }
-      else if(tab.dataset.ask && typeof openAsk === 'function') openAsk();
-      haptic('tick');
+      const sx = e.clientX, sy = e.clientY;
+      const go = ()=>{
+        swallowTab = tab; swallowUntil = performance.now() + 900;
+        const ab = document.getElementById('askBackdrop');
+        if(tab.dataset.view && ab && ab.classList.contains('show')){ const cb = document.getElementById('askCloseBtn'); if(cb) cb.click(); else ab.classList.remove('show'); }      // da «Chiedi» a un'altra sezione: chiudo Chiedi
+        if(tab.dataset.view){ if(tab.dataset.view !== state.view) setView(tab.dataset.view); else { try{ if(window.rtViewTop) rtViewTop(); else scrollTo({top: 0, behavior: 'instant'}); }catch(x){} } }
+        else if(tab.dataset.ask && typeof openAsk === 'function') openAsk();
+        haptic('tick');
+      };
+      let timer = 0;
+      const stopW = ()=>{ clearTimeout(timer); window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointercancel', stopW, true); window.removeEventListener('pointerup', stopW, true); };
+      const mv = ev=>{ if(Math.hypot(ev.clientX - sx, ev.clientY - sy) > 6) stopW(); };
+      timer = setTimeout(()=>{ stopW(); go(); }, 70);
+      window.addEventListener('pointermove', mv, true); window.addEventListener('pointercancel', stopW, true); window.addEventListener('pointerup', stopW, true);
     }, true);
     bar.addEventListener('click', e=>{
       const tab = e.target.closest && e.target.closest('.view-tab'); if(!tab) return;
       if(tab === swallowTab && performance.now() < swallowUntil){ swallowTab = null; e.stopImmediatePropagation(); e.preventDefault(); }
+      else { const ab = document.getElementById('askBackdrop'); if(tab.dataset.view && ab && ab.classList.contains('show')){ const cb = document.getElementById('askCloseBtn'); if(cb) cb.click(); else ab.classList.remove('show'); } }      // v218: tocco rapido (arriva dal click): da «Chiedi» a un'altra sezione chiudo comunque Chiedi
     }, true);
   }
 
@@ -321,6 +351,7 @@
     const activeTab = ()=>{ const ab = document.getElementById('askBackdrop'); return ab && ab.classList.contains('show') ? (document.getElementById('askTab') || bar.querySelector('.view-tab.active')) : bar.querySelector('.view-tab.active'); };
     let pending = null, pendT = 0;
     bar.addEventListener('pointerdown', e=>{
+      if(window.rtEdgeZone && window.rtEdgeZone(e)) return;
       const tab = e.target.closest && e.target.closest('.view-tab[data-view]'); if(!tab || !moOn()) return;
       pending = tab; clearTimeout(pendT); placeOn(tab);
       pendT = setTimeout(()=>{ if(pending){ pending = null; placeOn(activeTab()); } }, 900);     // dito trascinato via senza scegliere: la bolla torna al suo posto

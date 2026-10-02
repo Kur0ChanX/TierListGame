@@ -995,6 +995,31 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   const FP_SRC = {wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', rawg: 'RAWG', oc: 'OpenCritic', facts: 'Dati settimanali'};
   const fpQueue = [], fpMiss = {};
   window.updatePlusQueue = id=>{ if(!fpQueue.includes(id)) fpQueue.push(id); fpKick(6000); };
+  // v218: aprendo un gioco, dopo qualche secondo (scheda ferma, pagina carica) parte Update+ per QUESTO gioco: ma solo se non l'ha già fatto
+  // (aggiornato con successo, oppure provato negli ultimi 7 giorni). Spento con Update+ spento o con la modalità calma.
+  window.updatePlusDoneFor = id=>{ const e = frLoad()[id]; if(!e) return false; if(e.gold) return true; const t = Date.parse(e.t || ''); return !!t && Date.now() - t < 7 * 864e5; };
+  (function(){
+    if(typeof window.openModal !== 'function') return;
+    const prev = window.openModal; let tk = 0;
+    window.openModal = function(g){
+      const r = prev.apply(this, arguments);
+      try{
+        if(g && g.id != null && updatePlusOn() && !updatePlusDoneFor(g.id)){
+          const my = ++tk, id = g.id, t0 = Date.now();
+          const go = ()=>{
+            if(my !== tk) return;
+            const open = typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === id && document.getElementById('modalBackdrop').classList.contains('show');
+            if(!open || !updatePlusOn() || updatePlusDoneFor(id)) return;
+            if(document.hidden || window.__rtCardScrolling || (typeof rtLastInput !== 'undefined' && Date.now() - rtLastInput < 2500)){ if(Date.now() - t0 < 60000) setTimeout(go, 1500); return; }
+            if(window.updatePlusQueue) updatePlusQueue(id);
+          };
+          setTimeout(go, 4500);
+        }
+      }catch(e){}
+      return r;
+    };
+    try{ openModal = window.openModal; }catch(e){}
+  })();
   function frManual(id){                                        // «Aggiorna info» a mano: simbolo viola
     const f = frLoad(); f[id] = {gold: 1, m: 1, t: new Date().toISOString(), src: (f[id] && f[id].src) || []}; frSave(f);
     try{ const g = GAMES.find(x=> x.id === id); g && refreshRowFresh(g); }catch(e){}
@@ -1064,6 +1089,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const P = window.Progress; try{ P && P.begin && P.begin('Update V+ di ' + g.name + '…'); }catch(e){}
     let r = null;
     try{ r = await updatePlus(g, true); }catch(e){}
+    try{ if(window.XCOVER && XCOVER.lrShots) await XCOVER.lrShots(g); }catch(e){}
     try{ if(window.rtRawgShots) await rtRawgShots(g, true); }catch(e){}          // v217: anche le foto del carosello (in modalità calma arrivano solo da qui)
     // scheda senza analisi («come regge oggi», gameplay): la completo adesso, così l'affidabilità non resta bloccata
     try{ if(g.custom && typeof runEnrich === 'function' && !(g.enrich && (g.enrich.eraScore != null || g.enrich.agingNote || g.enrich.gameplayNote))) await runEnrich([g.id], {force: true}); }catch(e){}

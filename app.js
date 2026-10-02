@@ -1587,6 +1587,8 @@ function renderWhenIdle(parts){
   const tick = ()=>{
     const quiet = Date.now() - rtLastInput;
     if(quiet < 1000){ rtIdleTimer = setTimeout(tick, 1050 - quiet); return; }
+    // v218: con la scheda di un gioco aperta la lista sotto non si vede: aspetto che la chiudi (poi ridisegno una volta sola)
+    try{ const mb = document.getElementById('modalBackdrop'); if(mb && mb.classList.contains('show')){ rtIdleTimer = setTimeout(tick, 1500); return; } }catch(e){}
     const p = rtPendingParts; rtPendingParts = null;
     try{ if(p.metrics) renderMetrics(); if(p.stats) renderStats(); if(p.list) render(); if(p.bar) renderListBar(); }catch(e){}
   };

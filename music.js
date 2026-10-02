@@ -79,6 +79,11 @@
   // 21) COLONNE SONORE
   // =====================================================================
   const ON = ()=> LS.get('jrpg_music', 'off') === 'on';
+  // v218: DUE interruttori «Auto play» separati. Scheda: apro un gioco → parte da sola la sua colonna sonora. Player in home: finito un brano → parte il successivo.
+  // (chi aveva già la musica accesa mantiene l'Auto play della scheda acceso)
+  const apCard = ()=>{ const v = LS.get('jrpg_ap_card', null); return v == null ? ON() : v === 'on'; };
+  const apHome = ()=> LS.get('jrpg_ap_home', 'on') !== 'off';
+  const endTrack = ()=>{ if(apHome()) next(true); else { cur.playing = false; try{ paint(); }catch(e){} } };
   const PICK = 'jrpg_music_pick';
   let yt = null, ytReady = null, cur = {id: null, list: [], i: 0, playing: false}, ostP = null;
   // brani «ia:…» = file musicali di Internet Archive: si suonano con un normale lettore audio, quindi SENZA pubblicità
@@ -86,7 +91,7 @@
   const isIA = t=> t && String(t[0]).indexOf('ia:') === 0;
   // un brano che non si carica passa al successivo; se non se ne carica nessuno mi fermo (prima girava all'infinito senza rete)
   function failNext(){ cur.fails = (cur.fails || 0) + 1; if(cur.fails >= Math.max(1, cur.list.length)){ cur.playing = false; cur.fails = 0; paint(); toast('La colonna sonora non si carica ora (rete o sito): riprova tra poco', 3200); return; } next(true); }
-  function audio(){ if(!au){ au = new Audio(); au.preload = 'auto'; au.addEventListener('ended', ()=> next(true)); au.addEventListener('error', ()=> failNext()); au.addEventListener('playing', ()=>{ cur.fails = 0; cur.playing = true; paint(); }); au.addEventListener('pause', ()=>{ if(!au.ended){ cur.playing = false; paint(); } }); } return au; }
+  function audio(){ if(!au){ au = new Audio(); au.preload = 'auto'; au.addEventListener('ended', endTrack); au.addEventListener('error', ()=> failNext()); au.addEventListener('playing', ()=>{ cur.fails = 0; cur.playing = true; paint(); }); au.addEventListener('pause', ()=>{ if(!au.ended){ cur.playing = false; paint(); } }); } return au; }
   function loadYT(){
     if(ytReady) return ytReady;
     ytReady = new Promise((res, rej)=>{
@@ -104,12 +109,13 @@
     if(!d){
       const fixed = docked();
       d = document.createElement('div'); d.id = 'rtMusic'; d.className = 'rt-music' + (fixed ? ' docked' : '');
-      d.innerHTML = '<div class="rm-frame"><div id="rtYt"></div></div><button type="button" class="rm-g" data-m="grip" aria-label="Sposta o blocca il player" title="Trascina per spostare · tocca per bloccare"></button><button type="button" class="rm-b" data-m="toggle" aria-label="Play/Pausa"></button><div class="rm-t"><b></b><small></small></div><button type="button" class="rm-b" data-m="next" aria-label="Altro brano">⏭</button><button type="button" class="rm-b" data-m="stop" aria-label="Ferma la musica">■</button>';
+      d.innerHTML = '<div class="rm-frame"><div id="rtYt"></div></div><button type="button" class="rm-g" data-m="grip" aria-label="Sposta o blocca il player" title="Trascina per spostare · tocca per bloccare"></button><button type="button" class="rm-b" data-m="toggle" aria-label="Play/Pausa"></button><div class="rm-t"><b></b><small></small></div><button type="button" class="rm-b" data-m="next" aria-label="Altro brano">⏭</button><button type="button" class="rm-b rm-ap" data-m="ap" aria-label="Auto play del player" title="Auto play: finito un brano parte il successivo">Auto</button><button type="button" class="rm-b" data-m="stop" aria-label="Ferma la musica">■</button>';
       if(fixed){ document.getElementById('rtMusicSlot').appendChild(d); }
       else { document.body.appendChild(d); dragify(d); placeDock(d); }
       lockPaint(d);
+      try{ const ab = d.querySelector('[data-m="ap"]'); if(ab) ab.classList.toggle('on', apHome()); }catch(e){}
       if(!fixed && !LS.get('jrpg_music_hint', false)){ LS.set('jrpg_music_hint', true); setTimeout(()=> toast('Suggerimento: tieni premuto il player per spostarlo dove vuoi', 4500), 1500); }
-      d.addEventListener('click', e=>{ const b = e.target.closest('[data-m]'); if(!b) return; const m = b.dataset.m; if(m === 'toggle') cur.playing ? pause() : resume(); else if(m === 'next') next(); else if(m === 'stop') stopAll(); });
+      d.addEventListener('click', e=>{ const b = e.target.closest('[data-m]'); if(!b) return; const m = b.dataset.m; if(m === 'toggle') cur.playing ? pause() : resume(); else if(m === 'next') next(); else if(m === 'stop') stopAll(); else if(m === 'ap'){ LS.set('jrpg_ap_home', apHome() ? 'off' : 'on'); paint(); toast(apHome() ? 'Auto play del player: acceso (finito un brano parte il successivo)' : 'Auto play del player: spento (a fine brano si ferma)', 2400); } });
     }
     return d;
   }
@@ -161,6 +167,7 @@
     placeDock(d);
     d.classList.toggle('show', !!t);                                  // v214: resta visibile anche fermo (con ▶ per ripartire), non sparisce allo Stop
     d.querySelector('[data-m="toggle"]').textContent = cur.playing ? '❚❚' : '▶';
+    const apb = d.querySelector('[data-m="ap"]'); if(apb){ apb.classList.toggle('on', apHome()); apb.setAttribute('aria-pressed', apHome() ? 'true' : 'false'); }
     d.querySelector('.rm-t b').textContent = t ? t[1] : '';
     const g = GAMES.find(x=> x.id === cur.id); d.querySelector('.rm-t small').textContent = g ? g.name + ' · ' + (cur.i + 1) + '/' + cur.list.length : '';
     paintBar();
@@ -270,7 +277,7 @@
       res.querySelectorAll('[data-i]').forEach(b=> b.addEventListener('click', ()=>{
         const v = l[+b.dataset.i], list = [v].concat(l.filter(x=> x !== v).slice(0, 4));
         const u = LS.get(USER, {}) || {}; u[g.id] = list; LS.set(USER, u);
-        cur = {id: g.id, list, i: 0, playing: false}; LS.set('jrpg_music', 'on'); playTrack();
+        cur = {id: g.id, list, i: 0, playing: false}; playTrack();
         const sh = document.getElementById('xOstFind'); if(sh) sh.classList.remove('show'); toast('Colonna sonora scelta: la ricordo per questo gioco', 2400);
       }));
     };
@@ -298,7 +305,7 @@
     res.querySelectorAll('[data-i]').forEach(b=> b.addEventListener('click', ()=>{
       const v = alts[+b.dataset.i], list = cur.list.slice(); list[cur.i] = v;
       const u = LS.get(USER, {}) || {}; u[g.id] = list; LS.set(USER, u);
-      cur.list = list; LS.set('jrpg_music', 'on'); playTrack();
+      cur.list = list; playTrack();
       const sh = document.getElementById('xOstSwap'); if(sh) sh.classList.remove('show'); toast('🔒 Brano cambiato e bloccato per questo gioco', 2400);
     }));
   }
@@ -315,12 +322,12 @@
     dock();
     if(!yt){
       yt = new YT.Player('rtYt', {host: 'https://www.youtube-nocookie.com', width: 200, height: 113, videoId: t[0], playerVars: {autoplay: 1, playsinline: 1, controls: 0, rel: 0, modestbranding: 1},
-        events: {onReady: e=>{ try{ e.target.setVolume(70); e.target.playVideo(); }catch(x){} }, onStateChange: e=>{ cur.playing = e.data === 1; if(e.data === 1) cur.fails = 0; if(e.data === 0) next(true); paint(); }, onError: ()=> failNext()}});
+        events: {onReady: e=>{ try{ e.target.setVolume(70); e.target.playVideo(); }catch(x){} }, onStateChange: e=>{ cur.playing = e.data === 1; if(e.data === 1) cur.fails = 0; if(e.data === 0) endTrack(); paint(); }, onError: ()=> failNext()}});
     } else { try{ yt.loadVideoById(t[0]); }catch(e){} }
     cur.playing = true; paint();
   }
   async function playFor(g, force){
-    if(!force && !ON()) return;
+    if(!force && !apCard()) return;
     if(cur.id === g.id && cur.list.length && (cur.playing || !force)){ paint(); return; }
     const list = await tracksFor(g);
     if(!list.length){ cur = {id: g.id, list: [], i: 0, playing: false, none: true}; paintBar(); if(force) toast('Non trovo la colonna sonora: prova col tasto 🔎', 3200); return; }
@@ -329,24 +336,24 @@
     paintBar(); playTrack();
   }
   function pause(){ try{ yt && yt.pauseVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); }
-  function resume(){ LS.set('jrpg_music', 'on'); const t = cur.list[cur.i]; if(isIA(t)){ if(au && au.src) au.play().catch(()=>{}); else playTrack(); } else { try{ yt && yt.playVideo(); }catch(e){} } cur.playing = true; paint(); }
+  function resume(){ const t = cur.list[cur.i]; if(isIA(t)){ if(au && au.src) au.play().catch(()=>{}); else playTrack(); } else { try{ yt && yt.playVideo(); }catch(e){} } cur.playing = true; paint(); }
   function next(auto){ if(!cur.list.length) return; cur.i = (cur.i + 1) % cur.list.length; if(!auto){ const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); } playTrack(); }
-  function stopAll(){ LS.set('jrpg_music', 'off'); try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Musica ferma: premi ▶ per farla ripartire', 2200); }
+  function stopAll(){ try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Brano fermo: premi ▶ per farlo ripartire', 2200); }
   window.rtMusic = {playFor, stop: stopAll, on: ON, dock};
   // barra nella scheda del gioco
   // ---- lettore nella scheda (v198): titolo grande, album/fonte, barra di avanzamento toccabile, ⏮ ⏯ ⏭, elenco dei brani, 🔁 cambia, 🔎 cerca ----
   const albumOf = g=>{ try{ const e = (LS.get(IA, {}) || {})[g.id]; return e && e.album ? e.album : ''; }catch(e){ return ''; } };
   function barHtml(g){
-    const mine = cur.id === g.id && cur.list.length, t = mine ? cur.list[cur.i] : null, playing = ON() && mine && cur.playing;
+    const mine = cur.id === g.id && cur.list.length, t = mine ? cur.list[cur.i] : null, playing = mine && cur.playing;
     const locked = !!(LS.get(USER, {}) || {})[g.id];
     const src = t ? (isIA(t) ? '🚫📢 senza pubblicità · ' + (albumOf(g) || 'Internet Archive') : '▶ YouTube') : '';
-    const status = STAT[g.id] || (cur.id === g.id && cur.none ? 'Non trovata: prova col tasto 🔎' : (ON() ? 'Cerco la colonna sonora…' : 'Premi ▶: la musica resta accesa per tutti i giochi'));
+    const status = STAT[g.id] || (cur.id === g.id && cur.none ? 'Non trovata: prova col tasto 🔎' : (apCard() ? 'Cerco la colonna sonora…' : 'Premi ▶ per ascoltarla (o accendi «Auto» per farla partire da sola)'));
     const list = mine ? `<div class="mz2-list" hidden>${cur.list.map((x, i)=> `<button type="button" class="mz2-li${i === cur.i ? ' cur' : ''}" data-mz="pick" data-i="${i}"><span>${i + 1}</span><b>${esc(x[1])}</b><small>${esc(x[2] || '')}</small></button>`).join('')}</div>` : '';
     return `<div class="mz2${playing ? ' on' : ''}" id="mzBar">
       <div class="mz2-top"><div class="mz2-art${playing ? ' spin' : ''}">🎵</div><div class="mz2-info"><b class="mz2-title">${t ? esc(t[1]) : 'Colonna sonora'}</b><small>${t ? esc(src) + ' · ' + (cur.i + 1) + '/' + cur.list.length + (locked ? ' · 🔒 scelti da te' : '') : esc(status)}</small></div></div>
       ${mine ? `<div class="mz2-prog"><span class="mz2-cur">0:00</span><div class="mz2-pb" data-mz="seek"><i></i></div><span class="mz2-dur">${esc(t[2] || '')}</span></div>` : ''}
       <div class="mz2-ctl"><button type="button" data-mz="prev" title="Brano precedente" aria-label="Precedente">⏮</button><button type="button" class="mz2-play" data-mz="play" aria-label="Play o pausa">${playing ? '❚❚' : '▶'}</button><button type="button" data-mz="next" title="Brano successivo" aria-label="Successivo">⏭</button>
-        <span class="mz2-sep"></span><button type="button" data-mz="list" title="Elenco dei brani" aria-label="Elenco">☰</button><button type="button" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato 🔒)" aria-label="Cambia brano">🔁</button><button type="button" data-mz="find" title="Cerca con parole tue" aria-label="Cerca">🔎</button><button type="button" data-mz="stop" title="Ferma la musica ovunque" aria-label="Ferma">■</button></div>
+        <span class="mz2-sep"></span><button type="button" data-mz="list" title="Elenco dei brani" aria-label="Elenco">☰</button><button type="button" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato 🔒)" aria-label="Cambia brano">🔁</button><button type="button" data-mz="find" title="Cerca con parole tue" aria-label="Cerca">🔎</button><button type="button" class="mz2-ap${apCard() ? ' on' : ''}" data-mz="ap" title="Auto play: aprendo un gioco la sua musica parte da sola" aria-label="Auto play" aria-pressed="${apCard()}">Auto</button><button type="button" data-mz="stop" title="Ferma il brano" aria-label="Ferma">■</button></div>
       ${list}</div>`;
   }
   const mmss = x=>{ x = Math.max(0, Math.floor(+x || 0)); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); };
@@ -364,15 +371,16 @@
     if(!progT) progT = setInterval(progTick, 1000);
     b.addEventListener('click', e=>{ const x = e.target.closest('[data-mz]'); if(!x) return; const m = x.dataset.mz;
       const mine = cur.id === g.id && cur.list.length;
-      if(m === 'play'){ if(mine){ cur.playing ? pause() : resume(); } else { LS.set('jrpg_music', 'on'); playFor(g, true); } }
+      if(m === 'play'){ if(mine){ cur.playing ? pause() : resume(); } else { playFor(g, true); } }
       else if(m === 'find') openFind(g);
       else if(m === 'swap') openSwap(g);
       else if(m === 'list'){ const l = b.querySelector('.mz2-list'); if(l) l.hidden = !l.hidden; else toast('Fai partire la musica per vedere i brani', 2000); }
-      else if(m === 'pick'){ cur.i = +x.dataset.i; const p = LS.get(PICK, {}) || {}; p[g.id] = cur.i; LS.set(PICK, p); LS.set('jrpg_music', 'on'); playTrack(); }
+      else if(m === 'pick'){ cur.i = +x.dataset.i; const p = LS.get(PICK, {}) || {}; p[g.id] = cur.i; LS.set(PICK, p); playTrack(); }
       else if(m === 'seek'){ const r = x.getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), t = cur.list[cur.i]; try{ if(isIA(t) && au && au.duration) au.currentTime = f * au.duration; else if(yt && yt.getDuration) yt.seekTo(f * yt.getDuration(), true); }catch(err){} progTick(); }
       else if(m === 'stop') stopAll();
+      else if(m === 'ap'){ LS.set('jrpg_ap_card', apCard() ? 'off' : 'on'); x.classList.toggle('on', apCard()); x.setAttribute('aria-pressed', apCard() ? 'true' : 'false'); toast(apCard() ? 'Auto play acceso: aprendo un gioco la sua musica parte da sola' : 'Auto play spento: la musica parte solo se premi ▶', 2600); const st = b.querySelector('.mz2-info small'); }
       else if(m === 'prev'){ if(mine) prev(); }
-      else if(m === 'next'){ if(mine) next(); else { LS.set('jrpg_music', 'on'); playFor(g, true); } } });
+      else if(m === 'next'){ if(mine) next(); else { playFor(g, true); } } });
     progTick();
   }
   const origOpen = window.openModal;
@@ -382,7 +390,7 @@
       rtSfx('open');
       const cover = document.getElementById('coverBlock'), card = document.getElementById('modalCard');
       if(card && g){ (cover || card.querySelector('.modal-head')).insertAdjacentHTML('afterend', barHtml(g)); wireBar(g); }
-      if(ON()) playFor(g);
+      if(apCard()) playFor(g);
     }catch(e){}
     return r;
   };
@@ -393,7 +401,8 @@
   function openSound(){
     const cur0 = theme(), vol = sfxVol();
     const body = sheet('xSound', gi('pad') + ' Suoni e musica', `<div class="lp-sub">Suoni dei pulsanti creati nel telefono (nessun download). Scegli un tema: toccalo per sentirlo.</div>
-      <label class="ask-toggle"><input type="checkbox" id="muOn" ${ON() ? 'checked' : ''}> ${gi('play')} Colonna sonora automatica quando apri un gioco</label>
+      <label class="ask-toggle"><input type="checkbox" id="muOn" ${apCard() ? 'checked' : ''}> ${gi('play')} Auto play della scheda: aprendo un gioco parte la sua colonna sonora</label>
+      <label class="ask-toggle"><input type="checkbox" id="muHome" ${apHome() ? 'checked' : ''}> Auto play del player in home: finito un brano parte il successivo</label>
       <label class="ask-toggle"><input type="checkbox" id="muIA" ${LS.get(SRC, 'ia') === 'ia' ? 'checked' : ''}> 🚫📢 Prima le colonne sonore SENZA pubblicità (album completi su Internet Archive); YouTube solo se l'album non c'è</label>
       <label class="gs-row">Volume dei suoni <input type="range" min="0" max="1" step="0.05" value="${vol}" id="sfxVol"></label>
       <label class="ask-toggle"><input type="checkbox" id="muFloat" ${LS.get(MODE, 'dock') === 'float' ? 'checked' : ''}> Player mobile (lo sposti tu) invece che fisso sotto la ricerca <small>(si applica al riavvio)</small></label>
@@ -405,7 +414,8 @@
     body.querySelector('#muReset').addEventListener('click', ()=>{ LS.set(POS, null); const d = document.getElementById('rtMusic'); if(d){ d.style.left = ''; d.style.top = ''; d.style.bottom = ''; } toast('Player rimesso al suo posto', 1800); });
     body.querySelector('#muFloat').addEventListener('change', e=>{ LS.set(MODE, e.target.checked ? 'float' : 'dock'); toast('Fatto: si applica al prossimo avvio del programma', 2600); });
     body.querySelector('#muIA').addEventListener('change', e=>{ LS.set(SRC, e.target.checked ? 'ia' : 'yt'); toast(e.target.checked ? 'Prima gli album senza pubblicità' : 'Prima YouTube', 2000); });
-    body.querySelector('#muOn').addEventListener('change', e=>{ LS.set('jrpg_music', e.target.checked ? 'on' : 'off'); if(!e.target.checked){ try{ yt && yt.stopVideo(); }catch(x){} cur.playing = false; paint(); } });
+    body.querySelector('#muOn').addEventListener('change', e=>{ LS.set('jrpg_ap_card', e.target.checked ? 'on' : 'off'); });
+    body.querySelector('#muHome').addEventListener('change', e=>{ LS.set('jrpg_ap_home', e.target.checked ? 'on' : 'off'); paint(); });
   }
   menu(gi('pad') + ' Suoni e musica (15 temi)', openSound);
 })();
