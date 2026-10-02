@@ -534,8 +534,12 @@ function novitaExcludeListText(excludeNames){
 const NOVITA_UNVERIFIED_MAX = 79;
 async function novitaVerifyScores(list, say, isStopped){
   if(typeof rtScoreCheck !== 'function' || !list.length) return;
-  say && say('Controllo i voti reali su Metacritic…');
-  let i = 0; const probs = new Map();          // fonte → motivo (una volta sola)
+  say && say('Trovati! Ora controllo il voto vero di ognuno (Metacritic, OpenCritic…): ci vuole un po\'. Puoi premere «Basta frugare» quando vuoi.');
+  let i = 0, done = 0; const probs = new Map();          // fonte → motivo (una volta sola)
+  const P = window.Progress;
+  const tick = ()=>{ try{ P && P.counter && P.counter(done, list.length, 'Voti controllati'); P && P.set && P.set(Math.round(done / list.length * 100)); }catch(e){} };
+  try{ P && P.restart && P.restart(0, 'Frugu Frugu controlla i voti veri…'); }catch(e){}
+  tick();
   const one = async ()=>{
     while(i < list.length && !(isStopped && isStopped())){
       const c = list[i++];
@@ -543,6 +547,7 @@ async function novitaVerifyScores(list, say, isStopped){
       try{ r = await Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 15000))]); }catch(e){}
       try{ if(r && r.st) Object.keys(r.st).forEach(k=>{ const x = r.st[k]; if(x && (x.state === 'err' || x.state === 'off')) probs.set(x.name, x.why); }); }catch(e){}
       if(r || !(isStopped && isStopped())) novitaApplyCheck(c, r);
+      done++; tick();
     }
   };
   await Promise.all([one(), one(), one(), one()]);
@@ -683,6 +688,7 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets, ex
       const k = c.name.toLowerCase().trim(), k2 = nn(c.name);
       if(seen.has(k) || seen.has(k2) || found.length >= MAX) return;
       if(c.score != null && c.score < 50) return;                 // sotto il 5/10: spazzatura
+      if(/\b(hentai|nukige|nsfw|eroge|18\+|porn)\b/i.test(c.name)) return;   // v241: niente giochi per adulti da nessuna fonte
       seen.add(k); seen.add(k2); c.viaSource = srcName || ''; found.push(c);
     });
     return found.length - before;
@@ -1075,7 +1081,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-02';
-const DATA_BUILD_VERSION = 'v240';
+const DATA_BUILD_VERSION = 'v241';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

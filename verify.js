@@ -154,7 +154,7 @@
   async function ocInfoFor(g){
     const arch = window.SearchHub && SearchHub.ocArchFor && SearchHub.ocArchFor(g); if(arch) return arch;     // voto OpenCritic letto dal server ogni notte: nessuna chiave, nessuna quota
     if(!(window.SearchHub && SearchHub.opencritic && SearchHub.opencritic.has())) return null;
-    return SearchHub.opencritic.info(g.name);
+    return SearchHub.opencritic.info(SearchHub.enNameSync ? SearchHub.enNameSync(g) : g.name);   // nome inglese: Wikidata e OpenCritic non conoscono i titoli italiani
   }
   async function rawgInfoFor(g){
     if(!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has())) return null;
@@ -657,7 +657,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       if(key === 'pcgw'){ await pcgwInfo('Bayonetta'); return ok(); }
       if(key === 'cheap'){ const r = await H.json('https://www.cheapshark.com/api/1.0/stores', {timeout: 12000}); if(!Array.isArray(r)) throw new Error('risposta vuota'); return ok(); }
       if(key === 'rawg'){ if(!(H && H.rawg && H.rawg.has())) return {s: 'off', why: 'chiave non impostata'}; await H.rawg.ping(); return ok(); }
-      if(key === 'oc'){ if(!(H && H.opencritic && H.opencritic.has())) return {s: 'off', why: 'chiave non impostata'}; await H.opencritic.ping(); return ok(); }
+      if(key === 'oc'){ if(!(H && H.opencritic && H.opencritic.has())) return {s: 'off', why: 'serve la chiave o il ponte personale'}; await H.opencritic.ping(); return ok(); }
       if(key === 'gem'){ if(!(typeof geminiKey === 'function' && geminiKey())) return {s: 'off', why: 'chiave Gemini non impostata'};
         // provo DAVVERO il modello principale (anche se era in pausa): se risponde tolgo la pausa; se è al limite lo dico e verifico il leggero
         try{ await window.geminiTestModel(); const r0 = ok(); r0.note = 'modello principale ok'; return r0; }
@@ -904,8 +904,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     let undo = {}; try{ undo = JSON.parse(localStorage.getItem(AU_UNDO) || '{}') || {}; }catch(e){}
     const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔎 Controllo dati</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
     const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · oggi ${st.today}/${st.cap}${useAI() ? '' : ' · <b>senza chiave Gemini controllo solo voto, anno, generi e lingua</b>'}. ${auPause ? '<br>⏸️ ' + escHtml(auPause) : ''}<br><b>Non cambia nulla senza il tuo ok.</b> Le proposte vengono da fonti aperte e da Gemini con ricerca web; controllale prima di applicarle.</div>
-      <label class="ask-toggle"><input type="checkbox" id="fpOn" ${updatePlusOn() ? 'checked' : ''}${window.rtCalm && rtCalm() ? ' disabled' : ''}> ${giIcon('upplus')} Update+ all\'avvio: aggiorna tutte le info e la locandina di ogni gioco, una volta sola <small>(${updatePlusStats().done}/${updatePlusStats().total} fatti)</small></label>
-      <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}${window.rtCalm && rtCalm() ? ' disabled' : ''}> Controlla da solo in background</label>
+      <label class="ask-toggle"><input type="checkbox" id="fpOn" ${updatePlusOn() ? 'checked' : ''}> ${giIcon('upplus')} Update+ all\'avvio: aggiorna tutte le info e la locandina di ogni gioco, una volta sola <small>(${updatePlusStats().done}/${updatePlusStats().total} fatti)</small></label>
+      <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>${window.rtCalm && rtCalm() ? '<div class="lp-sub">🧘 La <b>Modalità calma</b> è accesa: queste due caselle restano ferme finché non la spegni. Toccane una e te la spengo io.</div>' : ''}
       <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn${auTurbo()?' primary':''}" id="auTurbo" title="Un gioco ogni ~12 secondi, fino a 800 al giorno (usa più quota Gemini)">⚡ Turbo ${auTurbo()?'acceso':'spento'}</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
     let body;
     if(tab === 'todo') body = todo.length ? `<div class="lp-tools"><button class="btn primary" id="auStart">▶ Rivedi una per una</button></div><div class="gc-rows">${todo.map(g=> `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>${a[g.id].ch.length} ${a[g.id].ch.length === 1 ? 'modifica' : 'modifiche'}: ${a[g.id].ch.map(c=> escHtml(c.label.replace(/ ⚠️.*$/, ''))).join(', ')}</small> <button class="btn" data-rv="${g.id}">Rivedi</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Niente da approvare per ora ✅</div>';
@@ -913,8 +913,13 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     else body = clean.length ? `<div class="gc-rows">${clean.slice(0, 150).map(g=> `<div class="gc-row"><span>✅ <b>${escHtml(g.name)}</b> <small>${fmtD(a[g.id].t)}${a[g.id].deep ? ' · fonti + AI' : ' · solo fonti aperte'}</small></span></div>`).join('')}</div>${clean.length > 150 ? '<div class="lp-sub">…e altri ' + (clean.length - 150) + '</div>' : ''}` : '<div class="lp-sub">Nessun gioco controllato senza modifiche, per ora.</div>';
     el.innerHTML = shell(head + body);
     el.classList.add('show');
-    el.querySelector('#auOn').addEventListener('change', e=> auditSetOn(e.target.checked));
-    el.querySelector('#fpOn').addEventListener('change', e=> updatePlusSetOn(e.target.checked));
+    // v241: con la Modalità calma accesa le caselle non sono più grigie e morte: al tocco propongo di spegnerla
+    const calmOk = cb=>{ if(!(window.rtCalm && rtCalm())) return true;
+      if(!cb.checked) return true;
+      if(!confirm('La «Modalità calma» è accesa: blocca Update+ all\'avvio e il controllo in background.\n\nLa spengo e attivo questa casella?')){ cb.checked = false; return false; }
+      try{ localStorage.setItem('rt_calm', 'off'); }catch(e){} return true; };
+    el.querySelector('#auOn').addEventListener('change', e=>{ if(!calmOk(e.target)) return; auditSetOn(e.target.checked); openAuditPanel(tab); });
+    el.querySelector('#fpOn').addEventListener('change', e=>{ if(!calmOk(e.target)) return; updatePlusSetOn(e.target.checked); openAuditPanel(tab); });
     el.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click', ()=> openAuditPanel(b.dataset.tab)));
     el.querySelector('#auTurbo').addEventListener('click', ()=>{ try{ localStorage.setItem('jrpg_audit_turbo', auTurbo() ? '0' : '1'); }catch(e){} auDelay = auBase(); if(auditOn()) auSchedule(2000); openAuditPanel(tab); });
     el.querySelector('#auReset').addEventListener('click', ()=>{ if(confirm('Cancellare lo storico dei controlli e ricominciare da capo? (le correzioni già applicate restano)')){ auSave({}); openAuditPanel(tab); } });
