@@ -26,9 +26,9 @@
       if(+m[1].slice(1) <= +cur.slice(1)) return;
       shown = true;
       const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'rt-newver';
-      bar.textContent = '✨ È uscita la ' + m[1] + ' (tu hai la ' + cur + '): tocca per aggiornare';
-      bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:100950;padding:10px 16px;border-radius:999px;border:0;background:var(--pk-accent,#3b82f6);color:#fff;font:600 14px/1.2 inherit;box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:92vw';
-      bar.addEventListener('click', ()=>{ try{ sessionStorage.removeItem('jrpg_build_reload'); }catch(e){} bar.textContent = 'Aggiorno…'; const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href)); if(navigator.serviceWorker && navigator.serviceWorker.controller) location.reload(); else Promise.all(urls.map(u=> fetch(u, {cache: 'reload'}).catch(()=>{}))).then(()=> location.reload()); });
+      bar.className = 'rt-newver tt-card';
+      bar.innerHTML = '<span class="tt-ic tt-spark">✨</span><span class="tt-tx"><b>Nuova versione ' + m[1] + '</b><small>Hai la ' + cur + ' · tocca per aggiornare e vedere le novità</small></span><span class="tt-go">›</span>';
+      bar.addEventListener('click', ()=>{ try{ sessionStorage.removeItem('jrpg_build_reload'); localStorage.setItem('rt_open_news', '1'); }catch(e){} bar.classList.add('busy'); bar.querySelector('.tt-tx').innerHTML = '<b>Aggiorno…</b><small>Dopo il riavvio ti mostro le novità</small>'; const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href)); if(navigator.serviceWorker && navigator.serviceWorker.controller) location.reload(); else Promise.all(urls.map(u=> fetch(u, {cache: 'reload'}).catch(()=>{}))).then(()=> location.reload()); });
       document.body.appendChild(bar);
     }catch(e){}
   }

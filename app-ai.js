@@ -224,7 +224,7 @@ const ASK_TOOLS = [
         tier: {type:'string', enum:['S+','S','A','B','C','D','E','F','ND'], description:'la tua stima onesta di quanto sia un buon RPG/JRPG (ND se non hai un voto Metacritic/OpenCritic verificato)'},
         score: {type:'number', description:'voto stimato 0-100, coerente con il tier'},
         tags: {type:'array', items:{type:'string', enum:['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG']}, description:'generi: TAC=tattico a griglia, ACT=action-RPG, DUN=dungeon crawler, TUR=a turni classico, MON=cattura mostri, CARD=carte, WAR=guerra su larga scala, CROSS=crossover, VN=visual novel ibrido, MECH=mecha, METR=metroidvania, SOUL=soulslike, HOR=horror, REMAKE=remake/remaster, LIFE=vita/crafting, ROG=roguelike'},
-        story: {type:'string', description:'1-2 frasi di trama senza spoiler pesanti, nello stesso stile narrativo degli altri giochi del database'},
+        story: {type:'string', description:'4-6 frasi che fanno venire voglia di iniziarlo: ambientazione, protagonisti e premessa delle prime ore, chiudendo con i misteri aperti. ZERO spoiler (niente colpi di scena, identità o parentele nascoste, morti, tradimenti, vero cattivo, finale), nello stesso stile narrativo degli altri giochi del database'},
         hours: {type:'number', description:'ore indicative per finire la storia principale'},
         difficulty: {type:'number', description:'difficoltà 1-5'},
         grind: {type:'number', description:'quanto grinding richiede, 1-5'},
@@ -1093,7 +1093,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-02';
-const DATA_BUILD_VERSION = 'v242';
+const DATA_BUILD_VERSION = 'v243';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;
