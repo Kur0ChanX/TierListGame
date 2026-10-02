@@ -1735,16 +1735,17 @@ html[data-theme="light"].rt-tinted .modal-card{background:
     var(--card) !important}
 
 /* v218: STILI DI ANIMAZIONE (scelta in ✨ → Movimento e vibrazione; html[data-anim]). Solo transform/opacity: niente lavoro in più per il telefono. */
-html[data-anim="lampo"]{--an-fade:.08s; --an-tdur:.08s; --an-close:none; --an-press:1; --an-sheet:none}
-html[data-anim="morbida"]{--an-fade:.2s; --an-tdur:.22s; --an-close:translateY(16px); --an-press:.97; --an-sheet:anShM .22s cubic-bezier(.22,1,.36,1) both}
-html[data-anim="zoom"]{--an-fade:.2s; --an-tdur:.24s; --an-close:translateY(22px) scale(.985); --an-press:.95; --an-sheet:anShZ .18s cubic-bezier(.2,.9,.25,1) both}
-html[data-anim="rimbalzo"]{--an-fade:.2s; --an-tdur:.24s; --an-close:scale(.92); --an-press:.9; --an-sheet:anShR .34s linear both}
-html[data-anim="scivola"]{--an-fade:.22s; --an-tdur:.26s; --an-close:translateY(7%); --an-press:.97; --an-sheet:anShS .26s cubic-bezier(.32,.72,0,1) both}
-html[data-anim="cinema"]{--an-fade:.3s; --an-tdur:.3s; --an-close:scale(1.04); --an-press:.98; --an-sheet:anShC .3s ease-out both}
-html[data-anim="telefono"]{--an-fade:.18s; --an-tdur:.2s; --an-close:scale(.8); --an-press:.95; --an-sheet:anShT .22s cubic-bezier(.2,.85,.25,1) both}
+html[data-anim="lampo"]{--an-fadein:.05s; --an-fade:.08s; --an-tdur:.08s; --an-close:none; --an-press:1; --an-sheet:none}
+html[data-anim="morbida"]{--an-fadein:.16s; --an-fade:.2s; --an-tdur:.22s; --an-close:translateY(16px); --an-press:.97; --an-sheet:anShM .22s cubic-bezier(.22,1,.36,1) both}
+html[data-anim="zoom"]{--an-fadein:.07s; --an-fade:.2s; --an-tdur:.24s; --an-close:translateY(22px) scale(.985); --an-press:.95; --an-sheet:anShZ .18s cubic-bezier(.2,.9,.25,1) both}
+html[data-anim="rimbalzo"]{--an-fadein:.07s; --an-fade:.2s; --an-tdur:.24s; --an-close:scale(.92); --an-press:.9; --an-sheet:anShR .34s linear both}
+html[data-anim="scivola"]{--an-fadein:.12s; --an-fade:.22s; --an-tdur:.26s; --an-close:translateY(7%); --an-press:.97; --an-sheet:anShS .26s cubic-bezier(.32,.72,0,1) both}
+html[data-anim="cinema"]{--an-fadein:.24s; --an-fade:.3s; --an-tdur:.3s; --an-close:scale(1.04); --an-press:.98; --an-sheet:anShC .3s ease-out both}
+html[data-anim="telefono"]{--an-fadein:.06s; --an-fade:.18s; --an-tdur:.2s; --an-close:scale(.8); --an-press:.95; --an-sheet:anShT .22s cubic-bezier(.2,.85,.25,1) both}
 html:not(.mo-off) .modal-backdrop{transition:opacity var(--an-fade,.22s) ease !important}
 /* aprendo: il movimento lo fa solo lo stile scelto (WAAPI in motion.js), il CSS cambia soltanto la trasparenza; chiudendo: il CSS porta la scheda verso lo stato «chiuso» dello stile */
-html:not(.mo-off) .modal-backdrop.show .modal-card, html:not(.mo-off) .modal-backdrop.show .modal-card.wide{transition:opacity var(--an-fade,.2s) ease !important}
+html:not(.mo-off) .modal-backdrop.show .modal-card, html:not(.mo-off) .modal-backdrop.show .modal-card.wide{transition:opacity var(--an-fadein,.07s) ease !important}
+html:not(.mo-off) .modal-backdrop.show{transition:opacity var(--an-fadein,.07s) ease !important}      /* aprendo: scheda e sfondo pieni quasi subito (prima si vedeva la lista attraverso la scheda: «doppio colpo») */
 html:not(.mo-off) .modal-backdrop:not(.show) .modal-card, html:not(.mo-off) .modal-backdrop:not(.show) .modal-card.wide{transition:opacity var(--an-fade,.2s) ease, transform var(--an-tdur,.24s) cubic-bezier(.4,0,.2,1) !important; transform:var(--an-close, translateY(22px) scale(.985)) !important}
 html:not(.mo-off) #askBackdrop:not(.show) .modal-card{transform:none !important}
 html:not(.mo-off) .x-card.rt-press, html:not(.mo-off) .x-row.rt-press{transform:scale(var(--an-press,.95)); filter:brightness(1.15)}
@@ -1775,3 +1776,11 @@ html:not(.mo-off) .x-sheet.show .lp-card{animation:var(--an-sheet,none)}
 #filtersPanel{transition:none !important}
 html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1) both}
 @keyframes fpIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+/* v220: tasti del player nella scheda: tondi (con il tasto «Auto» in più la riga era troppo larga e li schiacciava a uovo) */
+.mz2-ctl{flex-wrap:wrap; gap:5px; row-gap:6px}
+.mz2-ctl button{flex:0 0 auto !important; min-width:0}
+.mz2-ctl button:not(.mz2-play):not(.mz2-ap){width:38px !important; height:38px !important}
+.mz2-ctl .mz2-play{width:50px !important; height:50px !important}
+.mz2-ctl .mz2-ap{height:38px !important; border-radius:19px !important}
+.rt-music .rm-b{flex:0 0 auto}

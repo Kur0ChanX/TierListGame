@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v221', date:'2026-10-02', time:'09:40', items:[
+    'Apertura del gioco senza «doppio colpo»: la scheda è piena fin dal primo fotogramma (prima si vedeva la lista attraverso la scheda che sfumava) e compare insieme alla locandina: aspetta pochi millesimi che la miniatura sia pronta e poi parte l\'animazione già con la locandina dentro. Vale per tutti gli stili.',
+    'Player nella scheda: i tasti sono di nuovo tondi (con il tasto «Auto» la riga era troppo larga e li schiacciava a uovo).',
+    'Colonne sonore: ora si cerca la versione GIUSTA del gioco. «Final Fantasy VII» (1997) non prende più i brani di Remake, Rebirth, Crisis Core, Dirge of Cerberus o Advent Children; un Remake non prende l\'originale; conta anche il numero del capitolo (VII ≠ VIII), altri giochi più «lunghi» del tuo catalogo con lo stesso nome e l\'anno scritto nel titolo. Le ricerche vecchie sono state azzerate.'
+  ]},
   {version:'v220', date:'2026-10-02', time:'09:08', items:[
     'Filtri «super scattosi»: con il pannello Filtri aperto la griglia non scorreva più da sola e il programma caricava a raffica tutte le copertine (fino a 1500, un blocco dopo l\'altro). Ora ne carica solo quante servono: aprire i Filtri passa da ~190 a ~10 ms (telefono simulato lento). Il pannello non anima più l\'altezza ma si apre con una breve dissolvenza.',
     'Dal tuo Rapporto lentezza: toccare «Classifica» costava ~150 ms. Con la griglia (copertine) il programma costruiva anche la tabella nascosta a ogni ridisegno: ora non più (il ridisegno costa circa 8 volte meno).',
