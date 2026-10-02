@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v244', date:'2026-10-02', time:'22:34', items:[
+    'Trame riscritte (parte 1): 150 giochi con la trama più corta ora hanno una presentazione nuova di 80-120 parole, senza spoiler: ambientazione, protagonisti, inizio dell\'avventura e le domande che fanno venire voglia di giocare.'
+  ]},
   {version:'v243', date:'2026-10-02', time:'22:22', items:[
     'Avvisi nuovi: non più il fumetto azzurro ma una scheda di vetro scuro con icona colorata, comparsa animata e una barra sottile che mostra quanto resta.',
     'Nuova versione: l\'avviso è una scheda con la scintilla che brilla; toccandolo il programma si aggiorna e, appena riparte, ti apre le News.',
