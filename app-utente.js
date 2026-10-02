@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v237', date:'2026-10-02', time:'21:00', items:[
+    'Impostazioni (⚙️ in «Chiedi»): accanto al campo del ponte Cloudflare c\'è il pulsante «🧪 Prova tutto». Salva quello che hai scritto e prova in un colpo Gemini, RAWG, OpenCritic, il ponte (con la sua versione) e il token GitHub: per ognuno ✅ funziona, ❌ errore o ➖ non inserito.',
+  ]},
   {version:'v236', date:'2026-10-02', time:'14:13', items:[
     'Avvio dell\'app: dopo la schermata di Android (quella con l\'icona: la mostra il telefono e non si può togliere) la locandina «Inizia a frugare» compare subito, senza dissolvenza (la dissolvenza girava mentre l\'app caricava e scattava). La locandina viene scaricata per prima e lo sfondo è dello stesso colore della schermata di Android, così il passaggio è pulito.',
     'Barra in basso a schermo intero: più spazio a destra, «Statistiche» non viene più tagliata dall\'angolo dello schermo.',
