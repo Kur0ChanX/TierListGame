@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v240', date:'2026-10-02', time:'21:08', items:[
+    'Pulsante «🧪 Prova tutto»: sul telefono i risultati finivano sotto, fuori dal riquadro visibile, e sembravano nascosti. Ora la pagina scorre da sola fino ai risultati, che stanno in un riquadro ben leggibile.',
+  ]},
   {version:'v239', date:'2026-10-02', time:'21:03', items:[
     'Impostazioni (⚙️ in «Chiedi»): accanto al campo del ponte Cloudflare c\'è il pulsante «🧪 Prova tutto». Salva quello che hai scritto e prova in un colpo Gemini, RAWG, OpenCritic, il ponte (con la sua versione) e il token GitHub: per ognuno ✅ funziona, ❌ errore o ➖ non inserito.',
   ]},
