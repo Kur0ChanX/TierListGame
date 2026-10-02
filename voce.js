@@ -48,8 +48,19 @@
     return null;
   }
   async function post(url, body){
-    const r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': geminiKey()}, body: JSON.stringify(body)});
-    if(!r.ok){ let m = ''; try{ const j = await r.json(); m = (j.error && j.error.message) || ''; }catch(e){} const e = new Error(m || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+    let r;
+    try{ r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': geminiKey()}, body: JSON.stringify(body)}); }
+    catch(e){ throw Object.assign(new Error('rete'), {status: -1}); }
+    if(!r.ok){
+      let m = '', det = []; try{ const j = await r.json(); m = (j.error && j.error.message) || ''; det = (j.error && j.error.details) || []; }catch(e){}
+      const e = new Error(m || ('HTTP ' + r.status)); e.status = r.status;
+      if(r.status === 429){       // Google dice quanto aspettare («23s») e se è finita la quota del minuto o del giorno
+        const rd = det.map(d=> d && d.retryDelay).filter(Boolean)[0], hm = /retry in ([\d.]+)\s*s/i.exec(m); e.retryMs = rd ? parseFloat(rd) * 1000 : hm ? parseFloat(hm[1]) * 1000 : 0;
+        const ids = []; det.forEach(d=> ((d && d.violations) || []).forEach(v=> ids.push(String(v.quotaId || v.quotaMetric || '')))); const txt = ids.join(' ') + ' ' + m;
+        e.perDay = /PerDay|per day|daily/i.test(txt) && !/PerMinute|per minute/i.test(txt) && !(e.retryMs && e.retryMs <= 90000);
+      }
+      throw e;
+    }
     return r.json();
   }
   async function callModel(model, kind, text, voice){
@@ -62,31 +73,49 @@
     if(/mpeg|mp3|ogg|opus/i.test(a.mime)) return new Blob([u], {type: a.mime});
     return wav(u, +((/rate=(\d+)/.exec(a.mime) || [])[1]) || 24000);          // audio grezzo (PCM 24 kHz): gli aggiungo l'intestazione WAV
   }
-  async function aiAudio(text, voiceOver){
-    if(typeof geminiKey !== 'function' || !geminiKey()){ ls.set(ERR_K, 'manca la chiave Gemini (⚙️ Impostazioni → AI)'); throw new Error('nokey'); }
+  // v226: UNA richiesta alla volta (prima partivano insieme 3 pezzi × modelli e Google rispondeva «troppe richieste» → falso «quota finita»).
+  // Se Google dice «aspetta N secondi» aspetto e riprovo da sola; se è finita la quota del giorno di un modello passo al successivo (ognuno ha la sua).
+  let queue = Promise.resolve();
+  const serial = fn=>{ const p = queue.catch(()=>{}).then(fn); queue = p.catch(()=>{}); return p; };
+  const badModels = new Set(), dayOut = {};
+  const sleep = ms=> new Promise(r=> setTimeout(r, ms));
+  let onWait = null;          // chi aspetta (il tasto) riceve il messaggio «riprovo tra N s»
+  async function aiAudio(text, voiceOver, tk){
+    if(typeof geminiKey !== 'function' || !geminiKey()){ ls.set(ERR_K, 'manca la chiave Gemini (⚙️ Impostazioni → AI)'); throw Object.assign(new Error('nokey'), {fatal: true}); }
     const voice = voiceOver || voiceId();
     const key = 'https://rt.local/voce2/' + voice + '/' + hash(text);
     let c = null; try{ c = window.caches ? await caches.open(CACHE) : null; if(c){ const hit = await c.match(key); if(hit) return await hit.blob(); } }catch(e){}
-    const ok = ls.get(OK_K), order = MODELS.slice().sort((x, y)=> (y[0] === ok) - (x[0] === ok));
-    let last = null;
-    for(const [m, kind] of order){
-      try{
-        const blob = await callModel(m, kind, text, voice);
-        ls.set(OK_K, m); ls.set(ERR_K, '');
-        try{ if(c) await c.put(key, new Response(blob, {headers: {'content-type': blob.type}})); }catch(e){}
-        return blob;
-      }catch(e){
-        last = e;
-        if(e.status === 403 || e.status === 401 || (e.status === 400 && /api key/i.test(e.message))){ ls.set(ERR_K, 'la chiave Gemini non è valida'); throw e; }
-        if(e.status === 429){ ls.set(ERR_K, 'quota della voce AI finita per ora (riprova più tardi)'); throw e; }
+    return serial(async ()=>{
+      const ok = ls.get(OK_K), today = new Date().toDateString();
+      const order = MODELS.filter(([m])=> !badModels.has(m) && dayOut[m] !== today).sort((x, y)=> (y[0] === ok) - (x[0] === ok));
+      let last = null;
+      for(const [m, kind] of order){
+        for(let tries = 0; tries < 4; tries++){
+          if(tk != null && tk !== token) throw Object.assign(new Error('fermato'), {stopped: true});
+          try{
+            const blob = await callModel(m, kind, text, voice);
+            ls.set(OK_K, m); ls.set(ERR_K, '');
+            try{ if(c) await c.put(key, new Response(blob, {headers: {'content-type': blob.type}})); }catch(e){}
+            return blob;
+          }catch(e){
+            last = e;
+            if(e.status === 401 || e.status === 403 || (e.status === 400 && /api key/i.test(e.message))){ ls.set(ERR_K, 'la chiave Gemini non è valida'); e.fatal = true; throw e; }
+            if(e.status === 404 || (e.status === 400 && /model|not found|not supported|unknown/i.test(e.message))){ badModels.add(m); break; }      // modello che non c'è: il prossimo
+            if(e.status === 429 && !e.perDay && tries < 3){ const w = Math.min(60000, Math.max(1500, e.retryMs || 4000 * (tries + 1))); if(onWait) onWait(Math.ceil(w / 1000)); await sleep(w + 300); continue; }
+            if(e.status === 429){ dayOut[m] = today; break; }                        // quota del giorno di questo modello: il prossimo
+            if((e.status === -1 || e.status >= 500 || e.status === 0) && tries < 2){ if(onWait) onWait(2); await sleep(1500 * (tries + 1)); continue; }   // rete o Google occupato: riprovo
+            break;
+          }
+        }
       }
-    }
-    ls.set(ERR_K, 'nessun modello di voce risponde (' + (last && last.message || 'errore') + ')'); throw last || new Error('tts');
+      ls.set(ERR_K, last && last.status === 429 ? 'oggi la quota gratuita della voce Gemini è finita su tutti i modelli (torna domani)' : 'Gemini non risponde (' + (last && last.message || 'errore') + ')');
+      throw last || new Error('tts');
+    });
   }
   // testo a pezzi: primo pezzo breve (parte presto), poi pezzi da ~600 caratteri tagliati a fine frase
   function chunks(t){
     const ss = t.match(/[^.!?…]+[.!?…]+["»”]?\s*|[^.!?…]+$/g) || [t], out = []; let cur = '';
-    const lim = ()=> out.length === 0 ? 170 : 600;
+    const lim = ()=> out.length === 0 ? 170 : 1500;
     if(ss[0] && ss[0].length > 200){ const f = ss[0], m = f.slice(80, 190).lastIndexOf(', '); if(m > 0){ ss.splice(0, 1, f.slice(0, 80 + m + 1) + ' ', f.slice(80 + m + 2)); } }      // prima frase lunghissima: taglio alla virgola, per partire prima
     for(const x of ss){ if(cur && (cur + x).length > lim()){ out.push(cur.trim()); cur = ''; } cur += x; }
     if(cur.trim()) out.push(cur.trim());
@@ -126,17 +155,19 @@
     // v225: a pezzi. Il primo è corto (1-2 frasi): la voce AI lo prepara in 1-2 secondi e parte; gli altri si preparano mentre ascolti
     if(engine() === 'ai'){
       const parts = chunks(full.slice(0, 6000)), jobs = [];
-      const get = i=>{ if(i >= parts.length) return null; if(!jobs[i]){ jobs[i] = aiAudio(parts[i]); jobs[i].catch(()=>{}); } return jobs[i]; };
-      get(0); get(1);
+      const get = i=>{ if(i >= parts.length) return null; if(!jobs[i]){ jobs[i] = aiAudio(parts[i], null, my); jobs[i].catch(()=>{}); } return jobs[i]; };
+      onWait = sec=>{ if(my === token && state === 'load'){ const b = btn(); if(b) b.querySelector('span').textContent = 'Gemini occupato, riprovo tra ' + sec + ' s…'; } };
+      get(0);
       for(let i = 0; i < parts.length; i++){
         let blob = null;
         try{ blob = await get(i); }catch(e){
-          if(my !== token) return;
-          if(!play.warned){ play.warned = 1; try{ XUI.toast('Voce AI non disponibile: ' + (ls.get(ERR_K) || 'errore') + '. Uso la voce del telefono', 4500); }catch(_){} }
-          state = 'play'; duck(true); paint(); browserSpeak(parts.slice(i).join(' '), fin); return;          // il resto con la voce del telefono
+          if(my !== token || e.stopped) return;
+          // v226: niente voce robotica al posto di Gemini: dico il motivo vero e mi fermo (con il tasto riprovi)
+          try{ XUI.toast('Voce Gemini: ' + (ls.get(ERR_K) || 'non risponde ora') + (e.fatal ? '' : '. Tocca di nuovo «Ascolta» per riprovare'), 5000); }catch(_){}
+          fin(); return;
         }
         if(my !== token) return;
-        get(i + 1); get(i + 2);
+        get(i + 1);
         const ok = await new Promise(res=>{
           audio = new Audio(URL.createObjectURL(blob)); audio.onended = ()=> res(true); audio.onerror = ()=> res(false);
           audio.play().then(()=>{ if(my === token && state !== 'play'){ state = 'play'; duck(true); paint(); } }, ()=> res(false));     // il browser può rifiutare l'avvio automatico: resta il tasto

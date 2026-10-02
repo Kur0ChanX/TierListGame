@@ -163,7 +163,14 @@
     LS.set('jrpg_card_tab', tb.dataset.ctab); card.dataset.ctab = tb.dataset.ctab; const br = tb.closest('.cd-tabs'); if(br) br.style.setProperty('--i', TABS.findIndex(x=> x[0] === tb.dataset.ctab));
     card.querySelectorAll('.cd-tabs [data-ctab]').forEach(b=>{ const on = b === tb; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
-    const bar = card.querySelector('.cd-tabs'); if(bar && bar.getBoundingClientRect().top < 0){ try{ card.scrollTo({top: bar.offsetTop - 6, behavior: 'smooth'}); }catch(x){} }
+    // v226: con la barra ferma in alto (scheda già scorsa) porto la vista all'inizio della parte scelta: prima la scheda restava giù e sembrava che il tasto non facesse nulla
+    const bar = card.querySelector('.cd-tabs');
+    if(bar){ requestAnimationFrame(()=>{ try{
+      const t = tb.dataset.ctab, cr = card.getBoundingClientRect();
+      const tops = [...card.children].filter(el=> el !== bar && el.dataset && el.dataset.tab === t && el.offsetHeight > 0).map(el=> el.getBoundingClientRect().top);
+      const target = tops.length ? Math.max(0, Math.min(...tops) - cr.top + card.scrollTop - bar.offsetHeight - 10) : 0;
+      if(card.scrollTop > target + 4 || bar.getBoundingClientRect().top < cr.top){ card.scrollTop = target; card._sy = target; }
+    }catch(x){} }); }
   });
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('[data-cmv]'); if(!b) return;
