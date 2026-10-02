@@ -131,6 +131,7 @@
   // per due fotogrammi + la miniatura decodificata (max 110 ms), e solo allora parte il movimento, già pronto.
   function openWithSeed(card, T, box, seed){
     if(!card){ return; }
+    card.classList.add('rt-opening');      // v230: niente sfocatura dietro la locandina finché la scheda si muove
     const bd = document.getElementById('modalBackdrop') || card; bd.style.opacity = '0.001'; bd.style.transition = 'none'; let done = false, frames = false, img = !seed;
     const go = ()=>{ if(done || !frames || !img) return; done = true; bd.style.transition = ''; bd.style.opacity = ''; playOpen(card, T, box); };
     requestAnimationFrame(()=> requestAnimationFrame(()=>{ frames = true; go(); }));
@@ -138,9 +139,9 @@
     setTimeout(()=>{ frames = true; img = true; go(); }, 160);              // rete di sicurezza
   }
   function playOpen(card, T, box){
-    if(!card || !card.animate) return;
+    if(!card || !card.animate){ if(card) card.classList.remove('rt-opening'); return; }
     const id = animId(); if(!box) box = card.getBoundingClientRect();
-    const fx = openFx(id, T, box); if(!fx) return;
+    const fx = openFx(id, T, box); if(!fx){ card.classList.remove('rt-opening'); return; }
     if(fx.origin) card.style.transformOrigin = (T ? Math.round(T.x - box.left) : box.width / 2) + 'px ' + (T ? Math.round(T.y - box.top) : box.height * .6) + 'px';
     card.style.willChange = 'transform, opacity'; card.classList.add('rt-opening'); if(fx.round) card.classList.add('rt-an-round');
     const done = ()=>{ card.style.transformOrigin = ''; card.style.willChange = ''; card.classList.remove('rt-an-round', 'rt-opening'); };

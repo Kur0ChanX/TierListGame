@@ -1864,3 +1864,10 @@ html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1
 .rt-music .rm-vol{flex:1 0 100%}
 .rt-music .rm-vol[hidden]{display:none}
 .rt-music .rm-vol .mz2-volrow{margin-top:4px}
+
+/* v230: apertura del gioco senza effetti costosi. La sfocatura dietro la locandina (copia della copertina con «blur») e l'ombra sulle foto del carosello
+   venivano ricalcolate a OGNI fotogramma mentre la scheda si ingrandiva (nel video: apertura a scatti, chiusura fluida). Ora la sfocatura compare
+   in dissolvenza a movimento finito e le foto del carosello non hanno più l'ombra-filtro. */
+.cover-frame::before{transition:opacity .35s ease}
+#modalCard.rt-opening .cover-frame::before{opacity:0}
+.hero-shots .hs{filter:none !important}
