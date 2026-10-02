@@ -70,10 +70,11 @@
   }
   async function wikiPage(name){
     const base = baseName(name), target = normGameName(base);
-    const s = await wp({action:'query', list:'search', srsearch: base + ' video game', srlimit:'6'});
+    const s = await wp({action:'query', list:'search', srsearch: base, srlimit:'8'});      // versione Anime: niente «video game» nella ricerca
     const hits = (s.query && s.query.search) || [];
     const strip = t=> normGameName(t.replace(/\s*\([^)]*\)\s*$/, ''));
-    const pick = hits.find(h=> strip(h.title) === target) || hits.find(h=> /video game/i.test(h.snippet || '') && strip(h.title).includes(target));
+    const MEDIA = /anime|manga|manhwa|film|animated|animation|television series|tv series|miniseries|light novel/i;
+    const pick = hits.find(h=> strip(h.title) === target && !/video game/i.test(h.title + ' ' + (h.snippet || ''))) || hits.find(h=> strip(h.title) === target) || hits.find(h=> MEDIA.test(h.snippet || '') && strip(h.title).includes(target));
     if(!pick) return null;
     const ex = await wp({action:'query', prop:'extracts', explaintext:'1', exsectionformat:'plain', titles: pick.title, redirects:'1'});
     const text = (Object.values(ex.query.pages)[0] || {}).extract || '';
@@ -87,7 +88,7 @@
   }
   // Wikipedia ad albero: se il titolo esatto non basta prova varianti (senza sottotitolo, senza edizione, «(video game)», parole chiave) prima di arrendersi
   async function wikiPageTree(name){
-    const seenN = new Set(); const variants = [name, baseName(name), String(name).split(/\s*[:–-]\s+/)[0], String(name).replace(/\s*\([^)]*\)/g, '').trim(), baseName(name) + ' (video game)']
+    const seenN = new Set(); const variants = [name, baseName(name), String(name).split(/\s*[:–-]\s+/)[0], String(name).replace(/\s*\([^)]*\)/g, '').trim(), baseName(name) + ' (film)', baseName(name) + ' (manga)']
       .map(x=> String(x || '').trim()).filter(x=>{ if(!x || seenN.has(x.toLowerCase())) return false; seenN.add(x.toLowerCase()); return true; });
     let lastErr = null;
     for(const v of variants){
@@ -107,7 +108,7 @@
   // prova diretta dell'italiano: la voce di it.wikipedia con la tabella "Doppiatore italiano" (nessuna AI, nessuna stima)
   async function itWikiLang(name){
     const base = baseName(name), target = normGameName(base);
-    const q = new URLSearchParams({format:'json', origin:'*', action:'query', list:'search', srsearch: base + ' videogioco', srlimit:'3'});
+    const q = new URLSearchParams({format:'json', origin:'*', action:'query', list:'search', srsearch: base, srlimit:'5'});
     const s = await fj('https://it.wikipedia.org/w/api.php?' + q);
     const hit = ((s.query && s.query.search) || []).find(h=> normGameName(h.title.replace(/\s*\([^)]*\)\s*$/, '')) === target);
     if(!hit) return null;
@@ -197,131 +198,85 @@
   }
   window.voteDiagFor = id=>{ try{ return (JSON.parse(localStorage.getItem(VDIAG) || '{}') || {})[id] || null; }catch(e){ return null; } };
   async function gather(g, lite){
-    // lite: solo le fonti leggere (Wikipedia, Wikidata, RAWG); Steam e PCGamingWiki (lingue) restano per «Aggiorna info»
-    const none = Promise.resolve(null);
-    const needCheap = !(window.SearchHub && SearchHub.factsFor(g)) && window.SearchHub;
-    const mcArch = window.SearchHub && SearchHub.votiFor(g);
-    // v201: le ricerche nei siti stranieri usano il nome inglese ufficiale (preso da Steam): col nome italiano trovavano il gioco sbagliato
-    let ge = g; try{ if(window.SearchHub && SearchHub.enGame) ge = await SearchHub.enGame(g); }catch(e){}
-    const [wiki, wd, itw, steam, pcgw, rawg, cheap, mcl] = await Promise.allSettled([wikiPageTree(ge.name), wikidataGenreCodes(ge.name), lite ? none : itWikiLang(g.name), lite ? none : steamInfo(ge.name), lite ? none : pcgwInfo(ge.name), rawgInfoFor(ge), needCheap ? SearchHub.cheapFacts(ge.name) : none, !mcArch && window.SearchHub && SearchHub.metacriticLive ? SearchHub.metacriticLive(ge.name) : none]);
-    const mcOff = mcArch || (mcl.status === 'fulfilled' ? mcl.value : null);
-    const cheapLive = cheap.status === 'fulfilled' ? cheap.value : null;
-    // OpenCritic (poche richieste gratuite al giorno) si interroga solo se Metacritic non ha dato nessun voto (Wikipedia, Steam o CheapShark)
-    const mcSeen = mcOff || (wiki.status === 'fulfilled' && wiki.value && wiki.value.mc) || (steam.status === 'fulfilled' && steam.value && steam.value.mc) || (cheapLive && cheapLive.mc) || (window.SearchHub && (f=> f && ((f.s && f.s.mc) || (f.c && f.c.mc)))(SearchHub.factsFor(g)));
-    const needOc = !mcSeen;
-    const oc = needOc ? (await Promise.allSettled([ocInfoFor(ge)]))[0] : {status: 'fulfilled', value: null};
+    // versione Anime: AniList (anime, manga, film giapponesi) → MyAnimeList → TMDB (film, serie, animazione; serve la chiave) → Wikipedia (inglese e italiana) → Wikidata
+    // lite: solo AniList, Wikipedia e Wikidata (per Novità, guida e verifica dei generi); tutte le fonti per «Aggiorna info» e Update V+
+    const H = window.SearchHub, none = Promise.resolve(null);
+    const isAni = g.kind !== 'animazione' && g.kind !== 'serie' && g.kind !== 'filmlive';
+    const al0 = await Promise.allSettled([isAni && H && H.anilistMedia ? H.anilistMedia(g) : none]);
+    const al = al0[0].status === 'fulfilled' ? al0[0].value : null;
+    const enName = (al && al.name) || g.name;
+    const [wiki, wd, itw, mal, tmdb] = await Promise.allSettled([wikiPageTree(g.enw || enName), wikidataGenreCodes(g.enw || enName), lite ? none : itWikiLang(g.itw || g.name),      // enw/itw: titolo esatto della voce Wikipedia (dai dati)
+     
+      (lite || !isAni || !(H && H.malMedia)) ? none : H.malMedia(g, al && al.idMal), (lite || !(H && H.tmdb && H.tmdb.has()) || g.kind === 'manga' || g.kind === 'manhwa') ? none : H.tmdbMedia(g)]);
     const ok = x=> x.status === 'fulfilled' ? x.value : null;
-    // stato di ogni fonte del voto (per dire chiaramente se un sito è bloccato, la chiave non va o la quota è finita)
-    const H = window.SearchHub, hasK = f=> { try{ return !!(H && f && f.has()); }catch(e){ return false; } };
-    const mk = (name, r, val, sc, noKey, skipped)=> skipped ? {name, state:'skip'} : noKey ? {name, state:'off', why:'chiave non impostata su questo dispositivo (copiala dall\'altro con «Copia le mie chiavi» in ⚙️ Chiedi a Claude)'} : r.status === 'rejected' ? {name, state:'err', why: whyFail(r.reason)} : sc ? {name, state:'ok', score: sc} : {name, state:'nd', why: val ? 'trovato ma senza voto' : 'gioco non trovato'};
-    const vals = {wiki: ok(wiki), steam: ok(steam), rawg: ok(rawg), oc: ok(oc)};
-    const cf = (H && H.factsFor(g)) || (cheapLive ? {c: cheapLive} : null);
+    const mk = (name, r, val, sc, noKey, skipped)=> skipped ? {name, state:'skip'} : noKey ? {name, state:'off', why:'chiave non impostata su questo dispositivo (copiala dall\'altro con «Copia le mie chiavi» in ⚙️ Chiedi a Claude)'} : r.status === 'rejected' ? {name, state:'err', why: whyFail(r.reason)} : !val ? {name, state:'miss'} : sc ? {name, state:'ok', score: sc} : {name, state:'noscore'};
+    const tm = ok(tmdb), ml = ok(mal);
     const st = {
-      wiki: mk('Wikipedia (Metacritic)', wiki, vals.wiki, vals.wiki && vals.wiki.mc),
-      steam: mk('Steam (Metacritic)', steam, vals.steam, vals.steam && vals.steam.mc, false, lite),
-      cheap: mk('CheapShark (Metacritic)', needCheap ? cheap : {status:'fulfilled'}, cf, (cf && ((cf.s && cf.s.mc) || (cf.c && cf.c.mc))) || 0),
-      oc: mk('OpenCritic', oc, vals.oc, vals.oc && vals.oc.score, needOc && !hasK(H && H.opencritic) && !(vals.oc && vals.oc.arch), !needOc),
-      rawg: mk('RAWG', rawg, vals.rawg, vals.rawg && vals.rawg.mc, !hasK(H && H.rawg))
+      al: mk('AniList', al0[0], al, al && al.score, false, !isAni),
+      mal: mk('MyAnimeList', mal, ml, ml && ml.score, false, lite || !isAni),
+      tmdb: mk('TMDB', tmdb, tm, tm && tm.votes >= 100 && tm.vote, !(H && H.tmdb && H.tmdb.has()), lite || g.kind === 'manga' || g.kind === 'manhwa')
     };
-    return {st, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), steam: ok(steam), pcgw: ok(pcgw), rawg: ok(rawg), oc: ok(oc), voti: mcOff || null, facts: (window.SearchHub && SearchHub.factsFor(g)) || (cheapLive ? {c: cheapLive} : null), steamFailed: steam.status === 'rejected', pcgwFailed: pcgw.status === 'rejected',
-            errors: [wiki, wd].filter(x=> x.status === 'rejected').length};
+    return {st, al, mal: ml, tmdb: tm, wiki: ok(wiki), wd: ok(wd), itw: ok(itw), errors: [wiki, wd].filter(x=> x.status === 'rejected').length + (al0[0].status === 'rejected' ? 1 : 0)};
   }
   // proposte "di fatto" (senza AI)
   function factChanges0(g, src){
     const ch = [];
-    // Il voto si cerca in quest'ordine di priorità: 1) Metacritic (Wikipedia, Steam, CheapShark) → 2) OpenCritic → 3) RAWG. Una fonte meno affidabile non sostituisce mai una più affidabile.
-    const rk = v=> /^Metacritic/.test(v || '') ? 3 : /^OpenCritic/.test(v || '') ? 2 : /^RAWG/.test(v || '') ? 1 : 0;
+    // Il voto: AniList (anime, manga, film giapponesi) e IMDb (film; arriva dai dati del server) valgono di più, poi MyAnimeList, poi TMDB. Una fonte meno affidabile non sostituisce mai una più affidabile.
+    const rk = v=> /^(AniList|IMDb)/.test(v || '') ? 3 : /^MyAnimeList/.test(v || '') ? 2 : /^TMDB/.test(v || '') ? 1 : 0;
     const offerScore = (r, sc, vs, id, label, to)=>{
       if(!sc || ch.some(c=> /^score|^method|^vsrc/.test(c.id))) return;
       const v = g.m === 'V';
-      if(v && g.vs && rk(g.vs) > r && !FORCE_VOTE) return;                    // (tranne se la fonte del voto l'hai scelta tu in «Fonti e lucchetti»)                                   // voto già preso da una fonte più affidabile
-      if(sc === g.score){                                                      // stesso voto: lo confermo e registro da dove viene
+      if(v && g.vs && rk(g.vs) > r && !FORCE_VOTE) return;
+      if(sc === g.score){
         if(!v) ch.push({id:'method', label:'Voto confermato (' + to + ')', from:'stima', to:'verificato (V)', patch:{m:'V', vs}});
-        else if(r === 3 && rk(g.vs) < 3) ch.push({id:'vsrc', label:'Fonte del voto', from: g.vs || 'non registrata', to: vs, patch:{vs}});
+        else if(rk(g.vs) < r) ch.push({id:'vsrc', label:'Fonte del voto', from: g.vs || 'non registrata', to: vs, patch:{vs}});
         return;
       }
-      // un voto verificato di origine ignota è quasi sempre Metacritic: OpenCritic/RAWG non lo toccano. Metacritic vince sempre da solo; solo uno scarto enorme (>15, probabile gioco sbagliato) chiede conferma
       if(v && !g.vs && r < 3 && !FORCE_VOTE) return;
       const off = v && Math.abs(sc - g.score) > 15;
       ch.push({id, label: label + ' (' + to + ')', from: `${g.score} (${v ? 'verificato' : 'stima'})`, to: `${sc} (${to})`, patch:{score: sc, tier: tierOf(sc), m:'V', vs}, off});
     };
-    // lingua italiana da fonti ufficiali (solo prove positive: se un sito non elenca l'italiano non significa che il gioco non lo abbia; l'edizione PC può differire da quella console)
-    { const cur = (g.label || {}).it, rank = {N:0, F:0, S:1, D:2};
-      const found = [];
-      // Steam dal browser (se raggiungibile) oppure dai dati settimanali scaricati dai server (facts.js)
-      const fs0 = src.facts && src.facts.s && (src.facts.s.it === 'D' || src.facts.s.it === 'S') ? src.facts.s : null;
-      const steamSrc = src.steam || (fs0 ? {url: 'https://store.steampowered.com/app/' + fs0.id + '/', itText: true, itAudio: fs0.it === 'D'} : null);
-      if(steamSrc && steamSrc.itText) found.push({code: steamSrc.itAudio ? 'D' : 'S', name:'Steam' + (src.steam ? '' : ' (dati settimanali)'), url: steamSrc.url, audio: steamSrc.itAudio});
-      if(src.pcgw && src.pcgw.itText) found.push({code: src.pcgw.itAudio ? 'D' : 'S', name:'PCGamingWiki', url: src.pcgw.url, audio: src.pcgw.itAudio});
-      const best = found.sort((a, b)=> rank[b.code] - rank[a.code])[0];
-      if(best && (rank[cur] || 0) < rank[best.code]){
-        ch.push({id:'itsrc', label:'🇮🇹 Lingua italiana (' + found.map(f=> f.name).join(' + ') + ')', from: `italiano: ${cur || '—'}`, to: (best.code === 'D' ? 'testi e doppiaggio in italiano' : 'testi/sottotitoli in italiano') + ' — ' + found.map(f=> f.url).join(' · '), patch:{label:{it: best.code}}});
-      }
+    const a = src.al, t = src.tmdb, m = src.mal;
+    if(a) offerScore(3, a.score, 'AniList', 'score', 'Voto', 'media degli utenti di AniList');
+    if(m) offerScore(2, m.votes >= 200 ? m.score : null, 'MyAnimeList', 'score3', 'Voto (MyAnimeList)', 'media degli utenti di MyAnimeList' + (m.votes ? ', ' + m.votes + ' voti' : ''));
+    if(t) offerScore(1, t.votes >= 100 ? t.vote : null, 'TMDB', 'score5', 'Voto (TMDB)', 'media degli utenti di TMDB, ' + t.votes + ' voti');
+    // doppiaggio italiano: it.wikipedia elenca i doppiatori italiani (solo prove positive)
+    if(src.itw && src.itw.dub && (g.label || {}).it !== 'D' && g.kind !== 'manga' && g.kind !== 'manhwa'){
+      ch.push({id:'itdub', label:'🎙️ Doppiaggio italiano', from: `italiano: ${(g.label || {}).it || '—'}`, to: `doppiato in italiano (prova: la voce di it.wikipedia "${src.itw.title}" elenca i doppiatori italiani) ${src.itw.url}`, patch:{label:{it:'D'}}});
     }
-    if(src.itw && src.itw.dub && (g.label || {}).it !== 'D'){
-      ch.push({id:'itdub', label:'🎙️ Doppiaggio italiano', from: `italiano: ${(g.label || {}).it || '—'}`, to: `testi e doppiaggio in italiano (prova: la voce di it.wikipedia "${src.itw.title}" elenca i doppiatori italiani) ${src.itw.url}`, patch:{label:{it:'D'}}});
+    // anni: AniList o TMDB (per le serie «primo–ultimo anno»)
+    { const y1 = (a && a.y1) || (t && t.y1), y2 = (a && a.y2) || (t && t.y2), mine = yearsOf(g);
+      if(y1 && mine.length && !mine.some(y=> Math.abs(y - y1) <= 1)){
+        const txt = y2 && y2 !== y1 ? y1 + '–' + y2 : String(y1);
+        ch.push({id:'year', label:'Anno', from: g.year, to: txt + ' (' + (a && a.y1 ? 'AniList' : 'TMDB') + ')', patch:{year: txt, ysort: y1}});
+      } }
+    // durata: episodi × minuti (serie), minuti (film), volumi (manga: circa 20 minuti l'uno)
+    { let h = null, how = '';
+      if(a && a.episodes && a.duration){ h = Math.round(a.episodes * a.duration / 60 * 10) / 10; how = a.episodes + ' episodi da ' + a.duration + ' min (AniList)'; }
+      else if(t && t.runtime){ h = Math.round(t.runtime / 60 * 10) / 10; how = t.runtime + ' minuti (TMDB)'; }
+      else if(t && t.episodes && t.epRuntime){ h = Math.round(t.episodes * t.epRuntime / 60 * 10) / 10; how = t.episodes + ' episodi da ' + t.epRuntime + ' min (TMDB)'; }
+      else if(a && a.volumes){ h = Math.round(a.volumes / 3 * 10) / 10; how = a.volumes + ' volumi, circa 20 minuti l\'uno (AniList)'; }
+      else if(a && a.chapters){ h = Math.round(a.chapters * 5 / 60 * 10) / 10; how = a.chapters + ' capitoli, circa 5 minuti l\'uno (AniList)'; }
+      const cur = (g.enrich && g.enrich.hoursMain) || (g.label || {}).h;
+      if(h && h >= 0.3 && (!cur || Math.abs(cur - h) / Math.max(cur, h) > 0.15)) ch.push({id:'hours', label:'Durata', from: cur ? cur + ' h' : '—', to: h + ' h — ' + how, patch:{enrich:{hoursMain: h}, label:{h}}});
     }
-    const nowY = new Date().getFullYear();
-    offerScore(3, src.voti && src.voti.s, 'Metacritic (sito ufficiale)', 'score', 'Voto', 'Metacritic, sito ufficiale');
-    offerScore(3, src.wiki && src.wiki.mc, 'Metacritic (da Wikipedia)', 'score', 'Voto', 'Metacritic, da Wikipedia');
-    // GENERI dalle fonti (Wikidata, RAWG, Steam): i generi che le fonti sanno riconoscere diventano quelli del gioco (si aggiungono i confermati, si tolgono quelli che nessuna fonte conferma).
-    // JRPG/WRPG, «a turni», Crossover, Remake, Guerra, Gacha… non si possono verificare e restano. Se le fonti non dicono nulla di preciso (solo «RPG») non si cambia niente.
-    {
-      const VER = new Set(['ACT','ADV','COM','DRA','FAN','SCI','HOR','MYS','PSY','THR','ROM','SOL','SPO','SUP','MEC','MUS','MAH','DOC']);      // versione Anime: solo i generi «larghi» che Wikidata sa riconoscere
-      const info = c=> TAG_INFO[c] || EXTRA_GENRE_INFO[c];
-      const hy = x=> String(x).replace(/[-_]/g, ' ');
-      const raw = [].concat((src.rawg && src.rawg.genres) || [], ((src.rawg && src.rawg.tags) || []).map(t=> t.name), (src.steam && src.steam.genres) || []).filter(Boolean);
-      const cf = window.wikidataCodesFrom || (()=> []);
+    // generi: AniList (se c'è) e Wikidata aggiungono soltanto (mai togliere)
+    { const info = c=> TAG_INFO[c] || EXTRA_GENRE_INFO[c];
+      const VER = new Set(['ACT','ADV','COM','DRA','FAN','SCI','HOR','MYS','PSY','THR','ROM','SOL','SPO','SUP','MEC','MUS','MAH','DOC']);
+      const fromAl = ((a && a.tags) || []).filter(c=> info(c));
       const fromWd = ((src.wd && src.wd.labels && src.wd.labels.length) ? (src.wd.codes || []) : []).filter(c=> VER.has(c) && info(c));
-      const fromWeb = [...new Set(cf(raw).concat(cf(raw.map(hy))))].filter(c=> VER.has(c) && info(c));
-      const found = [...new Set(fromWd.concat(fromWeb))];                       // tutto ciò che le fonti riconoscono (basta una fonte per NON togliere)
-      const addOk = c=> fromWd.includes(c) || (fromWeb.includes(c) && (fromWd.length === 0 || (src.rawg && src.steam)));   // per AGGIUNGERE: Wikidata, oppure RAWG/Steam quando Wikidata tace
-      if(found.length){
-        const mine = g.tags.slice(), add = found.filter(c=> !mine.includes(c) && addOk(c)), drop = [];      // versione Anime: i generi di AniList valgono di più, da Wikidata si aggiunge soltanto
-        if(add.length || drop.length){
-          const keep = mine.filter(t=> !drop.includes(t)).concat(add).slice(0, 6);
-          const extra = add.concat(drop).some(c=> EXTRA_GENRE_INFO[c]);
-          const lab = c=> (info(c) || {}).label || c, srcN = [fromWd.length ? 'Wikidata' : '', fromWeb.length ? (src.rawg ? 'RAWG' : 'Steam') : ''].filter(Boolean).join(' + ');
-          if(keep.length) ch.push({id:'tagsync', label:'Generi (dalle fonti)', from: mine.map(lab).join(', ') || '—', to: [add.length ? '+ ' + add.map(lab).join(', ') : '', drop.length ? '− ' + drop.map(lab).join(', ') : ''].filter(Boolean).join(' · ') + ' (' + srcN + ')' + (extra ? ' ⚠️ (esce da JRPG / RPG)' : ''), patch:{tags: keep}, warn: extra});
-        }
-      }
+      const mine = g.tags.slice(), add = [...new Set(fromAl.concat(fromWd))].filter(c=> !mine.includes(c));
+      if(add.length && mine.length < 6){
+        const keep = mine.concat(add).slice(0, 6), lab = c=> (info(c) || {}).label || c, srcN = [fromAl.length ? 'AniList' : '', fromWd.some(c=> add.includes(c)) ? 'Wikidata' : ''].filter(Boolean).join(' + ');
+        if(keep.length > mine.length) ch.push({id:'tagsync', label:'Generi (dalle fonti)', from: mine.map(lab).join(', ') || '—', to: '+ ' + keep.slice(mine.length).map(lab).join(', ') + ' (' + srcN + ')', patch:{tags: keep}});
+      } }
+    // dove guardarlo oggi in Italia (TMDB, dati di JustWatch): abbonamenti e servizi gratuiti
+    if(t && t.providers && t.providers.length){
+      const cur = (g.market || []).map(x=> x.svc).join(', '), now = t.providers.join(', ');
+      if(cur !== now) ch.push({id:'market', label:'📺 Dove guardarlo (TMDB · JustWatch)', from: cur || '—', to: now, patch:{market: t.providers.map(svc=> ({svc}))}});
     }
-    if(src.wd && src.wd.years && src.wd.years.length){
-      const mine = yearsOf(g), wy = src.wd.years;
-      if(mine.length && !mine.some(y=> wy.some(z=> Math.abs(y - z) <= 1))){
-        const y = Math.min(...wy);
-        ch.push({id:'year', label:'Anno', from: g.year, to: String(y) + ' (Wikidata)', patch:{year: String(y), ysort: y}});
-      }
-      if(Math.min(...wy) > nowY) ch.push({id:'unreleased', label:'⚠️ Non ancora uscito', from:'', to:'Wikidata indica un\'uscita nel ' + Math.min(...wy) + ': voto e recensioni non possono essere reali', patch:{note:'Non ancora uscito (uscita prevista ' + Math.min(...wy) + '): voto provvisorio.', m:'S'}});
-    }
-    // dati settimanali dai server: Metascore riportato da Steam/CheapShark (proposta mai attiva di default: le recensioni non sono contabili)
-    {
-      // ordine di attendibilità del Metascore: Wikipedia (già sopra) → Steam dal vivo → Steam nei dati settimanali → CheapShark
-      const cands = [[src.steam && src.steam.mc, 'Steam dal vivo'], [src.facts && src.facts.s && src.facts.s.mc, 'Steam, dati settimanali'], [src.facts && src.facts.c && src.facts.c.mc, 'CheapShark']].filter(x=> x[0]);
-      const [mc, from] = cands[0] || [];
-      offerScore(3, mc, 'Metacritic (da ' + (/CheapShark/.test(from || '') ? 'CheapShark' : 'Steam') + ')', 'score4', 'Voto (Metascore da ' + from + ')', 'Metascore riportato da ' + from + '; recensioni non verificabili');
-      // anno: Wikidata (già sopra) → Steam dal vivo → Steam nei dati settimanali → CheapShark → RAWG (sotto)
-      const ys = [[src.steam && src.steam.year, 'Steam dal vivo'], [src.facts && src.facts.s && src.facts.s.y, 'Steam, dati settimanali'], [src.facts && src.facts.c && src.facts.c.y, 'CheapShark']].filter(x=> x[0]);
-      const mine = yearsOf(g);
-      if(ys.length && mine.length && !ch.some(c=> c.id === 'year' || c.id === 'unreleased') && !(src.wd && src.wd.years && src.wd.years.length)){
-        const [y, yf] = ys[0];
-        if(!mine.some(m=> Math.abs(m - +y) <= 1)) ch.push({id:'year', label:'Anno', from: g.year, to: y + ' (' + yf + ')', patch:{year: String(y), ysort: +y}});
-      }
-    }
-    // OpenCritic (2ª fonte, solo se Metacritic non ha il gioco)
-    offerScore(2, src.oc && src.oc.score, 'OpenCritic (nessun Metacritic trovato)', 'score5', 'Voto (OpenCritic)', 'media dei critici su OpenCritic' + (src.oc && src.oc.reviews ? ', ' + src.oc.reviews + ' recensioni' : ''));
-    // RAWG: conferma l'anno (se Wikidata non ha già proposto), voto Metacritic (mai attivo di default: le recensioni non sono contabili) e giochi affini
-    if(src.rawg){
-      const r = src.rawg, mine = yearsOf(g);
-      if(r.year && mine.length && !mine.some(y=> Math.abs(y - +r.year) <= 1) && !ch.some(c=> c.id === 'year')){
-        ch.push({id:'year', label:'Anno', from: g.year, to: r.year + ' (RAWG ' + r.url + ')', patch:{year: r.year, ysort: +r.year}});
-      }
-      offerScore(1, r.mc, 'RAWG (Metacritic riportato da RAWG)', 'score3', 'Voto (RAWG)', 'Metacritic riportato da RAWG: numero di recensioni non verificabile');
-      const cur = (g.enrich && g.enrich.similarTo) || [];
-      if(r.similar && r.similar.length >= 3 && cur.join('|') !== r.similar.join('|')){
-        ch.push({id:'similar', label:'Giochi affini (consigliati da RAWG)', from: cur.join(', ') || '—', to: r.similar.join(', '), patch:{enrich:{similarTo: r.similar.slice(0, 5)}}});
-      }
-    }
+    if(src.wd && src.wd.years && src.wd.years.length && Math.min(...src.wd.years) > new Date().getFullYear())
+      ch.push({id:'unreleased', label:'⚠️ Non ancora uscito', from:'', to:'Wikidata indica un\'uscita nel ' + Math.min(...src.wd.years) + ': voto provvisorio', patch:{note:'Non ancora uscito (uscita prevista ' + Math.min(...src.wd.years) + '): voto provvisorio.', m:'S'}});
     return ch;
   }
   window.__factChanges = factChanges;                                    // per i test automatici
@@ -332,11 +287,13 @@
     try{ return JSON.parse(s.slice(a, b + 1)); }catch(e){ return null; }
   }
   async function textChanges0(g, src, silent){
-    const hasSrc = !!((src.wiki && src.wiki.text) || (src.rawg && src.rawg.desc) || (src.steam && src.steam.desc));
-    if(!llmAvailable() || !hasSrc) return {changes:[], note: !hasSrc ? 'Nessuna pagina Wikipedia o RAWG trovata: testi non riscritti.' : 'Nessun motore AI configurato: testi non riscritti.'};
-    const prompt = todayLine() + `Aggiorna la scheda del videogioco "${g.name}" (${g.year}, ${g.plat}) usando SOLO le fonti qui sotto. Se una informazione non è nelle fonti scrivi null: non inventare nulla. Niente espressioni come "recente" o "uscito da poco": usa gli anni.
-Rispondi SOLO con un oggetto JSON valido con questi campi (in italiano): story (trama ricca e dettagliata: 5-8 frasi, circa 600-900 caratteri: ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler pesanti sul finale), pros (3-4 punti di forza concreti, emersi dalla critica), cons (2-3 difetti concreti, emersi dalla critica), agingNote (1-2 frasi su come regge oggi, con gli anni), whyLikeIt (una frase impersonale che spiega cosa rende appagante il gioco; niente riferimenti a persone tipo «gli piacerà»).
-${src.wiki && src.wiki.text ? `FONTE — Wikipedia (${src.wiki.title}):\n${digest(src.wiki.text)}` : ''}${src.rawg && src.rawg.desc ? `\nFONTE — RAWG (${src.rawg.name}${src.rawg.playtime ? ', durata media giocata dagli utenti ' + src.rawg.playtime + ' h' : ''}):\n${src.rawg.desc.slice(0, 3500)}` : ''}${src.steam && src.steam.desc ? `\nFONTE — Steam (descrizione ufficiale, testo promozionale: usala solo per confermare i fatti, la priorità è Wikipedia):\n${src.steam.desc.slice(0, 2500)}` : ''}`;
+    const a = src.al, t = src.tmdb, m = src.mal;
+    const hasSrc = !!((src.wiki && src.wiki.text) || (a && a.desc) || (t && t.overview) || (m && m.desc));
+    if(!llmAvailable() || !hasSrc) return {changes:[], note: !hasSrc ? 'Nessuna fonte con la trama trovata (AniList, TMDB, MyAnimeList, Wikipedia): testi non riscritti.' : 'Nessun motore AI configurato: testi non riscritti.'};
+    const tipo = (KIND_BY_ID[g.kind] || {}).full || 'opera';
+    const prompt = todayLine() + `Aggiorna la scheda di "${g.name}" (${tipo}, ${g.year}, ${g.plat}) usando SOLO le fonti qui sotto. Se una informazione non è nelle fonti scrivi null: non inventare nulla. Niente espressioni come "recente" o "uscito da poco": usa gli anni.
+Rispondi SOLO con un oggetto JSON valido con questi campi (in italiano): story (trama ricca e dettagliata: 5-8 frasi, circa 600-900 caratteri: ambientazione, protagonisti, premessa e svolgimento generale, SENZA spoiler su colpi di scena e finale), pros (3-4 punti di forza concreti, emersi da critica e pubblico), cons (2-3 difetti concreti, emersi da critica e pubblico), agingNote (1-2 frasi su come regge oggi: animazione o disegni, temi, ritmo; con gli anni), whyLikeIt (una frase impersonale che spiega cosa lo rende appagante; niente riferimenti a persone tipo «gli piacerà»).
+${t && t.overview ? `FONTE — TMDB (trama ufficiale in italiano, ${t.name}):\n${t.overview.slice(0, 2500)}\n` : ''}${a && a.desc ? `FONTE — AniList (${a.name}, in inglese):\n${a.desc.slice(0, 3000)}\n` : ''}${src.wiki && src.wiki.text ? `FONTE — Wikipedia (${src.wiki.title}):\n${digest(src.wiki.text)}\n` : ''}${m && m.desc && !(a && a.desc) ? `FONTE — MyAnimeList (in inglese):\n${m.desc.slice(0, 2500)}\n` : ''}`;
     const r = await askLLM(prompt, {}, {fast:true, silent: !!silent, label:'Riscrivo la scheda dalle fonti…'});
     const j = parseJson(r && r.text);
     if(!j) return {changes:[], note:'L\'AI non ha restituito un risultato leggibile: riprova.'};
@@ -352,16 +309,17 @@ ${src.wiki && src.wiki.text ? `FONTE — Wikipedia (${src.wiki.title}):\n${diges
 
   // ricerca approfondita (Gemini con ricerca Google): ore, "a colpo d'occhio", gameplay, lingua, edizioni. Ogni dato deve avere una fonte, altrimenti null.
   async function deepChanges0(g, silent){
-    if(!geminiKey()) return {changes:[], sources:[], note:'Ricerca approfondita (ore, difficoltà, lingua, gameplay) non fatta: serve la chiave Gemini.'};
+    if(!geminiKey()) return {changes:[], sources:[], note:'Ricerca approfondita (durata, impegno, filler, italiano, realizzazione) non fatta: serve la chiave Gemini.'};
     const Y = new Date().getFullYear();
-    const symTxt = (g.enrich && (g.enrich.storyTag || g.enrich.dopamine)) ? `\nSIMBOLI: questo gioco ha già ${g.enrich.storyTag ? 'il simbolo storia «' + g.enrich.storyTag + '»' + (g.enrich.storyTagNote ? ' (' + g.enrich.storyTagNote + ')' : '') : ''}${g.enrich.storyTag && g.enrich.dopamine ? ' e ' : ''}${g.enrich.dopamine ? 'il simbolo dopamina (loop di ricompense)' : ''}. Giudica con onestà, cercando sulle fonti, se è DAVVERO distintivo: storia affascinante o memorabile, oppure meccanica unica e travolgente che quasi nessun altro gioco ha (il voto NON conta). Aggiungi al JSON i campi storyTagUnique (true/false/null se non c'è il simbolo), dopamineUnique (true/false/null) e symbolWhy (una frase che spiega perché sì o perché no).` : '';
-    const prompt = todayLine() + symTxt + `Fai le ricerche includendo gli anni ${Y} e ${Y - 1} nelle query. Per le informazioni che cambiano nel tempo (piattaforme, edizioni, lingue, prezzi, abbonamenti, patch, ore dopo gli aggiornamenti) usa SOLO pagine datate ${Y - 2} o dopo e ignora quelle senza data o più vecchie; per le informazioni storiche (trama, voto alla prima uscita) va bene qualsiasi anno. Se per un dato non trovi fonti aggiornate scrivi null. Cerca online informazioni ATTENDIBILI sul videogioco "${g.name}" (${g.year}, ${g.plat}) consultando fonti come Metacritic, OpenCritic, HowLongToBeat, Wikipedia, PCGamingWiki, Steam (lingue: interfaccia, audio, sottotitoli), PSXDataCenter (edizioni PAL dei giochi PS1/PS2), RPGamer, RPGFan, gli store ufficiali (Steam, PlayStation Store, Nintendo eShop) e i siti dei publisher. Compila SOLO ciò che trovi in fonti affidabili; se non lo trovi scrivi null, NON stimare e NON inventare.
-Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indicative per finire la storia principale o la run/campagna principale; nei giochi senza trama vera (roguelite, tattici, puzzle, arcade) indica la durata di UNA run o campagna (1-3h), MAI le ore per sbloccare tutto (quelle vanno in hoursCompletionist), numero), hoursCompletionist (ore completista, numero), difficulty (1-5), grind (1-5: quanta ripetizione/farming serve; conta anche sblocchi di contenuti, squadre, armi e meta-progressione dei roguelite: mai lasciarlo vuoto se ci sono sblocchi; 1 = nessuno, 3 = qualche sblocco, 5 = molto grinding), storyWeight (1-5: 1 = trama assente o minima, 5 = la storia è il cuore del gioco; deve essere COERENTE con le ore storia), pace ("L" lento, "M" medio, "V" veloce), italian ("D" testi E doppiaggio italiani ufficiali, "S" solo testi/sottotitoli italiani ufficiali, "F" solo fan-translation, "N" nessun italiano ufficiale, oppure null se NON trovi una fonte esplicita: NON rispondere "N" per mancanza di informazioni; per i giochi usciti prima del 2010 controlla l'edizione europea/italiana (PAL) originale del disco o della cartuccia e non solo gli store attuali, perché molti giochi PS1/PS2/Wii/DS uscirono localizzati in italiano anche se la versione americana era solo in inglese), language (una frase in italiano su lingue di testi E doppiaggio nell'edizione italiana/europea e nelle riedizioni, citando ciò che dice la fonte; null se non lo trovi), remaster (una frase in italiano su edizioni, remaster o remake esistenti), gameplayScore (0-10, in base alla critica), gameplayNote (una frase in italiano sul gameplay), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "cerchi una trama profonda": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), criticScore (Metascore o OpenCritic, numero 0-100, oppure null), graphicsToday (1-2 frasi in italiano su come regge oggi la grafica e la parte tecnica rispetto agli standard del ${Y}, senza dire "recente"), asOf (l'anno della fonte PIÙ VECCHIA che hai usato per lingua, edizioni, piattaforme e ore).`;
+    const symTxt = (g.enrich && (g.enrich.storyTag || g.enrich.dopamine)) ? `\nSIMBOLI: questo titolo ha già ${g.enrich.storyTag ? 'il simbolo storia «' + g.enrich.storyTag + '»' + (g.enrich.storyTagNote ? ' (' + g.enrich.storyTagNote + ')' : '') : ''}${g.enrich.storyTag && g.enrich.dopamine ? ' e ' : ''}${g.enrich.dopamine ? 'il simbolo dopamina (ti incolla allo schermo)' : ''}. Giudica con onestà, cercando sulle fonti, se è DAVVERO distintivo: storia affascinante o memorabile, oppure una dipendenza da «ancora un episodio» che quasi nessun'altra opera ha (il voto NON conta). Aggiungi al JSON i campi storyTagUnique (true/false/null se non c'è il simbolo), dopamineUnique (true/false/null) e symbolWhy (una frase che spiega perché sì o perché no).` : '';
+    const W = !(g.kind === 'manga' || g.kind === 'manhwa'), tipo = (KIND_BY_ID[g.kind] || {}).full || (W ? 'anime' : 'manga');
+    const prompt = todayLine() + symTxt + `Fai le ricerche includendo gli anni ${Y} e ${Y - 1} nelle query. Per le informazioni che cambiano nel tempo (dove si trova in streaming, edizioni italiane in corso o fuori catalogo, doppiaggi) usa SOLO pagine datate ${Y - 2} o dopo e ignora quelle senza data o più vecchie; per le informazioni storiche (trama, accoglienza all'uscita) va bene qualsiasi anno. Se per un dato non trovi fonti aggiornate scrivi null. Cerca online informazioni ATTENDIBILI su "${g.name}" (${tipo}, ${g.year}, ${g.plat}) consultando fonti come AniList, MyAnimeList, AnimeClick.it, Wikipedia (italiana e inglese), Anime News Network, IMDb, TMDB, JustWatch e i siti degli editori e distributori italiani (Star Comics, Planet Manga/Panini, J-POP, Dynit, Yamato Video, Crunchyroll, Netflix). Compila SOLO ciò che trovi in fonti affidabili; se non lo trovi scrivi null, NON stimare e NON inventare.
+Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore per ${W ? 'vederlo tutto (episodi × durata, o durata del film)' : 'leggerlo tutto (circa 20 minuti a volume)'}, numero), hoursCompletionist (ore includendo seguiti, film e storie extra della stessa saga, numero), difficulty (1-5: quanto è impegnativo da seguire: trama complessa, tanti personaggi, temi difficili), grind (1-5: quanti ${W ? 'episodi filler, riassuntivi o di riempimento' : 'capitoli lenti o di riempimento'}; 1 = nessuno, 5 = moltissimi), storyWeight (1-5: 1 = trama minima, 5 = la storia è il cuore di tutto), pace ("L" lento, "M" medio, "V" veloce), italian (${W ? '"D" doppiato in italiano, "S" solo sottotitoli italiani ufficiali, "F" solo fansub' : '"S" pubblicato in Italia, "F" solo scan amatoriali'}, "N" niente in italiano, oppure null se NON trovi una fonte esplicita: NON rispondere "N" per mancanza di informazioni), language (una frase in italiano su ${W ? 'doppiaggio e sottotitoli italiani (chi l\'ha distribuito, su quale canale o servizio)' : 'edizione italiana (editore, numero di volumi, completa o interrotta)'}; null se non lo trovi), remaster (una frase in italiano su altre versioni: remake, adattamenti anime/manga/film, edizioni restaurate o deluxe), gameplayScore (0-10: qualità della realizzazione, cioè ${W ? 'animazione, regia e musica' : 'disegni e impaginazione'}, secondo critica e pubblico), gameplayNote (una frase in italiano sulla realizzazione), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi uno shonen con combattimenti spettacolari e pochi filler": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "non sopporti i ritmi lenti": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), criticScore (voto degli utenti di AniList, MyAnimeList ×10 o IMDb ×10, numero 0-100, oppure null), graphicsToday (1-2 frasi in italiano su come regge oggi ${W ? 'l\'animazione' : 'il disegno'} rispetto agli standard del ${Y}, senza dire "recente"), asOf (l'anno della fonte PIÙ VECCHIA che hai usato per italiano, edizioni e dove trovarlo).`;
     let r = await askLLM(prompt, {}, {search:true, forceGemini:true, silent: !!silent, label:'Ricerca approfondita sul web…'});
     let j = parseJson(r && r.text);
-    // non mi fermo al primo tentativo: altre fonti (Steam, IGDB, RAWG, MobyGames, GameFAQs, HowLongToBeat, Reddit)
+    // non mi fermo al primo tentativo: altre fonti (Kitsu, Anime News Network, AnimeClick, Fandom, Reddit)
     if(!j || !Object.values(j).some(v=> v != null)){
-      const alt = prompt + `\nIMPORTANTE: il primo tentativo non ha dato risultati. Ora cerca ALTROVE: pagine Steam, IGDB, RAWG, MobyGames, GameFAQs, HowLongToBeat, Fandom wiki, Reddit e riviste specializzate, anche con titoli alternativi o nomi giapponesi/europei. Prova varianti del titolo (senza sottotitolo, con l'edizione remaster). Restituisci comunque il JSON compilato con ciò che trovi.`;
+      const alt = prompt + `\nIMPORTANTE: il primo tentativo non ha dato risultati. Ora cerca ALTROVE: Kitsu, Anime News Network (encyclopedia), AnimeClick.it, Fandom wiki, Reddit (r/anime, r/manga) e riviste specializzate, anche con il titolo giapponese (romaji) o inglese. Prova varianti del titolo (senza sottotitolo, con o senza il numero della stagione). Restituisci comunque il JSON compilato con ciò che trovi.`;
       try{ r = await askLLM(alt, {}, {search:true, forceGemini:true, silent: !!silent, label:'Frugu Frugu prova altre fonti…'}); j = parseJson(r && r.text) || j; }catch(e){}
     }
     const srcs = ((r && r.sources) || []).filter(s=> s.title).slice(0, 6);
@@ -372,29 +330,29 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const asOf = num(j.asOf, 1990, Y + 1); const stale = !!(asOf && asOf < Y - 2); const sfx = stale ? ` ⏳ fonte del ${asOf}` : '';
     const hm = num(j.hoursMain, 1, 400), hc = num(j.hoursCompletionist, 1, 1500);
     const sw0 = num(j.storyWeight, 1, 5) || l.s; const incoh = !labelCoherent({s: sw0, h: hm}, g.tags);
-    if(hm && hm !== (e.hoursMain || l.h)){ ch.push({id:'hours', label:'Ore di gioco' + (incoh ? ' ⚠️ incoerenti col peso storia' : ''), warn: incoh, from: `${e.hoursMain || l.h || '—'}h storia · ${e.hoursCompletionist || '—'}h completista`, to: `${hm}h storia · ${hc || e.hoursCompletionist || '—'}h completista` + sfx, off: stale, patch:{enrich:{hoursMain: hm, hoursCompletionist: hc || e.hoursCompletionist}, label:{h: hm}}}); }
+    if(hm && hm !== (e.hoursMain || l.h)){ ch.push({id:'hours', label:'Durata' + (incoh ? ' ⚠️ incoerenti col peso storia' : ''), warn: incoh, from: `${e.hoursMain || l.h || '—'}h in tutto · ${e.hoursCompletionist || '—'}h con seguiti`, to: `${hm}h in tutto · ${hc || e.hoursCompletionist || '—'}h con seguiti` + sfx, off: stale, patch:{enrich:{hoursMain: hm, hoursCompletionist: hc || e.hoursCompletionist}, label:{h: hm}}}); }
     const d = num(j.difficulty, 1, 5), gr = num(j.grind, 1, 5), sw = num(j.storyWeight, 1, 5);
     const pace = ['L','M','V'].includes(j.pace) ? j.pace : null, it = ['D','S','F','N'].includes(j.italian) ? j.italian : null;
     const lab = {}; if(d) lab.d = Math.round(d); if(gr) lab.g = Math.round(gr); if(sw) lab.s = Math.round(sw); if(pace) lab.p = pace; if(it) lab.it = it;
     const fit = fixSecondPerson(str(j.fitIf)), avoid = fixSecondPerson(str(j.avoidIf)); if(fit) lab.ok = fit; if(avoid) lab.ko = avoid;
     const itDown = !!(lab.it === 'N' && ['D','S','F'].includes(l.it));   // l'AI dice "nessun italiano" ma il dato attuale dice il contrario: mai applicare in automatico
     const diff = Object.keys(lab).filter(k=> lab[k] !== l[k]);
-    if(diff.length){ ch.push({id:'label', label:'A colpo d\'occhio' + (itDown ? ' ⚠️ lingua in contrasto' : ''), from: `difficoltà ${l.d || '—'}, grinding ${l.g || '—'}, storia ${l.s || '—'}, ritmo ${l.p || '—'}, italiano ${l.it || '—'}`, to: `difficoltà ${lab.d || l.d || '—'}, grinding ${lab.g || l.g || '—'}, storia ${lab.s || l.s || '—'}, ritmo ${lab.p || l.p || '—'}, italiano ${lab.it || l.it || '—'}` + (fit || avoid ? ' · consigli aggiornati' : '') + sfx, off: stale || itDown, warn: itDown, patch:{label: lab}}); }
+    if(diff.length){ ch.push({id:'label', label:'A colpo d\'occhio' + (itDown ? ' ⚠️ lingua in contrasto' : ''), from: `impegno ${l.d || '—'}, filler ${l.g || '—'}, storia ${l.s || '—'}, ritmo ${l.p || '—'}, italiano ${l.it || '—'}`, to: `impegno ${lab.d || l.d || '—'}, filler ${lab.g || l.g || '—'}, storia ${lab.s || l.s || '—'}, ritmo ${lab.p || l.p || '—'}, italiano ${lab.it || l.it || '—'}` + (fit || avoid ? ' · consigli aggiornati' : '') + sfx, off: stale || itDown, warn: itDown, patch:{label: lab}}); }
     const gs = num(j.gameplayScore, 0, 10), gn = str(j.gameplayNote);
-    if(gs != null || gn){ ch.push({id:'gameplay', label:'Gameplay', from: `${e.gameplayScore != null ? e.gameplayScore : '—'}/10 — ${(e.gameplayNote || '')}`, to: `${gs != null ? gs : (e.gameplayScore != null ? e.gameplayScore : '—')}/10 — ${(gn || e.gameplayNote || '')}`, patch:{enrich:Object.assign({}, gs != null ? {gameplayScore: gs} : {}, gn ? {gameplayNote: gn} : {})}}); }
+    if(gs != null || gn){ ch.push({id:'gameplay', label:'Realizzazione', from: `${e.gameplayScore != null ? e.gameplayScore : '—'}/10 — ${(e.gameplayNote || '')}`, to: `${gs != null ? gs : (e.gameplayScore != null ? e.gameplayScore : '—')}/10 — ${(gn || e.gameplayNote || '')}`, patch:{enrich:Object.assign({}, gs != null ? {gameplayScore: gs} : {}, gn ? {gameplayNote: gn} : {})}}); }
     const lg = str(j.language), rm = str(j.remaster);
     const langDown = !!(lg && /nessun[oa]? .{0,25}italian|solo inglese|non .{0,20}in italiano/i.test(lg) && ['D','S','F'].includes(l.it));
-    if(lg || rm){ ch.push({id:'lang', label:'Lingua ed edizioni' + (langDown ? ' ⚠️ in contrasto col dato attuale' : ''), from: ((e.language || '') + ' ' + (e.remaster || '')) || '—', to: [lg, rm].filter(Boolean).join(' ') + sfx, off: stale || langDown, patch:{enrich:Object.assign({}, lg ? {language: lg} : {}, rm ? {remaster: rm} : {})}}); }
+    if(lg || rm){ ch.push({id:'lang', label:'Italiano e versioni' + (langDown ? ' ⚠️ in contrasto col dato attuale' : ''), from: ((e.language || '') + ' ' + (e.remaster || '')) || '—', to: [lg, rm].filter(Boolean).join(' ') + sfx, off: stale || langDown, patch:{enrich:Object.assign({}, lg ? {language: lg} : {}, rm ? {remaster: rm} : {})}}); }
     const gt = str(j.graphicsToday);
-    if(gt){ ch.push({id:'aging', label:'Grafica e tecnica oggi', from: ((e.agingNote) || '—'), to: gt, patch:{enrich:{agingNote: gt}}}); }
+    if(gt){ ch.push({id:'aging', label:W ? 'Come regge oggi l\'animazione' : 'Come regge oggi il disegno', from: ((e.agingNote) || '—'), to: gt, patch:{enrich:{agingNote: gt}}}); }
     const cs = num(j.criticScore, 0, 100);
-    if(cs && cs !== g.score){ ch.push({id:'score2', label:'Voto (ricerca AI, da confermare)', from: String(g.score), to: `${cs} (Metascore/OpenCritic secondo la ricerca)`, patch:{score: cs, tier: tierOf(cs), m:'V'}, off:true}); }
+    if(cs && cs !== g.score){ ch.push({id:'score2', label:'Voto (ricerca AI, da confermare)', from: String(g.score), to: `${cs} (AniList/MyAnimeList/IMDb secondo la ricerca)`, patch:{score: cs, tier: tierOf(cs), m:'V'}, off:true}); }
     // simboli 💕🤝✨💉 non distintivi: si propone di toglierli (mai attivo in automatico: decidi tu)
     if(g.enrich && g.enrich.storyTag && j.storyTagUnique === false){
-      ch.push({id:'symStory', label:'Simbolo storia non distintivo', from: (STORY_TAG_INFO[g.enrich.storyTag] ? STORY_TAG_INFO[g.enrich.storyTag].icon + ' ' + STORY_TAG_INFO[g.enrich.storyTag].label : g.enrich.storyTag) + (g.enrich.storyTagNote ? ' — ' + g.enrich.storyTagNote : ''), to: 'Togliere il simbolo. ' + (str(j.symbolWhy) || 'La storia non ha nulla di davvero unico rispetto agli altri giochi.'), patch:{enrich:{storyTag:null, storyTagNote:null}}, off:true});
+      ch.push({id:'symStory', label:'Simbolo storia non distintivo', from: (STORY_TAG_INFO[g.enrich.storyTag] ? STORY_TAG_INFO[g.enrich.storyTag].icon + ' ' + STORY_TAG_INFO[g.enrich.storyTag].label : g.enrich.storyTag) + (g.enrich.storyTagNote ? ' — ' + g.enrich.storyTagNote : ''), to: 'Togliere il simbolo. ' + (str(j.symbolWhy) || 'La storia non ha nulla di davvero unico rispetto ad altre opere.'), patch:{enrich:{storyTag:null, storyTagNote:null}}, off:true});
     }
     if(g.enrich && g.enrich.dopamine && j.dopamineUnique === false){
-      ch.push({id:'symDopa', label:'Simbolo dopamina non distintivo', from: '💉 Loop di ricompense molto coinvolgente', to: 'Togliere il simbolo. ' + (str(j.symbolWhy) || 'Il loop di ricompense è nella media del genere.'), patch:{enrich:{dopamine:false}}, off:true});
+      ch.push({id:'symDopa', label:'Simbolo dopamina non distintivo', from: '💉 Ti incolla allo schermo', to: 'Togliere il simbolo. ' + (str(j.symbolWhy) || 'La voglia di «ancora un episodio» è nella media del genere.'), patch:{enrich:{dopamine:false}}, off:true});
     }
     return {changes: ch, sources: srcs, note:''};
   }
@@ -404,17 +362,18 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   // Impostazioni generali: atl_field_src {campo: scelta}. Per un singolo gioco: atl_field_game {id: {campo: {src, lock}}}:
   // un campo con il lucchetto NON viene più cambiato da nessun aggiornamento automatico o in background (solo da te, con «Prendi adesso»).
   const FIELDS = {
-    voto:     {label: 'Voto', ids: /^(score\d?|method|vsrc)$/, opts: [['auto', 'Automatico (Metacritic ufficiale → Wikipedia → Steam → OpenCritic → RAWG)'], ['mc', 'Metacritic sito ufficiale'], ['wiki', 'Metacritic da Wikipedia'], ['steam', 'Metacritic da Steam / CheapShark'], ['oc', 'OpenCritic'], ['rawg', 'RAWG'], ['off', 'Non toccarlo mai']]},
-    anno:     {label: 'Anno di uscita', ids: /^(year|unreleased)$/, opts: [['auto', 'Automatico (Wikidata → Steam → RAWG)'], ['wd', 'Wikidata'], ['steam', 'Steam'], ['rawg', 'RAWG'], ['off', 'Non toccarlo mai']]},
-    generi:   {label: 'Generi', ids: /^tagsync$/, opts: [['auto', 'Automatico (Wikidata + RAWG + Steam che si confermano)'], ['off', 'Non toccarli mai']]},
-    lingua:   {label: 'Lingua italiana ed edizioni', ids: /^(lang|itsrc|itdub)$/, opts: [['auto', 'Automatico (Steam → PCGamingWiki → it.wikipedia → web)'], ['off', 'Non toccarla mai']]},
-    storia:   {label: 'Storia', ids: /^story$/, opts: [['auto', 'Automatico (Wikipedia → RAWG → Steam)'], ['wiki', 'Wikipedia'], ['rawg', 'RAWG'], ['steam', 'Steam'], ['off', 'Non toccarla mai']]},
-    pro:      {label: 'Pro e contro', ids: /^proscons$/, opts: [['auto', 'Automatico (Wikipedia → RAWG → Steam)'], ['wiki', 'Wikipedia'], ['rawg', 'RAWG'], ['steam', 'Steam'], ['off', 'Non toccarli mai']]},
-    perche:   {label: 'Perché potrebbe piacerti', ids: /^why$/, opts: [['auto', 'Automatico (Wikipedia → RAWG → Steam)'], ['wiki', 'Wikipedia'], ['rawg', 'RAWG'], ['steam', 'Steam'], ['off', 'Non toccarlo mai']]},
-    regge:    {label: 'Come regge oggi', ids: /^aging$/, opts: [['auto', 'Automatico (ricerca web, poi le fonti)'], ['web', 'Ricerca web (Gemini)'], ['wiki', 'Wikipedia'], ['rawg', 'RAWG'], ['steam', 'Steam'], ['off', 'Non toccarlo mai']]},
-    gameplay: {label: 'Gameplay (voto e nota)', ids: /^gameplay$/, opts: [['auto', 'Ricerca web (Gemini)'], ['off', 'Non toccarlo mai']]},
-    ore:      {label: 'Ore di gioco', ids: /^hours$/, opts: [['auto', 'Ricerca web (Gemini, HowLongToBeat e altre)'], ['off', 'Non toccarle mai']]},
-    colpo:    {label: 'A colpo d\'occhio (difficoltà, grinding, ritmo…)', ids: /^label$/, opts: [['auto', 'Ricerca web (Gemini)'], ['off', 'Non toccarlo mai']]}
+    voto:     {label: 'Voto', ids: /^(score\d?|method|vsrc)$/, opts: [['auto', 'Automatico (AniList o IMDb → MyAnimeList → TMDB)'], ['al', 'AniList'], ['mal', 'MyAnimeList'], ['tmdb', 'TMDB'], ['off', 'Non toccarlo mai']]},
+    anno:     {label: 'Anno di uscita', ids: /^(year|unreleased)$/, opts: [['auto', 'Automatico (AniList → TMDB)'], ['al', 'AniList'], ['tmdb', 'TMDB'], ['off', 'Non toccarlo mai']]},
+    generi:   {label: 'Generi', ids: /^tagsync$/, opts: [['auto', 'Automatico (AniList + Wikidata: solo aggiunte)'], ['off', 'Non toccarli mai']]},
+    lingua:   {label: 'Doppiaggio ed edizione italiana', ids: /^(lang|itsrc|itdub)$/, opts: [['auto', 'Automatico (it.wikipedia → ricerca web)'], ['off', 'Non toccarla mai']]},
+    storia:   {label: 'Trama', ids: /^story$/, opts: [['auto', 'Automatico (TMDB in italiano → AniList → Wikipedia)'], ['tmdb', 'TMDB'], ['al', 'AniList'], ['wiki', 'Wikipedia'], ['mal', 'MyAnimeList'], ['off', 'Non toccarla mai']]},
+    pro:      {label: 'Pro e contro', ids: /^proscons$/, opts: [['auto', 'Automatico (TMDB → AniList → Wikipedia)'], ['tmdb', 'TMDB'], ['al', 'AniList'], ['wiki', 'Wikipedia'], ['off', 'Non toccarli mai']]},
+    perche:   {label: 'Perché potrebbe piacerti', ids: /^why$/, opts: [['auto', 'Automatico (TMDB → AniList → Wikipedia)'], ['tmdb', 'TMDB'], ['al', 'AniList'], ['wiki', 'Wikipedia'], ['off', 'Non toccarlo mai']]},
+    regge:    {label: 'Come regge oggi', ids: /^aging$/, opts: [['auto', 'Automatico (ricerca web, poi le fonti)'], ['web', 'Ricerca web (Gemini)'], ['al', 'AniList'], ['wiki', 'Wikipedia'], ['off', 'Non toccarlo mai']]},
+    gameplay: {label: 'Realizzazione (voto e nota)', ids: /^gameplay$/, opts: [['auto', 'Ricerca web (Gemini)'], ['off', 'Non toccarla mai']]},
+    ore:      {label: 'Durata', ids: /^hours$/, opts: [['auto', 'AniList o TMDB (episodi × minuti, volumi), poi ricerca web'], ['off', 'Non toccarla mai']]},
+    colpo:    {label: 'A colpo d\'occhio (impegno, filler, ritmo…)', ids: /^label$/, opts: [['auto', 'Ricerca web (Gemini)'], ['off', 'Non toccarlo mai']]},
+    dove:     {label: 'Dove guardarlo', ids: /^market$/, opts: [['auto', 'TMDB (dati di JustWatch, Italia)'], ['off', 'Non toccarlo mai']]}
   };
   const FS_KEY = 'atl_field_src', FG_KEY = 'atl_field_game', AUTO_ALL = 'atl_auto_all';
   const jget = (k, d)=>{ try{ return JSON.parse(localStorage.getItem(k) || 'null') || d; }catch(e){ return d; } };
@@ -425,7 +384,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   const locked = (g, f)=> !!(gameF(g, f) || {}).lock;
   const autoAll = ()=> localStorage.getItem(AUTO_ALL) !== 'off';
   // da quale fonte viene una proposta (per voto e anno, dove le fonti sono diverse)
-  const SRC_RX = {voto: {mc: /sito ufficiale/i, wiki: /Wikipedia/i, steam: /Steam|CheapShark/i, oc: /OpenCritic/i, rawg: /RAWG/i}, anno: {wd: /Wikidata/i, steam: /Steam/i, rawg: /RAWG/i}};
+  const SRC_RX = {voto: {al: /AniList/i, mal: /MyAnimeList/i, tmdb: /TMDB/i}, anno: {al: /AniList/i, tmdb: /TMDB/i}};
   function prefFilter(g, ch, opts){
     opts = opts || {};
     return (ch || []).filter(c=>{
@@ -444,16 +403,13 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const pv = (opts && opts.src && opts.src.voto) || prefFor(g, 'voto'), py = (opts && opts.src && opts.src.anno) || prefFor(g, 'anno');
     let s2 = Object.assign({}, src);
     if(pv !== 'auto' && pv !== 'off'){
-      if(pv !== 'mc') s2.voti = null;
-      if(pv !== 'wiki') s2.wiki = without(s2.wiki, ['mc']);
-      if(pv !== 'steam'){ s2.steam = without(s2.steam, ['mc']); if(s2.facts) s2.facts = {s: without(s2.facts.s, ['mc']), c: without(s2.facts.c, ['mc'])}; }
-      if(pv !== 'oc') s2.oc = null;
-      if(pv !== 'rawg') s2.rawg = without(s2.rawg, ['mc']);
+      if(pv !== 'al') s2.al = without(s2.al, ['score']);
+      if(pv !== 'mal') s2.mal = null;
+      if(pv !== 'tmdb') s2.tmdb = without(s2.tmdb, ['vote']);
     }
     if(py !== 'auto' && py !== 'off'){
-      if(py !== 'wd') s2.wd = without(s2.wd, ['years']);
-      if(py !== 'steam'){ s2.steam = without(s2.steam, ['year']); if(s2.facts) s2.facts = {s: without(s2.facts.s, ['y']), c: without(s2.facts.c, ['y'])}; }
-      if(py !== 'rawg') s2.rawg = without(s2.rawg, ['year']);
+      if(py !== 'al') s2.al = without(s2.al, ['y1', 'y2']);
+      if(py !== 'tmdb') s2.tmdb = without(s2.tmdb, ['y1', 'y2']);
     }
     return s2;
   }
@@ -482,7 +438,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     });
     const out = {changes: [], note: ''};
     for(const k of Object.keys(groups)){
-      const s2 = k === 'auto' ? src : Object.assign({}, src, {wiki: k === 'wiki' ? src.wiki : null, rawg: k === 'rawg' ? src.rawg : null, steam: k === 'steam' ? src.steam : null});
+      const s2 = k === 'auto' ? src : Object.assign({}, src, {wiki: k === 'wiki' ? src.wiki : null, al: k === 'al' ? src.al : null, tmdb: k === 'tmdb' ? src.tmdb : null, mal: k === 'mal' ? src.mal : null});
       const r = await textChanges0(g, s2, silent);
       out.changes = out.changes.concat((r.changes || []).filter(c=> groups[k].includes(c.id)));
       if(r.note) out.note = (out.note ? out.note + ' ' : '') + r.note + (k !== 'auto' ? ' (fonte scelta: ' + k + ')' : '');
@@ -490,7 +446,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     return out;
   }
   // lucchetti anche al salvataggio: qualunque aggiornamento automatico che tocchi un campo bloccato viene ignorato per quel campo
-  const PATCH_FIELD = {score: 'voto', tier: 'voto', m: 'voto', vs: 'voto', year: 'anno', ysort: 'anno', tags: 'generi', story: 'storia'};
+  const PATCH_FIELD = {score: 'voto', tier: 'voto', m: 'voto', vs: 'voto', year: 'anno', ysort: 'anno', tags: 'generi', story: 'storia', market: 'dove'};
   const ENRICH_FIELD = {pros: 'pro', cons: 'pro', agingNote: 'regge', whyLikeIt: 'perche', gameplayScore: 'gameplay', gameplayNote: 'gameplay', hoursMain: 'ore', hoursCompletionist: 'ore', language: 'lingua', remaster: 'lingua'};
   function stripLocked(g, p){
     const out = {}; let dropped = 0;
@@ -529,7 +485,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       }
     }catch(e){}
     if(g.custom){
-      const doc = {name: g.name, plat: g.plat, year: p.year || g.year, tier: p.tier || g.tier, score: p.score != null ? p.score : g.score, m: p.m || g.m || 'S', vs: p.vs || g.vs || undefined, tags: p.tags || g.tags, story: p.story != null ? p.story : g.story, note: p.note || g.note, label: Object.assign({}, g.label || {}, p.label || {}),
+      const doc = {name: g.name, kind: g.kind || undefined, market: p.market || g.market || undefined, plat: g.plat, year: p.year || g.year, tier: p.tier || g.tier, score: p.score != null ? p.score : g.score, m: p.m || g.m || 'S', vs: p.vs || g.vs || undefined, tags: p.tags || g.tags, story: p.story != null ? p.story : g.story, note: p.note || g.note, label: Object.assign({}, g.label || {}, p.label || {}),
         pros: (p.enrich && p.enrich.pros) || (g.proscons && g.proscons.pros) || [], cons: (p.enrich && p.enrich.cons) || (g.proscons && g.proscons.cons) || [], enrich: cleanCustomEnrich(Object.assign({}, g.enrich || {}, p.enrich || {})) || undefined, addedAt: new Date().toISOString()};
       if(COVER_DB) await COVER_DB.doc('customGames/' + String(g.id)).set(doc);
     } else {
@@ -547,10 +503,10 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{
       const src = await gather(g, true);
       if(src.wiki && src.wiki.text){
-        const t = src.wiki.text, i = t.search(/\n\s*(Gameplay|Game ?play and (synopsis|story|plot)|Gameplay and plot|Combat|Battle system)[^\n]{0,30}\n/i);
+        const t = src.wiki.text, i = t.search(/\n\s*(Plot|Synopsis|Story|Premise|Media|Release|Episodes|Volumes|Broadcast)[^\n]{0,30}\n/i);
         out.names.push('Wikipedia'); out.text += 'FONTE — Wikipedia (' + src.wiki.title + '):\n' + (i >= 0 ? t.slice(i, i + 3400) : digest(t).slice(0, 3400)) + '\n';
       }
-      if(src.rawg && src.rawg.desc){ out.names.push('RAWG'); out.text += '\nFONTE — RAWG:\n' + String(src.rawg.desc).slice(0, 1800) + '\n'; }
+      if(src.al && src.al.desc){ out.names.push('AniList'); out.text += '\nFONTE — AniList (in inglese):\n' + String(src.al.desc).slice(0, 1800) + '\n'; }
     }catch(e){}
     return out;
   };
@@ -558,7 +514,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   const isFill = c=>{ const f = String(c.from == null ? '' : c.from).trim(); return f === '' || /^—/.test(f); };
   function canAuto(c, g){
     if(!c || !c.patch || c.off || c.warn || c.id === 'score2') return false;
-    if(c.patch.score != null && Math.abs(c.patch.score - g.score) > 15) return false;              // scarto enorme: probabile gioco sbagliato, chiedo
+    if(c.patch.score != null && Math.abs(c.patch.score - g.score) > 15) return false;              // scarto enorme: probabile titolo sbagliato, chiedo
     if(/^(method|vsrc|score\d?|itsrc|itdub|similar|tagsync)$/.test(c.id)) return true;
     if(autoAll() && !/^(symStory|symDopa|unreleased)$/.test(c.id)) return true;                  // «Applica tutto da solo»: ogni proposta senza avvisi si applica (si può annullare dalla cronologia)
     return isFill(c) && /^(story|proscons|aging|why|hours|gameplay|lang|label)$/.test(c.id);
@@ -586,7 +542,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   window.openFieldPrefs = function(){
     const el = fpPanel(), gen = jget(FS_KEY, {});
     el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🎛️ Fonti e lucchetti</b><button class="btn" data-ui-close>Chiudi</button></div>
-      <div class="lp-sub">Da dove prendere ogni informazione, per TUTTI i giochi. Nella scheda di un gioco («🎛️ Fonti» vicino a Update V+) puoi scegliere una fonte diversa solo per quel gioco e mettere il 🔒 lucchetto: un campo con il lucchetto non lo cambia più nessun aggiornamento automatico.</div>
+      <div class="lp-sub">Da dove prendere ogni informazione, per TUTTI i giochi. Nella scheda di un titolo («🎛️ Fonti» vicino a Update V+) puoi scegliere una fonte diversa solo per quel titolo e mettere il 🔒 lucchetto: un campo con il lucchetto non lo cambia più nessun aggiornamento automatico.</div>
       <label class="fp-row fp-auto"><input type="checkbox" id="fpAutoAll"${autoAll() ? ' checked' : ''}> <span><b>Applica tutto da solo</b><small>Update+ e «Aggiorna info» correggono la scheda senza chiederti l'ok (resta la conferma solo per i casi con ⚠️, es. voto molto diverso). Ogni modifica si annulla dalla cronologia del gioco.</small></span></label>
       <div class="fp-list">${Object.keys(FIELDS).map(f=> `<label class="fp-row"><span>${escHtml(FIELDS[f].label)}</span><select data-f="${f}">${optHtml(FIELDS[f].opts, gen[f] || 'auto')}</select></label>`).join('')}</div></div>`;
     el.classList.add('show');
@@ -617,7 +573,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
         if(/^(gameplay|ore|colpo|lingua)$/.test(f) || (f === 'regge' && (pf === 'web' || pf === 'auto'))) ch = ch.concat((await deepChanges(g, false, o)).changes);
         ch = ch.filter(c=> fieldOf(c.id) === f && c.patch);
       }catch(e){ box.innerHTML = '<div class="lp-sub">⚠️ ' + escHtml(llmErrorText ? llmErrorText(e) : (e.message || 'errore')) + '</div>'; return; }
-      if(!ch.length){ box.innerHTML = '<div class="lp-sub">Questa fonte non ha dati diversi da quelli attuali (o non ha il gioco). Puoi comunque mettere il 🔒 per tenere quelli di ora.</div>'; return; }
+      if(!ch.length){ box.innerHTML = '<div class="lp-sub">Questa fonte non ha dati diversi da quelli attuali (o non ha il titolo). Puoi comunque mettere il 🔒 per tenere quelli di ora.</div>'; return; }
       box.innerHTML = ch.map((c, i)=> `<div class="au-chg"><h4>${escHtml(c.label)}</h4><div class="au-box au-before"><small>PRIMA</small>${escHtml(c.from || '—')}</div><div class="au-box au-after"><small>DOPO (da questa fonte)</small>${escHtml(c.to)}</div></div>`).join('') +
         '<div class="au-actions"><button class="btn primary" id="fpUse">✅ Usa questa e blocca 🔒</button><button class="btn" id="fpNo">Lascia com\'è</button></div>';
       box.querySelector('#fpNo').addEventListener('click', ()=>{ box.innerHTML = ''; });
@@ -633,46 +589,42 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   (window.XMENU = window.XMENU || []).push({html: '🎛️ Fonti e lucchetti (da dove prendere ogni dato)', run: ()=> window.openFieldPrefs()});
   // ---- Mappa delle fonti: per ogni dato, in che ordine si cerca, e se ogni fonte funziona adesso ----
   const SRC_MAP = [
-    ['Voto', 'Metacritic ufficiale (archivio dal server) → Wikipedia → Steam → dati settimanali → CheapShark → OpenCritic → RAWG → altrimenti Stima', ['voti', 'wiki', 'steam', 'cheap', 'oc', 'rawg']],
-    ['Anno di uscita', 'Wikidata → Steam → CheapShark → RAWG', ['wd', 'steam', 'cheap', 'rawg']],
-    ['Generi', 'Wikidata + RAWG + Steam (si confermano a vicenda; i generi non confermati si tolgono)', ['wd', 'rawg', 'steam']],
-    ['Lingua italiana', 'Steam → PCGamingWiki → it.wikipedia (solo prove positive)', ['steam', 'pcgw', 'itw']],
-    ['Storia (senza spoiler)', 'Wikipedia → RAWG → Steam, riscritta da Gemini SOLO da questi testi', ['wiki', 'rawg', 'steam', 'gem']],
-    ['Pro e contro · Come regge oggi · Gameplay · Perché piacerti', 'Gli stessi testi (Wikipedia → RAWG → Steam) riscritti da Gemini: emerge solo ciò che dicono le fonti', ['wiki', 'rawg', 'steam', 'gem']],
-    ['A colpo d\'occhio (difficoltà, grinding, peso storia, ritmo, costo)', 'Giochi di base: dati curati a mano. Giochi aggiunti: Gemini con ricerca web (nessuna fonte fissa: è la parte meno verificabile)', ['gem']],
-    ['Ore della storia', 'Giochi di base: dati curati; giochi aggiunti: Gemini / durata media RAWG. Link a HowLongToBeat nella scheda', ['rawg', 'gem']],
-    ['Prezzo e sconto', 'Steam (dati settimanali) → CheapShark', ['steam', 'cheap']]
+    ['Voto', 'AniList (anime, manga, film giapponesi) · IMDb per i film (dai dati del server) → MyAnimeList → TMDB → altrimenti Stima', ['al', 'mal', 'tmdb']],
+    ['Anno di uscita', 'AniList → TMDB (per le serie: primo e ultimo anno)', ['al', 'tmdb']],
+    ['Generi', 'AniList + Wikidata (si aggiungono soltanto: i generi di base non si tolgono)', ['al', 'wd']],
+    ['Trama (senza spoiler)', 'TMDB in italiano → AniList → Wikipedia → MyAnimeList, riscritta da Gemini SOLO da questi testi', ['tmdb', 'al', 'wiki', 'mal', 'gem']],
+    ['Pro e contro · Come regge oggi · Realizzazione · Perché piacerti', 'Gli stessi testi riscritti da Gemini, più la ricerca web (AnimeClick, Anime News Network, recensioni)', ['tmdb', 'al', 'wiki', 'gem']],
+    ['Durata', 'AniList (episodi × minuti, volumi, capitoli) → TMDB (minuti del film, episodi) → ricerca web', ['al', 'tmdb', 'gem']],
+    ['Doppiaggio ed edizione italiana', 'it.wikipedia (doppiatori italiani) → ricerca web (editori e distributori italiani)', ['itw', 'gem']],
+    ['A colpo d\'occhio (impegno, filler, peso della storia, ritmo)', 'Gemini con ricerca web (nessuna fonte fissa: è la parte meno verificabile)', ['gem']],
+    ['Dove guardarlo', 'TMDB con i dati di JustWatch per l\'Italia (abbonamenti e servizi gratuiti)', ['tmdb']]
   ];
   async function probe(key){
     const t0 = Date.now(), ok = ()=> ({s: 'ok', ms: Date.now() - t0});
     try{
       const H = window.SearchHub;
-      if(key === 'gist'){ const j = await H.json('https://api.github.com/rate_limit', {timeout: 12000, relays: false, cache: false}); const r = j && j.resources && j.resources.core; if(!r) throw new Error('risposta vuota'); return {s: 'ok', ms: Date.now() - t0, note: 'richieste GitHub rimaste: ' + r.remaining + '/' + r.limit}; }
-      if(key === 'ponte'){ if(!(H && H.hasCustomRelay && H.hasCustomRelay())) return {s: 'off', why: 'non impostato (consigliato: è la via più affidabile per Steam)'}; await H.testCustomRelay(); const inf = await H.relayInfo(true); const r0 = ok(); r0.note = 'versione ' + ((inf && inf.v) || 1); if(!(inf && inf.v >= 2)){ r0.s = 'err'; r0.why = 'funziona ma è la versione vecchia: aggiornalo per avere Metacritic ufficiale dal vivo'; r0.layer = 'PONTE da aggiornare'; } return r0; }
-      if(key === 'voti'){ if(typeof VOTI === 'undefined' || !VOTI.games) return {s: 'err', why: 'archivio voti.js non ancora scaricato dal server (parte da solo ogni notte)'}; const n = Object.values(VOTI.games).filter(x=> x && x.s).length; return {s: 'ok', ms: n + ' voti, aggiornati al ' + VOTI.built}; }
+      if(key === 'gist'){ const j = await H.json('https://api.github.com/rate_limit', {timeout: 12000, relays: false, cache: false}); const r = j && j.resources && j.resources.core; if(!r) throw new Error('risposta vuota'); return {s: 'ok', ms: Date.now() - t0, note: 'richieste rimaste ' + r.remaining + '/' + r.limit}; }
+      if(key === 'ponte'){ if(!(H && H.hasCustomRelay && H.hasCustomRelay())) return {s: 'off', why: 'non impostato (facoltativo: serve per IMDb e MyAnimeList dal telefono)'}; const inf = await H.relayInfo(true); if(!(inf && inf.v >= 3)){ return {s: 'err', why: 'funziona ma è la versione ' + ((inf && inf.v) || 1) + ': aggiornalo alla 3 per IMDb, MyAnimeList, AnimeClick e JustWatch', layer: 'PONTE da aggiornare'}; } await H.testCustomRelay(); const r0 = ok(); r0.note = 'versione ' + inf.v; return r0; }
+      if(key === 'al'){ const a = await H.anilistMedia({al: 5114}); if(!a || !a.score) throw new Error('risposta vuota'); return ok(); }
+      if(key === 'mal'){ const m = await H.malMedia({kind: 'anime', mal: 5114}); if(!m) throw new Error('risposta vuota'); return ok(); }
+      if(key === 'tmdb'){ if(!(H && H.tmdb && H.tmdb.has())) return {s: 'off', why: 'chiave non impostata (facoltativa: trame in italiano, durata e dove guardarlo)'}; await H.tmdb.ping(); return ok(); }
       if(key === 'wiki'){ await wp({action: 'query', meta: 'siteinfo'}); return ok(); }
       if(key === 'wd'){ await fj('https://www.wikidata.org/w/api.php?action=query&meta=siteinfo&format=json&origin=*'); return ok(); }
       if(key === 'itw'){ await fj('https://it.wikipedia.org/w/api.php?action=query&meta=siteinfo&format=json&origin=*'); return ok(); }
-      if(key === 'steam'){ const s = await viaProxy('https://store.steampowered.com/api/storesearch/?term=Bayonetta&cc=IT&l=english'); if(!(s && s.items)) throw new Error('risposta vuota'); return ok(); }
-      if(key === 'pcgw'){ await pcgwInfo('Bayonetta'); return ok(); }
-      if(key === 'cheap'){ const r = await H.json('https://www.cheapshark.com/api/1.0/stores', {timeout: 12000}); if(!Array.isArray(r)) throw new Error('risposta vuota'); return ok(); }
-      if(key === 'rawg'){ if(!(H && H.rawg && H.rawg.has())) return {s: 'off', why: 'chiave non impostata'}; await H.rawg.ping(); return ok(); }
-      if(key === 'oc'){ if(!(H && H.opencritic && H.opencritic.has())) return {s: 'off', why: 'chiave non impostata'}; await H.opencritic.ping(); return ok(); }
       if(key === 'gem'){ if(!(typeof geminiKey === 'function' && geminiKey())) return {s: 'off', why: 'chiave Gemini non impostata'};
-        // provo DAVVERO il modello principale (anche se era in pausa): se risponde tolgo la pausa; se è al limite lo dico e verifico il leggero
         try{ await window.geminiTestModel(); const r0 = ok(); r0.note = 'modello principale ok'; return r0; }
-        catch(e){ if(e.status !== 429) throw e; await window.geminiTestModel(typeof GEMINI_FALLBACK_MODEL !== 'undefined' ? GEMINI_FALLBACK_MODEL : 'gemini-flash-lite-latest'); const r0 = ok(); r0.note = 'il modello principale è al limite di richieste' + (e.perDay ? ' del giorno' : ' del minuto') + ': intanto uso quello leggero (funziona)'; return r0; } }
+        catch(e){ if(e.status !== 429) throw e; await window.geminiTestModel(typeof GEMINI_FALLBACK_MODEL !== 'undefined' ? GEMINI_FALLBACK_MODEL : 'gemini-flash-lite-latest'); const r0 = ok(); r0.note = 'il modello principale è al limite di richieste: uso il modello leggero'; return r0; } }
     }catch(e){ return {s: 'err', why: whyFail(e), raw: String((e && e.message) || e)}; }
     return {s: 'off', why: 'non controllabile'};
   }
-  const SRC_NAMES = {ponte: 'Ponte personale (Cloudflare)', gist: 'GitHub (sincronizzazione)', voti: 'Metacritic ufficiale (server)', wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', cheap: 'CheapShark', rawg: 'RAWG', oc: 'OpenCritic', gem: 'Gemini'};
+  const SRC_NAMES = {ponte: 'Ponte personale (Cloudflare)', gist: 'GitHub (sincronizzazione)', al: 'AniList', mal: 'MyAnimeList', tmdb: 'TMDB', wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', gem: 'Gemini (AI)'};
   // dove sta il problema quando una fonte non risponde: il sito, il browser (blocchi CORS) o il limite di una chiave
   const SRC_HINT = {ponte: 'Apri Cloudflare → Workers → il tuo ponte → «Modifica codice», incolla il codice nuovo (pulsante «Copia il codice nuovo del ponte» qui sotto) e premi «Distribuisci». L\'indirizzo resta uguale.',
-    steam: 'Steam funziona (dal server rispondo sempre) ma blocca il browser: serve un ponte. Soluzione stabile: i dati arrivano ogni notte dal server (dati settimanali); in più puoi attivare il «ponte personale» (Cloudflare) in ⚙️.',
-    oc: 'OpenCritic ha chiuso l\'accesso libero (solo chiave a pagamento/limitata): ora il voto arriva da Metacritic ufficiale dal server.',
+    mal: 'MyAnimeList (tramite Jikan) a volte non risponde per qualche minuto: è un servizio gratuito. Il voto principale arriva comunque da AniList.',
+    tmdb: 'TMDB: chiave non valida o scaduta. Copiala di nuovo da themoviedb.org → Impostazioni → API (va bene la chiave corta o il token lungo).',
     gem: 'Gemini: limite di richieste del piano gratuito (errore 429). Riprovo da solo con il modello più leggero; passa l\'ora e torna.',
-    rawg: 'RAWG: chiave scaduta o quota giornaliera finita.', wiki: 'Wikipedia limita le richieste molto ravvicinate: aspetto e riprovo da solo.', wd: 'Wikidata limita le richieste ravvicinate (errore 429): passa dopo qualche minuto.'};
-  const hintFor = (k, r)=> (/^LIMITE/.test(r.layer || '') || /^(steam|oc|gem|rawg|ponte)$/.test(k)) && SRC_HINT[k] ? SRC_HINT[k] : (/^BROWSER/.test(r.layer || '') ? 'il telefono non riesce a raggiungerla adesso (rete assente, bloccata o ponti spenti): riprova con un\'altra rete o più tardi' : '');
+    al: 'AniList limita le richieste ravvicinate (90 al minuto): aspetto e riprovo da solo.', wiki: 'Wikipedia limita le richieste molto ravvicinate: aspetto e riprovo da solo.', wd: 'Wikidata limita le richieste ravvicinate (errore 429): passa dopo qualche minuto.'};
+  const hintFor = (k, r)=> (/^LIMITE/.test(r.layer || '') || /^(mal|tmdb|gem|al|ponte)$/.test(k)) && SRC_HINT[k] ? SRC_HINT[k] : (/^BROWSER/.test(r.layer || '') ? 'il telefono non riesce a raggiungerla adesso (rete assente, bloccata o ponti spenti): riprova con un\'altra rete o più tardi' : '');
   // sonda con dettagli: via usata (diretto o quale ponte), errore grezzo, livello del problema
   async function probeFull(k){
     if(window.SearchHub) SearchHub.bypassCache = true;
@@ -695,8 +647,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     let easy = '📋 Controllo fonti — ' + now + '\n' + okN + ' fonti su ' + keys.length + ' funzionano.\n\n';
     easy += keys.map(k=>{ const r = res[k]; return ic(r) + ' ' + SRC_NAMES[k] + ': ' + (r.s === 'ok' ? 'funziona' + (r.via && r.via !== 'diretto' ? ' (passando da ' + r.via + ')' : '') : r.s === 'off' ? r.why : r.why + (hintFor(k, r) ? '\n    → ' + hintFor(k, r) : '')); }).join('\n');
     try{ const m = window.rtStorageUse && rtStorageUse(); if(m) easy += '\n\n' + (m.pct >= 70 ? '⚠️' : '💾') + ' Memoria del browser usata: ' + m.pct + '%' + (m.pct >= 70 ? ' — si sta riempiendo: dillo a Claude (va spostata in una memoria più grande).' : ' (tutto ok)'); }catch(e){}
-    easy += '\n\n' + (bad.length ? 'In sintesi: ' + bad.length + ' fonti con problemi. Il voto resta al sicuro perché arriva dall\'archivio ufficiale Metacritic scaricato ogni notte dal server.' : 'Tutto in ordine.');
-    let H = window.SearchHub, tech = '# Rapporto fonti Raccoon Tier\n- ora: ' + now + '\n- versione: ' + ((document.querySelector('meta[name=build]') || {}).content || '?') + '\n- online: ' + navigator.onLine + '\n- dispositivo: ' + navigator.userAgent + '\n- ponte personale: ' + (H && H.hasCustomRelay && H.hasCustomRelay() ? 'impostato' : 'NON impostato') + '\n- archivio voti.js: ' + (typeof VOTI !== 'undefined' ? VOTI.built + ', ' + Object.keys(VOTI.games).length + ' giochi' : 'non caricato') + '\n- facts.js: ' + (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.built ? GAME_FACTS.built : 'non caricato') + '\n\n## Esito per fonte\n';
+    easy += '\n\n' + (bad.length ? 'In sintesi: ' + bad.length + ' fonti con problemi. Il voto resta al sicuro: quello già salvato non cambia finché una fonte affidabile (AniList, IMDb) non lo conferma.' : 'Tutto in ordine.');
+    let H = window.SearchHub, tech = '# Rapporto fonti Raccoon Anime\n- ora: ' + now + '\n- versione: ' + ((document.querySelector('meta[name=build]') || {}).content || '?') + '\n- online: ' + navigator.onLine + '\n- dispositivo: ' + navigator.userAgent + '\n- ponte personale: ' + (H && H.hasCustomRelay && H.hasCustomRelay() ? 'impostato' : 'NON impostato') + '\n- archivio voti.js: ' + (typeof VOTI !== 'undefined' ? VOTI.built + ', ' + Object.keys(VOTI.games).length + ' giochi' : 'non caricato') + '\n- facts.js: ' + (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.built ? GAME_FACTS.built : 'non caricato') + '\n\n## Esito per fonte\n';
     tech += keys.map(k=>{ const r = res[k]; return '- ' + SRC_NAMES[k] + ' [' + k + ']: ' + (r.s === 'ok' ? 'OK ' + (typeof r.ms === 'number' ? r.ms + ' ms' : r.ms) + ', via ' + (r.via || 'diretto') + (r.note ? ', ' + r.note : '') : r.s === 'off' ? 'SALTATA (' + r.why + ')' : 'ERRORE ' + r.ms + ' ms — ' + (r.layer || '') + ' — ' + (r.raw || r.why) + (r.log && r.log.length ? '\n    tentativi: ' + r.log.join(' | ') : '')); }).join('\n');
     try{ tech += '\n\n## Ponti pubblici (punteggio 0-100)\n' + H.relayStatus().map(x=> '- ' + x.name + ': ' + x.score + '%' + (x.cooling ? ' (in pausa)' : '') + ' ok=' + (x.ok || 0) + ' errori=' + (x.fail || 0)).join('\n'); }catch(e){}
     try{ const m = window.rtStorageUse && rtStorageUse(); if(m) tech += '\n\n## Memoria del browser (localStorage)\n- usata: ' + m.mb + ' MB su circa 5 (' + m.pct + '%)\n- chiavi più grandi: ' + m.top.map(x=> x[0] + ' ' + (x[1] / 1e6).toFixed(2) + ' MB').join(', '); }catch(e){}
@@ -746,13 +698,11 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     if(c.kind !== 'animazione' && window.SearchHub && SearchHub.anilistFind){
       try{ const a = await SearchHub.anilistFind(c.name, c.kind); if(a && a.score){ if(!c.kind && a.kind) c.kind = a.kind; return {st: {}, score: a.score, vs: 'AniList', info: {year: a.year}}; } }catch(e){}
     }
-    const src = await gather({name: c.name, plat: c.plat || '', year: c.year || '', tags: [], custom: true}, true);
-    const base = {st: src.st, info: {year: (src.rawg && src.rawg.year) || null, ocReviews: (src.oc && src.oc.reviews) || null}};      // v212: anche l'anno vero (RAWG) per le proposte di Novità
-    if(src.voti && src.voti.s) return Object.assign(base, {score: src.voti.s, vs: 'Metacritic (sito ufficiale)'});
-    if(src.wiki && src.wiki.mc) return Object.assign(base, {score: src.wiki.mc, vs: 'Metacritic (da Wikipedia)'});
-    if(src.facts && src.facts.c && src.facts.c.mc) return Object.assign(base, {score: src.facts.c.mc, vs: 'Metacritic (da CheapShark)'});
-    if(src.oc && src.oc.score) return Object.assign(base, {score: src.oc.score, vs: 'OpenCritic (nessun Metacritic trovato)'});
-    if(src.rawg && src.rawg.mc) return Object.assign(base, {score: src.rawg.mc, vs: 'RAWG (Metacritic riportato da RAWG)'});
+    const src = await gather({name: c.name, plat: c.plat || '', year: c.year || '', kind: c.kind, tags: [], custom: true}, false);
+    const t = src.tmdb, base = {st: src.st, info: {year: (src.al && src.al.y1) || (t && t.y1) || null}};
+    if(src.al && src.al.score) return Object.assign(base, {score: src.al.score, vs: 'AniList'});
+    if(src.mal && src.mal.score && src.mal.votes >= 200) return Object.assign(base, {score: src.mal.score, vs: 'MyAnimeList'});
+    if(t && t.vote && t.votes >= 100) return Object.assign(base, {score: t.vote, vs: 'TMDB'});
     return base;
   };
   // ----- interfaccia -----
@@ -771,21 +721,21 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const status = t=>{ const s = el.querySelector('#uiStatus'); if(s) s.textContent = t; };
     let src;
     try{ src = await gather(g); }catch(e){ src = {wiki:null, wd:null, errors:2}; }
-    const openFail = !src.wiki && !src.wd && !src.rawg;                       // nessuna fonte aperta ha risposto: non mi arrendo, passo alla ricerca web (Gemini) e alle altre fonti
-    if(openFail && ((src.errors >= 2 && !geminiKey()) || navigator.onLine === false)){ el.innerHTML = shell('<div class="lp-sub">📡 Non riesco a raggiungere le fonti (Wikipedia e Wikidata non rispondono: rete assente, lenta o bloccata). Il gioco non è «sparito»: riprova tra poco. Se succede spesso, apri 🛠️ Diagnostica fonti → «🩺 Prova le fonti e fai il rapporto».</div>'); return; }
-    if(openFail && !geminiKey() && !src.steam && !src.pcgw && !src.itw){ el.innerHTML = shell('<div class="lp-sub">🦝 Frugu Frugu ha guardato in tutti i bidoni aperti (Wikipedia, Wikidata, it.wikipedia, Steam, PCGamingWiki) e non ha trovato questo titolo. Con una chiave Gemini (⚙️ in Chiedi a Claude) frugherei anche sul web: aggiungila e riprova.</div>'); return; }
+    const openFail = !src.wiki && !src.wd && !src.al && !src.tmdb && !src.mal;                       // nessuna fonte aperta ha risposto: non mi arrendo, passo alla ricerca web (Gemini) e alle altre fonti
+    if(openFail && ((src.errors >= 2 && !geminiKey()) || navigator.onLine === false)){ el.innerHTML = shell('<div class="lp-sub">📡 Non riesco a raggiungere le fonti (AniList, Wikipedia e Wikidata non rispondono: rete assente, lenta o bloccata). Il titolo non è «sparito»: riprova tra poco. Se succede spesso, apri 🛠️ Diagnostica fonti → «🩺 Prova le fonti e fai il rapporto».</div>'); return; }
+    if(openFail && !geminiKey() && !src.itw){ el.innerHTML = shell('<div class="lp-sub">🦝 Frugu Frugu ha guardato in tutti i bidoni aperti (AniList, MyAnimeList, TMDB, Wikipedia, Wikidata, it.wikipedia) e non ha trovato questo titolo. Con una chiave Gemini (⚙️ in Chiedi a Claude) frugherei anche sul web: aggiungila e riprova.</div>'); return; }
     let changes = factChanges(g, src), note = '';
-    if(src.steamFailed || src.pcgwFailed) note = 'Non raggiungibili ora: ' + [src.steamFailed && 'Steam', src.pcgwFailed && 'PCGamingWiki'].filter(Boolean).join(', ') + ' (le altre fonti sì).';
+    { const down = Object.values(src.st || {}).filter(x=> x.state === 'err').map(x=> x.name); if(down.length) note = 'Non raggiungibili ora: ' + down.join(', ') + ' (le altre fonti sì).'; }
     status(openFail ? 'Frugu Frugu: le fonti aperte sono vuote, passo al bidone del web…' : 'Frugu Frugu ha trovato le fonti. Riscrivo trama e pro/contro…');
     try{ const t = await textChanges(g, src); changes = changes.concat(t.changes); note = (note ? note + ' ' : '') + (t.note || ''); }catch(e){ note = 'Testi non riscritti: ' + llmErrorText(e); }
-    status('Ricerca approfondita di ore, gameplay, lingua ed edizioni…');
+    status('Ricerca approfondita di durata, realizzazione, italiano e versioni…');
     let deepSrc = [];
     try{ const d = await deepChanges(g); if(d.changes.some(c=> c.id === 'aging')) changes = changes.filter(c=> c.id !== 'aging'); changes = changes.concat(d.changes); deepSrc = d.sources; if(d.note) note += (note ? ' ' : '') + d.note; }catch(e){ note += (note ? ' ' : '') + 'Ricerca approfondita non riuscita: ' + llmErrorText(e); }
-    const sources = [src.rawg && `<a href="${src.rawg.url}" target="_blank" rel="noopener">RAWG</a>`, src.itw && `<a href="${src.itw.url}" target="_blank" rel="noopener">it.wikipedia</a>`, src.steam && `<a href="${src.steam.url}" target="_blank" rel="noopener">Steam</a>`, src.pcgw && `<a href="${src.pcgw.url}" target="_blank" rel="noopener">PCGamingWiki</a>`, src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
+    const sources = [src.al && `<a href="${src.al.url}" target="_blank" rel="noopener">AniList</a>`, src.mal && `<a href="${src.mal.url}" target="_blank" rel="noopener">MyAnimeList</a>`, src.tmdb && `<a href="${src.tmdb.url}" target="_blank" rel="noopener">TMDB</a>`, src.itw && `<a href="${src.itw.url}" target="_blank" rel="noopener">it.wikipedia</a>`, src.wiki && `<a href="${src.wiki.url}" target="_blank" rel="noopener">Wikipedia</a>`, src.wd && src.wd.qid && `<a href="https://www.wikidata.org/wiki/${src.wd.qid}" target="_blank" rel="noopener">Wikidata</a>`].concat(deepSrc.map(s=> `<a href="${escHtml(s.uri)}" target="_blank" rel="noopener">${escHtml(s.title)}</a>`)).filter(Boolean).join(' · ');
     // «Applica tutto da solo» (⚙️ Fonti e lucchetti): le proposte senza avvisi si applicano subito; qui restano solo quelle con un ⚠️
     if(autoAll() && changes.length){
       const autoL = changes.filter(c=> canAuto(c, g));
-      if(autoL.length){ try{ await applyPatch(g, mergePatch(autoL)); markChecked(g.id); }catch(e){} changes = changes.filter(c=> !autoL.includes(c)); note = '✅ Applicate da sole: ' + autoL.map(c=> c.label).join(', ') + ' (le annulli dalla cronologia del gioco).' + (note ? ' ' + note : ''); }
+      if(autoL.length){ try{ await applyPatch(g, mergePatch(autoL)); markChecked(g.id); }catch(e){} changes = changes.filter(c=> !autoL.includes(c)); note = '✅ Applicate da sole: ' + autoL.map(c=> c.label).join(', ') + ' (le annulli dalla cronologia del titolo).' + (note ? ' ' + note : ''); }
       if(!changes.length){ el.classList.remove('show'); try{ showToast(note, 7000); openModal(GAMES.find(x=> x.id === g.id) || g); }catch(e){} return; }
     }
     if(!changes.length){ markChecked(g.id); el.innerHTML = shell(`<div class="lp-sub">✅ Nessuna correzione da proporre: i dati coincidono con le fonti (${sources || 'nessuna fonte'}).${note ? '<br>' + escHtml(note) : ''}</div>`); return; }
@@ -858,13 +808,13 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   function auSchedule(ms){ clearTimeout(auTimer); auTimer = setTimeout(auStep, ms == null ? auDelay : ms); }
   async function auStep(){
     if(!auditOn() || auBusy) return;
-    if(typeof detailsReady === 'function' && !detailsReady()) return auSchedule(1500);   // aspetta che i dettagli dei giochi siano caricati (altrimenti confronterebbe con dati vuoti)
+    if(typeof detailsReady === 'function' && !detailsReady()) return auSchedule(1500);   // aspetta che i dettagli dei titoli siano caricati (altrimenti confronterebbe con dati vuoti)
     const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.modal-backdrop.show, .dup-backdrop.show, .rt-loader.show');
     if(!calm){ return auSchedule(30000); }
     // v216: se stai usando il programma proprio adesso (tocchi, scorri), Update+ aspetta che ti fermi: il suo lavoro non deve mai capitare sotto il tuo dito
     try{ if(typeof rtLastInput !== 'undefined' && Date.now() - rtLastInput < 4000) return auSchedule(2500); }catch(e){}
     const ai = useAI(), day = dayLoad();
-    if(ai && day.n >= auCap()){ auPause = 'Limite giornaliero raggiunto (' + day.n + ' giochi): riprendo domani.'; return auSchedule(30 * 60e3); }
+    if(ai && day.n >= auCap()){ auPause = 'Limite giornaliero raggiunto (' + day.n + ' titoli): riprendo domani.'; return auSchedule(30 * 60e3); }
     auPause = '';
     const g = auNext(); if(!g) return auSchedule(6 * 3600e3);
     try{ if(window.rtTexts) await rtTexts.ensure(g); }catch(e){}
@@ -907,14 +857,14 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const clean = GAMES.filter(g=> a[g.id] && !(a[g.id].ch && a[g.id].ch.length)).sort((x, y)=> a[y.id].t.localeCompare(a[x.id].t));
     let undo = {}; try{ undo = JSON.parse(localStorage.getItem(AU_UNDO) || '{}') || {}; }catch(e){}
     const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔎 Controllo dati</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
-    const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · oggi ${st.today}/${st.cap}${useAI() ? '' : ' · <b>senza chiave Gemini controllo solo voto, anno, generi e lingua</b>'}. ${auPause ? '<br>⏸️ ' + escHtml(auPause) : ''}<br><b>Non cambia nulla senza il tuo ok.</b> Le proposte vengono da fonti aperte e da Gemini con ricerca web; controllale prima di applicarle.</div>
-      <label class="ask-toggle"><input type="checkbox" id="fpOn" ${updatePlusOn() ? 'checked' : ''}${window.rtCalm && rtCalm() ? ' disabled' : ''}> ${giIcon('upplus')} Update+ all\'avvio: aggiorna tutte le info e la locandina di ogni gioco, una volta sola <small>(${updatePlusStats().done}/${updatePlusStats().total} fatti)</small></label>
+    const head = `<div class="lp-sub">Controllati <b>${st.done}</b> titoli su ${st.total} · oggi ${st.today}/${st.cap}${useAI() ? '' : ' · <b>senza chiave Gemini controllo solo voto, anno, generi e lingua</b>'}. ${auPause ? '<br>⏸️ ' + escHtml(auPause) : ''}<br><b>Non cambia nulla senza il tuo ok.</b> Le proposte vengono da fonti aperte e da Gemini con ricerca web; controllale prima di applicarle.</div>
+      <label class="ask-toggle"><input type="checkbox" id="fpOn" ${updatePlusOn() ? 'checked' : ''}${window.rtCalm && rtCalm() ? ' disabled' : ''}> ${giIcon('upplus')} Update+ all\'avvio: aggiorna tutte le info e la locandina di ogni titolo, una volta sola <small>(${updatePlusStats().done}/${updatePlusStats().total} fatti)</small></label>
       <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}${window.rtCalm && rtCalm() ? ' disabled' : ''}> Controlla da solo in background</label>
-      <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn${auTurbo()?' primary':''}" id="auTurbo" title="Un gioco ogni ~12 secondi, fino a 800 al giorno (usa più quota Gemini)">⚡ Turbo ${auTurbo()?'acceso':'spento'}</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
+      <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn${auTurbo()?' primary':''}" id="auTurbo" title="Un titolo ogni ~12 secondi, fino a 800 al giorno (usa più quota Gemini)">⚡ Turbo ${auTurbo()?'acceso':'spento'}</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
     let body;
     if(tab === 'todo') body = todo.length ? `<div class="lp-tools"><button class="btn primary" id="auStart">▶ Rivedi una per una</button></div><div class="gc-rows">${todo.map(g=> `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>${a[g.id].ch.length} ${a[g.id].ch.length === 1 ? 'modifica' : 'modifiche'}: ${a[g.id].ch.map(c=> escHtml(c.label.replace(/ ⚠️.*$/, ''))).join(', ')}</small> <button class="btn" data-rv="${g.id}">Rivedi</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Niente da approvare per ora ✅</div>';
     else if(tab === 'done') body = Object.keys(undo).length ? `<div class="gc-rows">${Object.keys(undo).map(id=>{ const g = GAMES.find(x=> x.id == id); return g ? `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>applicato il ${fmtD(undo[id].t)}</small> <button class="btn" data-un="${id}">↩️ Annulla</button></span></div>` : ''; }).join('')}</div>` : '<div class="lp-sub">Nessuna modifica applicata da qui.</div>';
-    else body = clean.length ? `<div class="gc-rows">${clean.slice(0, 150).map(g=> `<div class="gc-row"><span>✅ <b>${escHtml(g.name)}</b> <small>${fmtD(a[g.id].t)}${a[g.id].deep ? ' · fonti + AI' : ' · solo fonti aperte'}</small></span></div>`).join('')}</div>${clean.length > 150 ? '<div class="lp-sub">…e altri ' + (clean.length - 150) + '</div>' : ''}` : '<div class="lp-sub">Nessun gioco controllato senza modifiche, per ora.</div>';
+    else body = clean.length ? `<div class="gc-rows">${clean.slice(0, 150).map(g=> `<div class="gc-row"><span>✅ <b>${escHtml(g.name)}</b> <small>${fmtD(a[g.id].t)}${a[g.id].deep ? ' · fonti + AI' : ' · solo fonti aperte'}</small></span></div>`).join('')}</div>${clean.length > 150 ? '<div class="lp-sub">…e altri ' + (clean.length - 150) + '</div>' : ''}` : '<div class="lp-sub">Nessun titolo controllato senza modifiche, per ora.</div>';
     el.innerHTML = shell(head + body);
     el.classList.add('show');
     el.querySelector('#auOn').addEventListener('change', e=> auditSetOn(e.target.checked));
@@ -931,7 +881,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     let el = document.getElementById('auBadge');
     if(!el){ el = document.createElement('button'); el.id = 'auBadge'; el.type = 'button'; el.className = 'au-badge'; document.body.appendChild(el); el.addEventListener('click', ()=> openAuditPanel('todo')); }
     const n = auditStats().props;
-    el.innerHTML = '<b>' + n + '</b>'; el.title = el.ariaLabel = n + (n === 1 ? ' gioco con modifiche da approvare' : ' giochi con modifiche da approvare');
+    el.innerHTML = '<b>' + n + '</b>'; el.title = el.ariaLabel = n + (n === 1 ? ' titolo con modifiche da approvare' : ' titoli con modifiche da approvare');
     el.classList.toggle('show', n > 0);
   }
   window.addEventListener('audit-update', auBadge);
@@ -990,13 +940,13 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   // All'avvio dell'app, con calma e in silenzio: prima i giochi con i dati meno attendibili (aggiunti da te, voti «stima»), poi gli altri; e subito dopo aver accettato un gioco col cuore.
   // Fonti nell'ordine di SearchHub.PRIORITY. Copertina mancante: la trova. Giochi aggiunti da te: applica le correzioni sicure; giochi di base: le proposte vanno in «Controllo dati» (le approvi tu).
   // Il simbolo dorato si prende solo se almeno 2 fonti hanno risposto: se i siti non rispondono riprova dopo 3 giorni, senza fingere.
-  const FR = 'atl_fresh', FR_ON = 'atl_update_plus', FP_BUDGET = 40, FP_EPOCH = 3;      // FP_EPOCH: sale quando cambia la logica dei voti, così i giochi ancora «stima» si ricontrollano una volta
+  const FR = 'atl_fresh', FR_ON = 'atl_update_plus', FP_BUDGET = 40, FP_EPOCH = 4;      // FP_EPOCH: sale quando cambia la logica dei voti, così i titoli ancora «stima» si ricontrollano una volta
   const frLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(FR) || '{}') || {}; }catch(e){ return {}; } };
   const frSave = o=>{ try{ localStorage.setItem(FR, JSON.stringify(o)); }catch(e){} };
   window.updatePlusOn = ()=> !(window.rtCalm && rtCalm()) && localStorage.getItem(FR_ON) !== 'off';
   window.updatePlusSetOn = on=>{ try{ localStorage.setItem(FR_ON, on ? 'on' : 'off'); }catch(e){} if(on) fpKick(3000); };
   window.updatePlusStats = ()=>{ const f = frLoad(); const n = GAMES.filter(g=> f[g.id] && f[g.id].gold).length; return {done: n, total: GAMES.length}; };
-  const FP_SRC = {wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', rawg: 'RAWG', oc: 'OpenCritic', facts: 'Dati settimanali'};
+  const FP_SRC = {al: 'AniList', mal: 'MyAnimeList', tmdb: 'TMDB', wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia'};
   const fpQueue = [], fpMiss = {};
   window.updatePlusQueue = id=>{ if(!fpQueue.includes(id)) fpQueue.push(id); fpKick(6000); };
   // v218: aprendo un gioco, dopo qualche secondo (scheda ferma, pagina carica) parte Update+ per QUESTO gioco: ma solo se non l'ha già fatto
@@ -1032,7 +982,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     while(fpQueue.length){
       const id = fpQueue[0], g = GAMES.find(x=> x.id === id);
       if(g) { fpQueue.shift(); return g; }
-      fpMiss[id] = (fpMiss[id] || 0) + 1; if(fpMiss[id] > 8){ fpQueue.shift(); continue; } break;      // il gioco può non essere ancora comparso in libreria
+      fpMiss[id] = (fpMiss[id] || 0) + 1; if(fpMiss[id] > 8){ fpQueue.shift(); continue; } break;      // il titolo può non essere ancora comparso in libreria
     }
     const fr = frLoad(), now = Date.now(), vs0 = vsLoad();
     const weak = g=> g.custom ? 0 : (g.m !== 'V' ? 1 : (window.SearchHub && SearchHub.factsFor(g) ? 3 : 2));
@@ -1048,7 +998,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   }
   let fpTextN = 0;                       // trame riscritte dall'AI in questa sessione (con limite, per non consumare le richieste gratuite)
   async function updatePlus(g, manual){
-    try{ if(window.rtTexts) await rtTexts.ensure(g); }catch(e){}      // v209: confronto con i testi completi del gioco, non con l'indice
+    try{ if(window.rtTexts) await rtTexts.ensure(g); }catch(e){}      // v209: confronto con i testi completi del titolo, non con l'indice
     g = latest(g);
     const src = await gather(g, false);
     const names = Object.keys(FP_SRC).filter(k=> src[k]).map(k=> FP_SRC[k]);
@@ -1063,7 +1013,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     }catch(e){}
     let applied = 0, pending = 0, cover = false;
     if(g.custom){
-      const safe = ch.filter(c=> !c.off && c.patch).map(c=> c.patch.tags ? Object.assign({}, c, {patch: Object.assign({}, c.patch, {tags: c.patch.tags.slice(0, 3)})}) : c);      // massimo 3 generi nei giochi aggiunti: più di 3 sono quasi sempre rumore delle fonti
+      const safe = ch.filter(c=> !c.off && c.patch).map(c=> c.patch.tags ? Object.assign({}, c, {patch: Object.assign({}, c.patch, {tags: c.patch.tags.slice(0, 3)})}) : c);      // massimo 3 generi nei titoli aggiunti: più di 3 sono quasi sempre rumore delle fonti
       if(safe.length){ await applyPatch(g, mergePatch(safe), true); applied = safe.length; }
     } else {
       // il voto Metacritic (o OpenCritic) di un gioco ancora «stima» si applica da solo, anche sui giochi di base: è la fonte che rende un voto verificato
@@ -1108,7 +1058,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   function fpKick(ms){ clearTimeout(fpTimer); fpTimer = setTimeout(fpStep, ms == null ? 4000 : ms); }
   async function fpStep(){
     if(fpBusy) return;
-    if(!updatePlusOn() && !fpQueue.length) return;                  // v217: i giochi appena aggiunti da te si completano anche con Update+ spento / modalità calma
+    if(!updatePlusOn() && !fpQueue.length) return;                  // v217: i titoli appena aggiunti da te si completano anche con Update+ spento / modalità calma
     if(window.__catalogPending) return fpKick(2500);          // prima scarico il catalogo condiviso: Update+ non riparte da zero su un dispositivo nuovo
     if(typeof detailsReady === 'function' && !detailsReady()) return fpKick(2000);
     const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.rt-loader.show');

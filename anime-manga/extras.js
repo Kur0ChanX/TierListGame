@@ -250,10 +250,15 @@
   const enN = async g=>{ try{ return window.SearchHub && SearchHub.enName ? await SearchHub.enName(g) : g.name; }catch(e){ return g.name; } };
   async function findCover(g, opts){
     opts = opts || {}; const say = opts.onStep || (()=>{});
+    { let hit = null; const ADD = (url, source)=>{ if(!hit) hit = {url, source}; };
+      // versione Anime: prima la locandina ufficiale di AniList (anime e manga) e di TMDB (film, serie, animazione; serve la chiave)
+      try{ if(window.SearchHub && SearchHub.anilistMedia && g.kind !== 'animazione'){ say('AniList…'); const a = await SearchHub.anilistMedia(g); if(a && a.cover) ADD(a.cover, 'AniList'); } }catch(e){}
+      try{ if(window.SearchHub && SearchHub.tmdb && SearchHub.tmdb.has() && g.kind !== 'manga' && g.kind !== 'manhwa'){ say('TMDB…'); const t = await SearchHub.tmdbMedia(g); if(t && t.poster) ADD(t.poster, 'TMDB'); } }catch(e){}
+      if(hit) return hit; }
     let wd = null;
     say('Wikidata…'); try{ wd = await wikidataInfo(await enN(g)); }catch(e){}
     try{ const r = window.SearchHub && SearchHub.resolveGame && await SearchHub.resolveGame(g); if(r && r.sid){ wd = wd || {}; wd.steam = [String(r.sid)].concat((wd.steam || []).filter(x=> String(x) !== String(r.sid))); } }catch(e){}
-    if(wd && wd.steam && wd.steam.length){
+    if(false && wd && wd.steam && wd.steam.length){      // versione Anime: niente Steam (troverebbe il videogioco omonimo)
       say('Steam…');
       const u = await firstOk(wd.steam.slice(0, 2).map(id=> `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/library_600x900.jpg`));
       if(u) return {url: u, source: 'Steam'};
@@ -276,9 +281,15 @@
   // TUTTE le locandine trovabili (per «Cambia locandina»): Steam (verticale, HD, orizzontale), Libretro (tutte le regioni), Wikipedia, Wikimedia, RAWG
   async function allCovers(g, onStep){
     const say = onStep || (()=>{}), out = [], add = (url, source)=>{ if(url && !out.some(o=> o.url === url)) out.push({url, source}); };
+    { const ADD = add;
+      // versione Anime: prima la locandina ufficiale di AniList (anime e manga) e di TMDB (film, serie, animazione; serve la chiave)
+      try{ if(window.SearchHub && SearchHub.anilistMedia && g.kind !== 'animazione'){ say('AniList…'); const a = await SearchHub.anilistMedia(g); if(a && a.cover) ADD(a.cover, 'AniList'); } }catch(e){}
+      try{ if(window.SearchHub && SearchHub.tmdb && SearchHub.tmdb.has() && g.kind !== 'manga' && g.kind !== 'manhwa'){ say('TMDB…'); const t = await SearchHub.tmdbMedia(g); if(t && t.poster) ADD(t.poster, 'TMDB'); } }catch(e){}
+    }
     let wd = null; say('Wikidata…'); try{ wd = await wikidataInfo(await enN(g)); }catch(e){}
     const steamIds = new Set(); try{ const r = window.SearchHub && SearchHub.resolveGame && await SearchHub.resolveGame(g); if(r && r.sid) steamIds.add(String(r.sid)); }catch(e){} ((wd && wd.steam) || []).forEach(x=> steamIds.add(String(x))); try{ const f = window.SearchHub && SearchHub.factsFor(g); if(f && f.s && f.s.id) steamIds.add(String(f.s.id)); }catch(e){}
-    [...steamIds].slice(0, 2).forEach(id=>{ const B = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/`; add(B + 'library_600x900_2x.jpg', 'Steam HD'); add(B + 'library_600x900.jpg', 'Steam'); add(B + 'header.jpg', 'Steam (orizzontale)'); });
+    [...steamIds].slice(0, 0).forEach(id=>{      // versione Anime: niente Steam
+      const B = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/`; add(B + 'library_600x900_2x.jpg', 'Steam HD'); add(B + 'library_600x900.jpg', 'Steam'); add(B + 'header.jpg', 'Steam (orizzontale)'); });
     const sys = lrSystems(g.plat);
     if(sys.length){ say('Libretro…'); const urls = []; lrTitles([wd && wd.label, window.SearchHub && SearchHub.enNameSync ? SearchHub.enNameSync(g) : g.name, g.name]).forEach(t=> sys.forEach(sy=> LR_REG.forEach(r=> urls.push(LR + encodeURIComponent(sy) + '/Named_Boxarts/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png'))))); urls.slice(0, 40).forEach(u=> add(u, 'Libretro')); }
     say('Wikipedia…'); try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); add(u, 'Wikipedia'); }catch(e){}

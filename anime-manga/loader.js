@@ -24,7 +24,7 @@ window.rtCalm = ()=>{ try{ return localStorage.getItem('art_calm') === 'on'; }ca
     clear(){ buf = []; try{ localStorage.removeItem(KEY); }catch(e){} },
     text(){ return buf.map(e=> `${new Date(e.t).toLocaleTimeString('it-IT', {timeZone: 'Europe/Rome'})} [${e.kind || 'note'}] ${e.src || ''} ${e.status != null ? 'HTTP ' + e.status : ''} ${e.ms != null ? e.ms + 'ms' : ''} ${e.ok === false ? 'ERRORE' : ''} ${e.url || ''} ${e.err || ''} ${e.note || ''}`.replace(/\s+/g, ' ').trim()).join('\n'); }
   };
-  const HOSTS = [[/wikipedia\.org/, 'Wikipedia', 'wikipedia'], [/query\.wikidata|wikidata\.org/, 'Wikidata', 'wikidata'], [/steampowered|steamstatic/, 'Steam', 'steam'], [/pcgamingwiki/, 'PCGamingWiki', 'pcgw'], [/rawg\.io/, 'RAWG', 'rawg'], [/reddit\.com/, 'Reddit', 'reddit'], [/cheapshark\.com/, 'CheapShark', 'cheapshark'], [/steamspy\.com/, 'SteamSpy', 'steamspy'], [/catalog\.gog\.com|gog\.com/, 'GOG', 'gog'], [/r\.jina\.ai|cors\.eu\.org|yacdn\.org/, 'Proxy CORS', 'proxy'], [/generativelanguage/, 'Gemini', null], [/wsrv\.nl/, 'wsrv (copertine)', 'covers'], [/libretro/, 'Libretro (copertine)', 'covers'], [/api\.github\.com|gist\.github/, 'GitHub Gist', 'gist'], [/corsproxy|allorigins|codetabs|thingproxy/, 'Proxy CORS', 'proxy']];
+  const HOSTS = [[/graphql\.anilist\.co|anilist\.co/, 'AniList', 'anilist'], [/api\.jikan\.moe|myanimelist\.net/, 'MyAnimeList', 'mal'], [/themoviedb\.org/, 'TMDB', 'tmdb'], [/wikipedia\.org/, 'Wikipedia', 'wikipedia'], [/query\.wikidata|wikidata\.org/, 'Wikidata', 'wikidata'], [/steampowered|steamstatic/, 'Steam', 'steam'], [/pcgamingwiki/, 'PCGamingWiki', 'pcgw'], [/rawg\.io/, 'RAWG', 'rawg'], [/reddit\.com/, 'Reddit', 'reddit'], [/cheapshark\.com/, 'CheapShark', 'cheapshark'], [/steamspy\.com/, 'SteamSpy', 'steamspy'], [/catalog\.gog\.com|gog\.com/, 'GOG', 'gog'], [/r\.jina\.ai|cors\.eu\.org|yacdn\.org/, 'Proxy CORS', 'proxy'], [/generativelanguage/, 'Gemini', null], [/wsrv\.nl/, 'wsrv (copertine)', 'covers'], [/libretro/, 'Libretro (copertine)', 'covers'], [/api\.github\.com|gist\.github/, 'GitHub Gist', 'gist'], [/corsproxy|allorigins|codetabs|thingproxy/, 'Proxy CORS', 'proxy']];
   const of = window.fetch;
   if(typeof of === 'function') window.fetch = function(input, init){
     let url = ''; try{ url = typeof input === 'string' ? input : (input && input.url) || String(input); }catch(e){}
@@ -77,6 +77,13 @@ window.rtCalm = ()=>{ try{ return localStorage.getItem('art_calm') === 'on'; }ca
 
   // Frasi a tema Frugu Frugu per ogni fonte: ruotano mentre la fonte è in consultazione
   const PHR = {
+    // versione Anime
+    anilist: ['Frugu Frugu sfoglia AniList: schede, voti e locandine di anime e manga…', 'AniList: annuso le classifiche e tengo solo le perle…', 'Rovisto tra le stagioni di AniList alla ricerca di titoli nascosti…'],
+    mal: ['MyAnimeList: conto le stelline di milioni di appassionati…', 'Frugu Frugu curiosa tra le classifiche di MyAnimeList…'],
+    jikan: ['MyAnimeList: conto le stelline di milioni di appassionati…', 'Frugu Frugu curiosa tra le classifiche di MyAnimeList…'],
+    tmdb: ['TMDB: cerco trama in italiano, locandina e dove guardarlo…', 'Frugu Frugu sbircia nel catalogo di TMDB tra film e serie…'],
+    premi: ['Spulcio l\'albo d\'oro dei premi Tezuka, Shogakukan e Annecy…', 'Premi e festival: Frugu Frugu lucida le statuette…'],
+    nuovi: ['Annuso le stagioni più recenti: titoli freschi di sigla…', 'Nuove uscite: Frugu Frugu prova l\'episodio uno…'],
     wikipedia: ['Frugu Frugu sfoglia le pagine di Wikipedia con le zampette bagnate…', 'Consulto Wikipedia: ogni voce è un bidone da scoperchiare…', 'Wikipedia: cerco l\'anno giusto e lo lavo bene prima di servirlo…'],
     wikidata: ['Scavo tra i dati di Wikidata alla ricerca di generi e date…', 'Wikidata: rovisto tra i cassetti dell\'enciclopedia dei dati…', 'Lavo i dati grezzi di Wikidata e li asciugo al sole…'],
     steam: ['Sto scoperchiando i bidoni di Steam alla ricerca di perle nascoste…', 'Scraping dati da Steam: Frugu Frugu ha trovato uno sconto luccicante…', 'Steam: controllo le lingue e le recensioni degli utenti…'],
@@ -84,9 +91,9 @@ window.rtCalm = ()=>{ try{ return localStorage.getItem('art_calm') === 'on'; }ca
     rawg: ['Frugando nei cassonetti di RAWG: quanti titoli ben nascosti!', 'RAWG: setaccio il catalogo e tengo solo i voti dal 5 in su…', 'Interrogo RAWG e lavo per bene ogni scheda…'],
     igdb: ['Frugando nei cassonetti di IGDB, dove i titoli rari fanno capolino…', 'IGDB e MobyGames: Frugu Frugu ci mette dentro tutto il muso…', 'Consulto IGDB per scovare titoli sconosciuti ai più…'],
     metacritic: ['Rovistando tra le recensioni di Metacritic per scovare capolavori…', 'Metacritic e OpenCritic: lavo i voti e li asciugo bene…', 'Confronto i voti della critica: qui i punteggi bassi vanno nel bidone…'],
-    riviste: ['Sfoglio le riviste specializzate: Frugu Frugu legge solo le recensioni con le figure…', 'RPGFan e RPGamer: cerco le liste «best of» tra i giornali dimenticati…'],
-    reddit: ['Origlio su Reddit dove la gente consiglia i giochi come vecchi amici…', 'Reddit e forum: rovisto tra i thread «se ti è piaciuto X prova Y»…', 'Frugu Frugu fa capolino dai forum: ecco i consigli veri dei giocatori!'],
-    retro: ['Nel bidone dei classici: polvere, cartucce e perle dimenticate…', 'Ripesco giochi retro dal fondo del cassonetto…'],
+    riviste: ['Sfoglio AnimeClick e Anime News Network: Frugu Frugu legge solo le recensioni con le figure…', 'Riviste e siti: cerco le liste «i migliori» tra le pagine dimenticate…'],
+    reddit: ['Origlio su Reddit dove la gente consiglia anime e manga come vecchi amici…', 'Reddit e forum: rovisto tra i thread «se ti è piaciuto X prova Y»…', 'Frugu Frugu fa capolino dai forum: ecco i consigli veri degli appassionati!'],
+    retro: ['Nel bidone dei classici: VHS, vecchie sigle e perle dimenticate…', 'Ripesco anime e manga d\'altri tempi dal fondo del cassonetto…'],
     indie: ['Setaccio gli indie: piccoli bidoni, grandi tesori…', 'Indie e novità: Frugu Frugu annusa qualcosa di fresco…'],
     covers: ['Cerco la locandina giusta tra gli scaffali…', 'Frugu Frugu lucida le copertine prima di appenderle…'],
     gist: ['Metto al sicuro il bottino sul tuo GitHub…', 'Sincronizzo: nascondo le noccioline nella tana…'],

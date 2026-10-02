@@ -479,7 +479,7 @@
       ['Anteprima cinematografica', 'Copertina e poi schermate nella scheda', ()=> runMenu(/Anteprima cinematografica/)],
       ['Gesti rapidi', 'Scorciatoie a tocco e swipe', ()=> runMenu(/Gesti/)]]},
     {n: '🔑 Chiavi e sincronizzazione', rows: [
-      ['Chiavi (Gemini, RAWG, OpenCritic) e ponte', 'Le chiavi restano solo su questo dispositivo', openAskSettings],
+      ['Chiavi (Gemini, TMDB) e ponte', 'Le chiavi restano solo su questo dispositivo', openAskSettings],
       ['Sincronizzazione con GitHub', 'Token, «Sincronizza ora», accesso con utente', openAskSettings],
       ['Avvio: schermo intero e apertura animata', 'Le due opzioni di avvio', openAskSettings]]},
     {n: '🗂️ Dati e fonti', rows: [

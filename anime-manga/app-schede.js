@@ -847,7 +847,7 @@ function openModalBody(g){
       <button class="btn" id="modalFavBtn">${giIcon(isFav ? 'favon' : 'favoff')} ${isFav ? 'Nei preferiti' : 'Aggiungi ai preferiti'}</button>
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
       ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : ''}
-      ${typeof updatePlusNow === 'function' ? `<button class="btn upplus-btn" id="updatePlusBtn" title="Controlla voto (Metacritic), generi, anno, lingua, testi e locandina da tutte le fonti e ti mostra cosa cambiare">${giIcon('upplus')} ${freshInfo(g) ? 'Rifai Update V+' : 'Update V+'}</button>` : ''}
+      ${typeof updatePlusNow === 'function' ? `<button class="btn upplus-btn" id="updatePlusBtn" title="Controlla voto (AniList, IMDb), generi, anno, durata, italiano, testi, locandina e dove guardarlo da tutte le fonti e ti mostra cosa cambiare">${giIcon('upplus')} ${freshInfo(g) ? 'Rifai Update V+' : 'Update V+'}</button>` : ''}
       ${typeof openGameFields === 'function' ? `<button class="btn" id="gameFieldsBtn" title="Scegli da quale fonte prendere ogni informazione di questa scheda e blocca quelle che vuoi tenere">🎛️ Fonti</button>` : ''}
       <button class="btn" id="modalDelBtn" title="Elimina questo titolo dalla tua lista (chiede due conferme)">🗑️ Elimina</button>
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
@@ -1066,7 +1066,7 @@ function sagaKeyOf(g){ buildDynamicSagas(); return SAGA_MAP[g.id] || DYN_SAGA[g.
 async function sagaFindMissing(key, host){
   const info = SAGA_INFO[key]; if(!info) return;
   const hasRawg = !!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has());
-  if(!hasRawg && (typeof llmAvailable !== 'function' || !llmAvailable())){ showToast('Serve una chiave Gemini o RAWG (⚙️ Impostazioni in Chiedi)', 3000); return; }
+  if(!hasRawg && (typeof llmAvailable !== 'function' || !llmAvailable())){ showToast('Serve una chiave Gemini (⚙️ Impostazioni in Chiedi)', 3000); return; }
   host.innerHTML = '<div class="lp-sub">🦝 Frugu Frugu cerca gli altri capitoli…</div>';
   const known = GAMES.filter(g=> sagaKeyOf(g) === key).map(g=> g.name);
   let fromRawg = [];
@@ -1252,7 +1252,7 @@ function renderSagaView(){
     return;
   }
   panel.innerHTML = `<div class="count-line" style="margin-bottom:10px;"><span>${keys.length} saghe multi-capitolo trovate (su ${list.length} titoli visibili)</span></div>
-    <div class="saga-upd"><button class="btn primary" id="sagaUpdBtn" title="Cerca su Wikidata (e RAWG se hai la chiave) i capitoli e le saghe che mancano e li aggiunge alla lista">${giIcon('refresh')} Aggiorna saghe</button><button class="btn" id="sagaUpdStop" style="display:none">Ferma</button><div class="lp-sub" id="sagaUpdMsg">${escHtml(SAGA_UPD.msg || 'Cerca i capitoli e le saghe che mancano e li aggiunge da solo (fino a 30 titoli per volta: se ne restano, premi di nuovo).')}</div></div>` + keys.map(key=>{
+    <div class="saga-upd"><button class="btn primary" id="sagaUpdBtn" title="Cerca su Wikidata (e con Gemini) i seguiti, le stagioni e i film che mancano e li aggiunge alla lista">${giIcon('refresh')} Aggiorna saghe</button><button class="btn" id="sagaUpdStop" style="display:none">Ferma</button><div class="lp-sub" id="sagaUpdMsg">${escHtml(SAGA_UPD.msg || 'Cerca i capitoli e le saghe che mancano e li aggiunge da solo (fino a 30 titoli per volta: se ne restano, premi di nuovo).')}</div></div>` + keys.map(key=>{
     const info = SAGA_INFO[key];
     const games = bySaga[key].slice().sort((a,b)=> (a.ysort||0)-(b.ysort||0));
     return `<div class="saga-section">

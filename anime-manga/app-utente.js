@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'a7', date:'2026-10-02', time:'18:45', items:[
+    'Impostazioni: nuova chiave TMDB (va bene la chiave corta o il token lungo) per trame in italiano, locandine, durata e «dove guardarlo»; tolte RAWG e OpenCritic (erano dei videogiochi)',
+    'Update V+ e «Aggiorna info» rifatti per anime, manga e film: voto da AniList (poi MyAnimeList e TMDB), anni e durata da AniList o TMDB, trama da TMDB in italiano, AniList e Wikipedia, doppiaggio da it.wikipedia, «dove guardarlo» da TMDB/JustWatch',
+    'Fonti e lucchetti, Mappa delle fonti e prove: AniList, MyAnimeList, TMDB, Wikipedia, Wikidata, Gemini e ponte (niente più Steam, Metacritic, RAWG, PCGamingWiki, CheapShark)',
+    'Ponte Cloudflare versione 3 (IMDb, MyAnimeList, AnimeClick, JustWatch); le chiavi dell\'app Anime si salvano a parte e, all\'accesso, si possono riprendere da quelle dell\'app giochi',
+    'Copertine dei titoli aggiunti da AniList e TMDB (prima Steam, che trovava il videogioco omonimo)'
+  ]},
   {version:'a6', date:'2026-10-02', time:'18:23', items:[
     'Scheda ripulita dai videogiochi: «Visto/Letto», «Da vedere/leggere», «Lo rivedrei», «Lo amo»; linguetta «L\'opera»; impegno e filler al posto di difficoltà e grinding',
     'Al posto del verdetto d\'acquisto: «Vale la pena?» (da vedere subito, mettilo in lista, non urgente, lascia stare), senza prezzi',

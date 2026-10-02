@@ -211,21 +211,15 @@ async function askLLM(input, opts, extra){
       say('❌ ' + askErrorCopy(e && e.code), false);
     }
   });
-  const rawgEl = document.getElementById('rawgKeyInput');
-  if(rawgEl){ try{ rawgEl.value = localStorage.getItem('atl_rawg_key') || ''; }catch(e){} rawgEl.addEventListener('change', async ()=>{
-    const v = rawgEl.value.trim(); try{ if(v) localStorage.setItem('atl_rawg_key', v); else localStorage.removeItem('atl_rawg_key'); }catch(e){}
-    if(!v){ say('Chiave RAWG rimossa.'); return; }
-    say('Verifico la chiave RAWG…');
-    try{ await window.SearchHub.rawg.ping(); say('✅ RAWG funziona: la uso per scoprire titoli, uscite, affini, saghe, voti, anni e copertine (richieste questo mese: ' + window.SearchHub.rawg.usage() + ' su 20.000).', true); }
-    catch(e){ say('❌ RAWG non risponde con questa chiave: ' + String(e && e.message || e).slice(0, 120), false); }
-  }); }
-  const ocEl = document.getElementById('ocKeyInput');
-  if(ocEl){ try{ ocEl.value = localStorage.getItem('atl_opencritic_key') || ''; }catch(e){} ocEl.addEventListener('change', async ()=>{
-    const v = ocEl.value.trim(); try{ if(v) localStorage.setItem('atl_opencritic_key', v); else localStorage.removeItem('atl_opencritic_key'); }catch(e){}
-    if(!v){ say('Chiave OpenCritic rimossa.'); return; }
-    say('Verifico la chiave OpenCritic…');
-    try{ await window.SearchHub.opencritic.ping(); say('✅ OpenCritic funziona: la uso come seconda fonte dei voti (richieste oggi: ' + window.SearchHub.opencritic.usage() + ' su circa 200).', true); }
-    catch(e){ say('❌ OpenCritic non risponde con questa chiave: ' + String(e && e.message || e).slice(0, 120), false); }
+  // versione Anime: TMDB (The Movie Database) per film, serie e animazione: trame in italiano, locandine, cast, durata e «dove guardarlo».
+  // Va bene sia la chiave corta (API Key v3) sia il token lungo (API Read Access Token v4): resta solo in questo browser (atl_tmdb_key).
+  const tmdbEl = document.getElementById('tmdbKeyInput');
+  if(tmdbEl){ try{ tmdbEl.value = localStorage.getItem('atl_tmdb_key') || ''; }catch(e){} tmdbEl.addEventListener('change', async ()=>{
+    const v = tmdbEl.value.trim(); try{ if(v) localStorage.setItem('atl_tmdb_key', v); else localStorage.removeItem('atl_tmdb_key'); }catch(e){}
+    if(!v){ say('Chiave TMDB rimossa.'); return; }
+    say('Verifico la chiave TMDB…');
+    try{ const n = await window.SearchHub.tmdb.ping(); say('✅ TMDB funziona (' + (v.length > 60 ? 'token lungo' : 'chiave corta') + '): la uso per trame in italiano, locandine, cast, durata e «dove guardarlo» di film, serie e animazione.' + (n ? ' Prova: «' + n + '».' : ''), true); }
+    catch(e){ say('❌ TMDB non accetta questa chiave: ' + (e && e.status === 401 ? 'chiave o token non validi (copiali di nuovo da themoviedb.org → Impostazioni → API).' : String(e && e.message || e).slice(0, 120)), false); }
   }); }
   const relEl = document.getElementById('relayUrlInput');
   if(relEl){ try{ relEl.value = localStorage.getItem('atl_relay_url') || ''; }catch(e){}
@@ -233,11 +227,11 @@ async function askLLM(input, opts, extra){
       const v = relEl.value.trim(); try{ if(v) localStorage.setItem('atl_relay_url', v); else localStorage.removeItem('atl_relay_url'); }catch(e){}
       if(!v){ say('Ponte personale rimosso.'); return; }
       say('Provo il tuo ponte…');
-      try{ const n = await window.SearchHub.testCustomRelay(); say('✅ Il tuo ponte funziona (' + n + ' negozi letti da CheapShark). Ora Steam, GOG e Reddit hanno una via di accesso.', true); }
+      try{ const n = await window.SearchHub.testCustomRelay(); say('✅ Il tuo ponte funziona (letto da MyAnimeList: «' + n + '»). Ora IMDb, MyAnimeList e Reddit hanno una via di accesso anche dal telefono.', true); }
       catch(e){ say('❌ Il ponte non risponde: ' + String(e && e.message || e).slice(0, 100), false); }
     }); }
   // trasferimento delle chiavi tra dispositivi: si copia un codice e lo si incolla sull'altro (le chiavi non passano mai da file, backup o sincronizzazione)
-  const KEYS_T = [['atl_gemini_key', 'g'], ['atl_rawg_key', 'r'], ['atl_opencritic_key', 'o'], ['atl_relay_url', 'p']];
+  const KEYS_T = [['atl_gemini_key', 'g'], ['atl_tmdb_key', 'm'], ['atl_relay_url', 'p']];      // versione Anime: niente RAWG/OpenCritic (sono di videogiochi)
   const kc = document.getElementById('keysCopyBtn'), kp = document.getElementById('keysPasteBtn');
   if(kc) kc.addEventListener('click', async ()=>{
     const o = {}; KEYS_T.forEach(([k, s])=>{ try{ const v = (localStorage.getItem(k) || '').trim(); if(v) o[s] = v; }catch(e){} });
@@ -253,7 +247,7 @@ async function askLLM(input, opts, extra){
       if(!/^RTK1:/.test(code)) throw new Error('codice non valido');
       const o = JSON.parse(decodeURIComponent(escape(atob(code.slice(5))))); let n = 0;
       KEYS_T.forEach(([k, s])=>{ if(typeof o[s] === 'string' && o[s].trim()){ try{ localStorage.setItem(k, o[s].trim()); n++; }catch(e){} } });
-      [['rawgKeyInput', 'atl_rawg_key'], ['ocKeyInput', 'atl_opencritic_key'], ['relayUrlInput', 'atl_relay_url']].forEach(([id, k])=>{ const el = document.getElementById(id); if(el) try{ el.value = localStorage.getItem(k) || ''; }catch(e){} });
+      [['tmdbKeyInput', 'atl_tmdb_key'], ['relayUrlInput', 'atl_relay_url']].forEach(([id, k])=>{ const el = document.getElementById(id); if(el) try{ el.value = localStorage.getItem(k) || ''; }catch(e){} });
       try{ keyEl.value = geminiKey(); }catch(e){}
       say('✅ Importate ' + n + ' chiavi. Ricarica la pagina per usarle subito dappertutto.', true); try{ refreshFab(); }catch(e){}
     }catch(e){ say('❌ Codice non valido: copialo di nuovo dall\'altro dispositivo.', false); }
@@ -264,16 +258,18 @@ async function askLLM(input, opts, extra){
   async function kbEncrypt(obj, pw){ const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12)), it = 310000; const k = await kbKey(pw, salt, it); const ct = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify(obj))); return {s: b64(salt), v: b64(iv), c: b64(ct), i: it}; }
   async function kbDecrypt(box, pw){ const k = await kbKey(pw, unb64(box.s), box.i); const pt = await crypto.subtle.decrypt({name: 'AES-GCM', iv: unb64(box.v)}, k, unb64(box.c)); return JSON.parse(new TextDecoder().decode(pt)); }
   const applyKeys = o=>{
-    const added = [], changed = [], NM = {g: 'Gemini', r: 'RAWG', o: 'OpenCritic', p: 'Ponte'};
+    const added = [], changed = [], NM = {g: 'Gemini', m: 'TMDB', p: 'Ponte'};
     KEYS_T.forEach(([k, s])=>{ const v = typeof o[s] === 'string' ? o[s].trim() : ''; if(!v) return; let cur = ''; try{ cur = (localStorage.getItem(k) || '').trim(); }catch(e){}
       if(!cur){ added.push(NM[s]); } else if(cur !== v){ changed.push(NM[s]); } else return; try{ localStorage.setItem(k, v); }catch(e){} });
-    [['rawgKeyInput', 'atl_rawg_key'], ['ocKeyInput', 'atl_opencritic_key'], ['relayUrlInput', 'atl_relay_url']].forEach(([id, k])=>{ const el = document.getElementById(id); if(el) try{ el.value = localStorage.getItem(k) || ''; }catch(e){} });
+    [['tmdbKeyInput', 'atl_tmdb_key'], ['relayUrlInput', 'atl_relay_url']].forEach(([id, k])=>{ const el = document.getElementById(id); if(el) try{ el.value = localStorage.getItem(k) || ''; }catch(e){} });
     try{ keyEl.value = geminiKey(); }catch(e){}
     return {added, changed};
   };
   // Salva/Recupera le chiavi in un attimo: utente + password. Le chiavi, cifrate con la password, stanno in un gist pubblico del tuo GitHub (illeggibile senza password)
   const GH_USER = /\.github\.io$/.test(location.hostname) ? location.hostname.split('.')[0] : 'kur0chanx';
-  const kbDesc = u=> 'RaccoonTier-chiavi-' + u.toLowerCase();
+  // versione Anime: chiavi salvate a parte (RaccoonAnime-…) così non cancello quelle dell'app giochi (RaccoonTier-…, che hanno anche RAWG e OpenCritic);
+  // all'accesso, se non trovo le mie, leggo (senza toccarle) quelle dell'app giochi: Gemini, ponte e token tornano subito
+  const kbDesc = u=> 'RaccoonAnime-chiavi-' + u.toLowerCase(), kbDescGames = u=> 'RaccoonTier-chiavi-' + u.toLowerCase();
   const askUP = (verb)=>{
     const u = (window.prompt('Utente (es. Mario):', localStorage.getItem('atl_keys_user') || 'Mario') || '').trim().replace(/[^A-Za-z0-9À-ÿ_-]/g, '').slice(0, 24); if(!u) return null;
     const pw = window.prompt('Password di ' + u + (verb === 'save' ? ' (almeno 12 caratteri; se la perdi dovrai rincollare le chiavi a mano)' : '') + ':', '') || ''; if(!pw) return null;
@@ -308,13 +304,13 @@ async function askLLM(input, opts, extra){
   // ---- Accedi / Nuovo utente (anche da QR): utente + password → chiavi, token e sincronizzazione completa del profilo ----
   async function cloudLogin(u, pw, say2){
     const r = await fetch('https://api.github.com/users/' + GH_USER + '/gists?per_page=100'); if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
-    const f = (await r.json()).find(g=> g.description === kbDesc(u)); const file = f && f.files && f.files['chiavi.json'];
+    const all = await r.json(), f = all.find(g=> g.description === kbDesc(u)) || all.find(g=> g.description === kbDescGames(u)), fromGames = !!(f && f.description === kbDescGames(u)); const file = f && f.files && f.files['chiavi.json'];
     if(!file){ say2('❌ Non trovo l\'utente «' + u + '». Sul dispositivo che ha le chiavi tocca prima «☁️ Salva chiavi».'); return false; }
     const box = await (await fetch(file.raw_url)).json();
     let keys; try{ keys = await kbDecrypt(box, pw); }catch(e){ say2('❌ Password sbagliata.'); return false; }
     const res = applyKeys(keys);
     if(keys.t){ try{ localStorage.setItem('atl_sync_token', keys.t); localStorage.removeItem('atl_sync_gist'); localStorage.setItem('atl_keys_user', u); }catch(e){} }
-    say2('✅ Accesso fatto' + (res.added.length || res.changed.length ? ' (chiavi: ' + res.added.concat(res.changed).join(', ') + ')' : '') + '. Scarico tutto il tuo profilo…');
+    say2('✅ Accesso fatto' + (res.added.length || res.changed.length ? ' (chiavi: ' + res.added.concat(res.changed).join(', ') + (fromGames ? ', prese dall\'app giochi' : '') + ')' : '') + '. Scarico tutto il tuo profilo…');
     try{ if(typeof syncNow === 'function') await syncNow({noReload: true}); }catch(e){}
     setTimeout(()=> location.reload(), 1200);
     return true;
@@ -357,7 +353,7 @@ async function askLLM(input, opts, extra){
   if(kqr) kqr.addEventListener('click', async ()=>{
     let el = document.getElementById('qrLoginBackdrop');
     if(!el){ el = document.createElement('div'); el.id = 'qrLoginBackdrop'; el.className = 'dup-backdrop'; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
-    const url = 'https://' + GH_USER + '.github.io/TierListGame/#login';
+    const url = 'https://' + GH_USER + '.github.io/TierListGame/anime-manga/#login';
     el.innerHTML = '<div class="lp-card"><div class="lp-head"><b>📱 QR per un altro dispositivo</b><button class="btn" data-ui-close>Chiudi</button></div><div class="lp-sub">Inquadralo con l\'altro dispositivo: si apre il programma e ti chiede utente e password (o di creare un nuovo utente).</div><div id="qrLoginBox" style="background:#fff;padding:12px;border-radius:12px;max-width:280px;margin:10px auto"></div></div>'; el.classList.add('show');
     try{
       if(typeof qrcode === 'undefined') await new Promise((res, rej)=>{ const s = document.createElement('script'); s.src = 'qrcode.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
@@ -391,7 +387,7 @@ function llmErrorText(e){
   return (e && e.code && String(e.code).indexOf('gemini_') === 0 && e.message) ? base + ' (' + String(e.message).slice(0, 160) + ')' : base;
 }
 
-// I campi delle chiavi (Gemini, RAWG, OpenCritic, token GitHub) sono testi «a pallini», non type=password: Chrome/Google non propone più «Salva/Aggiorna la password?».
+// I campi delle chiavi (Gemini, TMDB, token GitHub) sono testi «a pallini», non type=password: Chrome/Google non propone più «Salva/Aggiorna la password?».
 (function(){
   try{
     if(!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc'))) return;           // senza questo supporto (Firefox) restano campi password normali

@@ -98,7 +98,7 @@
     const sc = best && best.criticScoreSummary && best.criticScoreSummary.score;
     return sc ? {t: best.title, u: best.slug, s: sc, y: best.premiereYear || 0, g: (best.genres || []).map(x=> x.name), live: true} : null;
   };
-  H.testCustomRelay = async ()=>{ const c = customRelay(); if(!c) throw new Error('indirizzo non impostato'); const r = await fetch(c.url('https://www.cheapshark.com/api/1.0/stores')); if(!r.ok) throw new Error('risposta ' + r.status); const j = await r.json(); return Array.isArray(j) ? j.length : 0; };
+  H.testCustomRelay = async ()=>{ const c = customRelay(); if(!c) throw new Error('indirizzo non impostato'); const r = await fetch(c.url('https://api.jikan.moe/v4/anime/5114')); if(r.status === 403) throw new Error('il ponte è la versione vecchia (solo siti di videogiochi): aggiornalo alla versione 3'); if(!r.ok) throw new Error('risposta ' + r.status); const j = await r.json(); const t = j && j.data && (j.data.title_english || j.data.title); if(!t) throw new Error('risposta inattesa'); return t; };      // versione Anime: prova su MyAnimeList (prima era CheapShark, un sito di videogiochi)
   const cache = new Map();
   const noCustom = {};   // siti che il ponte personale (versione vecchia) rifiuta con «sito non consentito»
   // ---- Memoria persistente delle risposte (IndexedDB «art_srccache», solo su questo dispositivo) ----
@@ -364,6 +364,58 @@
     }).filter(c=> c.name);
   };
 
+  // ---------- versione Anime: TMDB (The Movie Database), chiave dell'utente in atl_tmdb_key ----------
+  // Va bene la chiave corta (API Key v3, nell'indirizzo) o il token lungo (Read Access Token v4, nell'intestazione). Mai i ponti pubblici (relays:false).
+  const tmdbKey = ()=>{ try{ return (localStorage.getItem('atl_tmdb_key') || '').trim(); }catch(e){ return ''; } };
+  async function tmdbGet(path, params, o){
+    const k = tmdbKey(); if(!k) throw skipErr('chiave TMDB non impostata');
+    const long = k.length > 60, q = new URLSearchParams(Object.assign({language: 'it-IT'}, params || {}));
+    if(!long) q.set('api_key', k);
+    return H.json('https://api.themoviedb.org/3/' + path + '?' + q, Object.assign({relays: false, timeout: 15000, persist: false, headers: Object.assign({Accept: 'application/json'}, long ? {Authorization: 'Bearer ' + k} : {})}, o || {}));
+  }
+  H.tmdb = {has: ()=> !!tmdbKey(), get: tmdbGet,
+    ping: async ()=>{ const j = await tmdbGet('movie/155', {}, {cache: false}); if(!j || !j.title) throw new Error('risposta inattesa'); return j.title; }};
+  // ---------- versione Anime: schede complete per «Update V+» e «Aggiorna info» ----------
+  // AniList: per id (g.al) se lo conosco, altrimenti per nome (il titolo trovato deve somigliare davvero a quello cercato)
+  const AL_FULL = 'id type format coverImage{extraLarge large} status countryOfOrigin siteUrl idMal title{romaji english native} synonyms description(asHtml:false) averageScore meanScore popularity episodes duration chapters volumes seasonYear startDate{year} endDate{year} genres tags{name rank} studios(isMain:true){nodes{name}} staff(perPage:3,sort:RELEVANCE){edges{role node{name{full}}}}';
+  const alPost = (query, variables)=> H.json('https://graphql.anilist.co', {method: 'POST', headers: {'Content-Type': 'application/json', Accept: 'application/json'}, body: JSON.stringify({query, variables}), relays: false, timeout: 15000});
+  const alShape = m=> m ? {id: m.id, url: m.siteUrl || ('https://anilist.co/' + String(m.type || 'anime').toLowerCase() + '/' + m.id), name: (m.title && (m.title.english || m.title.romaji)) || '', kind: alKind(m), format: AL_FMT[m.format] || m.format || '',
+    score: m.averageScore || m.meanScore || null, desc: String(m.description || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/\(Source:[^)]*\)/gi, '').trim(),
+    episodes: m.episodes || null, duration: m.duration || null, chapters: m.chapters || null, volumes: m.volumes || null, status: m.status || '', y1: m.seasonYear || (m.startDate || {}).year || null, y2: (m.endDate || {}).year || null,
+    cover: (m.coverImage && (m.coverImage.extraLarge || m.coverImage.large)) || '', tags: alCodes(m), studio: (((m.studios || {}).nodes || [])[0] || {}).name || '', idMal: m.idMal || null,
+    staff: (((m.staff || {}).edges) || []).map(e=> (e.node && e.node.name && e.node.name.full) + (e.role ? ' (' + e.role + ')' : '')).filter(Boolean)} : null;
+  H.anilistMedia = async g=>{
+    if(g.al){ const j = await alPost('query($id:Int){Media(id:$id){' + AL_FULL + '}}', {id: +g.al}); return alShape(j && j.data && j.data.Media); }
+    const type = (g.kind === 'manga' || g.kind === 'manhwa') ? 'MANGA' : (g.kind === 'anime' || g.kind === 'film') ? 'ANIME' : null;
+    const j = await alPost('query($s:String,$t:MediaType){Page(perPage:6){media(search:$s,type:$t,isAdult:false){' + AL_FULL + '}}}', {s: String(g.name || '').replace(/\s*\([^)]*\)/g, ''), t: type});
+    const n0 = norm(g.name).replace(/\s+/g, ''), list = ((((j || {}).data || {}).Page || {}).media || []);
+    return alShape(list.find(x=> [x.title && x.title.english, x.title && x.title.romaji].concat(x.synonyms || []).filter(Boolean).some(t=> norm(t).replace(/\s+/g, '') === n0)) || null);
+  };
+  // MyAnimeList (Jikan, gratuito): per id se lo conosco (g.mal o quello che dice AniList), altrimenti per nome
+  H.malMedia = async (g, idMal)=>{
+    const t = (g.kind === 'manga' || g.kind === 'manhwa') ? 'manga' : 'anime', id = g.mal || idMal;
+    let a = null;
+    if(id){ const j = await H.json('https://api.jikan.moe/v4/' + t + '/' + id, {timeout: 15000}); a = j && j.data; }
+    else { const j = await H.json('https://api.jikan.moe/v4/' + t + '?limit=5&q=' + encodeURIComponent(g.name), {timeout: 15000}); const n0 = norm(g.name);
+      a = ((j && j.data) || []).find(x=> [x.title, x.title_english].concat((x.titles || []).map(y=> y.title)).filter(Boolean).some(z=> norm(z) === n0)) || null; }
+    return a ? {id: a.mal_id, url: a.url, score: a.score ? Math.round(a.score * 10) : null, votes: a.scored_by || 0, desc: String(a.synopsis || '').replace(/\[Written by MAL Rewrite\]/i, '').trim()} : null;
+  };
+  // TMDB (chiave dell'utente): per id IMDb se lo conosco, altrimenti per nome e anno. Film per film e animazione, serie per gli anime.
+  H.tmdbMedia = async g=>{
+    if(!tmdbKey()) return null;
+    const y = parseInt(String(g.year || '').slice(0, 4), 10) || '', isTv = g.kind === 'anime' || g.kind === 'serie';
+    let hit = null, type = isTv ? 'tv' : 'movie';
+    if(g.imdb){ const f = await tmdbGet('find/tt' + String(g.imdb).padStart(7, '0'), {external_source: 'imdb_id'}); hit = (f.movie_results || [])[0] || null; if(!hit){ hit = (f.tv_results || [])[0] || null; if(hit) type = 'tv'; } else type = 'movie'; }
+    if(!hit){ const s = await tmdbGet('search/' + type, Object.assign({query: String(g.name || '').replace(/\s*\([^)]*\)/g, '')}, y ? (isTv ? {first_air_date_year: y} : {primary_release_year: y}) : {}));
+      const n0 = norm(g.name); hit = ((s && s.results) || []).find(r=> [r.title, r.name, r.original_title, r.original_name].filter(Boolean).some(t=> norm(t) === n0)) || ((s && s.results) || [])[0] || null; }
+    if(!hit) return null;
+    const d = await tmdbGet(type + '/' + hit.id, {append_to_response: 'watch/providers'});
+    const pr = ((((d || {})['watch/providers'] || {}).results || {}).IT || {}), flat = (pr.flatrate || []).concat(pr.free || [], pr.ads || []).map(x=> x.provider_name);
+    const yy = parseInt(String(d.release_date || d.first_air_date || '').slice(0, 4), 10) || null, yz = parseInt(String(d.last_air_date || '').slice(0, 4), 10) || null;
+    return {id: d.id, type, url: 'https://www.themoviedb.org/' + type + '/' + d.id + '?language=it-IT', name: d.title || d.name || '', overview: String(d.overview || '').trim(), y1: yy, y2: type === 'tv' ? yz : null,
+      runtime: d.runtime || null, episodes: d.number_of_episodes || null, epRuntime: ((d.episode_run_time || [])[0]) || null, vote: d.vote_average ? Math.round(d.vote_average * 10) : null, votes: d.vote_count || 0,
+      poster: d.poster_path ? 'https://image.tmdb.org/t/p/w500' + d.poster_path : '', providers: [...new Set(flat)], rentBuy: [...new Set((pr.rent || []).concat(pr.buy || []).map(x=> x.provider_name))], jw: pr.link || ''};
+  };
   // ---------- RAWG (chiave gratuita dell'utente): scoperta, dettagli, giochi affini, saghe e copertine ----------
   const RAWG_LIMIT = 18000, RUK = 'art_rawg_usage';                    // il piano gratuito concede 20.000 richieste al mese
   const rawgKey = ()=>{ try{ return (localStorage.getItem('atl_rawg_key') || '').trim(); }catch(e){ return ''; } };
@@ -608,15 +660,16 @@
   H.PRIORITY = {
     discover: ['anilist', 'jikan', 'scoperte', 'rawgnew', 'rawg', 'steamsearch', 'gog', 'cheapshark', 'wikicat', 'wikidata', 'wikisearch', 'steamspy', 'reddit', 'rawgsimilar'],
     // dove prendere i DATI di un gioco (il primo che li ha vince; gli altri servono da conferma): dal più sicuro al meno
-    info: {
-      lingua: ['facts.js (Steam ufficiale)', 'Steam', 'PCGamingWiki', 'it.wikipedia'],
-      voto: ['Metacritic via Wikipedia', 'facts.js (Metascore Steam/CheapShark)', 'RAWG (Metacritic)', 'OpenCritic (chiave facoltativa)', '% recensioni Steam'],
-      anno: ['Wikidata', 'facts.js (Steam)', 'RAWG', 'Wikipedia'],
-      generi: ['Wikidata', 'RAWG', 'Wikipedia'],
-      prezzo: ['facts.js (Steam in euro)', 'CheapShark dal vivo'],
-      copertina: ['Steam', 'Libretro', 'Wikidata/Wikipedia'],
-      testi: ['Wikipedia + RAWG riscritti dall\'AI', 'AI con ricerca web (ultima spiaggia)'],
-      musica: ['Internet Archive (album completi, senza pubblicità)', 'ost.js (YouTube, dal server)', 'YouTube dal vivo']
+    info: {      // versione Anime
+      voto: ['AniList (anime, manga, film giapponesi)', 'IMDb (film: dati del server)', 'MyAnimeList', 'TMDB (chiave facoltativa)'],
+      anno: ['AniList', 'TMDB', 'Wikidata'],
+      generi: ['AniList', 'Wikidata'],
+      durata: ['AniList (episodi × minuti, volumi)', 'TMDB (minuti, episodi)', 'ricerca web'],
+      lingua: ['it.wikipedia (doppiatori italiani)', 'ricerca web (editori e distributori italiani)'],
+      copertina: ['AniList', 'TMDB', 'Wikipedia/Wikimedia'],
+      testi: ['TMDB in italiano + AniList + Wikipedia riscritti dall\'AI', 'AI con ricerca web (ultima spiaggia)'],
+      dove: ['TMDB (dati di JustWatch, Italia)'],
+      musica: ['Internet Archive (album completi, senza pubblicità)', 'YouTube dal vivo']
     }
   };
   const RANK = {}; H.PRIORITY.discover.forEach((k, i)=> RANK[k] = i);
