@@ -414,6 +414,7 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
     if(WARM.run) return; WARM.run = true;
     const step = dl=>{
       try{
+        if(window.__rtOpenUntil && performance.now() < window.__rtOpenUntil){ setTimeout(step, 150); return; }     // v218: non durante l'animazione di apertura
         if(typeof GAMES === 'undefined' || !GAMES.length){ WARM.run = false; setTimeout(()=> warmAll(), 1500); return; }
         const t0 = performance.now();
         while(WARM.i < GAMES.length && performance.now() - t0 < 7 && (!dl || !dl.timeRemaining || dl.timeRemaining() > 2)){ mechOf(GAMES[WARM.i]); WARM.i++; }

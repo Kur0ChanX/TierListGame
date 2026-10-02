@@ -239,8 +239,9 @@
     const lk = lockOf(g) || {};
     const has = sel=> !!block.querySelector(sel);
     const items = [
-      ['cover', '🔄', lk.cover ? 'Cambia la locandina (ora bloccata 🔒)' : 'Scegli un\'altra locandina', 'tutte le locandine ufficiali trovate: tocchi e resta bloccata'],
+      ['cover', '🔄', lk.cover ? 'Cambia la locandina (ora bloccata 🔒)' : 'Scegli un\'altra locandina', 'scegli quella che vuoi: il lucchetto 🔒 serve solo a non farla cambiare dagli aggiornamenti'],
       ['shots', '🎞️', lk.shots ? 'Foto del carosello (bloccate 🔒)' : 'Foto del carosello', 'cambia le foto una per una, con tante alternative'],
+      window.rtHeroSettings ? ['hero', '⚙️', 'Impostazioni del carosello', 'accendi o spegni, secondi per foto, velocità, attesa della locandina'] : null,
       has('[data-cover-file-input]') ? ['file', '📱', 'Carica dal telefono', 'una foto dalla tua galleria'] : null,
       has('[data-cover-camera-input]') ? ['cam', '📷', 'Scatta una foto', 'con la fotocamera, adesso'] : null,
       !lk.cover && has('.x-autocover button') ? ['auto', '✨', has('.cover-frame') ? 'Aggiorna in automatico' : 'Trova la copertina in automatico', 'la cerco io nelle fonti ufficiali'] : null,
@@ -258,6 +259,7 @@
       const press = sel=>{ const el = block.querySelector(sel); if(el) el.click(); };
       if(k === 'cover'){ close(); openCovers(g); }
       else if(k === 'shots'){ close(); openShots(g); }
+      else if(k === 'hero'){ close(); try{ rtHeroSettings(); }catch(e){} }
       else if(k === 'file'){ close(); press('[data-cover-file-input]'); }
       else if(k === 'cam'){ close(); press('[data-cover-camera-input]'); }
       else if(k === 'auto'){ close(); press('.x-autocover button'); toast('Cerco la locandina…', 1800); }

@@ -271,7 +271,31 @@
     return out.filter((o, i)=> ok[i]);
   }
   window.findGameCover = findCover;
-  window.XCOVER = {find: findCover, save: saveAutoCover, has: coverOf, all: allCovers};
+  // v218: schermate di gioco dai vecchi sistemi (Libretro, gratis e senza chiave): la schermata in azione e quella del titolo.
+  // Servono al carosello dei giochi che non hanno foto su Steam (PS1, PS2, PSP, DS, 3DS, SNES…). Il risultato si ricorda: 60 giorni se trovate, 3 giorni se no.
+  async function lrShots(g, cacheOnly){
+    const K = 'rt_shots_lr', LSg = ()=>{ try{ return JSON.parse(localStorage.getItem(K) || '{}') || {}; }catch(e){ return {}; } };
+    const c = LSg(), e = c[g.id];
+    if(e && Date.now() - e.t < (e.u && e.u.length ? 60 : 3) * 864e5) return e.u || [];
+    if(cacheOnly) return (e && e.u) || [];
+    if(window.rtSettle) await rtSettle();
+    const sys = lrSystems(g.plat); if(!sys.length) return [];
+    const titles = lrTitles([window.SearchHub && SearchHub.enNameSync ? SearchHub.enNameSync(g) : g.name, g.name]);
+    let out = [];
+    outer: for(const s of sys){ for(const t of titles){
+      const combos = LR_REG.map(r=> lrSafe(t) + ' ' + r);
+      const snap = await firstOk(combos.map(x=> LR + encodeURIComponent(s) + '/Named_Snaps/' + encodeURIComponent(x) + '.png'), 9);
+      if(!snap) continue;
+      out.push(snap);
+      const base = decodeURIComponent(snap.split('/Named_Snaps/')[1]).replace(/\.png$/, '');
+      const ti = LR + encodeURIComponent(s) + '/Named_Titles/' + encodeURIComponent(base) + '.png';
+      if(await probeImg(ti)) out.push(ti);
+      break outer;
+    } }
+    try{ const cc = LSg(); cc[g.id] = {t: Date.now(), u: out}; const ks = Object.keys(cc); if(ks.length > 400) ks.slice(0, ks.length - 400).forEach(k=> delete cc[k]); localStorage.setItem(K, JSON.stringify(cc)); }catch(x){}
+    return out;
+  }
+  window.XCOVER = {find: findCover, save: saveAutoCover, has: coverOf, all: allCovers, lrShots};
 
   // ---- «Cerca un'altra immagine»: raccoglie TUTTE le immagini trovate (box art in verticale prima, poi Wikipedia, RAWG, banner e schermate) e le fa scorrere una per volta ----
   async function okAll(urls, par){
@@ -562,6 +586,7 @@
   const CCHK = 'jrpg_cover_chk2';
   function recheckWeakCover(g){
     try{
+      if(window.rtCalm && rtCalm()) return;
       const u = coverOf(g); if(!u || coverLocked(g) || !/media\.rawg\.io|rawg\.io\/media/i.test(u)) return;
       if(typeof USER_COVER_IDS !== 'undefined' && USER_COVER_IDS[String(g.id)]) return;
       const done = LS.get(CCHK, {}) || {}; if(done[g.id] && Date.now() - done[g.id] < 3 * 864e5) return;
@@ -573,7 +598,7 @@
   }
   function coverAssist(g){
     if(!g) return;
-    recheckWeakCover(g);
+    if(window.rtSettle) rtSettle(5000).then(()=>{ if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) recheckWeakCover(g); }); else recheckWeakCover(g);
     const block = document.getElementById('coverBlock'); if(!block) return;
     const my = ++assistToken;
     if(coverOf(g)){                                   // ha già una locandina: pulsante per riscaricarla dalle fonti online (mai in automatico)
@@ -605,7 +630,8 @@
       else { st.textContent = 'Non trovata nelle fonti aperte: usa "Cerca copertina" qui sopra.'; btn.disabled = false; }
     };
     btn.addEventListener('click', run);
-    if(LS.get('jrpg_autocover', true) && !(window.rtCalm && rtCalm())) run();      // v217: in modalità calma la cerca Update+ o il tasto
+    // v218: la ricerca automatica parte solo se la locandina manca, e dopo qualche secondo a scheda ferma (non durante l'apertura)
+    if(LS.get('jrpg_autocover', true) && !(window.rtCalm && rtCalm())) (window.rtSettle ? rtSettle(3000) : Promise.resolve()).then(()=>{ if(my === assistToken && !coverOf(g) && document.body.contains(btn)) run(); });
   }
   function tintModal(g){
     const card = document.getElementById('modalCard'); if(!card) return;
