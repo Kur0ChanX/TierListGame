@@ -67,22 +67,7 @@
   window.wikidataCodesFrom = codesFrom;
 
   // ----- giochi nuovi: unisce in automatico i generi confermati da Wikidata -----
-  window.verifyNewGameGenres = async function(id, doc){
-    try{
-      const r = await genreCodes(doc.name);
-      if(!r || !r.codes.length) return;
-      const tags = (doc.tags || []).slice();
-      const add = r.codes.filter(c=> !tags.includes(c) && TAG_INFO[c]);
-      if(!add.length) return;
-      const merged = tags.concat(add).slice(0, 5);
-      // riparto dallo stato attuale del gioco (nel frattempo può essere arrivato il completamento con simboli e dettagli)
-      const cur = GAMES.find(x=> x.id === id);
-      const next = cur ? Object.assign(customDocFromGame(cur, cleanCustomEnrich(cur.enrich) || undefined), {tags: merged}) : Object.assign({}, doc, {tags: merged});
-      if(COVER_DB) await COVER_DB.doc('customGames/' + String(id)).set(next);
-      ensureGenreLists(merged);
-      showToast('🔎 Generi verificati su Wikidata: aggiunti ' + add.map(c=> TAG_INFO[c].label).join(', '), 4500);
-    }catch(e){}
-  };
+  // verifyNewGameGenres è definita in verify.js (coda e fonti leggere)
 
   // ----- controllo completo, con conferma -----
   const OV_KEY = 'jrpg_tag_overrides';
@@ -156,5 +141,6 @@
     el.classList.add('show');
   };
   document.addEventListener('DOMContentLoaded', ()=>{ const b = document.getElementById('genreCheckBtn'); if(b) b.addEventListener('click', window.openGenreCheck); });
-  try{ applyTagOverrides(); renderListBar(); if(state.view === 'list') render(); }catch(e){}
+  // v219: ridisegno solo se ci sono davvero correzioni dei generi da applicare (prima sempre: 100-200 ms in più a ogni avvio)
+  try{ if(Object.keys(loadJson(OV_KEY, {})).length){ applyTagOverrides(); renderListBar(); if(state.view === 'list') render(); } }catch(e){}
 })();

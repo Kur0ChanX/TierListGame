@@ -1,43 +1,31 @@
-# Tier List RPG & JRPG di Mario
+# Tier List RPG & JRPG di Mario (Raccoon Tier)
 
-App statica, si apre anche con doppio clic (file://), senza server né build.
+App statica (si apre anche con doppio clic, file://), senza server né build. Utente italiano, non programmatore: rispondi in italiano, breve, senza gergo. Sito: https://kur0chanx.github.io/TierListGame/. Il Triple Triad è un progetto a parte: repository `kur0chanx/raccoon-triad` (qui resta solo il link nel menu ✨ e il reindirizzamento degli inviti `#tt=`).
 
-## Struttura
-- `Tier List RPG & JRPG di Mario.html`: solo markup (~9 KB).
-- `style.css`: tutto il CSS.
-- La logica è divisa in 4 file caricati in quest'ordine (stesso ambiente globale, nessuna funzione cambiata): `app.js` (nucleo: dati, profili, liste per genere, classifica, filtri, La mia Tier List, scheda gioco), `app-schede.js` (copertine, giochi aggiunti, archivio locale, etichetta, prima di comprarlo, DNA, confronto, saga, Scopri, wizard), `app-utente.js` (changelog, cambio profilo, export/import, qualità dati), `app-ai.js` (anti-doppione, Chiedi, Novità, Novità per genere e AVVIO dell'app: deve restare ultimo). `DATA_BUILD_VERSION` e il CHANGELOG sono in `app-utente.js` / `app-ai.js`: cerca con Grep.
-- `gemini.js`: motore Gemini (riserva/alternativa a Claude) e impostazioni ⚙️ in "Chiedi a Claude". `askLLM()` è il punto unico per chiamare l'AI.
-- `sync.js`: sincronizzazione automatica dei dati `jrpg_*` (localStorage) su un Gist privato via token GitHub (permesso `gist`). Caricato PRIMA di app.js.
-- `theme.css`: tema grafico "Aurora glass" (solo override di style.css, caricato dopo). `fx.js`: piccoli effetti (barra voto, vibrazione, transizione tra schede). `intro.js` + `icons/intro.jpg`: apertura animata (si salta con `jrpg_intro=off`, `?intro=force` la forza).
-- `sources.js` (dopo loader.js): `SearchHub` = motore di ricerca senza sosta. `SearchHub.fetch/json/text` (accesso diretto → attesa 429 → catena di ponti CORS con autoapprendimento in `rt_relay_health`), fonti dirette (CheapShark, categorie/ricerca Wikipedia, Wikidata, SteamSpy, Steam, GOG, RAWG con chiave facoltativa, Reddit) e `SearchHub.scout()` che ruota AI e fonti finché ha abbastanza giochi. Ogni tentativo va nel registro `DebugLog` (loader.js; si apre con 5 tocchi su «Database aggiornato» o ?debug=1). Usare `SearchHub.json` per ogni nuova chiamata a un sito esterno. Le richieste con una chiave nell'indirizzo (RAWG) vanno SEMPRE con `relays:false` (mai dai ponti pubblici). `suggested` di RAWG è a pagamento: gli affini si ottengono per tag (`H.rawg.similarItems`).
-- `loader.js`: barra di caricamento JRPG con `icons/frugu-hd.gif` (rigenerabile con `tools/frugu_gif.py ... --transparent --width 240`). Avvolge `askLLM` (passa `label` e `silent` nel 3° parametro); `Progress.begin/set/end` per passi contati. Nelle richieste all'AI la % è stimata (~).
-- `extras.js` (caricato per ultimo): viste Tabella/Copertine/Schede (`jrpg_view_mode`), menu ✨, copertine automatiche da Wikipedia (a gruppi di 50), ricerca a voce, wishlist con date di uscita (`jrpg_wishlist`), tier list come immagine, traguardi (`jrpg_badges`), colori dalla copertina (`jrpg_cover_tint`). Si aggancia avvolgendo render/setView/openModal/applyFilters.
-- `palettes.js` (nell'<head>, dopo theme.css): 34 palette; calcola le variabili CSS (--bg, --card, --grad, --a1rgb/--a2rgb/--a3rgb, --glass, --aur*) per chiaro e scuro; scelta in `jrpg_palette`. In theme.css usa `rgba(var(--a1rgb),x)` invece dei viola fissi.
-- Ad OGNI versione aggiorna anche `<meta name="build" content="vNN">` nell'HTML (deve coincidere con `DATA_BUILD_VERSION`): `node tools/check-data.js` lo controlla e `fx.js` ricarica la pagina se non coincidono. Icone a tema videogioco: sprite `g-*` in cima all'HTML (sorgente `tools/game-icons.svg.txt`), usate con `<svg class="gi"><use href="#g-..."/></svg>`; i pulsanti tondi di vetro sono in theme.css (sezione v105).
-- `backup-aurora/`: copia congelata del sito com'era prima delle palette (v99); il workflow Pages la pubblica su `/backup-aurora/` (link nel menu ✨). Branch git di backup: `backup-aurora-prima-delle-palette`. NON modificarla.
-- L'HTML deve iniziare con `<!DOCTYPE html>`: non incollare la riga "impacchettata" dell'artifact (sposta l'<head> nel <body>).
-- Icone dell'app: `tools/make_icons.py` (squircle n=5, vetro) rigenera `icons/icon-*.png`, `apple-touch-icon.png`, `favicon-64.png`. Icone dell'interfaccia: sprite SVG in cima al <body> (`<symbol id="i-...">`), usate con `<svg class="ic"><use href="#i-..."/></svg>`; le tessere squircle usano la maschera `--squircle` di theme.css.
-- Copertine: `findGameCover(g)` in extras.js = catena Wikidata (label inglese, P1733 Steam) → Steam `library_600x900.jpg` → Libretro `thumbnails.libretro.com/<Sistema>/Named_Boxarts/<Titolo> (<Regione>).png` (sondaggio con <img>, nessun CORS necessario) → Wikipedia pageimages. `coverThumb()` riduce le box art Libretro via wsrv.nl. Interruttore `jrpg_autocover`.
-- `genres.js`: verifica dei generi su Wikidata (nuovi giochi in automatico; controllo completo con conferma). `icons/logo.png`: logo Raccoon Tier.
-- `verify.js`: pulsante "Aggiorna info" nella scheda gioco (Wikipedia/Wikidata + AI vincolata alle fonti) e verifica automatica dei giochi nuovi; le correzioni ai giochi di base stanno in `jrpg_game_overrides` (localStorage, sincronizzato).
-- `giochi.js`: dati, `const GIOCHI_DATA = {games, sagaMap, enrich, dopa, labels, market};` (~1,9 MB).
+**Prima di tutto (nuova sessione o nuovo account): leggi `docs/PASSAGGIO-CONSEGNE.md` (utente, flusso di lavoro, errori già fatti, cose da fare). Dettagli di ogni file, chiavi e funzioni: `docs/ARCHITETTURA.md` (non leggerlo tutto: Grep sulla voce che serve). Prove automatiche: `tools/test/`.**
 
-## Regole per risparmiare token
-- NON leggere mai `giochi.js` per intero e non usare Read senza `limit`: è enorme. Cerca con Grep (`-o`, `head_limit`) o interroga con uno script Node/jq.
-- Il file è JSON puro dopo il prefisso `const GIOCHI_DATA = ` e con `;` finale: per analizzarlo, `sed '1s/^const GIOCHI_DATA = //; $s/;$//' giochi.js | jq ...`. Per modificare un gioco usa uno script che ricarica, cambia solo il gioco interessato (per `id`) e riscrive con `JSON.stringify` compatto (una riga, stesso formato).
-- Prima di toccare i dati, indica quali chiavi/id servono; non stampare mai oggetti interi di massa.
-- Per il codice: usa Grep per trovare la funzione in `app.js`, poi Read solo di quell'intervallo di righe (Grep su `app*.js`).
-- Non modificare, semplificare o rimuovere funzioni esistenti se non richiesto.
-- Non usare `fetch`/XHR per i dati locali: file:// li blocca. I dati vanno caricati con `<script src>`.
-- Per modifiche di routine (testi, colori, singoli dati) basta un modello leggero; per logica nuova o bug usare Sonnet.
-- La chiave Gemini dell'utente sta solo in localStorage (`jrpg_gemini_key`): non scriverla mai nel codice, nei commit o nei file.
-- Il token GitHub (`jrpg_sync_token`) sta solo in localStorage: mai nel codice, nei commit o nei file.
-- Fuori da Claude `COVER_DB` è un archivio locale (`makeLocalDb` in app.js) con la stessa interfaccia del db di Claude.
-- Ogni nuovo file JS va aggiunto all'HTML (ordine!), a `.github/workflows/pages.yml` e alla pubblicazione dell'artifact.
-- Classifiche per genere: `ACTIVE_LIST`, `MY_LISTS`, `inActiveList()` in app.js; `applyFilters()` parte sempre da `GAMES.filter(inActiveList)`. La lista `jrpg` è quella predefinita.
-- App installabile: `manifest.webmanifest` (display fullscreen), `sw.js` (forza la rivalidazione: GitHub Pages tiene i file in cache 10 min) e `icons/`; il workflow Pages li copia. Il pulsante ⛶ è in `fx.js`.
-- Nei testi dei giochi (agingNote, pro/contro, ecc.) NON usare frasi legate al tempo ("uscito da poco", "recentissimo"): scrivi l'anno. Prima di pubblicare dati esegui `node tools/check-data.js`.
-- Tag di un gioco: il primo è il genere principale; un tag "extra" (Puzzle, Platform, Picchiaduro, RTS…) toglie il gioco dalla lista JRPG / RPG e lo mette nella lista di quel genere.
-- I voti "verificati" (metodo V) vengono da Metacritic (`tools/audit-metacritic.js`); quelli "stima" (S, spesso 72) NON sono verificati. Correggere un voto solo con ≥15 recensioni e differenza >6.
+## Risparmio di token (priorità)
+- Una sessione per lavoro. Risposte corte, niente riassunti lunghi. Niente screenshot/prove che non servono.
+- MAI leggere per intero `giochi.js`, `dati/testi-*.js`, `ost.js`, `discoveries.js`, `facts.js`, `radar.js`, `quality.js`, `backup-aurora/` (il Read è bloccato in `.claude/settings.json`). Per i dati: script Node con `tools/data-io.js` (`load()`/`save(D)`) o `jq` (vedi ARCHITETTURA, voce giochi.js). Prima di toccare i dati indica quali id/chiavi; non stampare oggetti interi.
+- Codice: `node tools/mappa.js FILE [parola]` (funzioni con numero di riga) o Grep, poi Read solo di quell'intervallo (mai Read senza `limit` su file >300 righe).
+- Dati (formato v3, dalla v209): `giochi.js` = INDICE «a tabella» (enc t1) e `dati/testi-K.js` = testi lunghi a pezzi da 250 giochi. Non fare mai il parse a mano di giochi.js: SOLO `tools/data-io.js` (`load()` dà il vecchio formato completo, `save(D)` riscrive indice + pezzi + tratti `mx`). Nell'app i testi di un gioco arrivano con `rtTexts.ensure(g)`; finché non ci sono `g.enrich._lite` è vero. Se cambi le parole-chiave dei tratti (`tratti.js`) rigenera con load()+save().
+- Non riscrivere, semplificare o rimuovere funzioni esistenti se non richiesto.
+- Modifiche di routine (testi, colori, dati): modello leggero. Logica nuova o bug: Sonnet.
 
-- Dopo ogni `git merge origin/main` con conflitti: risolvi i file UNO alla volta con `git checkout --ours -- "nome file"` (i nomi con spazi vanno tra virgolette, es. l'HTML) e prima del commit esegui `node tools/check-data.js` (segnala anche i marcatori di conflitto rimasti).
+## Regole fisse
+- Numero dei giochi: SEMPRE quello reale (`GAMES.length`, comprende i giochi aggiunti dall'utente: 1369 al 1/10/2026), mai i 765 di base.
+- Ad OGNI versione: `DATA_BUILD_VERSION` e `DATA_BUILD_DATE` in `app-ai.js`, `<meta name="build" content="vNN">` nell'HTML (devono coincidere), voce nel CHANGELOG di `app-utente.js` con data E ORARIO (`date:'AAAA-MM-GG', time:'HH:MM'`, ora italiana: `TZ=Europe/Rome date`). Poi `node tools/check-data.js` (deve dire «Nessun avviso») e `node tools/check-conflitti.js` («Nessun conflitto»).
+- Ogni nuovo file JS: nell'HTML (ordine!), in `sw.js` (SHELL) e in `.github/workflows/pages.yml`. I nuovi moduli vanno in fondo, prima di `motion.js` (che resta l'ultimo).
+- L'HTML inizia con `<!DOCTYPE html>`. Dati locali con `<script src>`, mai fetch (file:// li blocca).
+- Chiavi/token dell'utente (Gemini `jrpg_gemini_key`, RAWG, OpenCritic, GitHub `jrpg_sync_token`) solo in localStorage: mai nel codice, nei commit o nei file. Richieste con chiave: SEMPRE `relays:false`.
+- Chiamate a siti esterni: `SearchHub.json` (mai fetch diretto). Nuova fonte: inseriscila in `SearchHub.PRIORITY`.
+- Aggiornamenti in background: MAI `render()`; usa `refreshGameRow(g)` / `renderWhenIdle({...})` / `applyPatch(g, p, true)` (quiet).
+- `backup-aurora/`: NON modificarla.
+- Testi dei giochi: niente frasi legate al tempo («uscito da poco»): scrivi l'anno.
+- Temi grafici (`packs.js`, `packs.css`, `packs/*.css`, `fonts/`): un tema nuovo = voce in `PACKS` + `packs/ID.css` + anteprime (`node tools/build-pack-thumbs.js ID`); dettagli in ARCHITETTURA (v174). Sulle pagine con un tema usa le variabili `--pk-*`, non colori fissi.
+- Tag: il primo è il genere principale; un tag «extra» (Puzzle, Platform, Picchiaduro, RTS…) sposta il gioco nella lista di quel genere.
+- Voti: «verificati» (V) = Metacritic/OpenCritic/RAWG, con la fonte in `g.vs`; «stima» (S) NON verificati. Priorità fissa Metacritic → OpenCritic → RAWG (una fonte più debole non sostituisce mai una più forte, tranne se l'utente sceglie la fonte in «Fonti e lucchetti»); Metacritic si applica da solo fino a 15 punti di scarto, oltre chiede conferma. Se un sito blocca o la quota è finita si riprova il giorno dopo (`jrpg_vote_state`), se il gioco non c'è non si riprova. I giochi AGGIUNTI senza voto verificato hanno il rank ND (sotto tutti); la classifica di base non cambia.
+- Dopo `git merge origin/main` con conflitti: `git checkout --ours -- "nome file"` un file alla volta (HTML tra virgolette), poi `node tools/check-data.js`.
+
+## Pubblicazione
+Commit → push sul branch di sessione → PR → squash merge → controllo del `<meta name="build">` online → `git checkout -B <branch> origin/main`.

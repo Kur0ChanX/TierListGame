@@ -5,9 +5,13 @@
 // sono contati (copertine, verifica generi) è esatta.
 // ---- Registro diagnostico nascosto (per il debug): ogni richiesta a una fonte esterna, con esito, tempo e status HTTP ----
 // Non contiene MAI chiavi o token (redatti) né il testo delle richieste. Si apre toccando 5 volte «Database aggiornato…» o con ?debug=1.
+// v217: MODALITÀ CALMA (rt_calm, solo su questo telefono): nessun lavoro automatico verso internet (Update+ all'avvio, controllo in background
+// con Gemini, copertine cercate da sole, foto RAWG del carosello). Restano: il tasto Update+ del gioco (fa tutto lui), il backup, i dati del sito.
+window.rtCalm = ()=>{ try{ return localStorage.getItem('rt_calm') === 'on'; }catch(e){ return false; } };
 (function(){
   const KEY = 'rt_debuglog';                                   // niente prefisso jrpg_: non viene sincronizzato sul Gist
   let buf = []; try{ buf = JSON.parse(localStorage.getItem(KEY) || '[]') || []; }catch(e){}
+  try{ if(window.rtBig && rtBig.ready) rtBig.ready.then(ok=>{ if(!ok) return; try{ const old = JSON.parse(localStorage.getItem(KEY) || '[]') || []; if(Array.isArray(old) && old !== buf) buf = old.concat(buf.filter(x=> old.indexOf(x) < 0)).slice(-200); }catch(e){} }); }catch(e){}      // v214: registro nell'archivio grande
   let saveT = 0;
   const persist = ()=>{ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(buf.slice(-200))); }catch(e){} }, 1500); };
   const cut = (x, n)=> String(x == null ? '' : x).slice(0, n || 220);
@@ -18,7 +22,7 @@
     add(e){ e = Object.assign({t: new Date().toISOString()}, e); if(e.url) e.url = cut(redact(e.url), 200); if(e.err) e.err = cut(e.err); if(e.note) e.note = cut(e.note); buf.push(e); if(buf.length > 300) buf = buf.slice(-300); persist(); },
     all(){ return buf.slice(); },
     clear(){ buf = []; try{ localStorage.removeItem(KEY); }catch(e){} },
-    text(){ return buf.map(e=> `${e.t.slice(11, 19)} [${e.kind || 'note'}] ${e.src || ''} ${e.status != null ? 'HTTP ' + e.status : ''} ${e.ms != null ? e.ms + 'ms' : ''} ${e.ok === false ? 'ERRORE' : ''} ${e.url || ''} ${e.err || ''} ${e.note || ''}`.replace(/\s+/g, ' ').trim()).join('\n'); }
+    text(){ return buf.map(e=> `${new Date(e.t).toLocaleTimeString('it-IT', {timeZone: 'Europe/Rome'})} [${e.kind || 'note'}] ${e.src || ''} ${e.status != null ? 'HTTP ' + e.status : ''} ${e.ms != null ? e.ms + 'ms' : ''} ${e.ok === false ? 'ERRORE' : ''} ${e.url || ''} ${e.err || ''} ${e.note || ''}`.replace(/\s+/g, ' ').trim()).join('\n'); }
   };
   const HOSTS = [[/wikipedia\.org/, 'Wikipedia', 'wikipedia'], [/query\.wikidata|wikidata\.org/, 'Wikidata', 'wikidata'], [/steampowered|steamstatic/, 'Steam', 'steam'], [/pcgamingwiki/, 'PCGamingWiki', 'pcgw'], [/rawg\.io/, 'RAWG', 'rawg'], [/reddit\.com/, 'Reddit', 'reddit'], [/cheapshark\.com/, 'CheapShark', 'cheapshark'], [/steamspy\.com/, 'SteamSpy', 'steamspy'], [/catalog\.gog\.com|gog\.com/, 'GOG', 'gog'], [/r\.jina\.ai|cors\.eu\.org|yacdn\.org/, 'Proxy CORS', 'proxy'], [/generativelanguage/, 'Gemini', null], [/wsrv\.nl/, 'wsrv (copertine)', 'covers'], [/libretro/, 'Libretro (copertine)', 'covers'], [/api\.github\.com|gist\.github/, 'GitHub Gist', 'gist'], [/corsproxy|allorigins|codetabs|thingproxy/, 'Proxy CORS', 'proxy']];
   const of = window.fetch;
@@ -49,11 +53,12 @@
     const esc = t=> String(t == null ? '' : t).replace(/[&<>]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
     el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🛠️ Diagnostica fonti</b><button class="btn" data-ui-close>Chiudi</button></div>
       <div class="lp-sub">${all.length} eventi · ${bad} errori. Nessuna chiave o token viene registrato. Se una fonte non va, tocca «Copia log» e incollalo a Claude.</div>
-      <div class="lp-tools"><button class="btn primary" id="dbgCopy">📋 Copia log</button><button class="btn" id="dbgClear">🗑️ Svuota</button></div>
-      <div class="dbg-rows">${all.slice(0, 120).map(e=> `<div class="dbg-row${e.ok === false ? ' bad' : ''}"><b>${esc(e.t.slice(11, 19))}</b> ${esc(e.src || e.kind || '')} ${e.status != null ? '<span class="dbg-st">HTTP ' + e.status + '</span>' : ''} ${e.ms != null ? e.ms + ' ms' : ''}<br><small>${esc(e.url || '')}${e.err ? ' — ' + esc(e.err) : ''}${e.note ? ' — ' + esc(e.note) : ''}</small></div>`).join('') || '<div class="lp-sub">Ancora nessun evento.</div>'}</div></div>`;
+      <div class="lp-tools"><button class="btn primary" id="dbgMap">🩺 Prova le fonti e fai il rapporto</button><button class="btn" id="dbgCopy">📋 Copia log</button><button class="btn" id="dbgClear">🗑️ Svuota</button></div>
+      <div class="dbg-rows">${all.slice(0, 120).map(e=> `<div class="dbg-row${e.ok === false ? ' bad' : ''}"><b>${esc(new Date(e.t).toLocaleTimeString('it-IT', {timeZone: 'Europe/Rome'}))}</b> ${esc(e.src || e.kind || '')} ${e.status != null ? '<span class="dbg-st">HTTP ' + e.status + '</span>' : ''} ${e.ms != null ? e.ms + ' ms' : ''}<br><small>${esc(e.url || '')}${e.err ? ' — ' + esc(e.err) : ''}${e.note ? ' — ' + esc(e.note) : ''}</small></div>`).join('') || '<div class="lp-sub">Ancora nessun evento.</div>'}</div></div>`;
     el.classList.add('show');
     el.querySelector('#dbgCopy').addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(DebugLog.text()); if(window.showToast) showToast('Log copiato', 1800); }catch(e){ const ta = document.createElement('textarea'); ta.value = DebugLog.text(); document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(x){} ta.remove(); } });
     el.querySelector('#dbgClear').addEventListener('click', ()=>{ DebugLog.clear(); openDebugLog(); });
+    el.querySelector('#dbgMap').addEventListener('click', ()=>{ if(window.openSourceMap) openSourceMap(true); else if(window.showToast) showToast('Non disponibile ora', 1800); });
   };
   // apertura nascosta: 5 tocchi sulla riga «Database aggiornato…» oppure ?debug=1
   document.addEventListener('click', e=>{
@@ -88,6 +93,7 @@
     cheapshark: ['Seguo le tracce di sconti e voti su CheapShark: qui i capolavori si fanno pagare poco…', 'CheapShark: Frugu Frugu annusa le offerte e i punteggi Metacritic…'],
     steamspy: ['SteamSpy: conto i pollici su e giù dei giocatori di Steam…', 'Scoperchio le classifiche di SteamSpy alla ricerca di gemme…'],
     gog: ['Fatturando nei cassonetti di GOG: i classici fanno capolino…', 'GOG: rovisto tra i titoli senza DRM e senza pietà…'],
+    scoperte: ['Pesco dal bottino della settimana: Frugu Frugu ha già scoperchiato Steam, GOG e CheapShark…', 'Scoperte del procione: perle già lavate e pronte all\'uso…'],
     proxy: ['Passo dal passaggio segreto per aggirare i blocchi…', 'Un cunicolo laterale per raggiungere la fonte…'],
     ai: ['Frugu Frugu consulta il web con l\'aiuto di Gemini…', 'Scoperchio i bidoni del web e leggo le fonti…', 'Lavando il cibo e verificando i voti degli utenti…', 'Fatturando nei cassonetti più profondi della rete…', 'Annuso qualcosa di buono…', 'Le zampette sono stanche ma il bottino cresce…']
   };
@@ -161,7 +167,7 @@
   function open(txt){
     clearTimeout(hideT);
     if(!el) build();
-    const img = el.querySelector('img'); if(!img.getAttribute('src')) img.src = GIF;
+    const img = el.querySelector('img'); if(!img.getAttribute('src')){ img.onerror = ()=>{ img.onerror = null; setTimeout(()=>{ img.src = 'icons/frugu.gif?r=' + Date.now(); }, 1500); }; img.src = GIF; }   // se il sito rifiuta la GIF grande, riprovo con quella piccola
     if(!el.classList.contains('show')){ pct = 0; target = 0; t0 = performance.now(); }
     if(txt) label = txt;
     el.classList.add('show'); el.classList.remove('done');
@@ -213,4 +219,54 @@
   // scarica la GIF ad alta risoluzione a riposo, così è già pronta quando serve
   const idle = window.requestIdleCallback || (f=> setTimeout(f, 4000));
   idle(()=>{ try{ if(!(navigator.connection && navigator.connection.saveData)){ const i = new Image(); i.src = GIF; } }catch(e){} });
+})();
+
+// ---- v216: REGISTRATORE DI LENTEZZA (per capire cosa rallenta il TUO telefono, che io non posso provare) ----
+// 1) quanto passa davvero da ogni tocco al disegno della pagina (Event Timing) — con cosa avevi toccato;
+// 2) ogni blocco del telefono oltre 150 ms (Long Animation Frames) — con le funzioni del programma che l'hanno causato.
+// Si legge in ✨ → «🐢 Rapporto lentezza» (con «Copia» per mandarlo a Claude). Resta solo su questo dispositivo (rt_slow), niente dati personali.
+(function(){
+  try{
+    const K = 'rt_slow', sup = (window.PerformanceObserver && PerformanceObserver.supportedEntryTypes) || [];
+    let D = {taps: [], loaf: []}; try{ D = Object.assign(D, JSON.parse(localStorage.getItem(K) || '{}') || {}); }catch(e){}
+    let saveT = 0; const save = ()=>{ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ D.taps = D.taps.slice(-80); D.loaf = D.loaf.slice(-60); localStorage.setItem(K, JSON.stringify(D)); }catch(e){} }, 2000); };
+    const view = ()=>{ try{ return (typeof state !== 'undefined' && state.view) || ''; }catch(e){ return ''; } };
+    const what = el=>{ try{ if(!el || !el.closest) return '?'; const t = el.closest('.view-tab[data-view]'); if(t) return 'barra:' + t.dataset.view; if(el.closest('#askTab')) return 'barra:chiedi'; const g = el.closest('[data-gid],[data-id]'); if(g) return 'gioco'; const b = el.closest('button,[id]'); return b ? (b.id ? '#' + b.id : (b.className || b.tagName).toString().split(' ')[0].slice(0, 24)) : el.tagName; }catch(e){ return '?'; } };
+    if(sup.includes('event')){
+      new PerformanceObserver(l=> l.getEntries().forEach(e=>{
+        if(!/^(pointerdown|pointerup|click|keydown)$/.test(e.name) || e.duration < 100) return;
+        D.taps.push({t: Date.now(), ev: e.name, ms: Math.round(e.duration), attesa: Math.round(e.processingStart - e.startTime), lavoro: Math.round(e.processingEnd - e.processingStart), su: what(e.target), v: view()}); save();
+      })).observe({type: 'event', durationThreshold: 104, buffered: true});
+    }
+    if(sup.includes('long-animation-frame')){
+      new PerformanceObserver(l=> l.getEntries().forEach(e=>{
+        if(e.duration < 150) return;
+        const sc = (e.scripts || []).slice().sort((a, b)=> b.duration - a.duration).slice(0, 3).map(s=> ({f: (s.sourceFunctionName || s.invoker || '?').toString().slice(0, 40) + ' @' + String(s.sourceURL || '').split('/').pop().split('?')[0], ms: Math.round(s.duration)}));
+        const js = (e.scripts || []).reduce((s, x)=> s + x.duration, 0);
+        D.loaf.push({t: Date.now(), ms: Math.round(e.duration), js: Math.round(js), disegno: Math.round(e.duration - js), v: view(), sc}); save();
+      })).observe({type: 'long-animation-frame', buffered: true});
+    }
+    function report(){
+      const b = (document.querySelector('meta[name="build"]') || {}).content || '';
+      const n = (()=>{ try{ return GAMES.length; }catch(e){ return '?'; } })();
+      const hh = t=> new Date(t).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+      const L = ['Rapporto lentezza Raccoon Tier ' + b + ' · ' + n + ' giochi · ' + (navigator.hardwareConcurrency || '?') + ' core · ' + (navigator.deviceMemory || '?') + ' GB · ' + innerWidth + 'x' + innerHeight + ' · ' + (matchMedia('(display-mode: fullscreen)').matches ? 'app' : 'browser'), ''];
+      L.push('TOCCHI LENTI (dal tocco al disegno, ms · attesa prima di partire · lavoro):');
+      D.taps.slice(-30).reverse().forEach(x=> L.push(hh(x.t) + '  ' + x.ms + ' ms  [attesa ' + x.attesa + ', lavoro ' + x.lavoro + ']  ' + x.ev + ' su ' + x.su + '  (pagina: ' + (x.v || '?') + ')'));
+      if(!D.taps.length) L.push('  nessuno sopra 100 ms');
+      L.push('', 'BLOCCHI DEL TELEFONO (ms totali · di cui codice · di cui disegno → funzioni):');
+      D.loaf.slice(-30).reverse().forEach(x=> L.push(hh(x.t) + '  ' + x.ms + ' ms  [codice ' + x.js + ', disegno ' + x.disegno + ']  (' + (x.v || '?') + ')  ' + x.sc.map(s=> s.f + ' ' + s.ms + 'ms').join(' | ')));
+      if(!D.loaf.length) L.push('  nessuno sopra 150 ms');
+      return L.join('\n');
+    }
+    window.rtSlowReport = report;
+    function open(){
+      const U = window.XUI; if(!U || !U.sheet) return;
+      const txt = report();
+      const body = U.sheet('xSlow', '🐢 Rapporto lentezza', `<div class="lp-sub">Qui il programma annota da solo ogni tocco lento e ogni blocco del telefono, con la parte del programma che l'ha causato. <b>Usa l'app normalmente per qualche minuto</b>, poi tocca «Copia» e incolla il testo a Claude.</div><pre style="white-space:pre-wrap;font-size:.68rem;line-height:1.35;max-height:52vh;overflow:auto;background:rgba(127,127,127,.1);padding:8px;border-radius:10px">${String(txt).replace(/[&<>]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]))}</pre><div class="lp-tools"><button class="btn primary" type="button" id="slCopy">📋 Copia</button><button class="btn" type="button" id="slClear">🧹 Ricomincia</button></div>`);
+      body.querySelector('#slCopy').addEventListener('click', async e=>{ try{ await navigator.clipboard.writeText(report()); e.target.textContent = '✓ Copiato'; }catch(x){ try{ const ta = document.createElement('textarea'); ta.value = report(); document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); e.target.textContent = '✓ Copiato'; }catch(y){ e.target.textContent = 'Copia non riuscita'; } } });
+      body.querySelector('#slClear').addEventListener('click', ()=>{ D = {taps: [], loaf: []}; try{ localStorage.removeItem(K); }catch(e){} open(); });
+    }
+    (window.XMENU = window.XMENU || []).push({html: '🐢 Rapporto lentezza (per Claude)', run: open});
+  }catch(e){}
 })();

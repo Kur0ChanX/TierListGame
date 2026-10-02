@@ -5,10 +5,25 @@ var USER_COVER_IDS = {};   // id gioco -> id asset (per sostituire senza lasciar
 var COVER_ASSETS = null, COVER_DB = null, currentModalGame = null, coverBusy = false;
 var COVER_STATE = 'pending'; // 'pending' | 'ready' | 'unavailable'
 function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-const ICON_GLOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>';
-const ICON_PHOTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><path d="M16 5h6"/><path d="M19 2v6"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+const ICON_GLOBE = giIcon('globe');
+const ICON_PHOTO = giIcon('photo');
 function coverSearchUrl(g){ return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(g.name + ' cover art boxart'); }
-function effectiveCover(g){ return USER_COVERS[String(g.id)] || (g.enrich && g.enrich.coverUrl) || null; }
+// ---- Formato della locandina nella scheda: mai tagliata (contain + sfondo sfocato); il pulsante «adatta» passa da un formato all'altro, per gioco ----
+const COVER_FITS = [['auto', 'Automatico (segue l\'immagine)', 0], ['v', 'Verticale 3:4', 0.75], ['s', 'Quadrata 1:1', 1], ['h', 'Orizzontale 4:3', 1.3333], ['w', 'Panorama 16:9', 1.7778]];
+function coverFitMap(){ try{ return JSON.parse(localStorage.getItem('jrpg_cover_fit') || '{}') || {}; }catch(e){ return {}; } }
+function coverFitGet(id){ return 'v'; }           // cornice SEMPRE 3:4 (le immagini orizzontali restano intere su fondo sfocato): così la scheda non si sposta quando la copertina finisce di caricarsi
+function coverFitSet(id, mode){ const m = coverFitMap(); m[id] = mode; try{ localStorage.setItem('jrpg_cover_fit', JSON.stringify(m)); }catch(e){} }
+function coverFitApply(frame, mode, img){
+  const f = COVER_FITS.find(x=> x[0] === mode) || COVER_FITS[0];
+  let rn = f[2];
+  if(!rn){ const im = img || frame.querySelector('img'); rn = (im && im.naturalWidth && im.naturalHeight) ? im.naturalWidth / im.naturalHeight : 0.75; rn = Math.min(1.9, Math.max(0.62, rn)); }
+  frame.style.setProperty('--rn', rn.toFixed(3)); frame.dataset.fit = mode;
+}
+function coverFitLoad(img){ const fr = img.closest('.cover-frame'); if(fr && fr.dataset.fit === 'auto') coverFitApply(fr, 'auto', img); }
+// v213: gli indirizzi «/_blob/…» esistono solo dentro Claude: altrove non si caricano mai (155 giochi della lista base). Li considero mancanti,
+// così si cerca la copertina vera, e non si prova più a caricarli (prima ogni copertina rotta nella griglia veniva ritentata all'infinito).
+const isDeadCover = u=> !u || /^\/?_blob\//.test(String(u));
+function effectiveCover(g){ const u = USER_COVERS[String(g.id)], e = g.enrich && g.enrich.coverUrl; return (!isDeadCover(u) && u) || (!isDeadCover(e) && e) || null; }
 function coverPlaceholderHtml(g){
   const platShort = (g.plat||'').split('/')[0].trim();
   return `<div class="modal-cover placeholder-cover"><div class="pc-row"><span class="pc-plat">${escHtml(platShort)}</span><span class="pc-tier ${TIER_LABEL[g.tier]}">${g.tier}</span></div></div>`;
@@ -78,11 +93,12 @@ function coverHtml(g){
   const url = effectiveCover(g);
   const canUrl = !!COVER_DB;
   const canUpload = !!(COVER_DB && COVER_ASSETS);
-  const media = url ? `<img class="modal-cover" src="${escHtml(url)}" alt="Copertina di ${escHtml(g.name)}" loading="lazy" decoding="async">` : coverPlaceholderHtml(g);
+  const fitMode = coverFitGet(g.id), fitF = COVER_FITS.find(f=> f[0] === fitMode), cssUrl = url ? escHtml(String(url).replace(/'/g, '%27').replace(/"/g, '%22').replace(/[()\\]/g, c=> '%' + c.charCodeAt(0).toString(16))) : '';
+  const media = url ? `<div class="cover-frame" data-fit="${fitMode}" style="--rn:${fitF[2] || 0.75};--cov:url('${cssUrl}')"><img class="modal-cover" src="${escHtml(url)}" alt="Copertina di ${escHtml(g.name)}" decoding="async" onload="coverFitLoad(this);this.classList.add('ld')" onerror="this.classList.add('ld')"><div class="cover-mini"><button type="button" data-cover-alt title="Cerca un'altra immagine migliore" aria-label="Cerca un'altra immagine">${giIcon('lens')}</button></div></div>` : coverPlaceholderHtml(g);
   const currentUrlValue = (url && /^https?:\/\//i.test(url)) ? url : '';
   const uploadRow = canUpload ? `<div class="cover-tools">
       <label class="cover-pill${coverBusy?' busy':''}" data-cover-upload-label title="Scegli una foto dalla galleria del telefono">${ICON_PHOTO}<span>Carica dal telefono</span><input type="file" accept="image/*" data-cover-file-input ${coverBusy?'disabled':''}></label>
-      <label class="cover-pill${coverBusy?' busy':''}" data-cover-camera-label title="Scatta una foto adesso con la fotocamera">📸<span>Scatta foto</span><input type="file" accept="image/*" capture="environment" data-cover-camera-input ${coverBusy?'disabled':''}></label>
+      <label class="cover-pill${coverBusy?' busy':''}" data-cover-camera-label title="Scatta una foto adesso con la fotocamera">${giIcon('cam')}<span>Scatta foto</span><input type="file" accept="image/*" capture="environment" data-cover-camera-input ${coverBusy?'disabled':''}></label>
     </div>` : '';
   const hint = !canUrl
     ? `<div class="cover-hint">Il salvataggio della copertina non è disponibile qui: apri questa pagina restando connesso al tuo account Claude (non da un link "pubblico" o da un altro browser senza accesso).</div>`
@@ -91,9 +107,9 @@ function coverHtml(g){
   return `<div class="cover-block" id="coverBlock">${media}
     <div class="cover-tools">${uploadRow ? uploadRow.replace(/^<div class="cover-tools">|<\/div>$/g, '') : ''}
       <a class="cover-pill" href="${coverSearchUrl(g)}" target="_blank" rel="noopener" title="Cerca la copertina su internet">${ICON_GLOBE}<span>Cerca copertina</span></a>
-      <button class="cover-pill" type="button" data-cover-diag aria-expanded="${coverDiagOpen?'true':'false'}" title="Mostra la diagnostica">🩺</button>
+      <button class="cover-pill" type="button" data-cover-diag aria-expanded="${coverDiagOpen?'true':'false'}" title="Mostra la diagnostica">${giIcon('pulse')}</button>
     </div>
-    <details class="cover-more"${coverBusy || !canUrl ? ' open' : ''}><summary>🔗 Usa un link o leggi i consigli</summary>
+    <details class="cover-more"${coverBusy || !canUrl ? ' open' : ''}><summary>${giIcon('link')} Usa un link o leggi i consigli</summary>
     ${canUrl ? `<div class="cover-urlrow">
       <input type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui il link dell'immagine (https://...)" value="${escHtml(currentUrlValue)}" data-cover-url-input ${coverBusy?'disabled':''}>
       <button class="btn primary" type="button" data-cover-url-save ${coverBusy?'disabled':''}>${coverBusy?'…':'Salva'}</button>
@@ -104,7 +120,7 @@ function wireCover(g){
   const block = document.getElementById('coverBlock'); if(!block) return;
   const img = block.querySelector('img.modal-cover');
   if(img){
-    img.addEventListener('error', ()=>{ img.outerHTML = coverPlaceholderHtml(g); }, {once:true});
+    img.addEventListener('error', ()=>{ const fr = img.closest('.cover-frame'); (fr || img).outerHTML = coverPlaceholderHtml(g); }, {once:true});
     img.addEventListener('click', ()=>{ openLightbox(img.src, img.alt); });
   }
   const urlInput = block.querySelector('[data-cover-url-input]');
@@ -242,13 +258,18 @@ function cleanCustomEnrich(o){
   const full = {eraScore: num(o.eraScore, 0, 100), todayScore: num(o.todayScore, 0, 100), gameplayScore: num(o.gameplayScore, 0, 10),
     agingNote: str(o.agingNote, 12), gameplayNote: str(o.gameplayNote, 12), whyLikeIt: str(o.whyLikeIt, 12),
     hoursMain: num(o.hoursMain, 1, 400), hoursCompletionist: num(o.hoursCompletionist, 1, 1500), lengthVerdict: str(o.lengthVerdict, 8), remaster: str(o.remaster, 5), language: str(o.language, 5)};
-  if(Object.values(full).every(v=> v != null)) Object.assign(e, full);
+  // serve solo il nucleo dell'analisi (prima serviva TUTTO e bastava un campo vuoto per perdere anche «come regge oggi» e gameplay); ore, riedizioni e lingua sono facoltativi
+  if(['eraScore', 'todayScore', 'gameplayScore', 'agingNote', 'gameplayNote', 'whyLikeIt'].every(k=> full[k] != null)) Object.keys(full).forEach(k=>{ if(full[k] != null) e[k] = full[k]; });
   if(Array.isArray(o.similarTo)){ const sim = o.similarTo.map(x=> String(x).trim()).filter(x=> x.length > 1 && x.length < 80).slice(0, 5); if(sim.length) e.similarTo = sim; }
   e.checked = typeof o.checked === 'string' ? o.checked : undefined;
   return (e.storyTag || e.dopamine || e.eraScore != null || e.checked) ? e : null;
 }
+// firma dei dati che cambiano ordine o filtri della lista: se cambiano serve un ridisegno completo, altrimenti basta la riga
+const CUSTOM_SIG = new Map(), CUSTOM_DATA = new Map();
+const customSig = g=> [g.name, g.tier, g.score, g.year, (g.tags || []).join(','), g.plat, g.m].join('|');
 function syncCustomGames(snap){
   const seen = new Set();
+  let structural = false; const changed = [];
   (snap.docs || []).forEach(d=>{
     const v = d.data();
     const id = parseInt(d.id, 10);
@@ -260,10 +281,12 @@ function syncCustomGames(snap){
       plat: v.plat ? String(v.plat) : '—',
       year: v.year ? String(v.year) : '',
       ysort: parseInt(v.year, 10) || 0,
-      tier: TIERS_LIST.includes(v.tier) ? v.tier : 'B',
-      score: clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70,
-      m: 'S',
-      note: v.note ? String(v.note) : 'Aggiunto da te tramite "Chiedi a Claude" — non è nella classifica ufficiale, il voto è una stima.',
+      // ND: un gioco aggiunto con voto NON verificato (né Metacritic né OpenCritic) sta sotto tutti i rank; diventa un rank vero solo quando il voto è verificato
+      tier: v.m === 'V' ? ((TIERS_LIST.includes(v.tier) && v.tier !== 'ND') ? v.tier : (sc0=> sc0 >= 95 ? 'S+' : sc0 >= 90 ? 'S' : sc0 >= 85 ? 'A' : sc0 >= 80 ? 'B' : sc0 >= 70 ? 'C' : sc0 >= 60 ? 'D' : sc0 >= 40 ? 'E' : 'F')(clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70)) : 'ND',
+      score: v.m === 'V' ? (clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70) : Math.min(79, clampIntOrNull(v.score, 0, 100) != null ? clampIntOrNull(v.score, 0, 100) : 70),
+      vs: v.vs ? String(v.vs) : undefined,
+      m: v.m === 'V' ? 'V' : 'S',          // V = voto verificato da Metacritic/OpenCritic (lo scrive Update+ / «Aggiorna info»)
+      note: v.note ? String(v.note) : 'Aggiunto da te tramite "Chiedi" — non è nella classifica ufficiale, il voto è una stima.',
       story: v.story ? String(v.story) : '',
       tags: Array.isArray(v.tags) ? v.tags.filter(t=> TAG_INFO[t]) : [],
       custom: true,
@@ -275,15 +298,22 @@ function syncCustomGames(snap){
     const idx = GAMES.findIndex(x=>x.id===id);
     if(idx>=0) GAMES[idx] = entry; else GAMES.push(entry);
     CUSTOM_GAME_IDS.add(id);
+    const sig = customSig(entry), old = CUSTOM_SIG.get(id);
+    const dsig = v._u != null ? String(v._u) : JSON.stringify(v), dold = CUSTOM_DATA.get(id);
+    if(old === undefined || old !== sig) structural = true;
+    else if(dold !== dsig) changed.push(entry);
+    CUSTOM_SIG.set(id, sig); CUSTOM_DATA.set(id, dsig);
   });
   Array.from(CUSTOM_GAME_IDS).forEach(id=>{
     if(!seen.has(id)){
       const idx = GAMES.findIndex(x=>x.id===id);
       if(idx>=0) GAMES.splice(idx, 1);
       CUSTOM_GAME_IDS.delete(id);
+      CUSTOM_SIG.delete(id); CUSTOM_DATA.delete(id); structural = true;
     }
   });
-  try{ renderMetrics(); renderStats(); render(); renderListBar(); }catch(e){}
+  if(structural){ try{ renderWhenIdle({metrics: true, stats: true, list: true, bar: true}); }catch(e){ try{ renderMetrics(); renderStats(); render(); renderListBar(); }catch(x){} } }
+  else changed.forEach(g=> refreshGameRow(g));          // cambiati solo testi/simboli: aggiorno le righe, la lista resta ferma dov'è
 }
 async function pasteCover(g){
   coverLog('provo a leggere gli appunti');
@@ -396,17 +426,22 @@ function makeLocalAssets(){
 // ---- Fuori da Claude non c'è il database: un piccolo archivio in localStorage con la stessa interfaccia ----
 function makeLocalDb(){
   const key = c=> 'jrpg_db_' + c;
-  const load = c=>{ try{ return JSON.parse(localStorage.getItem(key(c)) || '{}') || {}; }catch(e){ return {}; } };
-  const save = (c, m)=>{ try{ localStorage.setItem(key(c), JSON.stringify(m)); }catch(e){} };
+  // v216: lettura «ricordata» — se il testo salvato non è cambiato riuso l'oggetto già letto (con 700+ giochi aggiunti l'archivio è di MB:
+  // prima lo rileggevo e lo ricostruivo da capo a OGNI modifica di Update+, bloccando il telefono proprio mentre toccavi)
+  const MEMO = {};
+  const load = c=>{ try{ const raw = localStorage.getItem(key(c)) || '{}', m = MEMO[c]; if(m && m.raw === raw) return m.obj; const obj = JSON.parse(raw) || {}; MEMO[c] = {raw, obj}; return obj; }catch(e){ return {}; } };
+  const save = (c, m)=>{ try{ const raw = JSON.stringify(m); localStorage.setItem(key(c), raw); MEMO[c] = {raw: localStorage.getItem(key(c)), obj: m}; }catch(e){ try{ showToast('⚠️ Spazio del browser esaurito: la modifica non è stata salvata. Fai un backup da ✨ → Backup e libera spazio.', 6000); }catch(x){} } };
   const listeners = {};
-  const snapOf = c=>{ const m = load(c); return {docs: Object.keys(m).map(id=>({id, data:()=>m[id]}))}; };
+  // ogni documento porta la data di modifica (_u); le cancellazioni lasciano una «lapide» (_d) così la sincronizzazione tra dispositivi le propaga
+  const live = m=> Object.keys(m).filter(id=> !(m[id] && typeof m[id] === 'object' && m[id]._d));
+  const snapOf = c=>{ const m = load(c); return {docs: live(m).map(id=>({id, data:()=>m[id]}))}; };
   const notify = c=>{ (listeners[c] || []).forEach(fn=>{ try{ fn(snapOf(c)); }catch(e){} }); };
   return {
     doc(path){
       const [c, id] = path.split('/');
       return {
-        set(d){ const m = load(c); m[id] = d; save(c, m); notify(c); return Promise.resolve(); },
-        delete(){ const m = load(c); delete m[id]; save(c, m); notify(c); return Promise.resolve(); }
+        set(d){ const m = load(c); m[id] = (d && typeof d === 'object') ? Object.assign({}, d, {_u: Date.now()}) : d; save(c, m); notify(c); return Promise.resolve(); },
+        delete(){ const m = load(c); m[id] = {_d: 1, _u: Date.now()}; save(c, m); notify(c); return Promise.resolve(); }
       };
     },
     collection(c){
@@ -427,8 +462,11 @@ function attachDbListeners(){
           if(typeof v.asset === 'string' && /^[0-9a-f]{32}$/.test(v.asset)){ next[d.id] = localBlobs()[v.asset] || ('/_blob/' + v.asset); nextIds[d.id] = v.asset; }
           else if(typeof v.url === 'string' && /^https?:\/\//i.test(v.url)){ next[d.id] = v.url; }
         });
+        const changed = JSON.stringify(Object.keys(next).sort().map(k=> k + '=' + next[k].length)) !== JSON.stringify(Object.keys(USER_COVERS || {}).sort().map(k=> k + '=' + String(USER_COVERS[k]).length));
         USER_COVERS = next; USER_COVER_IDS = nextIds;
         if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
+        // v215: le tue copertine arrivano dall'archivio grande un attimo DOPO il primo disegno: se sono cambiate ridisegno la lista/griglia (in sottofondo, senza scatti)
+        if(changed){ try{ if(typeof renderWhenIdle === 'function') renderWhenIdle({list: true}); }catch(e){} }
       }, ()=>{});
     }catch(e){}
     try{
@@ -440,7 +478,8 @@ function attachDbListeners(){
     COVER_DB = makeLocalDb();
     COVER_ASSETS = makeLocalAssets();
     COVER_STATE = 'ready';
-    attachDbListeners();
+    // v211: i giochi aggiunti, le copertine e le foto stanno nell'archivio grande (archivio.js): li leggo quando è pronto
+    if(window.rtBig && rtBig.ready) rtBig.ready.then(()=> attachDbListeners(), ()=> attachDbListeners()); else attachDbListeners();
     coverLog('window.claude non disponibile: pagina aperta fuori dalla piattaforma Claude (es. file salvato in locale)');
     return;
   }
@@ -466,9 +505,10 @@ function attachDbListeners(){
 })();
 function highlightsHtml(g){
   const e = g.enrich; if(!e || (!e.storyTag && !e.dopamine)) return '';
-  let out = '<div class="enrich-highlights">';
-  if(e.storyTag && STORY_TAG_INFO[e.storyTag]) out += `<span class="enrich-chip ${e.storyTag}">${STORY_TAG_INFO[e.storyTag].icon} ${STORY_TAG_INFO[e.storyTag].label}${e.storyTagNote ? ' — ' + e.storyTagNote : ''}</span>`;
-  if(e.dopamine) out += `<button type="button" class="enrich-chip dopamine dopa-toggle" aria-expanded="false" aria-controls="dopaPanel">💉 Loop molto coinvolgente <span class="dopa-chev" aria-hidden="true">▾</span></button>`;
+  // v205: due riquadri leggibili (icona grande, titolo, spiegazione) al posto delle pillole minuscole
+  let out = '<div class="enrich-highlights hl2">';
+  if(e.storyTag && STORY_TAG_INFO[e.storyTag]) out += `<div class="hl-card hl-${escHtml(e.storyTag)}"><span class="hl-ic" aria-hidden="true">${STORY_TAG_INFO[e.storyTag].icon}</span><div class="hl-tx"><b>${escHtml(STORY_TAG_INFO[e.storyTag].label)}</b>${e.storyTagNote ? `<p>${escHtml(e.storyTagNote)}</p>` : ''}</div></div>`;
+  if(e.dopamine) out += `<button type="button" class="hl-card hl-dopa dopa-toggle" aria-expanded="false" aria-controls="dopaPanel"><span class="hl-ic" aria-hidden="true">💉</span><div class="hl-tx"><b>Loop molto coinvolgente</b><p>Tocca per scoprire cosa ti tiene incollato</p></div><span class="dopa-chev" aria-hidden="true">▾</span></button>`;
   out += '</div>';
   if(e.dopamine) out += dopaPanelHtml(g);
   return out;
@@ -477,7 +517,7 @@ function dopaPanelHtml(g){
   const d = g.enrich && g.enrich.dopa;
   const def = `<p class="dopa-def"><b>Cosa vuol dire «dopamina»:</b> il gioco ti premia spesso e ti spinge a dire «ancora un turno». Non misura la qualità, misura quanto è difficile staccarsi.</p>`;
   if(!d) return `<div class="dopa-panel" id="dopaPanel" hidden>${def}</div>`;
-  const steps = (d.loop||[]).map(s=>`<span class="dopa-step">${escHtml(s)}</span>`).join('<span class="dopa-arrow" aria-hidden="true">→</span>');
+  const steps = (d.loop||[]).map((s, i)=>`<span class="dopa-step"><i>${i + 1}</i>${escHtml(s)}</span>`).join('<span class="dopa-arrow" aria-hidden="true">→</span>');
   return `<div class="dopa-panel" id="dopaPanel" hidden>
     ${def}
     <span class="dopa-k">Il ciclo che ti tiene incollato</span>
@@ -517,10 +557,10 @@ function enrichHtml(g){
       <ul class="pros">${e.pros.map(p=>`<li>${p}</li>`).join('')}</ul>
       <ul class="cons">${e.cons.map(c=>`<li>${c}</li>`).join('')}</ul>
     </div>
-    <div class="modal-section-title">⏱️ Longevità</div>
-    <div class="modal-note"><strong>${e.hoursMain}h</strong> storia principale · <strong>${e.hoursCompletionist}h</strong> completista.<br>${e.lengthVerdict}</div>
-    <div class="modal-section-title">ℹ️ Dettagli</div>
-    <div class="modal-note"><strong>Riedizioni:</strong> ${e.remaster}<br><strong>Lingua:</strong> ${e.language}</div>
+    ${e.hoursMain != null ? `<div class="modal-section-title">⏱️ Longevità</div>
+    <div class="modal-note"><strong>${e.hoursMain}h</strong> storia principale${e.hoursCompletionist != null ? ` · <strong>${e.hoursCompletionist}h</strong> completista` : ''}.${e.lengthVerdict ? '<br>' + e.lengthVerdict : ''}</div>` : ''}
+    ${(e.remaster || e.language) ? `<div class="modal-section-title">ℹ️ Dettagli</div>
+    <div class="modal-note">${e.remaster ? `<strong>Riedizioni:</strong> ${e.remaster}` : ''}${e.remaster && e.language ? '<br>' : ''}${e.language ? `<strong>Lingua:</strong> ${e.language}` : ''}</div>` : ''}
   `;
 }
 
@@ -528,29 +568,89 @@ function enrichHtml(g){
 const LABEL_PACE = {L:'Lento', M:'Medio', V:'Veloce'};
 const LABEL_IT = {D:'🎙️ Testi e doppiaggio in italiano', S:'✅ Testi/sottotitoli in italiano', F:'🌐 Solo fan-translation', N:'🇬🇧 Solo inglese/altro'};
 const LABEL_STORE = {PS:'PlayStation', XB:'Xbox', NS:'Switch', PC:'PC', MOB:'Mobile'};
+// nota «voto e dettagli sono una stima…»: se il voto è poi diventato verificato (V) la frase non è più vera, la sostituisco
+function noteForVoto(g){
+  const n = String(g.note || '');
+  const vs = String(g.vs || '').replace(/ \(nessun Metacritic trovato\)/, '').trim();
+  return g.m === 'V' ? n.replace(/ — (?:nessun Metacritic trovato: )?voto e dettagli sono una stima[^.]*\.| — voto verificato \(Metacritic\/OpenCritic\)\./, ' — voto verificato (' + (vs || 'Metacritic/OpenCritic') + ').') : n;
+}
+// da dove viene il voto: Metacritic se c'è, altrimenti lo dico chiaramente (fonte o stima)
+// link al sito ufficiale di Metacritic per controllare il voto a mano (dal telefono il sito non si può leggere dentro il programma)
+const mcLink = g=> ` <a class="mc-link" href="https://www.metacritic.com/search/${encodeURIComponent(cleanBaseTitle(g.name))}/?category=13" target="_blank" rel="noopener" title="Apri la ricerca su Metacritic (sito ufficiale)">↗ Metacritic ufficiale</a>`;
+const cleanBaseTitle = n=> String(n || '').replace(/\s*\([^)]*\)/g, '').trim();
+function voteSourceHtml(g){ return voteSourceHtml0(g) + mcLink(g); }
+function voteSourceHtml0(g){
+  const vs = g.vs || '';
+  if(g.m === 'V' && /^Metacritic/.test(vs)) return `${giIcon('tag')} <span>Voto preso da <b>${escHtml(vs)}</b>.</span>`;
+  if(g.m === 'V' && vs) return `⚠️ <span>Nessun Metacritic trovato: voto preso da <b>${escHtml(vs.replace(/ \(nessun Metacritic trovato\)/, ''))}</b>.</span>`;
+  if(g.m === 'V') return `${giIcon('tag')} <span>Voto verificato (Metacritic/OpenCritic): fonte esatta non ancora registrata, premi «Update V+» per vederla.</span>`;
+  return `⚠️ <span>Nessun Metacritic trovato: il voto è una <b>stima</b> (non verificata).</span>`;
+}
+// esito dell'ultimo controllo del voto, fonte per fonte (priorità: Metacritic → OpenCritic → RAWG); i ⚠️ dicono se un sito è bloccato, la chiave non va o la quota è finita
+function voteDiagHtml(g){
+  const d = typeof voteDiagFor === 'function' ? voteDiagFor(g.id) : null;
+  if(!d || !d.lines || !d.lines.length) return '';
+  const day = new Date(d.t).toLocaleDateString('it-IT') + ' ' + new Date(d.t).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
+  return `<details class="fresh-line" ${d.prob && d.prob.length ? 'open' : ''}><summary>Ricerca del voto (${day})${d.prob && d.prob.length ? ' · ⚠️ ' + d.prob.length + ' fonte/i con problemi' : ''}</summary><div>${d.lines.map(escHtml).join('<br>')}</div></details>`;
+}
 function labelBar(n, max){
   let out = '<span class="glabel-bar">';
   for(let i=1;i<=max;i++) out += `<i class="${i<=n?'on':''}"></i>`;
   return out + '</span>';
 }
+// prezzo e sconto su Steam, dai dati settimanali scaricati dai server (facts.js)
+function factsHtml(g){
+  const f = window.SearchHub ? SearchHub.factsFor(g) : null;
+  if(!f || !f.s || !f.s.p) return '';
+  const p = f.s.p, eur = n=> n.toLocaleString('it-IT', {style: 'currency', currency: 'EUR'});
+  const d = p.d > 0 ? ` <b class="fx-disc">−${p.d}%</b> <s>${eur(p.i)}</s>` : '';
+  const it = f.s.it === 'D' ? ' · 🎙️ testi e doppiaggio in italiano' : f.s.it === 'S' ? ' · testi in italiano' : f.s.it === 'N' ? ' · nessun italiano su Steam' : '';
+  return `<div class="fx-steam">${giIcon('gem')} <span>Su Steam ${p.f === 0 ? '<b>gratis</b>' : '<b>' + eur(p.f) + '</b>'}${d}${it}</span> <small>aggiornato il ${escHtml(f.t || '')}</small></div>`;
+}
+// v200: «A colpo d'occhio» a riquadri: per ogni voce una parola chiara, una barra colorata e (se lo so) se è come piace a te
+const GL_WORDS = {
+  d: ['', 'Molto facile', 'Facile', 'Media', 'Impegnativa', 'Durissima'],
+  g: ['', 'Niente grinding', 'Poco', 'Un po\'', 'Tanto', 'Tantissimo'],
+  s: ['', 'Quasi assente', 'Leggera', 'Presente', 'Importante', 'Al centro di tutto']
+};
+function glTaste(key){
+  try{ const tm = window.rtTasteModel && window.rtTasteModel(); if(!tm || !tm.wts || (tm.cnt[key] || 0) < 2) return ''; const w = tm.wts[key] || 0;
+    return w > .2 ? '<em class="gl-yes">💜 come piace a te</em>' : w < -.2 ? '<em class="gl-no">⚠️ di solito non ti piace</em>' : ''; }catch(e){ return ''; }
+}
+function glMeter(n, max, hue){ let o = '<span class="gl-m">'; for(let i = 1; i <= max; i++) o += `<i${i <= n ? ` class="on" style="--h:${hue}"` : ''}></i>`; return o + '</span>'; }
+function glHours(h){
+  if(!h) return '';
+  const days = Math.ceil(h / 1.5), w = days / 7;
+  return days <= 6 ? `≈ ${days} ${days === 1 ? 'giorno' : 'giorni'} a 1h30 al giorno` : w < 9 ? `≈ ${Math.round(w)} ${Math.round(w) === 1 ? 'settimana' : 'settimane'} a 1h30 al giorno` : `≈ ${Math.round(w / 4.3)} mesi a 1h30 al giorno`;
+}
 function labelHtml(g){
   const l = g.label;
   if(!l) return '';
   const costLabel = l.cost==='S' ? '€ (< 20)' : l.cost==='M' ? '€€ (20-40)' : l.cost==='H' ? '€€€ (> 40)' : '—';
-  return `<div class="modal-section-title">🏷️ Etichetta del gioco</div>
-  <div class="glabel">
-    <div class="glabel-title">A colpo d'occhio</div>
-    <div class="glabel-grid">
-      <div class="glabel-row"><span>Difficoltà</span><span class="v">${labelBar(l.d,5)}</span></div>
-      <div class="glabel-row"><span>Grinding</span><span class="v">${labelBar(l.g,5)}</span></div>
-      <div class="glabel-row"><span>Peso storia</span><span class="v">${labelBar(l.s,5)}</span></div>
-      <div class="glabel-row"><span>Ritmo</span><span class="v">${LABEL_PACE[l.p]||'—'}</span></div>
-      <div class="glabel-row"><span>Ore (storia)</span><span class="v">${l.h!=null ? l.h+'h' : '—'}</span></div>
-      <div class="glabel-row"><span>Italiano</span><span class="v">${l.it ? LABEL_IT[l.it] : '—'}</span></div>
-    </div>
+  const h = (g.enrich && g.enrich.hoursMain) || l.h || 0;          // stesse ore della «Longevità»
+  const lv = v=> v >= 4 ? 'alta' : v <= 2 ? 'bassa' : 'media';
+  const tiles = [];
+  if(l.d) tiles.push(`<div class="gl-t"><span class="gl-k">🔥 Difficoltà</span><b>${GL_WORDS.d[l.d] || '—'}</b>${glMeter(l.d, 5, 130 - l.d * 26)}${glTaste('diff:' + lv(l.d))}</div>`);
+  if(l.s) tiles.push(`<div class="gl-t"><span class="gl-k">📖 Storia</span><b>${GL_WORDS.s[l.s] || '—'}</b>${glMeter(l.s, 5, 270)}${glTaste('storia:' + (l.s >= 4 ? 'forte' : l.s <= 2 ? 'leggera' : 'media'))}</div>`);
+  if(l.g) tiles.push(`<div class="gl-t"><span class="gl-k">⏳ Grinding</span><b>${GL_WORDS.g[l.g] || '—'}</b>${glMeter(l.g, 5, 40)}${glTaste('grind:' + (l.g >= 4 ? 'alto' : l.g <= 2 ? 'basso' : 'medio'))}</div>`);
+  if(h) tiles.push(`<div class="gl-t"><span class="gl-k">🕐 Durata</span><b>${h} ore <small>${h < 20 ? 'breve' : h <= 50 ? 'media' : 'lunga'}</small></b>${glMeter(Math.max(1, Math.min(5, Math.ceil(h / 20))), 5, 200)}<span class="gl-s">${glHours(h)}</span>${glTaste('ore:' + (h < 20 ? 'brevi' : h <= 50 ? 'medie' : 'lunghe'))}</div>`);
+  if(l.p) tiles.push(`<div class="gl-t"><span class="gl-k">🏃 Ritmo</span><b>${LABEL_PACE[l.p] || '—'}</b>${glMeter({L: 1, M: 2, V: 3}[l.p] || 0, 3, 170)}${glTaste('ritmo:' + ({L: 'lento', M: 'medio', V: 'veloce'}[l.p] || ''))}</div>`);
+  if(l.it){ const IT = {D: ['Doppiato in italiano', 3], S: ['Testi in italiano', 3], F: ['Traduzione amatoriale', 2], N: ['Niente italiano', 1]}[l.it] || ['—', 0];
+    tiles.push(`<div class="gl-t"><span class="gl-k">🇮🇹 Italiano</span><b>${IT[0]}</b>${glMeter(IT[1], 3, IT[1] === 3 ? 140 : IT[1] === 2 ? 45 : 0)}</div>`); }
+  // una frase che riassume tutto, da leggere in 2 secondi
+  const bits = [];
+  if(h) bits.push(h < 20 ? 'breve' : h <= 50 ? 'di durata media' : 'lungo');
+  if(l.s >= 4) bits.push('con la storia al centro'); else if(l.s && l.s <= 2) bits.push('con poca storia');
+  if(l.d >= 4) bits.push('impegnativo'); else if(l.d && l.d <= 2) bits.push('facile');
+  if(l.g >= 4) bits.push('con tanto grinding'); else if(l.g && l.g <= 2) bits.push('senza grinding');
+  const sum = bits.length ? `<div class="gl-sum">In breve: <b>${bits.join(', ').replace(/, ([^,]*)$/, ' e $1')}</b>.</div>` : '';
+  return `<div class="modal-section-title">${giIcon('tag')} A colpo d'occhio</div>
+  <div class="glabel gl2">
+    ${sum}
+    <div class="gl-grid">${tiles.join('')}</div>
     ${(l.ok && fixSecondPerson(l.ok)) ? `<div class="glabel-ok">🟢 <b>Fa per te se</b>${escHtml(fixSecondPerson(l.ok))}</div>` : ''}
     ${(l.ko && fixSecondPerson(l.ko)) ? `<div class="glabel-ko">🔴 <b>Lascia stare se</b>${escHtml(fixSecondPerson(l.ko))}</div>` : ''}
-    ${l.play ? `<div class="glabel-play">🎯 <b>Come giocarlo oggi:</b> ${escHtml(l.play)}</div>` : ''}
+    ${l.play ? `<div class="glabel-play">${giIcon('target')} <b>Come giocarlo oggi:</b> ${escHtml(l.play)}</div>` : ''}
     ${(l.fam && l.fam.length) || l.cost || l.demo!=null ? `<div class="glabel-stores">
       ${(l.fam||[]).map(f=>`<span class="glabel-store">${LABEL_STORE[f]||f}</span>`).join('')}
       ${l.cost ? `<span class="glabel-store">${costLabel}</span>` : ''}
@@ -600,12 +700,12 @@ function marketHtml(g){
     verdict = `<div class="cover-hint" style="text-align:left; margin-top:0;">Non risulta oggi in nessun abbonamento che ho controllato: verifica il prezzo con il link qui sotto.</div>`;
   }
   const notes = entries.filter(e=>e.note).map(e=>`<div class="modal-note">ℹ️ ${escHtml(e.svc)}: ${escHtml(e.note)}</div>`).join('');
-  return `<div class="modal-section-title">🛒 Prima di comprarlo</div>
+  return `<div class="modal-section-title">${giIcon('cart')} Prima di comprarlo</div>
   <div class="glabel">
     ${verdict}
     ${notes}
     <div class="glabel-play" style="margin-top:8px;">
-      <a href="${priceUrl}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:700; text-decoration:none;">💶 Controlla il prezzo di oggi</a>
+      <a href="${priceUrl}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:700; text-decoration:none;">${giIcon('tag')} Controlla il prezzo di oggi</a>
       &nbsp;·&nbsp;
       <a href="${hltbUrl}" target="_blank" rel="noopener" style="color:var(--accent); font-weight:700; text-decoration:none;">⏱️ HowLongToBeat</a>
     </div>
@@ -676,8 +776,18 @@ const modalCard = document.getElementById('modalCard');
 const wizardBackdrop = document.getElementById('wizardBackdrop');
 const wizardCard = document.getElementById('wizardCard');
 
+// v209: con il catalogo a pezzi, finché i testi lunghi di un gioco non sono arrivati g.enrich è il «lite» dell'indice.
+// La scheda lo mostra come «analisi in arrivo» (come prima dell'arrivo dei dettagli) e si ridisegna da sola appena arrivano i testi.
 function openModal(g){
+  const lite = g && g.enrich && g.enrich._lite ? g.enrich : null;
+  if(lite){ const v = {_lite: true}; ['coverUrl', 'storyTag', 'dopamine', 'hoursMain', 'hoursCompletionist'].forEach(k=>{ if(lite[k] != null) v[k] = lite[k]; }); g.enrich = v; }
+  try{ return openModalBody(g); }
+  finally{ if(lite && g.enrich && g.enrich._lite) g.enrich = lite; }
+}
+function openModalBody(g){
   currentModalGame = g;
+  // v209: testi lunghi non ancora arrivati (catalogo a pezzi)? apro subito con l'indice e, appena arrivano, aggiorno la scheda
+  try{ if(window.rtTexts && !rtTexts.has(g)){ const id = g.id; rtTexts.ensure(g).then(()=> new Promise(r=> setTimeout(r, Math.max(0, (window.__rtOpenUntil || 0) - performance.now()) + 30))).then(()=>{ if(currentModalGame && currentModalGame.id === id && modalBackdrop.classList.contains('show') && rtTexts.has(currentModalGame)){ const y = modalCard.scrollTop; openModal(GAMES.find(x=> x.id === id) || currentModalGame); modalCard.scrollTop = y; } }); } }catch(e){}
   modalCard.classList.remove('wide');
   const isFav = FAVS.has(g.id);
   const storyHtml = g.story
@@ -696,22 +806,28 @@ function openModal(g){
     <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
     <div class="modal-badges">
       <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
-      <span class="badge big outline">${g.score}/100</span>
-      <span class="badge big outline">${methodIcon(g.m)} ${g.m==='V' ? 'Verificato' : 'Stima'}</span>
+      <span class="badge big outline">${g.tier === 'ND' ? 'voto ND' : g.score + '/100'}</span>
+      <span class="badge big outline">${srcIcon(g)} ${SRC_NAME[srcKind(g)]}</span>
+      ${(()=>{ const f = freshInfo(g); return f ? `<span class="badge big outline fresh-badge" title="${escHtml(freshWhy(f))}">${giIcon(f.m ? 'upmanual' : 'upplus')} ${f.m ? 'Controllato a mano' : 'Update V+'}</span>` : ''; })()}
     </div>
+    <div class="fresh-line ${g.m === 'V' && /^Metacritic/.test(g.vs || '') ? 'ok' : ''}" id="voteSrc">${voteSourceHtml(g)}</div>
+    ${voteDiagHtml(g)}
+    ${typeof updatePlusNow === 'function' ? (()=>{ const f = freshInfo(g); return f ? `<div class="fresh-line ok">${giIcon(f.m ? 'upmanual' : 'upplus')} <span>${escHtml(freshWhy(f))}</span></div>` : `<div class="fresh-line">Non ancora aggiornato con Update V+: lo faccio io in automatico (una sola volta) oppure premi «Update V+».</div>`; })() : ''}
     <div class="modal-tags">${g.tags.map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${dnaHtml(g)}
     ${labelHtml(g)}
+    ${typeof dataScoreHtml === 'function' ? dataScoreHtml(g) : ''}
     ${marketHtml(g)}
+    ${factsHtml(g)}
     ${highlightsHtml(g)}
     ${sagaHtml(g)}
     <div class="modal-section-title">Il tuo stato</div>
     <div class="status-row" id="statusRow">
-      ${Object.keys(STATUS_INFO).map(k=> `<button class="btn ${STATUSES[g.id]===k?'on':''}" data-status="${k}">${STATUS_INFO[k].icon} ${STATUS_INFO[k].label}</button>`).join('')}
+      ${Object.keys(STATUS_INFO).map(k=> `<button class="btn ${STATUSES[g.id]===k?'on':''}" data-status="${k}">${giIcon({played:'check',playing:'play',backlog:'pin',dropped:'stop'}[k])} ${STATUS_INFO[k].label}</button>`).join('')}
     </div>
-    <div class="modal-section-title">📖 La storia (senza spoiler)</div>
+    <div class="modal-section-title">${giIcon('book')} La storia (senza spoiler)</div>
     ${storyHtml}
-    ${g.note ? `<div class="modal-section-title">Nota</div><div class="modal-note">${g.note}</div>` : ''}
+    ${g.note ? `<div class="modal-section-title">Nota</div><div class="modal-note">${noteForVoto(g)}</div>` : ''}
     ${castHtml(g)}
     ${enrichHtml(g)}
     ${soundtrackHtml(g)}
@@ -725,13 +841,25 @@ function openModal(g){
     <div class="modal-actions">
       <button class="btn" id="modalFavBtn">${giIcon(isFav ? 'favon' : 'favoff')} ${isFav ? 'Nei preferiti' : 'Aggiungi ai preferiti'}</button>
       <button class="btn" id="modalCompareBtn">${compareList.includes(g.id) ? '✓ Nel confronto' : '⚖️ Confronta'}</button>
-      ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : '<button class="btn" id="updateInfoBtn">🔄 Aggiorna info</button>'}
+      ${typeof infoBtnHtml === 'function' ? infoBtnHtml(g) : ''}
+      ${typeof updatePlusNow === 'function' ? `<button class="btn upplus-btn" id="updatePlusBtn" title="Controlla voto (Metacritic), generi, anno, lingua, testi e locandina da tutte le fonti e ti mostra cosa cambiare">${giIcon('upplus')} ${freshInfo(g) ? 'Rifai Update V+' : 'Update V+'}</button>` : ''}
+      ${typeof openGameFields === 'function' ? `<button class="btn" id="gameFieldsBtn" title="Scegli da quale fonte prendere ogni informazione di questa scheda e blocca quelle che vuoi tenere">🎛️ Fonti</button>` : ''}
+      <button class="btn" id="modalDelBtn" title="Elimina questo gioco dalla tua lista (chiede due conferme)">🗑️ Elimina</button>
       <button class="btn primary" id="modalCloseBtn2">Chiudi</button>
     </div>
   `;
   modalBackdrop.classList.add('show');
   document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
   document.getElementById('modalCloseBtn2').addEventListener('click', closeModal);
+  { // elimina: doppia conferma (prima un secondo tocco, poi la domanda finale) così non succede per sbaglio
+    const del = document.getElementById('modalDelBtn'); let armed = 0, tm = 0;
+    if(del) del.addEventListener('click', ()=>{
+      if(!armed){ armed = 1; del.textContent = '⚠️ Tocca ancora per eliminare'; del.classList.add('danger'); clearTimeout(tm); tm = setTimeout(()=>{ armed = 0; del.textContent = '🗑️ Elimina'; del.classList.remove('danger'); }, 4000); return; }
+      clearTimeout(tm); armed = 0; del.textContent = '🗑️ Elimina'; del.classList.remove('danger');
+      if(!window.confirm('Ultima conferma: elimino «' + g.name + '» dalla tua lista?\n\nSparisce anche dai preferiti, dagli stati e dalla tua tier list' + (g.custom ? ' (e dagli altri tuoi dispositivi).' : '. Il gioco di base viene solo nascosto.'))) return;
+      if(typeof rtDeleteGame === 'function' && rtDeleteGame(g)){ closeModal(); showToast('«' + g.name + '» eliminato', 2600); } else showToast('Non sono riuscito a eliminarlo', 2600);
+    });
+  }
   document.getElementById('modalCompareBtn').addEventListener('click', ()=>{
     toggleCompare(g.id);
     openModal(g);
@@ -835,7 +963,7 @@ function openCompareModal(id1, id2){
         <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
         <div class="modal-badges">
           <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
-          <span class="badge big outline">${g.score}/100</span>
+          <span class="badge big outline">${g.tier === 'ND' ? 'voto ND' : g.score + '/100'}</span>
         </div>
         <div class="modal-tags">${tagsHtml}</div>
         <div class="compare-story">${storyHtml}</div>
@@ -933,7 +1061,7 @@ function sagaKeyOf(g){ buildDynamicSagas(); return SAGA_MAP[g.id] || DYN_SAGA[g.
 async function sagaFindMissing(key, host){
   const info = SAGA_INFO[key]; if(!info) return;
   const hasRawg = !!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has());
-  if(!hasRawg && (typeof llmAvailable !== 'function' || !llmAvailable())){ showToast('Serve una chiave Gemini o RAWG (⚙️ in Chiedi a Claude)', 3000); return; }
+  if(!hasRawg && (typeof llmAvailable !== 'function' || !llmAvailable())){ showToast('Serve una chiave Gemini o RAWG (⚙️ Impostazioni in Chiedi)', 3000); return; }
   host.innerHTML = '<div class="lp-sub">🦝 Frugu Frugu cerca gli altri capitoli…</div>';
   const known = GAMES.filter(g=> sagaKeyOf(g) === key).map(g=> g.name);
   let fromRawg = [];
@@ -1018,6 +1146,89 @@ function similarGamesHtml(g){
   return `<div class="modal-section-title">🔁 Se ti è piaciuto questo, prova anche</div><div class="similar-games">${sims.map(s=>`<button class="similar-chip" data-id="${s.id}"><span class="badge ${TIER_LABEL[s.tier]}">${s.tier}</span>${s.name}</button>`).join('')}</div>`;
 }
 
+// ---- «Aggiorna saghe»: cerca da solo i capitoli e le saghe che mancano e li aggiunge (senza chiavi: Wikidata; con la chiave RAWG anche l'elenco delle serie di RAWG) ----
+const SAGA_UPD = {running: false, stop: false, msg: ''}, SAGA_SCAN = 'jrpg_saga_scan', SAGA_CAP = 30;
+const sagaNorm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const sagaSleep = ms=> new Promise(r=> setTimeout(r, ms));
+function sagaQuietAdd(c){
+  const name = String(c.name || '').trim(); if(!name || !COVER_DB) return false;
+  if(typeof findDuplicateGame === 'function' && findDuplicateGame(name)) return false;
+  const id = nextCustomGameId(), sc = clampIntOrNull(c.score, 0, 100);
+  const doc = {name, plat: c.plat ? String(c.plat) : null, year: c.year ? String(c.year) : null, tier: 'ND', score: sc != null ? Math.min(sc, 79) : 70, tags: Array.isArray(c.tags) ? c.tags.filter(t=> TAG_INFO[t]).slice(0, 3) : [], story: '',
+    note: 'Aggiunto da Mario tramite "Aggiorna saghe" il ' + new Date().toLocaleDateString('it-IT') + ' — nessun Metacritic trovato: voto e dettagli sono una stima automatica, non della classifica ufficiale curata a mano.', label: {}, pros: [], cons: [], addedAt: new Date().toISOString()};
+  try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){ return false; }
+  try{ queueEnrich(id); }catch(e){}
+  try{ if(window.updatePlusQueue) updatePlusQueue(id); }catch(e){}
+  return true;
+}
+// capitoli della stessa serie su Wikidata (proprietà «parte della serie»), per un gioco che già conosci
+async function sagaWdMembers(name){
+  const r = window.wikidataGenreCodes ? await window.wikidataGenreCodes(name) : null; if(!r || !r.qid) return [];
+  const e = await SearchHub.json('https://www.wikidata.org/w/api.php?' + new URLSearchParams({action: 'wbgetentities', ids: r.qid, props: 'claims', format: 'json', origin: '*'}));
+  const claims = (e.entities && e.entities[r.qid] && e.entities[r.qid].claims) || {};
+  const series = (claims.P179 || []).map(c=> c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id).filter(Boolean).slice(0, 2);
+  const out = [], nowY = new Date().getFullYear();
+  for(const sq of series){
+    const q = `SELECT ?g ?gLabel (MIN(YEAR(?d)) AS ?yr) (GROUP_CONCAT(DISTINCT ?plL; separator=", ") AS ?plat) (GROUP_CONCAT(DISTINCT ?geL; separator=", ") AS ?gen) WHERE { ?g wdt:P179 wd:${sq}. ?g wdt:P31/wdt:P279* wd:Q7889. OPTIONAL{ ?g wdt:P577 ?d. } OPTIONAL{ ?g wdt:P400 ?pl. ?pl rdfs:label ?plL. FILTER(LANG(?plL)='en') } OPTIONAL{ ?g wdt:P136 ?ge. ?ge rdfs:label ?geL. FILTER(LANG(?geL)='en') } SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } } GROUP BY ?g ?gLabel LIMIT 80`;
+    const j = await SearchHub.json('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), {headers: {Accept: 'application/sparql-results+json'}, timeout: 25000});
+    ((j.results && j.results.bindings) || []).forEach(b=>{
+      const nm = b.gLabel && b.gLabel.value; if(!nm || /^Q\d+$/.test(nm)) return;
+      const yr = b.yr && +b.yr.value, gen = (b.gen && b.gen.value) || '';
+      if(!yr || yr > nowY) return;                                                           // senza anno o non ancora uscito
+      if(gen && !/role|rpg|tactic|dungeon|monster|rogue|hack|action-adventure|strategy/i.test(gen)) return;   // la lista è di RPG/JRPG: salto platform, corse, picchiaduro…
+      out.push({name: nm, year: yr || '', plat: ((b.plat && b.plat.value) || '').split(', ').slice(0, 4).join(' / '), src: 'Wikidata'});
+    });
+  }
+  return out;
+}
+async function sagaCandidates(names){
+  let out = [];
+  for(const nm of names.slice(0, 2)){ try{ out = out.concat(await sagaWdMembers(nm)); }catch(e){} if(out.length) break; }
+  if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){
+    try{ for(const nm of names.slice(0, 2)){ const rg = await SearchHub.rawg.find(nm); if(!rg) continue; const l = (await SearchHub.rawg.series(rg.id)).filter(c=> c && c.name && (c.score == null || c.score >= 50)); out = out.concat(l.map(c=> ({name: c.name, year: c.year || '', plat: c.plat || '', score: c.score, tags: c.tags, src: 'RAWG'}))); if(l.length) break; } }catch(e){}
+  }
+  const seen = new Set(); return out.filter(c=>{ const k = sagaNorm(c.name); if(!k || seen.has(k)) return false; seen.add(k); return true; });
+}
+async function sagaUpdateAll(){
+  if(SAGA_UPD.running) return;
+  if(!window.SearchHub){ showToast('Ricerca non disponibile ora', 2500); return; }
+  SAGA_UPD.running = true; SAGA_UPD.stop = false;
+  const say = t=>{ SAGA_UPD.msg = t; const m = document.getElementById('sagaUpdMsg'); if(m) m.textContent = t; };
+  const btn = ()=> document.getElementById('sagaUpdBtn'), stp = ()=> document.getElementById('sagaUpdStop');
+  if(btn()) btn().disabled = true; if(stp()) stp().style.display = '';
+  const scan = (()=>{ try{ return JSON.parse(localStorage.getItem(SAGA_SCAN) || '{}') || {}; }catch(e){ return {}; } })(), saveScan = ()=>{ try{ localStorage.setItem(SAGA_SCAN, JSON.stringify(scan)); }catch(e){} };
+  const fresh = k=> scan[k] && Date.now() - scan[k] < 30 * 864e5;
+  let added = 0, looked = 0;
+  try{
+    // 1) saghe già presenti: i capitoli che mancano
+    buildDynamicSagas();
+    const groups = {}; GAMES.forEach(g=>{ const k = sagaKeyOf(g); if(k) (groups[k] = groups[k] || []).push(g); });
+    const keys = Object.keys(groups).sort((a, b)=> groups[b].length - groups[a].length).filter(k=> !fresh(k));
+    for(let i = 0; i < keys.length && added < SAGA_CAP && !SAGA_UPD.stop; i++){
+      const k = keys[i], names = groups[k].slice().sort((a, b)=> a.score - b.score).reverse().map(g=> g.name);
+      say(`Saghe: ${i + 1}/${keys.length} · ${(SAGA_INFO[k] || {}).name || k}… (aggiunti ${added})`);
+      const cands = await sagaCandidates(names); looked++;
+      let n = 0; for(const c of cands){ if(added >= SAGA_CAP) break; if(sagaQuietAdd(c)){ added++; n++; } }
+      if(added < SAGA_CAP || n === 0) scan[k] = Date.now(); saveScan();
+      await sagaSleep(350);
+    }
+    // 2) giochi senza saga: se Wikidata li mette in una serie con altri capitoli, nasce una saga nuova
+    if(added < SAGA_CAP && !SAGA_UPD.stop){
+      const singles = GAMES.filter(g=> !sagaKeyOf(g) && !fresh('g' + g.id)).sort((a, b)=> b.score - a.score).slice(0, 60);
+      for(let i = 0; i < singles.length && added < SAGA_CAP && !SAGA_UPD.stop; i++){
+        const g = singles[i]; say(`Giochi senza saga: ${i + 1}/${singles.length} · ${g.name}… (aggiunti ${added})`);
+        const cands = await sagaCandidates([g.name]); looked++;
+        let n = 0; for(const c of cands){ if(added >= SAGA_CAP) break; if(sagaQuietAdd(c)){ added++; n++; } }
+        scan['g' + g.id] = Date.now(); saveScan(); await sagaSleep(350);
+      }
+    }
+    DYN_SAGA_FOR = -1;
+    say(added ? `Fatto: ${added} giochi aggiunti da ${looked} ricerche${added >= SAGA_CAP ? ' (limite per volta: premi di nuovo per continuare)' : ''}. Si completano da soli nei prossimi minuti.` : (SAGA_UPD.stop ? 'Fermato.' : 'Nessun capitolo nuovo trovato: le saghe sono complete per le fonti disponibili.'));
+  }catch(e){ say('Ricerca interrotta: ' + String((e && e.message) || e).slice(0, 100)); }
+  SAGA_UPD.running = false;
+  try{ if(state.view === 'saga') renderSagaView(); }catch(e){}
+}
+
 // ---- Vista "per saga" ----
 function renderSagaView(){
   const panel = document.getElementById('sagaPanel');
@@ -1032,10 +1243,11 @@ function renderSagaView(){
   });
   const keys = Object.keys(bySaga).sort((a,b)=> bySaga[b].length - bySaga[a].length);
   if(keys.length===0){
-    panel.innerHTML = '<div class="empty">Nessuna saga corrisponde ai filtri attuali (prova a rimuovere qualche filtro).</div>';
+    panel.innerHTML = window.rtEmpty ? window.rtEmpty('saga') : '<div class="empty">Nessuna saga corrisponde ai filtri attuali (prova a rimuovere qualche filtro).</div>';
     return;
   }
-  panel.innerHTML = `<div class="count-line" style="margin-bottom:10px;"><span>${keys.length} saghe multi-capitolo trovate (su ${list.length} giochi visibili)</span></div>` + keys.map(key=>{
+  panel.innerHTML = `<div class="count-line" style="margin-bottom:10px;"><span>${keys.length} saghe multi-capitolo trovate (su ${list.length} giochi visibili)</span></div>
+    <div class="saga-upd"><button class="btn primary" id="sagaUpdBtn" title="Cerca su Wikidata (e RAWG se hai la chiave) i capitoli e le saghe che mancano e li aggiunge alla lista">${giIcon('refresh')} Aggiorna saghe</button><button class="btn" id="sagaUpdStop" style="display:none">Ferma</button><div class="lp-sub" id="sagaUpdMsg">${escHtml(SAGA_UPD.msg || 'Cerca i capitoli e le saghe che mancano e li aggiunge da solo (fino a 30 giochi per volta: se ne restano, premi di nuovo).')}</div></div>` + keys.map(key=>{
     const info = SAGA_INFO[key];
     const games = bySaga[key].slice().sort((a,b)=> (a.ysort||0)-(b.ysort||0));
     return `<div class="saga-section">
@@ -1050,6 +1262,8 @@ function renderSagaView(){
       <div class="saga-missing" data-host="${key}"></div>
     </div>`;
   }).join('');
+  { const ub = panel.querySelector('#sagaUpdBtn'), us = panel.querySelector('#sagaUpdStop');
+    if(ub){ ub.addEventListener('click', ()=> sagaUpdateAll()); us.addEventListener('click', ()=>{ SAGA_UPD.stop = true; }); if(SAGA_UPD.running){ ub.disabled = true; us.style.display = ''; } } }
   panel.querySelectorAll('.saga-miss-btn').forEach(b=> b.addEventListener('click', ()=>{ const host = panel.querySelector(`.saga-missing[data-host="${b.dataset.saga}"]`); if(host) sagaFindMissing(b.dataset.saga, host); }));
   panel.querySelectorAll('.saga-game-chip').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -1073,6 +1287,14 @@ let discoverHistory = [];
 function buildDiscoverQueue(){
   const profile = buildTasteProfile();
   const pool = GAMES.filter(g=> !FAVS.has(g.id) && !STATUSES[g.id] && !DISCOVER_SKIPPED.has(g.id));
+  // v213: prima una stima veloce su tutti (tasteScore, già in memoria), poi la Sintonia fine (lenta) solo sui 80 migliori:
+  // prima la Sintonia si calcolava per TUTTI i giochi (≈1500) e la prima apertura di Scopri bloccava il telefono quasi mezzo secondo
+  let rest = [];
+  if(typeof window.tasteScore === 'function' && pool.length > 180){
+    const quick = pool.map(g=>{ let t = 0; try{ t = tasteScore(g) || 0; }catch(e){} return {g, t: t + (g.score || 0) / 400}; }).sort((a, b)=> b.t - a.t);
+    rest = quick.slice(80).map(o=> o.g);
+    pool.length = 0; quick.slice(0, 80).forEach(o=> pool.push(o.g));
+  }
   const scored = pool.map(g=>({g, dna: dnaForGame(g, profile)}));
   scored.sort((a,b)=>{
     if(a.dna && b.dna) return b.dna.pct - a.dna.pct;
@@ -1080,7 +1302,7 @@ function buildDiscoverQueue(){
     if(!a.dna && b.dna) return 1;
     return b.g.score - a.g.score;
   });
-  return scored.map(o=>o.g);
+  return scored.map(o=>o.g).concat(rest);
 }
 function currentDiscoverGame(){ return discoverQueue[discoverIdx] || null; }
 function discoverCoverMedia(g){
@@ -1109,7 +1331,7 @@ function discoverCardHtml(g){
       <div class="modal-plat">${g.plat}${g.year ? ' · ' + g.year : ''}</div>
       <div class="modal-badges">
         <span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span>
-        <span class="badge big outline">${g.score}/100</span>
+        <span class="badge big outline">${g.tier === 'ND' ? 'voto ND' : g.score + '/100'}</span>
         ${dna ? `<span class="badge big outline" style="color:${dnaColor(dna.pct)};">🧬 ${dna.pct}%</span>` : ''}
       </div>
       <div class="modal-tags">${g.tags.slice(0,4).map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>

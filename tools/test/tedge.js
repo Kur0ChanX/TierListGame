@@ -1,0 +1,21 @@
+// v218: gesto «scorri dal basso verso l'alto» sulla barra dei tasti: non deve cambiare pagina; il tocco normale sì
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:412,height:915},isMobile:true,hasTouch:true});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await ctx.route('**/*',r=>{const u=r.request().url(); if(u.startsWith('file:')) return r.continue(); return r.abort();});
+await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html'); await p.waitForTimeout(8000);
+const cdp=await ctx.newCDPSession(p);
+const bb=await p.locator('.view-tab[data-view="mytier"]').boundingBox(); const x=bb.x+bb.width/2;
+console.log('barra: bordo basso tasto', Math.round(bb.y+bb.height), 'altezza schermo', 915);
+const swipe=async(y0,y1)=>{ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y0}]}); for(let i=1;i<=6;i++){ await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y0+(y1-y0)*i/6}]}); await p.waitForTimeout(16);} await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}); await p.waitForTimeout(700); };
+console.log('pagina all\'inizio:', await p.evaluate(()=>state.view));
+await swipe(912,600); console.log('dopo scorrimento dal bordo basso:', await p.evaluate(()=>state.view), '(deve restare list)');
+await swipe(bb.y+bb.height/2,bb.y-200); console.log('dopo scorrimento dal centro del tasto:', await p.evaluate(()=>state.view), '(deve restare list)');
+const tapAt=async y=>{ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]}); await p.waitForTimeout(40); await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}); await p.waitForTimeout(700); };
+await tapAt(912); console.log('tocco sul bordo basso:', await p.evaluate(()=>state.view), '(deve diventare mytier)');
+await p.evaluate(()=>setView('list')); await p.waitForTimeout(300);
+await tapAt(bb.y+bb.height/2); console.log('tocco normale al centro:', await p.evaluate(()=>state.view), '(deve diventare mytier)');
+await p.evaluate(()=>setView('list')); await p.waitForTimeout(300);
+const hold=async y=>{ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]}); await p.waitForTimeout(110); const v=await p.evaluate(()=>state.view); await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}); await p.waitForTimeout(500); return v; };
+console.log('dito appoggiato 110 ms (cambia ancora prima di alzarlo):', await hold(bb.y+bb.height/2), '(deve essere mytier)');
+console.log('ERR',errs);await b.close();})();

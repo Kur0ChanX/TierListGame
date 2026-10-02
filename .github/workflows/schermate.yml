@@ -1,0 +1,43 @@
+name: Schermate di gioco (Steam)
+# Ogni domenica scarica dai SERVER gli screenshot ufficiali dello store Steam dei giochi del database (shots.js):
+# servono alla scheda «cinematografica» (prima la copertina, poi le schermate). Non cambia nessun dato dei giochi.
+on:
+  schedule:
+    - cron: '41 4 * * 0'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: schermate-di-gioco
+  cancel-in-progress: false
+jobs:
+  schermate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Schermate Steam
+        run: node tools/build-shots.js
+      - name: Schermate a pezzi per l'app (dati/notte-*.js)
+        run: node tools/shard-night.js
+      - name: Salva e ripubblica il sito
+        run: |
+          git config user.name "raccoon-bot"
+          git config user.email "raccoon-bot@users.noreply.github.com"
+          git add shots.js dati/notte-*.js
+          if git diff --cached --quiet; then
+            echo "Nessuna novità."
+          else
+            git commit -m "Dati automatici: schermate di gioco"
+            git pull --rebase origin main
+            git push
+            gh workflow run pages.yml --ref main
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

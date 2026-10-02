@@ -4,10 +4,51 @@
     const mb = document.querySelector('meta[name="build"]');
     if(typeof DATA_BUILD_VERSION === 'string' && (!mb || mb.content !== DATA_BUILD_VERSION) && /^https?:$/.test(location.protocol) && !sessionStorage.getItem('jrpg_build_reload')){
       sessionStorage.setItem('jrpg_build_reload', '1');
-      const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href));
-      Promise.all(urls.map(u=> fetch(u, {cache:'reload'}).catch(()=>{}))).then(()=> location.reload());
+      // v202: con il service worker attivo basta ricaricare (lui sa quali file sono vecchi): niente raffica di richieste a GitHub
+      if(navigator.serviceWorker && navigator.serviceWorker.controller){ location.reload(); }
+      else {
+        const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href));
+        Promise.all(urls.map(u=> fetch(u, {cache:'reload'}).catch(()=>{}))).then(()=> location.reload());
+      }
     }
   }catch(e){}
+})();
+// ---- Versione nuova pubblicata mentre l'app è aperta (app installata o scheda lasciata aperta): avviso e aggiorno con un tocco ----
+(function(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  const cur = (document.querySelector('meta[name="build"]') || {}).content || '';
+  let last = 0, shown = false;
+  async function check(){
+    if(shown || document.hidden || Date.now() - last < 10 * 60e3) return; last = Date.now();
+    try{
+      const t = await (await fetch(location.pathname + '?vchk=' + Date.now(), {cache: 'no-store'})).text();
+      const m = /<meta name="build" content="(v\d+)"/.exec(t); if(!m || !cur || m[1] === cur) return;
+      if(+m[1].slice(1) <= +cur.slice(1)) return;
+      shown = true;
+      const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'rt-newver';
+      bar.textContent = '✨ È uscita la ' + m[1] + ' (tu hai la ' + cur + '): tocca per aggiornare';
+      bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:100950;padding:10px 16px;border-radius:999px;border:0;background:var(--pk-accent,#3b82f6);color:#fff;font:600 14px/1.2 inherit;box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:92vw';
+      bar.addEventListener('click', ()=>{ try{ sessionStorage.removeItem('jrpg_build_reload'); }catch(e){} bar.textContent = 'Aggiorno…'; const urls = [location.href].concat(Array.from(document.querySelectorAll('script[src],link[rel="stylesheet"]')).map(e=> e.src || e.href)); if(navigator.serviceWorker && navigator.serviceWorker.controller) location.reload(); else Promise.all(urls.map(u=> fetch(u, {cache: 'reload'}).catch(()=>{}))).then(()=> location.reload()); });
+      document.body.appendChild(bar);
+    }catch(e){}
+  }
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) check(); });
+  setInterval(check, 15 * 60e3);
+  setTimeout(check, 60e3);
+})();
+// ---- Misuratore della memoria del browser (localStorage, circa 5 MB): avviso una volta al giorno sopra il 70% ----
+(function(){
+  window.rtStorageUse = function(){
+    let tot = 0; const per = [];
+    try{ for(let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i), v = localStorage.getItem(k) || ''; const n = k.length + v.length; tot += n; per.push([k, n]); } }catch(e){}
+    per.sort((a, b)=> b[1] - a[1]);
+    return {bytes: tot, mb: (tot / 1e6).toFixed(2), pct: Math.round(100 * tot / 5e6), top: per.slice(0, 5)};   // il limite di Chrome è circa 5 milioni di caratteri per sito
+  };
+  setTimeout(()=>{ try{
+    let m = rtStorageUse(); const day = new Date().toISOString().slice(0, 10);
+    if(m.pct >= 70){ try{ window.__emergencyClean && __emergencyClean(); }catch(e){} m = rtStorageUse(); }      // v214: prima libero da solo quello che si può rigenerare
+    if(m.pct >= 70 && localStorage.getItem('rt_storage_warn') !== day){ localStorage.setItem('rt_storage_warn', day); if(window.showToast) showToast('💾 La memoria del browser è piena al ' + m.pct + '%: fai un backup da ✨ → Backup e spazio, e dillo a Claude (le voci più pesanti: ' + m.top.slice(0, 3).map(x=> x[0].replace(/^jrpg_|^rt_/, '')).join(', ') + ').', 9000); }
+  }catch(e){} }, 20000);
 })();
 // ---- Effetti funzionali: barra voto nelle righe, vibrazione leggera, transizione morbida tra le schede ----
 (function(){
@@ -25,6 +66,9 @@
   if(typeof window.setView === 'function' && document.startViewTransition){
     const orig = window.setView;
     window.setView = function(v){
+      // v210: se il passaggio animato l'ha già avviato motion.js (barra in basso, data-vt), NON ne avvio un secondo dentro il primo:
+      // si annullavano a vicenda e lo scivolamento tra le sezioni saltava o si vedeva a metà
+      if(window.__rtInstantViews || document.documentElement.hasAttribute('data-vt') || document.documentElement.classList.contains('mo-off')) return orig(v);      // v212: sezioni istantanee (pagine.js)
       try{ document.startViewTransition(()=> orig(v)); }catch(e){ orig(v); }
     };
   }
@@ -33,7 +77,8 @@
   const fs = document.getElementById('fsBtn');
   const standalone = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches);
   if(fs){
-    if(!document.documentElement.requestFullscreen || standalone){ fs.style.display = 'none'; }
+    // v208: anche nell'app installata (standalone) lo schermo intero serve a nascondere la barra di stato: il pulsante resta
+    if(!document.documentElement.requestFullscreen || (window.matchMedia && matchMedia('(display-mode: fullscreen)').matches)){ fs.style.display = 'none'; }
     fs.addEventListener('click', ()=>{
       try{
         if(document.fullscreenElement){ document.exitFullscreen(); }
@@ -63,7 +108,11 @@
   }
   // 7) schermo intero di default: il browser lo consente solo dopo un tocco, quindi al primo tocco (se l'apertura animata non c'era)
   try{
-    const wantFs = localStorage.getItem('jrpg_autofs') !== 'off';
+    // iPad/iPhone: nello schermo intero del browser la tastiera NON si apre (limite di Safari/Chrome su iOS), quindi lì niente schermo intero automatico
+    const apple = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const wantFs = localStorage.getItem('jrpg_autofs') !== 'off' && !apple;
+    // rete di sicurezza: se si tocca un campo di testo mentre si è a schermo intero, ne esco subito così la tastiera può aprirsi
+    document.addEventListener('focusin', e=>{ try{ if(document.fullscreenElement && e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) document.exitFullscreen(); }catch(x){} }, true);
     const isFull = ()=> !!document.fullscreenElement || (window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches));
     if(wantFs && !document.getElementById('intro') && document.documentElement.requestFullscreen && !isFull() && !navigator.webdriver){
       const once = ()=>{ document.removeEventListener('click', once, true); try{ if(!isFull()) document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){} };
@@ -129,3 +178,94 @@
   document.addEventListener('change', syncQuick);
   syncQuick();
 })();
+
+// ---- v168: «indietro» del telefono chiude la scheda (non esce dal programma) + anteprima veloce con pressione lunga sul titolo ----
+(function(){
+  // 1) gesto/tasto indietro: ogni finestra aperta (scheda, news, chiedi, profilo…) mette un segno nella cronologia; «indietro» la chiude
+  const ovs = ()=> Array.from(document.querySelectorAll('[id$="Backdrop"].show, .dup-backdrop.show'));
+  let pushed = 0, ignore = 0;
+  const top = ()=>{ const l = ovs(); return l.sort((a, b)=> (parseInt(getComputedStyle(b).zIndex, 10) || 0) - (parseInt(getComputedStyle(a).zIndex, 10) || 0))[0]; };
+  // v218: «etichette» sul corpo della pagina al posto delle regole CSS con :has() (ogni ricalcolo degli stili le doveva verificare scorrendo TUTTA la pagina: decine di ms)
+  const flip = (el, c, on)=>{ if(el && el.classList.contains(c) !== on) el.classList.toggle(c, on); };
+  const states = l=>{
+    const b = document.body, id = x=> l.some(e=> e.id === x);
+    flip(b, 'rt-mopen', l.length > 0); flip(b, 'rt-gopen', id('modalBackdrop')); flip(b, 'rt-ask', id('askBackdrop'));
+    flip(b, 'rt-sheet', !!document.querySelector('.x-sheet.show, .tt2.show'));
+    const fp = document.getElementById('filtersPanel'), fo = !!(fp && fp.classList.contains('open'));
+    flip(document.documentElement, 'rt-filt', fo); flip(b, 'rt-filt', fo); flip(document.querySelector('.wrap'), 'rt-filt', fo); flip(document.querySelector('.topbar'), 'rt-filt', fo);
+    const rn = document.getElementById('rtNote'); flip(b, 'rt-noteon', !!(rn && rn.classList.contains('show')));
+  };
+  const sync = ()=>{
+    const lst = ovs(), n = lst.length; states(lst);
+    while(pushed < n){ try{ history.pushState({rtov: pushed + 1}, ''); }catch(e){} pushed++; }
+    if(pushed > n){ const d = pushed - n; pushed = n; ignore += d; window.__rtSelfPops = (window.__rtSelfPops || 0) + d; try{ history.go(-d); }catch(e){} }        // chiusa dal pulsante: tolgo i segni in più
+    if(n > lastN) openedT = performance.now(); lastN = n;
+  };
+  let openedT = 0, lastN = 0;
+  // si riguarda solo quando cambia un «show» o «open» (prima a ogni cambio di classe di qualsiasi riga della lista)
+  new MutationObserver(recs=>{ for(const r of recs){ const o = r.oldValue || ''; if(r.target.classList.contains('show') || r.target.classList.contains('open') || o.indexOf('show') > -1 || o.indexOf('open') > -1){ sync(); return; } } })
+    .observe(document.body, {subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true});
+  sync();
+  // la lista vuota («nessun risultato») nasconde la tabella: etichetta sul contenitore
+  try{ const em = document.getElementById('emptyMsg'), wr = document.querySelector('.wrap'); if(em && wr){ const f = ()=> flip(wr, 'rt-empty', !/none/.test(em.getAttribute('style') || '')); new MutationObserver(f).observe(em, {attributes: true, attributeFilter: ['style']}); f(); } }catch(e){}
+  window.addEventListener('popstate', e=>{
+    // v217: dopo ogni «indietro» rileggo dalla cronologia quanti segni ci sono davvero (prima li contavo a memoria e il conto poteva sballare)
+    const st = e.state, depth = st && st.rtov ? st.rtov : 0;
+    // un «indietro» partito dal programma stesso non chiude niente
+    if((window.rtSelfPop && window.rtSelfPop(e)) || ignore > 0){
+      if(ignore > 0) ignore--;
+      if(!ignore && !(window.__rtSelfPops > 0)){ pushed = depth; setTimeout(sync, 0); }
+      return;
+    }
+    pushed = depth;
+    const el = top(); if(!el) return;
+    // una finestra appena aperta (meno di 0,4 s) non può essere chiusa da un «indietro» vero: è un segnale in ritardo → rimetto il segno
+    if(performance.now() - openedT < 400){ setTimeout(sync, 0); return; }
+    const b = el.querySelector('[data-ui-close], .modal-close, button[id$="CloseBtn"]');
+    if(b) b.click(); else el.classList.remove('show');
+    setTimeout(sync, 50);
+  });
+  // 2) tieni premuto il titolo di un gioco: anteprima veloce (copertina, voto, trama breve) senza aprire la scheda
+  let timer = 0, sx = 0, sy = 0, fired = 0;
+  const cell = t=> t && t.closest && t.closest('#tbody tr td:nth-child(3)');
+  const start = (t, x, y)=>{
+    const c = cell(t); if(!c) return; const tr = c.closest('tr'), g = (typeof GAMES !== 'undefined' ? GAMES : []).find(v=> String(v.id) === tr.dataset.gid); if(!g) return;
+    sx = x; sy = y; clearTimeout(timer);
+    timer = setTimeout(()=>{ fired = Date.now(); try{ navigator.vibrate && navigator.vibrate(18); }catch(e){} preview(g); }, 450);
+  };
+  let peekOpen = false;
+  const cancel = ()=>{ clearTimeout(timer); if(peekOpen){ peekOpen = false; const pv = document.getElementById('pvBackdrop'); if(pv) pv.classList.remove('show'); } };       // anteprima «a pressione»: rilasci il dito e sparisce
+  document.addEventListener('touchstart', e=>{ const t = e.touches[0]; start(e.target, t.clientX, t.clientY); }, {passive: true});
+  document.addEventListener('touchmove', e=>{ const t = e.touches[0]; if(Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) cancel(); }, {passive: true});
+  ['touchend', 'touchcancel'].forEach(n=> document.addEventListener(n, cancel, {passive: true}));
+  document.addEventListener('mousedown', e=>{ if(e.button === 0) start(e.target, e.clientX, e.clientY); });
+  ['mouseup', 'mouseleave'].forEach(n=> document.addEventListener(n, cancel));
+  document.addEventListener('contextmenu', e=>{ if(cell(e.target)) e.preventDefault(); });
+  document.addEventListener('click', e=>{ if(Date.now() - fired < 700 && cell(e.target)){ e.stopPropagation(); e.preventDefault(); } }, true);       // il rilascio dopo la pressione lunga non apre la scheda
+  function preview(g){
+    let el = document.getElementById('pvBackdrop');
+    if(!el){ el = document.createElement('div'); el.id = 'pvBackdrop'; el.className = 'dup-backdrop'; el.style.zIndex = 100800; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
+    const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+    const cov = typeof effectiveCover === 'function' ? effectiveCover(g) : null, l = g.label || {};
+    const story = String(g.story || '').replace(/\s+/g, ' ').trim();
+    el.innerHTML = `<div class="lp-card pv-card"><div class="lp-head"><b>${esc(g.name)}</b></div>
+      ${cov ? `<img class="pv-cover" src="${esc(cov)}" alt="">` : (typeof coverPlaceholderHtml === 'function' ? coverPlaceholderHtml(g) : '')}
+      <div class="pv-badges"><span class="badge big ${TIER_LABEL[g.tier]}">${g.tier}</span><span class="badge big outline">${typeof scoreTxt === 'function' ? scoreTxt(g) : g.score}${g.tier === 'ND' ? '' : '/100'}</span><span class="badge big outline">${typeof srcIcon === 'function' ? srcIcon(g) : ''}</span><span style="opacity:.8">${esc(g.plat)}${g.year ? ' · ' + esc(g.year) : ''}</span></div>
+      ${story ? `<div class="pv-line">${esc(story.slice(0, 230))}${story.length > 230 ? '…' : ''}</div>` : ''}
+      ${l.ok ? `<div class="pv-line">🟢 <b>Fa per te se</b> ${esc(l.ok)}</div>` : ''}${l.ko ? `<div class="pv-line">🔴 <b>Lascia stare se</b> ${esc(l.ko)}</div>` : ''}
+      <div class="pv-line" style="opacity:.6">Rilascia per chiudere · tocca il titolo per aprire la scheda</div></div>`;
+    el.classList.add('show'); peekOpen = true;
+  }
+})();
+
+// vibrazione brevissima al tocco (come un «tic» di sistema); si può spegnere con localStorage jrpg_haptics = off
+document.addEventListener('pointerdown', e=>{
+  try{ if(!navigator.vibrate || e.pointerType !== 'touch' || localStorage.getItem('jrpg_haptics') === 'off') return; if(e.target.closest && e.target.closest('button, .btn, .iconbtn, .view-tab, .qf-chip, #tbody tr')) navigator.vibrate(7); }catch(x){}
+}, {passive: true});
+
+// v170: palloncini (toast) — il tocco non passa più alla riga sotto, e toccarli li chiude; l'anteprima a pressione sostituisce quella vecchia dei «gesti rapidi»
+window.__rtHoldPreview = true;
+document.addEventListener('click', e=>{
+  const t = e.target && e.target.closest && e.target.closest('#toast.show, #addedBanner.show');
+  if(t){ const fn = t._tap; t._tap = null; t.classList.remove('show', 'tappable'); e.stopPropagation(); e.preventDefault(); if(fn){ try{ fn(); }catch(x){} } }
+}, true);

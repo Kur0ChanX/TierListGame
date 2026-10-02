@@ -2,8 +2,7 @@
 // Uso: NODE_USE_ENV_PROXY=1 node tools/check-italian.js out.json  (serve un User-Agent, altrimenti Wikipedia rifiuta)
 const fs = require('fs');
 const UA = 'TierListGame/1.0 (https://github.com/Kur0ChanX/TierListGame)';
-const s = fs.readFileSync(__dirname + '/../giochi.js', 'utf8');
-const D = JSON.parse(s.slice('const GIOCHI_DATA = '.length).replace(/;\s*$/, ''));
+const D = require('./data-io').load();      // v209: indice letto da data-io
 const norm = t => String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function api(params){ for(let i = 0; i < 4; i++){ const r = await fetch('https://it.wikipedia.org/w/api.php?' + new URLSearchParams({format:'json', ...params}), {headers:{'User-Agent':UA}, signal: AbortSignal.timeout(15000)}); if(r.ok) return r.json(); await sleep(1500 * (i + 1)); } throw new Error('api'); }

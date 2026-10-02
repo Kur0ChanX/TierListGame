@@ -1,0 +1,45 @@
+/* ===== Taverna: la bacheca delle quest — assi di legno, pergamene inchiodate, candela che tremola, sigilli di ceralacca ===== */
+@font-face{font-family:"Almendra";src:url(../fonts/almendra-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Alegreya";src:url(../fonts/alegreya.woff2) format("woff2");font-weight:400 900;font-display:swap}
+
+html[data-pack="taverna"]{
+  --pk-ff:"Alegreya",Georgia,serif; --pk-fh:"Almendra",Georgia,serif; --pk-fc:"Alegreya",Georgia,serif;
+  --pk-hfw:400; --pk-bfs:16px; --pk-hls:.02em; --pk-cls:.01em;
+  --pk-r:5px; --pk-r2:4px; --pk-rp:6px; --pk-rb:50%; --pk-bw:1px; --pk-bwc:1px; --pk-bc:#6b4a22;
+  --paper:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='p' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' seed='8'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .28  0 0 0 0 .1  0 0 0 .3 -.04'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>");
+  --nail:radial-gradient(circle at 11px 11px,#d9b676 0 2px,#7b5a2c 2.4px 3.6px,#2e1c08 4.2px,transparent 5px),radial-gradient(circle at calc(100% - 11px) 11px,#d9b676 0 2px,#7b5a2c 2.4px 3.6px,#2e1c08 4.2px,transparent 5px);
+  --pk-block:var(--nail),var(--paper),linear-gradient(180deg,#f7ebc9,#eddcb0); --pk-chip:var(--paper),#f4e6c1; --pk-input:#fbf2d8; --pk-ib:var(--paper),#f4e6c1;
+  --pk-sh:inset 0 0 36px rgba(120,80,20,.28), 0 6px 0 rgba(58,34,10,.38), 0 12px 20px -8px rgba(30,15,3,.55); --pk-shs:0 2px 0 rgba(58,34,10,.4); --pk-shc:0 2px 0 rgba(58,34,10,.38);
+  --pk-top:var(--paper),linear-gradient(180deg,rgba(247,235,201,.96),rgba(237,220,176,.94)); --pk-nav:var(--paper),linear-gradient(180deg,#eddcb0,#e2cb97); --pk-nav-sh:0 -3px 0 rgba(58,34,10,.35);
+  --pk-th:linear-gradient(180deg,#7a2e1e,#5a1f12); --pk-th-c:#f7e7c0; --pk-alt:rgba(139,94,40,.07); --pk-hov:rgba(168,58,42,.13); --pk-row-bd:1px dashed rgba(107,74,34,.45);
+  --pk-act:linear-gradient(180deg,#c44a38,#8f2a1c); --pk-act-c:#fdeccb; --pk-act-sh:inset 0 1px 0 rgba(255,255,255,.3), 0 2px 0 rgba(58,34,10,.5); --pk-ib-act:linear-gradient(180deg,#c44a38,#8f2a1c); --pk-act-bc:#5a1f12;
+  --pk-badge-r:50%; --pk-badge-bd:2px solid rgba(58,34,10,.75); --pk-badge-sh:inset 0 2px 3px rgba(255,255,255,.4), 0 2px 0 rgba(58,34,10,.5); --pk-badge-c:#3a2210;
+  --t-splus:radial-gradient(circle at 35% 28%,#fff0b0,#e6b94a 55%,#a67a1c); --t-s:radial-gradient(circle at 35% 28%,#e8806a,#b23a26 55%,#7a2012); --t-a:radial-gradient(circle at 35% 28%,#8fb6e0,#3c6ea6 55%,#22406a); --t-b:radial-gradient(circle at 35% 28%,#9fd4a0,#4a8f52 55%,#2a5a30); --t-c:radial-gradient(circle at 35% 28%,#f0d27a,#c9992e 55%,#8a6414); --t-d:radial-gradient(circle at 35% 28%,#eaa070,#c0642e 55%,#7a3a14); --t-e:radial-gradient(circle at 35% 28%,#c8656a,#8f2a30 55%,#5a1418); --t-f:radial-gradient(circle at 35% 28%,#cfc8bb,#8e867a 55%,#5a5448); --t-nd:radial-gradient(circle at 35% 28%,#8a7a68,#4a3e30 55%,#2a2018);
+  --t-splus-c:#5a3a00; --t-c-c:#4a3000; --t-nd-c:#e8d9bd; --pk-bar:linear-gradient(90deg,#a83a2a,#d9a441); --pk-bar-r:3px; --pk-gi:drop-shadow(0 1px 1px rgba(40,20,5,.55)); --pk-scrim:rgba(30,16,4,.62); --pk-tt-c:#8f2a1c;
+}
+html[data-pack="taverna"].pk-dark{
+  --paper:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='p' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' seed='8'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .28  0 0 0 0 .1  0 0 0 .3 -.04'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>");
+  --pk-block:var(--nail),var(--paper),linear-gradient(180deg,#4a3320,#3a2818); --pk-chip:var(--paper),#4a3320; --pk-input:#2e2013; --pk-ib:var(--paper),#4a3320;
+  --pk-sh:inset 0 0 36px rgba(0,0,0,.35), 0 6px 0 rgba(0,0,0,.4), 0 12px 20px -8px rgba(0,0,0,.7);
+  --pk-top:var(--paper),linear-gradient(180deg,rgba(60,42,26,.96),rgba(48,33,20,.94)); --pk-nav:var(--paper),linear-gradient(180deg,#3a2818,#2e2013); --pk-nav-sh:0 -3px 0 rgba(0,0,0,.4);
+  --pk-th:linear-gradient(180deg,#8f2a1c,#6a1e12); --pk-alt:rgba(255,220,160,.05); --pk-hov:rgba(224,103,79,.18); --pk-row-bd:1px dashed rgba(201,176,138,.35); --pk-bc:#8a6a3a; --pk-tt-c:#f0b56a;
+  --pk-badge-c:#fff2d6; --t-splus-c:#5a3a00; --pk-scrim:rgba(10,5,0,.7);
+}
+/* il muro di legno */
+html[data-pack="taverna"] body::before{background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='w' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.5 0.011' numOctaves='3' seed='3'/><feColorMatrix values='0 0 0 0 .27  0 0 0 0 .15  0 0 0 0 .04  0 0 0 1.3 -.5'/></filter><rect width='100%' height='100%' filter='url(%23w)'/></svg>"),repeating-linear-gradient(90deg,transparent 0 94px,rgba(38,20,5,.6) 94px 96px),repeating-linear-gradient(90deg,rgba(255,226,160,.07) 0 96px,transparent 96px 192px),radial-gradient(130% 90% at 50% 35%,transparent 45%,rgba(30,14,2,.5))}
+html[data-pack="taverna"].pk-dark body::before{background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='w' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.5 0.011' numOctaves='3' seed='3'/><feColorMatrix values='0 0 0 0 .27  0 0 0 0 .15  0 0 0 0 .04  0 0 0 1.3 -.5'/></filter><rect width='100%' height='100%' filter='url(%23w)'/></svg>"),repeating-linear-gradient(90deg,transparent 0 94px,rgba(0,0,0,.65) 94px 96px),repeating-linear-gradient(90deg,rgba(255,200,130,.05) 0 96px,transparent 96px 192px),radial-gradient(130% 90% at 50% 35%,transparent 40%,rgba(0,0,0,.55))}
+/* il lume di candela che tremola */
+html[data-pack="taverna"] body::after{z-index:-1; background:radial-gradient(60% 38% at 14% 0%,rgba(255,196,96,.42),transparent 72%),radial-gradient(50% 30% at 92% 4%,rgba(255,170,70,.22),transparent 70%)}
+html[data-pack="taverna"]:not(.pk-still) body::after{animation:tvCandle 5s ease-in-out infinite}
+@keyframes tvCandle{0%,100%{opacity:1}18%{opacity:.78}32%{opacity:.96}51%{opacity:.7}67%{opacity:.95}84%{opacity:.82}}
+html[data-pack="taverna"] .brand-logo{filter:drop-shadow(0 3px 2px rgba(40,20,5,.6))}
+html[data-pack="taverna"] .topbar{border-bottom:3px solid #5a3a14 !important}
+html[data-pack="taverna"] thead th{font-size:.66rem; letter-spacing:.04em}
+html[data-pack="taverna"] .badge:not(.outline){width:2.05em; height:2.05em; display:inline-grid; place-items:center; padding:0; font-size:.88rem; font-family:var(--pk-fh); text-shadow:0 1px 0 rgba(255,255,255,.35)}
+html[data-pack="taverna"] .badge.S,html[data-pack="taverna"] .badge.A,html[data-pack="taverna"] .badge.E,html[data-pack="taverna"] .badge.ND,html[data-pack="taverna"] .badge.B,html[data-pack="taverna"] .badge.D,html[data-pack="taverna"] .badge.F{color:#fff3da; text-shadow:0 -1px 0 rgba(0,0,0,.45)}
+html[data-pack="taverna"] td.score{font-family:var(--pk-fh); font-size:1rem; color:#8f2a1c}
+html[data-pack="taverna"].pk-dark td.score{color:#f0b56a}
+html[data-pack="taverna"] .modal-title{font-size:1.35rem; color:#8f2a1c}
+html[data-pack="taverna"].pk-dark .modal-title{color:#f0b56a}
+html[data-pack="taverna"] .vt-tx{font-size:.62rem !important} html[data-pack="taverna"] .iconbtn.lbl .ib-lb{font-size:.6rem}
+html[data-pack="taverna"] .list-chip:nth-child(odd){transform:rotate(-.8deg)} html[data-pack="taverna"] .list-chip:nth-child(even){transform:rotate(.7deg)}

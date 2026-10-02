@@ -1,0 +1,25 @@
+// v215: notifiche che restano finché le tocchi, in fila, nella campanella con il numero; i palloncini brevi spariscono da soli
+const {chromium}=require('playwright');const SP=process.env.SP||'/tmp';
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:412,height:915},isMobile:true,hasTouch:true,colorScheme:'dark'});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await ctx.route('**/*',r=>r.request().url().startsWith('file:')?r.continue():r.abort());
+await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html'); await p.waitForTimeout(4000);
+await p.evaluate(()=>{ localStorage.removeItem('rt_notifs'); });
+const st=()=>p.evaluate(()=>({popup: document.getElementById('rtNote').classList.contains('show'), testo: document.querySelector('#rtNote .rn-tx').textContent, piu: document.querySelector('#rtNote .rn-more').hidden ? '' : document.querySelector('#rtNote .rn-more').textContent, badge: document.getElementById('bellBadge').hidden ? 0 : document.getElementById('bellBadge').textContent, toast: document.getElementById('toast').classList.contains('show')}));
+await p.evaluate(()=>{ showToast('Salvato', 1800); });
+console.log('palloncino breve:', JSON.stringify(await st()));
+await p.waitForTimeout(2200); console.log('dopo 2,2 s:', JSON.stringify(await st()));
+await p.evaluate(()=>{ window.__hit=0; showToast('🎁 Il prezzo di Persona 5 è sceso a 9,99 €. Tocca per vedere', 9000, ()=>{ window.__hit++; }); showToast('🆕 Update+ ha corretto 3 giochi. Tocca per vederli', 7500, ()=>{ window.__hit+=10; }); });
+await p.waitForTimeout(500); console.log('2 avvisi:', JSON.stringify(await st()));
+await p.screenshot({path:SP+'/n-popup.png'});
+await p.waitForTimeout(12000); console.log('dopo 12 s (deve restare):', JSON.stringify(await st()));
+await p.tap('#rtNote .rn-main'); await p.waitForTimeout(500); console.log('toccato il 1°: azione', await p.evaluate(()=>__hit), JSON.stringify(await st()));
+await p.tap('#rtNote .rn-x'); await p.waitForTimeout(500); console.log('chiuso il 2° con ✕: azione', await p.evaluate(()=>__hit), JSON.stringify(await st()));
+await p.evaluate(()=>{ showToast('🔔 Avviso perso per caso', 8000); }); await p.waitForTimeout(300);
+await p.reload(); await p.waitForTimeout(3000);
+console.log('dopo ricarica (badge dell\'avviso non visto):', JSON.stringify(await st()));
+await p.screenshot({path:SP+'/n-bell.png', clip:{x:0,y:0,width:412,height:120}});
+await p.tap('#bellBtn'); await p.waitForTimeout(500);
+console.log('elenco:', await p.evaluate(()=>[...document.querySelectorAll('#xNotifs .rn-row')].map(r=>(r.classList.contains('new')?'● ':'  ')+r.querySelector('b').textContent).join(' | ')));
+await p.screenshot({path:SP+'/n-list.png'});
+console.log('ERR',errs);await b.close();})();

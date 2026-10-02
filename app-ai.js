@@ -36,7 +36,7 @@ function showDuplicateBanner(g){
 }
 function askToolAddCustomGame(input, sourceLabel){
   input = input || {};
-  sourceLabel = sourceLabel || 'Chiedi a Claude';
+  sourceLabel = sourceLabel || 'Chiedi';
   const name = String(input.name || '').trim();
   if(!name) throw new Error('serve il nome del gioco da aggiungere');
   const existing = findDuplicateGame(name);
@@ -66,9 +66,11 @@ function askToolAddCustomGame(input, sourceLabel){
     year: input.year ? String(input.year) : null,
     tier,
     score: score != null ? score : 70,
+    m: input.m === 'V' ? 'V' : undefined,
+    vs: input.m === 'V' && input.vs ? String(input.vs) : undefined,
     tags,
     story: input.story ? String(input.story) : '',
-    note: `Aggiunto da Mario tramite "${sourceLabel}" il ` + new Date().toLocaleDateString('it-IT') + ' — voto e dettagli sono una stima di Claude, non della classifica ufficiale curata a mano.',
+    note: `Aggiunto da Mario tramite "${sourceLabel}" il ` + new Date().toLocaleDateString('it-IT') + (input.m === 'V' ? ' — voto verificato (' + (input.vs || 'Metacritic/OpenCritic') + ').' : ' — nessun Metacritic trovato: voto e dettagli sono una stima automatica, non della classifica ufficiale curata a mano.'),
     label,
     pros: (cleanProsCons(input.pros, input.cons) || {pros:[]}).pros,
     cons: (cleanProsCons(input.pros, input.cons) || {cons:[]}).cons,
@@ -80,6 +82,7 @@ function askToolAddCustomGame(input, sourceLabel){
   const newLists = ensureGenreLists(tags);
   try{ if(typeof verifyNewGameGenres === 'function') verifyNewGameGenres(id, doc); }catch(e){}
   showAddedBanner(name, tags, newLists);
+  try{ if(window.updatePlusQueue) updatePlusQueue(id); }catch(e){}         // Update+ subito, con tutte le fonti
   return {id, name, added: true, resultNote: 'Salvato nel database di Mario: comparirà nella classifica su ogni suo dispositivo.'};
 }
 
@@ -87,7 +90,7 @@ function askToolAddCustomGame(input, sourceLabel){
 const ENRICH_TRIED = 'jrpg_enrich_tried';
 let enrichQueueIds = new Set(), enrichTimer = 0, enrichRunning = false;
 function customDocFromGame(g, enrich){
-  return {name: g.name, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
+  return {name: g.name, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, m: g.m === 'V' ? 'V' : undefined, vs: g.vs || undefined, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
     pros: (g.proscons && g.proscons.pros) || [], cons: (g.proscons && g.proscons.cons) || [], enrich: enrich || undefined};
 }
 function buildEnrichPrompt(games){
@@ -116,9 +119,10 @@ async function runEnrich(ids, opts){
         arr = parseNovitaJson(r && r.text);
       }catch(e){}
       const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
-      for(const g of part){
+      for(const g0 of part){
+        const g = GAMES.find(x=> x.id === g0.id) || g0;      // ultima versione del gioco: quella presa prima della ricerca AI è vecchia e cancellerebbe voto, generi e testi nel frattempo aggiornati
         tried[g.id] = new Date().toISOString().slice(0, 10);
-        const row = (arr || []).find(x=> x && Number(x.id) === g.id) || (arr && arr[part.indexOf(g)]);
+        const row = (arr || []).find(x=> x && Number(x.id) === g.id) || (arr && arr[part.indexOf(g0)]);
         if(!row) continue;
         const raw = Object.assign({}, row, {dopa: row.dopamine === true && Array.isArray(row.dopaLoop) ? {loop: row.dopaLoop, hook: row.dopaHook, watch: row.dopaWatch} : null, checked: tried[g.id]});
         const ce = cleanCustomEnrich(raw); if(!ce) continue;
@@ -155,7 +159,7 @@ async function runEnrich(ids, opts){
 // giochi aggiunti senza simboli/dettagli (o con un tentativo vecchio di oltre 7 giorni)
 function customNeedingEnrich(){
   const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
-  return GAMES.filter(g=> g.custom && !(g.enrich && (g.enrich.eraScore != null || g.enrich.checked)) && !(tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 2 * 864e5));
+  return GAMES.filter(g=> g.custom && !(g.enrich && (g.enrich.eraScore != null || g.enrich.agingNote || g.enrich.gameplayNote)) && !(tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 2 * 864e5));
 }
 window.completeCustomGames = ()=>{ const n = customNeedingEnrich(); if(!n.length){ showToast('Tutti i giochi aggiunti hanno già simboli e dettagli'); return; } return runEnrich(n.map(g=> g.id), {progress:true}); };
 // lavoro "una tantum", in silenzio: completa tutti i giochi aggiunti che ne sono privi (fino a 40 per volta); una volta completati non si rifà più
@@ -217,7 +221,7 @@ const ASK_TOOLS = [
         name: {type:'string', description:'titolo esatto del gioco'},
         plat: {type:'string', description:'piattaforme, es. "PS5 / PC"'},
         year: {type:'string', description:'anno di uscita'},
-        tier: {type:'string', enum:['S+','S','A','B','C','D','E','F'], description:'la tua stima onesta di quanto sia un buon RPG/JRPG'},
+        tier: {type:'string', enum:['S+','S','A','B','C','D','E','F','ND'], description:'la tua stima onesta di quanto sia un buon RPG/JRPG (ND se non hai un voto Metacritic/OpenCritic verificato)'},
         score: {type:'number', description:'voto stimato 0-100, coerente con il tier'},
         tags: {type:'array', items:{type:'string', enum:['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG']}, description:'generi: TAC=tattico a griglia, ACT=action-RPG, DUN=dungeon crawler, TUR=a turni classico, MON=cattura mostri, CARD=carte, WAR=guerra su larga scala, CROSS=crossover, VN=visual novel ibrido, MECH=mecha, METR=metroidvania, SOUL=soulslike, HOR=horror, REMAKE=remake/remaster, LIFE=vita/crafting, ROG=roguelike'},
         story: {type:'string', description:'1-2 frasi di trama senza spoiler pesanti, nello stesso stile narrativo degli altri giochi del database'},
@@ -252,7 +256,8 @@ Hai questi strumenti sul SUO database, usali sempre invece di inventare voti, ta
 - add_custom_game: quando Mario ti chiede consigli su giochi NON nel suo database e ne vuole aggiungere uno alla sua libreria (o te lo chiede esplicitamente, es. "aggiungilo", "mettilo nel database", "salvalo"), verifica prima con search_games che non ci sia già, poi usa add_custom_game per inserirlo DAVVERO con tutte le informazioni che conosci (piattaforma, anno, generi, un tuo voto/tier onesto, trama breve, e se puoi anche difficoltà/ore/lingua italiana) — comparirà nella sua classifica su ogni dispositivo esattamente come un gioco già catalogato. Non aggiungere mai un gioco senza che Mario lo abbia chiaramente chiesto.
 Quando ti chiede "consigliami qualcosa di nuovo" o "cosa mi manca", puoi anche attingere alla tua conoscenza generale di RPG/JRPG oltre al suo database (non sei limitato ai 765 titoli già catalogati): proponi titoli che potrebbero piacergli in base a get_taste_profile, verifica con search_games che non li abbia già, e offriti di aggiungerli con add_custom_game se gli interessano.
 Quando nomini un gioco che hai trovato nel database con search_games, get_game_details o add_custom_game, scrivi il suo id tra doppie graffe subito dopo il nome, così: Nome del gioco{{123}} — diventerà un link cliccabile nella pagina. Non farlo per giochi che non sono (ancora) nel database.
-Se Mario allega una foto (es. copertina vista in un negozio) o ti dà solo un nome, riconosci il titolo e come PRIMA cosa verifica con search_games se è già nel database: se c'è, dillo subito (con il link) e NON aggiungerlo. Poi valuta se può piacergli in base ai suoi gusti reali, non a supposizioni generiche.`;
+Se Mario allega una foto (es. copertina vista in un negozio) o ti dà solo un nome, riconosci il titolo e come PRIMA cosa verifica con search_games se è già nel database: se c'è, dillo subito (con il link) e NON aggiungerlo. Poi valuta se può piacergli in base ai suoi gusti reali, non a supposizioni generiche.
+Quando Mario chiede se conviene comprare un gioco (o "vale la pena?", "lo prendo?"), usa get_game_details e riporta il campo verdictAcquisto (esito e motivi) senza contraddirlo: è lo stesso verdetto che vede nella scheda del gioco.`;
 }
 function askFormatText(text){
   let t = escHtml(text);
@@ -305,7 +310,7 @@ function renderAskThread(){
   } else if(askBusy){
     html += `<div class="ask-thinking">Sto pensando…</div>`;
   }
-  thread.innerHTML = html || (!llmAvailable() ? `<div class="ask-thinking">👆 Per usare Chiedi: incolla qui sopra la tua chiave Gemini e premi "Salva e verifica". Poi potrai scrivere, scattare una foto 📸 o caricarne una 📷.</div>` : `<div class="ask-thinking">Chiedimi consigli sui giochi (es. "3 JRPG tattici come Final Fantasy Tactics"), oppure allega la foto di una copertina vista in negozio.</div>`);
+  thread.innerHTML = html || (!llmAvailable() ? `<div class="ask-thinking">Per usare Chiedi: incolla qui sopra la tua chiave Gemini e premi "Salva e verifica". Poi potrai scrivere, dettare a voce, scattare una foto o caricarne una dalla galleria.</div>` : `<div class="ask-thinking">Chiedimi consigli sui giochi (es. "3 JRPG tattici come Final Fantasy Tactics"), oppure allega la foto di una copertina vista in negozio.</div>`);
   thread.scrollTop = thread.scrollHeight;
   thread.querySelectorAll('.ask-gamelink').forEach(chip=>{
     chip.addEventListener('click', ()=>{
@@ -332,7 +337,7 @@ function autoResizeAskInput(){
 }
 async function sendAskMessage(){
   if(askBusy) return;
-  if(!llmAvailable()){ showToast('Chiedi a Claude non è disponibile qui: aggiungi una chiave Gemini in ⚙️ Motore AI'); return; }
+  if(!llmAvailable()){ showToast('Chiedi non è disponibile qui: aggiungi una chiave Gemini in ⚙️ Impostazioni'); return; }
   const input = document.getElementById('askInput');
   const text = input.value.trim();
   const img = askPendingImage;
@@ -444,7 +449,7 @@ function novitaSkipCandidate(c){
   saveNovitaSkipped();
   saveNovitaSkippedDetails();
 }
-const NOVITA_BATCH_COUNT = 30;   // massimo di giochi accumulati per ricerca (si può interrompere prima)
+const NOVITA_BATCH_COUNT = 60;   // massimo di giochi accumulati per ricerca (si può interrompere prima): 60 sono leggeri; oltre, la libreria personale cresce troppo in una volta
 let novitaQueue = [];
 let novitaIdx = 0;
 let novitaLoading = false;
@@ -524,6 +529,45 @@ function novitaExcludeListText(excludeNames){
   if(namesList.length > MAX_NAMES_CHARS){ namesList = namesList.slice(0, MAX_NAMES_CHARS) + '…'; }
   return namesList || '(nessuno)';
 }
+// Controllo dei voti PRIMA di proporre i giochi: il voto dato dall'AI è una stima e nelle ricerche finiva spesso troppo alto (S+/A per giochi sconosciuti).
+// Se Metacritic/OpenCritic hanno il gioco, vale il loro voto (verificato); se nessuna fonte lo conferma il rank è ND (sotto tutti i rank) e il voto non supera 79.
+const NOVITA_UNVERIFIED_MAX = 79;
+async function novitaVerifyScores(list, say, isStopped){
+  if(typeof rtScoreCheck !== 'function' || !list.length) return;
+  say && say('Controllo i voti reali su Metacritic…');
+  let i = 0; const probs = new Map();          // fonte → motivo (una volta sola)
+  const one = async ()=>{
+    while(i < list.length && !(isStopped && isStopped())){
+      const c = list[i++];
+      let r = null;
+      try{ r = await Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 15000))]); }catch(e){}
+      try{ if(r && r.st) Object.keys(r.st).forEach(k=>{ const x = r.st[k]; if(x && (x.state === 'err' || x.state === 'off')) probs.set(x.name, x.why); }); }catch(e){}
+      if(r || !(isStopped && isStopped())) novitaApplyCheck(c, r);
+    }
+  };
+  await Promise.all([one(), one(), one(), one()]);
+  for(let k = list.length - 1; k >= 0; k--) if(list[k].m === 'V' && list[k].score < 50) list.splice(k, 1);
+  if(probs.size){ try{ showToast('⚠️ Fonti del voto con problemi — ' + Array.from(probs).map(p=> p[0] + ': ' + p[1]).join(' · '), 10000); }catch(e){} }      // il voto vero è sotto il 5/10: spazzatura
+}
+// v212: applica il risultato del controllo a una proposta (verificato → voto e rank veri; nessuna fonte → stima, rank ND, voto mai sopra 79)
+function novitaApplyCheck(c, r){
+  if(r && r.score != null){ if(c.aiScore == null) c.aiScore = c.score; c.score = r.score; c.tier = novitaTierOf(r.score); c.m = 'V'; c.vs = r.vs; }
+  else { c.m = 'S'; c.vs = ''; if(c.aiScore == null) c.aiScore = c.score; c.score = Math.min(c.aiScore == null ? NOVITA_UNVERIFIED_MAX : c.aiScore, NOVITA_UNVERIFIED_MAX); c.tier = 'ND'; }
+  try{ if(r && r.info && r.info.year && (!c.year || Math.abs(+c.year - +r.info.year) > 1)){ c.aiYear = c.year; c.year = String(r.info.year); } }catch(e){}
+  if(r && r.info && r.info.ocReviews) c.ocReviews = r.info.ocReviews;
+  c._chk = true;
+}
+// v212: la proposta che stai guardando, se non è ancora stata controllata (ricerca fermata prima, controllo scaduto), la controllo subito
+function novitaCheckShown(c, rerender, isCurrent){
+  if(!c || c._chk || typeof rtScoreCheck !== 'function') return;
+  c._chk = 'run';
+  Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 20000))]).catch(()=> null).then(r=>{
+    novitaApplyCheck(c, r);
+    if(r === null) c._chkTimeout = true;
+    try{ if(isCurrent() === c) rerender(); }catch(e){}
+  });
+}
+const novitaTierOf = s=> s >= 95 ? 'S+' : s >= 90 ? 'S' : s >= 85 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : s >= 40 ? 'E' : 'F';
 function buildNovitaPrompt(count, excludeNames){
   return todayLine() + `Suggerisci ${count} RPG/JRPG (di qualunque epoca e piattaforma, anche poco conosciuti) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
 Gusti di Mario: ${novitaTasteSummaryText()}
@@ -582,6 +626,7 @@ function cleanNovitaCandidate(raw, tagEnum){
     avoidIf: raw.avoidIf ? String(raw.avoidIf) : '',
     pros: Array.isArray(raw.pros) ? raw.pros.map(String).slice(0,5) : [],
     cons: Array.isArray(raw.cons) ? raw.cons.map(String).slice(0,5) : [],
+    m: raw.m === 'V' ? 'V' : undefined, vs: raw.vs ? String(raw.vs) : '',
     because: raw.because ? String(raw.because) : '',
     basedOn: Array.isArray(raw.basedOn) ? raw.basedOn.map(String).slice(0,4) : [],
     sharedVibes: Array.isArray(raw.sharedVibes) ? raw.sharedVibes.map(String).slice(0,5) : [],
@@ -621,7 +666,7 @@ function novitaFocusSets(codes, size){
 async function novitaSearchParallel(makePrompt, total, strategies, focusSets, extraOpts){
   extraOpts = extraOpts || {};
   const STR = strategies || NOVITA_STRATEGIES;
-  const MAX = Math.min(30, Math.max(1, total || NOVITA_BATCH_COUNT));
+  const MAX = Math.min(NOVITA_BATCH_COUNT, Math.max(1, total || NOVITA_BATCH_COUNT));
   const found = [], seen = new Set();
   let stopped = false, wake = null, lastErr = null, aiErrors = 0;
   const stopP = new Promise(res=>{ wake = res; });
@@ -665,6 +710,7 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets, ex
       });
     }
     if(!found.length && !stopped && lastErr) throw lastErr;
+    await novitaVerifyScores(found, say, ()=> stopped);
   } finally {
     try{ if(P){ P.onStop && P.onStop(null); P.counter && P.counter(null); P.log && P.log(''); P.end && P.end(); if(stopped && P.hideNow) P.hideNow(); } }catch(e){}
   }
@@ -677,7 +723,7 @@ async function fetchNovitaBatch(){
   const excludeNames = novitaKnownNames();
   try{
     // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: ['wikicat', 'wikidata', 'steamspy', 'steamsearch', 'gog', 'rawg', 'rawgnew', 'reddit']});
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: ['scoperte', 'wikicat', 'wikidata', 'steamspy', 'steamsearch', 'gog', 'rawg', 'rawgnew', 'reddit']});
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -748,6 +794,7 @@ function novitaCardHtml(c, ids){
     <div class="novita-meta">
       <span>${escHtml(c.year || '?')}</span> · <span>${escHtml(c.plat||'?')}</span>
       <span class="badge ${TIER_LABEL[c.tier]}">${c.tier}</span>${c.score!=null ? `<span class="badge outline">${c.score}/100</span>` : ''}
+      ${c._chk !== true ? `<span class="badge outline nv-chk" title="Controllo Metacritic, OpenCritic e RAWG">⏳ controllo il voto vero…</span>` : c.m === 'V' ? `<span class="badge outline nv-ok" title="Voto reale${c.aiScore != null && c.aiScore !== c.score ? ' (l\'AI aveva stimato ' + c.aiScore + ')' : ''}">✔ ${escHtml(c.vs || 'Verificato')}${c.ocReviews ? ' · ' + c.ocReviews + ' recensioni' : ''}</span>` : `<span class="badge outline" title="Nessuna fonte ha confermato il voto">⚠️ stima${c.aiScore != null && c.aiScore > c.score ? ' (l\'AI diceva ' + c.aiScore + ')' : ''} · ${c._chkTimeout ? 'le fonti non rispondono' : 'nessun Metacritic'}</span>`}${c.aiYear ? `<span class="badge outline" title="Anno corretto con RAWG">📅 anno vero ${escHtml(c.year)} (l'AI diceva ${escHtml(c.aiYear)})</span>` : ''}
     </div>
     <div class="modal-tags">${c.tags.slice(0,3).map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${c.fitIf ? `<div class="novita-why novita-clamp"><b>Potrebbe piacerti perché</b> ${escHtml(c.fitIf)}</div>` : ''}
@@ -761,8 +808,8 @@ function novitaCardHtml(c, ids){
 }
 function novitaIntroHtml(){
   return `<div class="novita-intro">
-    <div class="novita-intro-icon">🆕</div>
-    <div><b>Trova nuovi giochi da aggiungere</b><br>Claude ti propone RPG/JRPG che non hai ancora nel database, in base ai tuoi gusti. Per ognuno trovi copertina, foto gameplay, un video gameplay in italiano e le recensioni ITA da controllare prima di decidere: sei sempre tu a scegliere se aggiungerlo.</div>
+    <div class="novita-intro-icon">${giIcon('lens')}</div>
+    <div><b>Trova nuovi giochi da aggiungere</b><br>Frugu Frugu rovista tra Steam, GOG, Wikipedia, RAWG e l'elenco settimanale dei giochi da scoprire, e ti propone RPG/JRPG che non hai ancora nel database, in base ai tuoi gusti. Per ognuno trovi copertina, foto gameplay, un video gameplay in italiano e le recensioni ITA da controllare prima di decidere: sei sempre tu a scegliere se aggiungerlo.</div>
     <button class="btn primary" id="novitaFindBtn">${giIcon('lens')} Fruga altri titoli</button>
     <button class="btn" id="novitaGenreGoBtn">${giIcon('genres')} Fruga per genere</button>
   </div>`;
@@ -839,11 +886,12 @@ function renderNovitaCard(){
   const panel = document.getElementById('novitaPanel');
   if(!panel) return;
   if(!llmAvailable()){
-    panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">🆕</div><div>${needKeyHtml()}</div></div>`;
+    panel.innerHTML = `<div class="novita-intro"><div class="novita-intro-icon">${giIcon('lens')}</div><div>${needKeyHtml()}</div></div>`;
     return;
   }
   if(novitaSkippedListOpen){ renderNovitaSkippedListInto(panel, renderNovitaCard); return; }
   const topBar = novitaSkippedTopbarHtml(Object.keys(NOVITA_SKIPPED_DETAILS).length, 'novitaViewSkippedBtn');
+  if(novitaReport && novitaReport.kind === 'novita'){ panel.innerHTML = `<div class="novita-wrap">${novitaReportHtml(novitaReport)}</div>`; wireNovitaAccept(panel, 'novita', renderNovitaCard); return; }
   if(novitaLoading){ panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${novitaLoadingHtml()}</div></div>`; wireNovitaTopbar(); return; }
   if(novitaErrorMsg){ panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${novitaErrorHtml(novitaErrorMsg)}</div></div>`; wireNovitaCard(); wireNovitaTopbar(); return; }
   const c = currentNovitaGame();
@@ -854,9 +902,10 @@ function renderNovitaCard(){
   }
   panel.innerHTML = `<div class="novita-wrap">${topBar}
     <div class="discover-stage">${novitaCardHtml(c)}</div>
-    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaQueue).length} da vedere in questo giro</div>${novitaFilterHtml(novitaQueue)}
+    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaQueue)}${novitaFilterHtml(novitaQueue)}
   </div>`;
-  wireNovitaCard(); wireNovitaTopbar();
+  wireNovitaCard(); wireNovitaTopbar(); wireNovitaAccept(panel, 'novita', renderNovitaCard);
+  novitaCheckShown(c, renderNovitaCard, currentNovitaGame);
 }
 function novitaAdvanceSkip(){
   const c = currentNovitaGame(); if(!c) return;
@@ -873,6 +922,44 @@ function novitaAdvanceLike(){
   }
   novitaQueue.splice(novitaQueue.indexOf(c), 1);
   renderNovitaCard();
+}
+
+// ---- «Accetta tutto»: aggiunge in un colpo solo tutte le proposte visibili e mostra poi l'elenco essenziale di ciò che è stato accettato ----
+let novitaReport = null;      // {kind, items:[{name, score, tier, plat, year, genre}], failed:n}
+function novitaAcceptAllHtml(q){
+  const n = novitaVisible(q).length;
+  return n >= 2 ? `<div class="novita-acceptall"><button class="btn" type="button" data-accept-all>${giIcon('check')} Accetta tutto (${n})</button></div>` : '';
+}
+function novitaAcceptAll(kind){
+  const q = kind === 'genre' ? novitaGenreQueue : novitaQueue;
+  const list = novitaVisible(q).slice();
+  if(list.length < 2) return;
+  if(!confirm('Aggiungo alla tua libreria tutti i ' + list.length + ' giochi proposti? Poi vedrai l\'elenco di quelli accettati.')) return;
+  const label = kind === 'genre' ? 'Novità per genere' : 'Novità';
+  const items = []; let failed = 0;
+  window.__bulkAdd = true;
+  list.forEach(c=>{
+    try{
+      askToolAddCustomGame(c, label);
+      const t0 = (c.tags || []).find(t=> TAG_INFO[t]);
+      items.push({name: c.name, score: c.score, tier: c.tier, plat: c.plat || '', year: c.year || '', genre: t0 ? TAG_INFO[t0].label : ''});
+    }catch(e){ failed++; }
+    const i = q.indexOf(c); if(i > -1) q.splice(i, 1);
+  });
+  window.__bulkAdd = false;
+  novitaReport = {kind, items, failed};
+  try{ showToast(items.length + ' giochi aggiunti' + (failed ? ' (' + failed + ' saltati: doppioni o errori)' : ''), 3500); }catch(e){}
+  (kind === 'genre' ? renderNovitaGenreCard : renderNovitaCard)();
+}
+function novitaReportHtml(r){
+  const rows = r.items.map(i=> `<tr><td>${escHtml(i.name)}</td><td>${i.score != null ? i.score : '–'}</td><td><span class="badge ${TIER_LABEL[i.tier] || ''}">${escHtml(i.tier || '')}</span></td><td>${escHtml(i.plat || '–')}</td><td>${escHtml(i.year || '–')}</td><td>${escHtml(i.genre || '–')}</td></tr>`).join('');
+  return `<div class="novita-report"><div class="discover-title">${giIcon('check')} Giochi accettati: ${r.items.length}</div>${r.failed ? `<div class="discover-hint">${r.failed} non aggiunti (doppioni o errori).</div>` : ''}
+    <div class="novita-report-scroll"><table><thead><tr><th>Nome</th><th>Voto</th><th>Tier</th><th>Piattaforma</th><th>Anno</th><th>Genere</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <button class="btn primary" type="button" data-report-close>Chiudi elenco</button></div>`;
+}
+function wireNovitaAccept(panel, kind, rerender){
+  const b = panel.querySelector('[data-accept-all]'); if(b) b.addEventListener('click', ()=> novitaAcceptAll(kind));
+  const c = panel.querySelector('[data-report-close]'); if(c) c.addEventListener('click', ()=>{ novitaReport = null; rerender(); });
 }
 function wireNovitaCard(){
   const gg = document.getElementById('novitaGenreGoBtn'); if(gg) gg.addEventListener('click', ()=> setView('novitagenere'));
@@ -920,6 +1007,7 @@ function renderNovitaGenreCard(){
   }
   if(novitaGenreSkippedListOpen){ renderNovitaSkippedListInto(panel, renderNovitaGenreCard); return; }
   const topBar = novitaSkippedTopbarHtml(Object.keys(NOVITA_SKIPPED_DETAILS).length, 'novitaGenreViewSkippedBtn');
+  if(novitaReport && novitaReport.kind === 'genre'){ panel.innerHTML = `<div class="novita-wrap">${novitaReportHtml(novitaReport)}</div>`; wireNovitaAccept(panel, 'genre', renderNovitaGenreCard); return; }
   if(novitaGenreLoading){ panel.innerHTML = `<div class="novita-wrap">${topBar}<div class="discover-stage">${novitaLoadingHtml()}</div></div>`; wireNovitaGenreTopbar(); return; }
   const c = currentNovitaGenreGame();
   if(!c){
@@ -931,9 +1019,10 @@ function renderNovitaGenreCard(){
   }
   panel.innerHTML = `<div class="novita-wrap">${topBar}
     <div class="discover-stage">${novitaCardHtml(c, {nope:'novitaGenreNopeBtn', like:'novitaGenreLikeBtn'})}</div>
-    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaGenreQueue).length} da vedere in questo giro</div>${novitaFilterHtml(novitaGenreQueue)}
+    <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaGenreQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaGenreQueue)}${novitaFilterHtml(novitaGenreQueue)}
   </div>`;
-  wireNovitaGenreCard(); wireNovitaGenreTopbar();
+  wireNovitaGenreCard(); wireNovitaGenreTopbar(); wireNovitaAccept(panel, 'genre', renderNovitaGenreCard);
+  novitaCheckShown(c, renderNovitaGenreCard, currentNovitaGenreGame);
 }
 function novitaGenreAdvanceSkip(){
   const c = currentNovitaGenreGame(); if(!c) return;
@@ -985,8 +1074,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-09-30';
-const DATA_BUILD_VERSION = 'v127';
+const DATA_BUILD_DATE = '2026-10-02';
+const DATA_BUILD_VERSION = 'v236';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

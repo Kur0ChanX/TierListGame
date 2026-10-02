@@ -54,7 +54,7 @@
     ls.set(HK, health);
   }
   // siti che permettono l'accesso diretto dal browser: non vanno mai spostati sui ponti (i ponti sono lenti e spesso morti)
-  const CORS_OK = new Set(['en.wikipedia.org', 'it.wikipedia.org', 'www.wikidata.org', 'query.wikidata.org', 'www.pcgamingwiki.com', 'api.rawg.io', 'www.cheapshark.com']);
+  const CORS_OK = new Set(['archive.org', 'en.wikipedia.org', 'it.wikipedia.org', 'www.wikidata.org', 'query.wikidata.org', 'www.pcgamingwiki.com', 'api.rawg.io', 'www.cheapshark.com']);
   function flagNeedsRelay(host){
     if(CORS_OK.has(host)) return; if(typeof navigator !== 'undefined' && navigator.onLine === false) return; needsRelay[host] = Date.now() + 30 * 60e3; ls.set(NRK, needsRelay); }
   H.relayStatus = ()=> RELAYS.map(r=> ({name: r.name, score: Math.round(relayScore(r.name) * 100), cooling: relayCooling(r.name), ...(health[r.name] || {})}));
@@ -78,8 +78,57 @@
     return {name: 'ponte personale', url: x=> base + encodeURIComponent(x)};
   }
   H.hasCustomRelay = ()=> !!customRelay();
+  // versione del ponte personale (la 2 sa leggere anche Metacritic ufficiale): chiesta una volta al giorno
+  H.relayInfo = async (force)=>{
+    const c = customRelay(); if(!c) return null;
+    const old = ls.get('rt_relay_info', null); if(!force && old && Date.now() - old.t < 864e5) return old;
+    let u = ''; try{ u = localStorage.getItem('jrpg_relay_url').trim().replace(/[?&]url=$/, ''); }catch(e){}
+    let info = {v: 1, t: Date.now()};
+    try{ const r = await fetch(u + (u.indexOf('?') > -1 ? '&' : '?') + 'info=1'); if(r.ok){ const j = await r.json(); if(j && j.v) info = {v: j.v, hosts: j.hosts, t: Date.now()}; } }catch(e){ info.err = 1; }
+    ls.set('rt_relay_info', info); return info;
+  };
+  // Metascore UFFICIALE dal vivo (autosuggest di metacritic.com) passando SOLO dal ponte personale v2: serve ai giochi appena aggiunti, non ancora nell'archivio notturno
+  const mnorm = n=> String(n || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\([^)]*\)/g, ' ').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').replace(/\bthe\b/g, ' ').replace(/\s+/g, ' ').trim();
+  H.metacriticLive = async function(name){
+    const info = await H.relayInfo(); if(!info || !(info.v >= 2)) return null;
+    const nm = String(name || '').replace(/\s*\([^)]*\)/g, '').trim(), t = mnorm(nm); if(!t) return null;
+    const ask = async q=>{ const j = await H.json('https://backend.metacritic.com/finder/metacritic/autosuggest/' + encodeURIComponent(q) + '?apiKey=1MOZgmNFxvmljaQR1X9KAuUFFdE9ZK&mcoTypeId=13', {direct: false, maxRelays: 1, timeout: 12000}); return ((j && j.data && j.data.items) || []).filter(x=> x.type === 'game-title'); };
+    let best = (await ask(nm)).find(x=> mnorm(x.title) === t);
+    if(!best){ const short = nm.split(/:| - /)[0]; if(short && short !== nm) best = (await ask(short)).find(x=> mnorm(x.title) === t); }
+    const sc = best && best.criticScoreSummary && best.criticScoreSummary.score;
+    return sc ? {t: best.title, u: best.slug, s: sc, y: best.premiereYear || 0, g: (best.genres || []).map(x=> x.name), live: true} : null;
+  };
   H.testCustomRelay = async ()=>{ const c = customRelay(); if(!c) throw new Error('indirizzo non impostato'); const r = await fetch(c.url('https://www.cheapshark.com/api/1.0/stores')); if(!r.ok) throw new Error('risposta ' + r.status); const j = await r.json(); return Array.isArray(j) ? j.length : 0; };
   const cache = new Map();
+  const noCustom = {};   // siti che il ponte personale (versione vecchia) rifiuta con «sito non consentito»
+  // ---- Memoria persistente delle risposte (IndexedDB «rt_srccache», solo su questo dispositivo) ----
+  // La stessa domanda allo stesso sito non si rifà per giorni: meno «troppe richieste», ricerche istantanee, e se il sito è giù
+  // uso l'ultima risposta buona (fino a 90 giorni). Le chiavi negli indirizzi vengono tolte dal nome in memoria.
+  const TTL = {'archive.org': 30, 'backend.metacritic.com': 7, 'en.wikipedia.org': 14, 'it.wikipedia.org': 14, 'www.wikidata.org': 14, 'query.wikidata.org': 14, 'www.pcgamingwiki.com': 30, 'store.steampowered.com': 2, 'www.cheapshark.com': 1, 'api.rawg.io': 7, 'www.youtube.com': 7, 'steamspy.com': 7, 'catalog.gog.com': 3};
+  const STALE_MAX = 90 * 864e5, PMAX = 4000;
+  const pkey = u=> String(u).replace(/([?&](?:key|api_key|apikey|token|access_token)=)[^&]+/gi, '$1*');
+  let pdb = null;
+  function pOpen(){
+    if(pdb) return pdb;
+    pdb = new Promise(res=>{ try{ const r = indexedDB.open('rt_srccache', 1); r.onupgradeneeded = ()=> r.result.createObjectStore('r'); r.onsuccess = ()=> res(r.result); r.onerror = ()=> res(null); }catch(e){ res(null); } });
+    return pdb;
+  }
+  async function pGet(k){ const db = await pOpen(); if(!db) return null; return new Promise(res=>{ try{ const q = db.transaction('r').objectStore('r').get(k); q.onsuccess = ()=> res(q.result || null); q.onerror = ()=> res(null); }catch(e){ res(null); } }); }
+  let pCount = 0;
+  async function pPut(k, v){
+    const db = await pOpen(); if(!db) return;
+    try{ const sz = typeof v === 'string' ? v.length : JSON.stringify(v).length; if(sz > 250000) return; }catch(e){ return; }
+    try{ db.transaction('r', 'readwrite').objectStore('r').put({t: Date.now(), v}, k); }catch(e){}
+    if(++pCount % 200 === 0) pPrune();
+  }
+  async function pPrune(){   // tengo le PMAX risposte più recenti
+    const db = await pOpen(); if(!db) return;
+    try{ const all = []; const st = db.transaction('r', 'readwrite').objectStore('r'); const c = st.openCursor();
+      c.onsuccess = ()=>{ const cur = c.result; if(cur){ all.push([cur.key, cur.value.t]); cur.continue(); } else if(all.length > PMAX){ all.sort((a, b)=> a[1] - b[1]); const st2 = db.transaction('r', 'readwrite').objectStore('r'); all.slice(0, all.length - PMAX).forEach(x=> st2.delete(x[0])); } };
+    }catch(e){}
+  }
+  H.clearSourceCache = async ()=>{ const db = await pOpen(); if(db) try{ db.transaction('r', 'readwrite').objectStore('r').clear(); }catch(e){} cache.clear(); };
+  H.cacheStats = { hit: 0, stale: 0, miss: 0 };
   async function once(url, o){
     const ctrl = new AbortController(), tm = setTimeout(()=> ctrl.abort(), o.timeout || 12000);
     try{
@@ -98,8 +147,18 @@
     const ck = o.as + ':' + url, hit = cache.get(ck);
     if(o.cache && hit && Date.now() - hit.t < 10 * 60e3) return hit.v;
     const host = hostOf(url), attempts = []; let lastErr = null, usedRelay = false;
-    if(hostDown[host] && hostDown[host] > Date.now()){ const e = new Error('fonte in pausa (non risponde da un po\': riprovo tra qualche minuto)'); e.fast = true; throw e; }
-    const done = v=>{ hostFails[host] = 0; hostTrips[host] = 0; if(needsRelay[host] && !usedRelay){ delete needsRelay[host]; ls.set(NRK, needsRelay); } if(o.cache) cache.set(ck, {t: Date.now(), v}); return v; };
+    if(H.bypassCache) o.cache = false;                                    // la diagnostica deve provare il sito vero, non la memoria
+    const pdays = o.cache && o.persist !== false && TTL[host], pk = pdays ? o.as + ':' + pkey(url) : '';
+    let stale = null;
+    if(pk){
+      const hitP = await pGet(pk);
+      if(hitP && Date.now() - hitP.t < pdays * 864e5){ H.cacheStats.hit++; cache.set(ck, {t: Date.now(), v: hitP.v}); return hitP.v; }
+      if(hitP && Date.now() - hitP.t < STALE_MAX) stale = hitP;
+      H.cacheStats.miss++;
+    }
+    const useStale = why=>{ H.cacheStats.stale++; LOG({kind: 'note', src: host, ok: true, note: 'sito non raggiungibile (' + why + '): uso la risposta salvata del ' + new Date(stale.t).toLocaleDateString('it-IT')}); return stale.v; };
+    if(hostDown[host] && hostDown[host] > Date.now()){ if(stale) return useStale('in pausa'); const e = new Error('fonte in pausa (non risponde da un po\': riprovo tra qualche minuto)'); e.fast = true; throw e; }
+    const done = v=>{ hostFails[host] = 0; hostTrips[host] = 0; if(needsRelay[host] && !usedRelay){ delete needsRelay[host]; ls.set(NRK, needsRelay); } if(o.cache) cache.set(ck, {t: Date.now(), v}); if(pk) pPut(pk, v); return v; };
     if(o.direct && !(needsRelay[host] && needsRelay[host] > Date.now() && o.relays)){
       await gap(host);
       for(let a = 0; a <= o.retries; a++){
@@ -119,8 +178,9 @@
     }
     if(o.relays){
       // al massimo 3 ponti per richiesta (i migliori per esito recente, con un po' di casualità sui pari merito): una fonte muta non deve bloccare la ricerca
-      const list = RELAYS.filter(r=> !relayCooling(r.name) && !(o.as === 'json' && r.textOnly)).map(r=> ({r, k: relayScore(r.name) + Math.random() * 0.05})).sort((a, b)=> b.k - a.k).slice(0, o.maxRelays || 3).map(x=> x.r);
-      { const cr = customRelay(); if(cr && !relayCooling(cr.name)){ list.unshift(cr); if(list.length > (o.maxRelays || 3)) list.pop(); } }
+      const dead = r=>{ const h = health[r.name]; return !!(h && h.fail >= 20 && relayScore(r.name) < 0.1); };   // ponti pubblici morti da sempre: non perdo tempo
+      const list = RELAYS.filter(r=> !relayCooling(r.name) && !dead(r) && !(o.as === 'json' && r.textOnly)).map(r=> ({r, k: relayScore(r.name) + Math.random() * 0.05})).sort((a, b)=> b.k - a.k).slice(0, o.maxRelays || (customRelay() ? 2 : 3)).map(x=> x.r);
+      { const cr = customRelay(); if(cr && !relayCooling(cr.name) && !((noCustom[host] || 0) > Date.now())){ list.unshift(cr); if(list.length > (o.maxRelays || 3)) list.pop(); } }
       for(const R of list){
         const full = R.url(url);
         await gap(hostOf(full));
@@ -131,8 +191,12 @@
           markRelay(R.name, true); LOG({kind: 'relay', src: R.name, ok: true, note: 'ponte riuscito per ' + host});
           return done(v);
         }catch(e){
-          markRelay(R.name, false); lastErr = e; attempts.push(R.name + ': ' + emsg(e));
+          lastErr = e; attempts.push(R.name + ': ' + emsg(e));
           LOG({kind: 'relay', src: R.name, ok: false, err: emsg(e) + ' (per ' + host + ')'});
+          // il ponte personale ha risposto (4xx): il ponte è vivo, è il sito a dire «no» (o un sito che il ponte non conosce). Non lo metto in pausa.
+          if(R.name === 'ponte personale' && e.status >= 400 && e.status < 500 && e.status !== 429){
+            if(e.status === 403) noCustom[host] = Date.now() + 864e5; else { markRelay(R.name, true); break; }
+          } else markRelay(R.name, false);
         } finally { relSlot(); }
       }
     }
@@ -142,6 +206,7 @@
     }
     hostFails[host] = (hostFails[host] || 0) + 1;
     if(hostFails[host] >= 3 && o.relays !== false){ hostTrips[host] = (hostTrips[host] || 0) + 1; const pause = Math.min(45e3 * Math.pow(2, hostTrips[host] - 1), 10 * 60e3); hostDown[host] = Date.now() + pause; hostFails[host] = 0; LOG({kind: 'relay', src: host, ok: false, note: 'fonte in pausa per ' + Math.round(pause / 1000) + ' s (3 tentativi completi falliti)'}); }
+    if(stale) return useStale(emsg(lastErr));
     const err = new Error('nessuna via ha risposto: ' + attempts.join(' | ')); err.attempts = attempts; err.status = lastErr && lastErr.status;
     throw err;
   };
@@ -183,8 +248,10 @@
     MMO: 'MMORPG', MOBA: 'MOBA', BR: 'battle royale', MECH: 'mecha', HNS: 'hack and slash', ARCADE: 'arcade', IDLE: 'idle', COOP: 'co-op', FARM: 'farming', ACTADV: 'action adventure', LIFE: 'life sim'
   };
   const GENERIC_WORDS = ['role-playing', 'action', 'adventure', 'strategy', 'puzzle', 'platform', 'simulation', 'horror', 'indie', 'racing', 'sports', 'shooter', 'roguelike', 'turn-based', 'metroidvania', 'visual novel'];
-  const STEAM_TAG = {JRPG: 4434, WRPG: 122, ACT: 122, TUR: 1677, TAC: 21978, DUN: 1720, CARD: 1666, ROG: 1716, METR: 1628, SOUL: 29482, HOR: 1667, SURV: 1662, PLAT: 1625, PUZ: 1664, FIGHT: 1743, FPS: 1663, SHMUP: 4064,
-    RACE: 699, SPORT: 701, RTS: 1676, TBS4X: 1677, ADV: 21, VN: 3799, STEALTH: 1687, OPENW: 1695, RHY: 1752, TOWERDEF: 1645, CITY: 4328, SIMLIFE: 10808, FARM: 87918, MMO: 128, ACTADV: 21, HNS: 1646, TPS: 3814};
+  // id REALI dei tag di Steam (da store.steampowered.com/tagdata/populartags/english), uno diverso per ogni codice
+  const STEAM_TAG = {JRPG: 4434, WRPG: 122, ACT: 4231, TUR: 1677, TAC: 21725, DUN: 1720, CARD: 1666, ROG: 1716, METR: 1628, SOUL: 29482, HOR: 1667, SURV: 3978, PLAT: 1625, PUZ: 1664, FIGHT: 1743, FPS: 1663, SHMUP: 4255,
+    RACE: 699, SPORT: 701, RTS: 1676, TBS4X: 1741, ADV: 1698, VN: 3799, STEALTH: 1687, OPENW: 1695, RHY: 1752, TOWERDEF: 1645, CITY: 4328, SIMLIFE: 10235, FARM: 87918, MMO: 1754, ACTADV: 4106, HNS: 1646, TPS: 3814,
+    MECH: 4821, MON: 916648, PLAT3D: 5395, PUZPLAT: 5537, IMSIM: 9204, DATING: 9551, WALK: 5900, BR: 176981, AUTOB: 1084988, GRAND: 4364, BEAT: 4158, HEROSH: 620519, BOOMER: 1023537, EXTRACT: 1199779, PARTY: 7178, SAND: 1662, TWINSTICK: 4758};
   const STEAMSPY_TAG = {JRPG: 'JRPG', WRPG: 'RPG', ACT: 'Action RPG', TUR: 'Turn-Based', TAC: 'Tactical RPG', DUN: 'Dungeon Crawler', CARD: 'Card Game', ROG: 'Roguelike', METR: 'Metroidvania', SOUL: 'Souls-like',
     HOR: 'Horror', SURV: 'Survival', PLAT: 'Platformer', PUZ: 'Puzzle', FIGHT: 'Fighting', FPS: 'FPS', SHMUP: 'Shoot \'Em Up', RACE: 'Racing', SPORT: 'Sports', RTS: 'RTS', TBS4X: 'Turn-Based Strategy', ADV: 'Adventure',
     VN: 'Visual Novel', STEALTH: 'Stealth', OPENW: 'Open World', RHY: 'Rhythm', TOWERDEF: 'Tower Defense', CITY: 'City Builder', SIMLIFE: 'Life Sim', MMO: 'MMORPG', HNS: 'Hack and Slash', TPS: 'Third Person'};
@@ -350,14 +417,57 @@
     const name = pickOne(seeds), info = await H.rawg.info(name); if(!info) return [];
     return (await H.rawg.similarItems(info)).map(c=> Object.assign(c, {because: 'Stessi tag su RAWG di «' + name + '»: ' + (info.tagNames || []).slice(0, 3).join(', ')}));
   };
+  // ---------- OpenCritic (chiave RapidAPI gratuita dell'utente, ~200 richieste al giorno): seconda fonte del voto quando Metacritic non basta ----------
+  const ocKey = ()=>{ try{ return (localStorage.getItem('jrpg_opencritic_key') || '').trim(); }catch(e){ return ''; } };
+  const OCK = 'rt_oc_usage', OC_LIMIT = 180;
+  const ocUsage = ()=>{ const d = new Date().toISOString().slice(0, 10), u = ls.get(OCK, {}); return u.d === d ? u : {d, n: 0}; };
+  async function ocGet(path){
+    if(!ocKey()) throw skipErr('chiave OpenCritic non impostata');
+    const u = ocUsage(); if(u.n >= OC_LIMIT) throw skipErr('limite giornaliero OpenCritic quasi raggiunto (' + u.n + ')');
+    u.n++; ls.set(OCK, u);
+    // la chiave viaggia in un'intestazione: solo accesso diretto, mai dai ponti pubblici
+    return H.json('https://opencritic-api.p.rapidapi.com/' + path, {timeout: 12000, relays: false, retries: 1, headers: {'x-rapidapi-key': ocKey(), 'x-rapidapi-host': 'opencritic-api.p.rapidapi.com'}});
+  }
+  H.opencritic = {
+    has: ()=> !!ocKey(),
+    usage: ()=> ocUsage().n,
+    async ping(){ const j = await ocGet('game/search?criteria=' + encodeURIComponent('Dark Souls')); return Array.isArray(j); },
+    // cerca il gioco per nome (titolo praticamente uguale) e ne legge il voto medio dei critici.
+    // Per risparmiare le ~200 richieste gratuite al giorno: la risposta (anche «non trovato») si ricorda 45 / 14 giorni e, se l'id è noto, si salta la ricerca.
+    async info(name){
+      const clean = t=> String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const key = clean(name), C = ls.get('rt_oc_cache', {}) || {}, e = C[key];
+      if(e && Date.now() - e.t < (e.r ? 45 : 14) * 864e5) return e.r || null;
+      const save = r=>{ C[key] = {t: Date.now(), r: r || null}; const ks = Object.keys(C); if(ks.length > 700) ks.sort((a, b)=> C[a].t - C[b].t).slice(0, ks.length - 700).forEach(k=> delete C[k]); ls.set('rt_oc_cache', C); return r || null; };
+      let id = e && e.r && e.r.id, hitName = e && e.r && e.r.name;
+      if(!id){
+        const list = await ocGet('game/search?criteria=' + encodeURIComponent(name)); if(!Array.isArray(list) || !list.length) return save(null);
+        const t = key, hit = list.find(x=> clean(x.name) === t) || list.find(x=> (x.dist == null || x.dist <= 0.15) && clean(x.name) === t.replace(/ (remastered|remake|definitive edition)$/, ''));
+        if(!hit) return save(null);
+        id = hit.id; hitName = hit.name;
+      }
+      const d = await ocGet('game/' + id); if(!d) return save(null);
+      const sc = Math.round(d.topCriticScore >= 0 ? d.topCriticScore : (d.medianScore >= 0 ? d.medianScore : -1));
+      return save(sc >= 20 ? {id, name: d.name || hitName, score: sc, reviews: d.numReviews || d.numTopCriticReviews || null, tier: d.tier || '', url: 'https://opencritic.com/game/' + id + '/' + String(d.name || hitName).toLowerCase().replace(/[^a-z0-9]+/g, '-')} : null);
+    }
+  };
   H.rawg = {
     has: ()=> !!rawgKey(),
     usage: ()=> rawgUsage().n,
     async ping(){ const j = await rawgGet('games', {page_size: '1'}); return !!(j && (j.results || j.count != null)); },
+    // schermate di gioco (per la scheda cinematografica): dall'elenco di ricerca RAWG; la prima è quasi sempre la copertina, la salto
+    async shots(name){
+      const g = await H.rawg.find(name); if(!g) return [];
+      let list = (g.short_screenshots || []).map(s=> s && s.image).filter(Boolean).slice(1);
+      // la ricerca ne dà al massimo 5-6: se sono poche chiedo l'elenco completo del gioco (1 richiesta in più, una volta al mese per gioco)
+      if(list.length < 6 && g.id){ try{ const j = await rawgGet('games/' + g.id + '/screenshots', {page_size: '12'}); ((j && j.results) || []).forEach(x=>{ if(x && x.image && !list.includes(x.image)) list.push(x.image); }); }catch(e){} }
+      return list.slice(0, 12).map(u=> String(u).replace('/media/screenshots/', '/media/resize/640/-/screenshots/'));
+    },
     async find(name){
       const j = await rawgGet('games', {search: name, search_precise: 'true', page_size: '6'});
       const strip = x=> norm(String(x).replace(/\s*\([^)]*\)/g, '')), t = strip(name), list = j.results || [];
-      return list.find(g=> strip(g.name) === t) || list.find(g=> { const n = strip(g.name); return n.length > 4 && (n.startsWith(t) || t.startsWith(n)); }) || null;
+      // v202: «Dragon Quest» NON è «Dragon Quest XI S: Echi…»: un nome più corto vale solo se copre quasi tutto il titolo cercato
+      return list.find(g=> strip(g.name) === t) || list.find(g=> { const n = strip(g.name); return n.length > 4 && ((n.startsWith(t) && t.length >= n.length * .6) || (t.startsWith(n) && n.length >= t.length * .75)); }) || null;
     },
     async info(name){
       const g = await H.rawg.find(name); if(!g) return null;
@@ -430,13 +540,106 @@
     return out;
   };
 
+  // «Scoperte del procione»: elenco costruito ogni settimana dai server (Steam, GOG, CheapShark, Wikipedia) e salvato in discoveries.js: istantaneo, senza rete
+  M.scoperte = async ctx=>{
+    const D = (typeof DISCOVERIES !== 'undefined') ? DISCOVERIES : null;
+    if(!D || !D.items || !D.items.length) throw skipErr('discoveries.js non ancora caricato');
+    const want = new Set(foc(ctx));
+    const list = D.items.filter(r=> !want.size || String(r[4]).split(',').some(t=> want.has(t)));
+    const top = list.slice(0, Math.max(60, Math.min(list.length, 900)));        // già ordinati per qualità
+    return shuffle(top).slice(0, 40).map(r=>{ const sc = r[3] || null; return {name: r[0], plat: r[2] || '', year: r[1] ? String(r[1]) : '', score: sc, tier: sc != null ? tierOf(sc) : 'B', tags: String(r[4]).split(',').filter(Boolean).slice(0, 3), story: '', fitIf: ''}; });
+  };
   const DIRECT_INFO = {
+    scoperte: {name: 'Scoperte del procione', key: 'scoperte'},
     cheapshark: {name: 'CheapShark', key: 'cheapshark'}, wikicat: {name: 'Wikipedia (categorie)', key: 'wikipedia'}, wikisearch: {name: 'Wikipedia (ricerca)', key: 'wikipedia'},
     wikidata: {name: 'Wikidata', key: 'wikidata'}, rawgnew: {name: 'RAWG (uscite)', key: 'rawg'}, rawgsimilar: {name: 'RAWG (affini)', key: 'rawg'}, steamspy: {name: 'SteamSpy', key: 'steamspy'}, steamsearch: {name: 'Steam', key: 'steam'}, gog: {name: 'GOG', key: 'gog'},
     rawg: {name: 'RAWG', key: 'rawg'}, reddit: {name: 'Reddit', key: 'reddit'}
   };
   H.directKeys = Object.keys(DIRECT_INFO);
+  // ---------- ORDINE DI PRIORITÀ delle fonti (1 = si interroga per prima; le mediocri per ultime) ----------
+  // Criterio: affidabilità dei dati (voti e giochi reali) · velocità (locale = istantaneo) · nessun rischio di blocco. Un numero alto pesa di più: la fonte gira meno spesso.
+  // Se una fonte dà molti giochi nuovi sale, se dà zero scende (vedi H.scout).
+  H.PRIORITY = {
+    discover: ['scoperte', 'rawgnew', 'rawg', 'steamsearch', 'gog', 'cheapshark', 'wikicat', 'wikidata', 'wikisearch', 'steamspy', 'reddit', 'rawgsimilar'],
+    // dove prendere i DATI di un gioco (il primo che li ha vince; gli altri servono da conferma): dal più sicuro al meno
+    info: {
+      lingua: ['facts.js (Steam ufficiale)', 'Steam', 'PCGamingWiki', 'it.wikipedia'],
+      voto: ['Metacritic via Wikipedia', 'facts.js (Metascore Steam/CheapShark)', 'RAWG (Metacritic)', 'OpenCritic (chiave facoltativa)', '% recensioni Steam'],
+      anno: ['Wikidata', 'facts.js (Steam)', 'RAWG', 'Wikipedia'],
+      generi: ['Wikidata', 'RAWG', 'Wikipedia'],
+      prezzo: ['facts.js (Steam in euro)', 'CheapShark dal vivo'],
+      copertina: ['Steam', 'Libretro', 'Wikidata/Wikipedia'],
+      testi: ['Wikipedia + RAWG riscritti dall\'AI', 'AI con ricerca web (ultima spiaggia)'],
+      musica: ['Internet Archive (album completi, senza pubblicità)', 'ost.js (YouTube, dal server)', 'YouTube dal vivo']
+    }
+  };
+  const RANK = {}; H.PRIORITY.discover.forEach((k, i)=> RANK[k] = i);
   H.methods = M;
+
+  // facts.js e discoveries.js (aggiornati ogni settimana da GitHub) si caricano dopo l'avvio, così non rallentano la prima schermata
+  H.loadLocalData = function(){
+    const b = (document.querySelector('meta[name="build"]') || {}).content || '0';
+    ['facts.js', 'voti.js', 'discoveries.js'].concat(window.rtNight ? [] : ['shots.js']).forEach(f=>{      // v211: le schermate arrivano a pezzi (rtNight), solo per il gioco aperto
+     const sc = document.createElement('script'); sc.src = f + '?b=' + b; sc.async = true; sc.onerror = ()=> LOG({kind: 'note', src: f, ok: false, note: 'file non trovato (il workflow «Dati settimanali» non è ancora girato?)'}); sc.onload = ()=>{ LOG({kind: 'note', src: f, ok: true, note: 'caricato'}); try{ window.dispatchEvent(new Event('localdata')); }catch(e){} }; document.head.appendChild(sc); });
+  };
+  setTimeout(()=> H.loadLocalData(), 2500);
+  // CheapShark dal browser (accesso diretto): Metascore, % recensioni Steam e prezzo in dollari di un gioco PC. Serve ai giochi che non sono nel database di base (quindi non in facts.js).
+  H.cheapFacts = async function(name){
+    const base = String(name || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*[-–:]\s*(definitive|remaster|remastered|remake|complete|hd|edition|reborn|reloaded).*$/i, '').trim();
+    if(!base) return null;
+    const j = await H.json('https://www.cheapshark.com/api/1.0/deals?storeID=1&pageSize=10&title=' + encodeURIComponent(base), {timeout: 10000});
+    const t = norm(base), hit = (Array.isArray(j) ? j : []).find(x=> norm(String(x.title).replace(/\s*\([^)]*\)/g, '')) === t);
+    if(!hit) return null;
+    return {mc: +hit.metacriticScore || 0, sp: +hit.steamRatingPercent || 0, sc: +hit.steamRatingCount || 0, y: hit.releaseDate ? new Date(hit.releaseDate * 1000).getFullYear() : 0, p: {f: +hit.salePrice, i: +hit.normalPrice, d: Math.round(+hit.savings || 0)}, id: hit.steamAppID};
+  };
+  H.factsFor = g=>{ try{ return (typeof GAME_FACTS !== 'undefined' && GAME_FACTS.games && GAME_FACTS.games[g.id]) || null; }catch(e){ return null; } };
+
+  // v201: NOME INGLESE e ID Steam di ogni gioco. Molti nomi nel catalogo sono italiani («Echi di un'era perduta»):
+  // cercati così su RAWG/OpenCritic/Wikidata davano il gioco sbagliato o «non trovato». Steam conosce anche i nomi italiani,
+  // quindi: nome italiano → Steam (in italiano) → ID → nome ufficiale inglese. Salvato sul dispositivo (rt_en_name).
+  const ENK = 'rt_en_name';
+  const enTok = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[®™©]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w=> w && !['the', 'of', 'di', 'a', 'and', 'e', 'edition', 'edizione', 'definitive', 'definitiva'].includes(w));
+  const enSim = (a, b)=>{ const A = new Set(enTok(a)), B = new Set(enTok(b)); if(!A.size || !B.size) return 0; let n = 0; A.forEach(w=>{ if(B.has(w)) n++; }); return n / Math.min(A.size, B.size); };
+  const enClean = t=> String(t || '').replace(/[®™©]/g, '').replace(/\s+/g, ' ').trim();
+  const ENC = (()=>{ try{ return JSON.parse(localStorage.getItem(ENK) || '{}') || {}; }catch(e){ return {}; } })();
+  // v214: rt_en_name sta nell'archivio grande, che si apre un attimo dopo: appena è pronto unisco i nomi già salvati
+  try{ if(window.rtBig && rtBig.ready) rtBig.ready.then(()=>{ try{ const x = JSON.parse(localStorage.getItem(ENK) || '{}') || {}; Object.keys(x).forEach(k=>{ if(!(k in ENC)) ENC[k] = x[k]; }); }catch(e){} }); }catch(e){}
+  const enSave = ()=>{ try{ const ks = Object.keys(ENC); if(ks.length > 3000) ks.slice(0, ks.length - 3000).forEach(k=> delete ENC[k]); localStorage.setItem(ENK, JSON.stringify(ENC)); }catch(e){} };
+  const ENP = new Map();
+  H.enNameSync = g=>{ const e = g && ENC[g.id]; return e && e.n ? e.n : (g ? g.name : ''); };
+  H.resolveGame = function(g){
+    if(!g) return Promise.resolve({en: '', sid: null});
+    const e = ENC[g.id];
+    if(e && (e.n || Date.now() - e.t < 7 * 864e5) && e.q === g.name) return Promise.resolve({en: e.n || g.name, sid: e.sid || null});
+    if(ENP.has(g.id)) return ENP.get(g.id);
+    const p = (async()=>{
+      let sid = null, en = null, answered = false;      // answered: Steam ha risposto (anche «nessun risultato»); se la rete era giù non salvo il fallimento
+      try{ const f = H.factsFor(g); if(f && f.s && f.s.id){ sid = f.s.id; if(f.s.en){ ENC[g.id] = {n: f.s.en, sid, t: Date.now(), q: g.name}; enSave(); return {en: f.s.en, sid}; } } }catch(x){}
+      if(!sid){
+        for(const [l, cc] of [['italian', 'it'], ['english', 'us']]){
+          try{
+            const j = await H.json('https://store.steampowered.com/api/storesearch/?l=' + l + '&cc=' + cc + '&term=' + encodeURIComponent(g.name.replace(/[:™®]/g, ' ')), {timeout: 12000});
+            if(j && Array.isArray(j.items)) answered = true;
+            const best = ((j && j.items) || []).map(x=> ({x, s: enSim(g.name, x.name)})).sort((a, b)=> b.s - a.s)[0];
+            if(best && best.s >= .6){ sid = best.x.id; break; }
+          }catch(x){}
+        }
+      }
+      if(sid){
+        try{ const j = await H.json('https://store.steampowered.com/api/appdetails?appids=' + sid + '&filters=basic&l=english&cc=us', {timeout: 12000}); const d = j && j[sid] && j[sid].success ? j[sid].data : null; if(d && d.name) en = enClean(d.name); }catch(x){}
+      }
+      if(en || answered){ ENC[g.id] = {n: en || '', sid: sid || 0, t: Date.now(), q: g.name}; enSave(); }
+      return {en: en || g.name, sid};
+    })().finally(()=> ENP.delete(g.id));
+    ENP.set(g.id, p); return p;
+  };
+  H.enName = async g=> (await H.resolveGame(g)).en;
+  // per le ricerche: una copia del gioco con il nome inglese (il resto identico)
+  H.enGame = async g=>{ const en = await H.enName(g); return en && en !== g.name ? Object.assign({}, g, {name: en, nameIt: g.name}) : g; };
+
+  // Metascore UFFICIALE da metacritic.com, scaricato dai server GitHub (voti.js): niente blocchi, niente chiavi, niente limiti
+  H.ocArchFor = g=>{ try{ const v = typeof VOTI !== 'undefined' && VOTI.games && VOTI.games[g.id]; return v && v.oc ? {score: v.oc, reviews: v.ocn || 0, url: 'https://opencritic.com/game/' + v.ocu + '/x', arch: true} : null; }catch(e){ return null; } };
+  H.votiFor = g=>{ try{ const v = typeof VOTI !== 'undefined' && VOTI.games && VOTI.games[g.id]; return v && v.s ? v : null; }catch(e){ return null; } };
 
   // ---------- il cuore: giri di ricerca senza sosta ----------
   // Corsie parallele: una per le ricerche AI e due per le fonti dirette, ognuna con il proprio ritmo. Una fonte lenta o bloccata non rallenta le altre.
@@ -447,7 +650,7 @@
     const dk = (opts.directKeys || H.directKeys).filter(k=> M[k]);
     const aiOn = !!(opts.ai && opts.ai.available && opts.ai.available());
     const A = aiOn ? (opts.ai.strategies || []).map(s=> ({kind: 'ai', id: 'ai:' + s.src, s, name: s.src, key: s.key || 'ai'})) : [];
-    const D = dk.map(k=> ({kind: 'direct', id: k, name: DIRECT_INFO[k].name, key: DIRECT_INFO[k].key, run: M[k]})).sort((a, b)=> (H.rawg.has() ? (/^rawg/.test(b.id) ? 1 : 0) - (/^rawg/.test(a.id) ? 1 : 0) : 0));
+    const D = dk.map(k=> ({kind: 'direct', id: k, name: DIRECT_INFO[k].name, key: DIRECT_INFO[k].key, run: M[k]})).sort((a, b)=> (RANK[a.id] == null ? 99 : RANK[a.id]) - (RANK[b.id] == null ? 99 : RANK[b.id]));
     const rawgSkip = !H.rawg.has();
     const st = {}; A.concat(D).forEach(m=> st[m.id] = {streak: 0, cool: 0, yield: 0, runs: 0});
     let rounds = 0, aiCool = 0, fi = ri(0, 50);
@@ -464,8 +667,14 @@
       const worker = async wi=>{
         while(alive()){
           // prossimo metodo non in pausa
-          let m = null;
-          for(let k = 0; k < list.length; k++){ const c = list[(cur + k) % list.length]; if(st[c.id].cool > rounds && list.length > 1) continue; if(c.kind === 'ai' && Date.now() < aiCool) continue; m = c; cur = (cur + k + 1) % list.length; break; }
+          // sceglie la fonte con il «costo» più basso: chi ha più priorità (rango basso) e ha già reso di più viene interrogata più spesso; le mediocri per ultime
+          let m = null, best = Infinity;
+          for(const c of list){
+            if(st[c.id].cool > rounds && list.length > 1) continue; if(c.kind === 'ai' && Date.now() < aiCool) continue;
+            const q = st[c.id], rk = c.kind === 'ai' ? 0 : (RANK[c.id] == null ? 8 : RANK[c.id]);
+            const cost = (q.runs + 1) * (1 + rk * 0.45) - Math.min(q.yield, 20) * 0.35;
+            if(cost < best){ best = cost; m = c; }
+          }
           if(!m){ await nap(1200); if(list.every(c=> st[c.id].cool > rounds)) rounds++; continue; }
           const s0 = st[m.id]; s0.runs++; rounds++; ran++;
           const focus = (staleCount >= 2 || !(opts.focusSets && opts.focusSets.length)) ? [] : opts.focusSets[(fi++) % opts.focusSets.length];

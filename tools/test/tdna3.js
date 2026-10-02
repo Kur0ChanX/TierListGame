@@ -1,0 +1,23 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:412,height:915},colorScheme:'dark'});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+let ids=[];
+await ctx.route('**/*',r=>{const u=r.request().url(); if(u.startsWith('file:')) return r.continue();
+ if(u.includes('generativelanguage')){ const body=r.request().postData()||''; const cat=body.includes('CATALOGO');
+  const txt=cat?JSON.stringify({ids}):'{"si":["STORY"],"no":[],"suoi_si":[],"suoi_no":[],"nuovi":[{"nome":"Attacchi a tempo","descrizione":"premi il tasto al momento giusto durante l\'attacco per fare più danni","parole":["attacchi a tempo","timed hits","additions","QTE","action commands"],"piace":true}]}';
+  return r.fulfill({status:200,headers:{'access-control-allow-origin':'*','content-type':'application/json'},body:JSON.stringify({candidates:[{content:{parts:[{text:txt}]}}]})});}
+ return r.abort();});
+await p.addInitScript(()=>localStorage.setItem('jrpg_gemini_key','FAKE'));
+await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html');await p.waitForTimeout(3500);
+ids=await p.evaluate(()=>GAMES.filter(g=>/Super Mario RPG|Sea of Stars|Clair Obscur|Paper Mario|Mario & Luigi|Shadow Hearts|Legend of Dragoon/.test(g.name)).map(g=>g.id));
+console.log('giochi attesi',ids.length);
+await p.evaluate(()=>{ GAMES.filter(g=>/^Final Fantasy (VII|VIII|X|VI)$|^Chrono Trigger$/.test(g.name)).forEach(g=>FAVS.add(g.id)); saveFavs(); openModal(GAMES.find(g=>/Legend of Dragoon/.test(g.name))||GAMES[5]); });
+await p.waitForTimeout(1200);
+await p.evaluate(()=>document.querySelector('[data-dna-free]').click()); await p.waitForTimeout(400);
+await p.fill('#dfT','adoro il combat system a tempo di Legend of Dragoon, le additions');
+await p.evaluate(()=>document.querySelector('#dfGo').click()); await p.waitForTimeout(14000);
+console.log('info:', await p.evaluate(()=>document.querySelector('#dnaInfo').textContent));
+console.log('custom:', await p.evaluate(()=>{const c=JSON.parse(localStorage.getItem('jrpg_dna_custom'));return Object.entries(c).map(([k,v])=>k+' games='+(v.games||[]).length+' by='+v.by).join('; ')}));
+console.log('peso tratto:', await p.evaluate(()=>{const tm=rtTasteModel();return Object.entries(tm.wts).filter(([k])=>k.startsWith('mine:')).map(([k,v])=>k+'='+v.toFixed(2)).join(',')}));
+console.log('SoS feats:', await p.evaluate(()=>{const g=GAMES.find(g=>/Sea of Stars/.test(g.name));return g?rtFeats(g).filter(x=>x.startsWith('mine')).join(','):'n/a'}));
+console.log('ERR',errs);await b.close();})();

@@ -23,10 +23,19 @@ async function geminiFetch(body, signal, model){
     throw err;
   }
   if(!r.ok){
-    let msg = '';
-    try{ const j = await r.json(); msg = (j.error && j.error.message) || ''; }catch(e){}
+    let msg = '', det = [];
+    try{ const j = await r.json(); msg = (j.error && j.error.message) || ''; det = (j.error && j.error.details) || []; }catch(e){}
     const err = new Error(msg || ('HTTP ' + r.status));
     err.status = r.status;
+    if(r.status === 429){
+      // Google dice quanto aspettare (retryDelay «23s») e se è finita la quota del minuto o del GIORNO
+      const rd = det.map(d=> d && d.retryDelay).filter(Boolean)[0]; err.retryMs = rd ? Math.round(parseFloat(rd) * 1000) : 0;
+      // «quota del GIORNO» solo se Google lo dice chiaramente: nessun limite al minuto citato e nessuna attesa breve indicata.
+      // (Google spesso elenca più limiti insieme: prima bastava la parola «PerDay» per mettere in pausa il modello per ore, anche quando bastava aspettare un minuto.)
+      const ids = []; det.forEach(d=> ((d && d.violations) || []).forEach(v=> ids.push(String(v.quotaId || v.quotaMetric || ''))));
+      const txt = ids.join(' ') + ' ' + msg;
+      err.perDay = /PerDay|per day|daily/i.test(txt) && !/PerMinute|per minute/i.test(txt) && !(err.retryMs && err.retryMs <= 120000);
+    }
     err.code = r.status === 429 ? 'gemini_rate_limited' : r.status === 503 ? 'gemini_busy' : (r.status === 403 || (r.status === 400 && /api key/i.test(msg))) ? 'gemini_bad_key' : 'gemini_error';
     throw err;
   }
@@ -35,20 +44,42 @@ async function geminiFetch(body, signal, model){
 
 let geminiNoThink = false;
 const sleep = ms=> new Promise(r=> setTimeout(r, ms));
+// Limiti del piano gratuito: poche richieste al MINUTO e al GIORNO per modello. Per non sbatterci contro:
+//  1) le richieste partono in fila, distanziate (niente raffiche durante Update+);
+//  2) se Google dice «aspetta N secondi» aspetto e riprovo lo stesso modello;
+//  3) se è finita la quota del GIORNO quel modello si salta fino a domattina (rt_gem_block, solo su questo dispositivo).
+const GEM_GAP = 4200;
+let gemLast = 0, gemQ = Promise.resolve();
+function gemPace(){ const p = gemQ.then(async ()=>{ const w = gemLast + GEM_GAP - Date.now(); if(w > 0) await sleep(w); gemLast = Date.now(); }); gemQ = p.catch(()=>{}); return p; }
+const gemBlocks = ()=>{ try{ return JSON.parse(localStorage.getItem('rt_gem_block') || '{}') || {}; }catch(e){ return {}; } };
+function gemBlock(model){ const b = gemBlocks(), t = new Date(); t.setUTCHours(24 + 8, 5, 0, 0); if(t - Date.now() > 30 * 3600e3) t.setTime(t - 24 * 3600e3); b[model] = +t; try{ localStorage.setItem('rt_gem_block', JSON.stringify(b)); }catch(e){} }   // la quota giornaliera riparte a mezzanotte di Los Angeles (circa le 9 in Italia)
+const gemBlocked = m=> (gemBlocks()[m] || 0) > Date.now();
+const itTime = t=>{ const d = new Date(t), same = d.toDateString() === new Date().toDateString(); return (same ? 'oggi' : 'domani') + ' alle ' + d.toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome'}) + ' (ora italiana)'; };
+try{ if(!localStorage.getItem('rt_gem_block_v2')){ localStorage.removeItem('rt_gem_block'); localStorage.setItem('rt_gem_block_v2', '1'); } }catch(e){}   // tolgo le pause messe per errore dalla v190-v192
+window.geminiUnblock = m=>{ const b = gemBlocks(); if(m) delete b[m]; else Object.keys(b).forEach(k=> delete b[k]); try{ localStorage.setItem('rt_gem_block', JSON.stringify(b)); }catch(e){} };
+window.geminiStatus = ()=> ({blocked: Object.entries(gemBlocks()).filter(x=> x[1] > Date.now()).map(x=> x[0] + ' a riposo fino a ' + itTime(x[1])), gap: GEM_GAP});
+window.geminiTestModel = async m=>{ const body = {contents: [{role: 'user', parts: [{text: 'Rispondi solo con: ok'}]}]}; await geminiFetch(body, null, m || GEMINI_MODEL); window.geminiUnblock(m || GEMINI_MODEL); return true; };
 // Se il modello è sovraccarico (503/500) riprova con calma, poi passa al modello più leggero; se è al limite (429) prova subito quello leggero
 async function callGemini(body, signal){
   let lastErr;
   const custom = geminiCustomModel();
-  const chain = [custom, GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter((m, i, a)=> m && a.indexOf(m) === i && !geminiBadModels.has(m));
+  let chain = [custom, GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter((m, i, a)=> m && a.indexOf(m) === i && !geminiBadModels.has(m));
+  const open = chain.filter(m=> !gemBlocked(m)); if(open.length) chain = open;     // tutti in pausa: provo lo stesso (la pausa è una stima)
   for(const [mi, model] of chain.entries()){
     const attempts = mi === 0 ? 3 : 1;
+    let waited = false;
     for(let a = 0; a < attempts; a++){
-      try{ return await geminiFetch(body, signal, model); }
+      try{ await gemPace(); return await geminiFetch(body, signal, model); }
       catch(e){
         lastErr = e;
         if((e.status === 404 || (e.status === 400 && /model|not found|not supported/i.test(e.message || ''))) && mi < chain.length - 1){ geminiBadModels.add(model); break; }   // modello inesistente: passo al successivo
         if(![429, 500, 503].includes(e.status)) throw e;
-        if(e.status === 429) break;
+        if(e.status === 429){
+          if(e.perDay){ gemBlock(model); try{ DebugLog.add({kind: 'note', src: 'Gemini', ok: false, note: 'quota del giorno finita per ' + model + ': uso il modello leggero fino a domattina (ore 10 circa, ora italiana)'}); }catch(x){} break; }
+          // quota del minuto: se l'attesa è breve aspetto e riprovo lo stesso modello (una volta), altrimenti passo al leggero
+          if(!waited && e.retryMs && e.retryMs <= 30000 && !(signal && signal.aborted)){ waited = true; await sleep(e.retryMs + 300); a--; continue; }
+          break;
+        }
         if(a < attempts - 1){ if(signal && signal.aborted) throw e; await sleep(1500 * (a + 1)); }
       }
     }
@@ -188,6 +219,14 @@ async function askLLM(input, opts, extra){
     try{ await window.SearchHub.rawg.ping(); say('✅ RAWG funziona: la uso per scoprire giochi, uscite, affini, saghe, voti, anni e copertine (richieste questo mese: ' + window.SearchHub.rawg.usage() + ' su 20.000).', true); }
     catch(e){ say('❌ RAWG non risponde con questa chiave: ' + String(e && e.message || e).slice(0, 120), false); }
   }); }
+  const ocEl = document.getElementById('ocKeyInput');
+  if(ocEl){ try{ ocEl.value = localStorage.getItem('jrpg_opencritic_key') || ''; }catch(e){} ocEl.addEventListener('change', async ()=>{
+    const v = ocEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_opencritic_key', v); else localStorage.removeItem('jrpg_opencritic_key'); }catch(e){}
+    if(!v){ say('Chiave OpenCritic rimossa.'); return; }
+    say('Verifico la chiave OpenCritic…');
+    try{ await window.SearchHub.opencritic.ping(); say('✅ OpenCritic funziona: la uso come seconda fonte dei voti (richieste oggi: ' + window.SearchHub.opencritic.usage() + ' su circa 200).', true); }
+    catch(e){ say('❌ OpenCritic non risponde con questa chiave: ' + String(e && e.message || e).slice(0, 120), false); }
+  }); }
   const relEl = document.getElementById('relayUrlInput');
   if(relEl){ try{ relEl.value = localStorage.getItem('jrpg_relay_url') || ''; }catch(e){}
     relEl.addEventListener('change', async ()=>{
@@ -197,6 +236,135 @@ async function askLLM(input, opts, extra){
       try{ const n = await window.SearchHub.testCustomRelay(); say('✅ Il tuo ponte funziona (' + n + ' negozi letti da CheapShark). Ora Steam, GOG e Reddit hanno una via di accesso.', true); }
       catch(e){ say('❌ Il ponte non risponde: ' + String(e && e.message || e).slice(0, 100), false); }
     }); }
+  // trasferimento delle chiavi tra dispositivi: si copia un codice e lo si incolla sull'altro (le chiavi non passano mai da file, backup o sincronizzazione)
+  const KEYS_T = [['jrpg_gemini_key', 'g'], ['jrpg_rawg_key', 'r'], ['jrpg_opencritic_key', 'o'], ['jrpg_relay_url', 'p']];
+  const kc = document.getElementById('keysCopyBtn'), kp = document.getElementById('keysPasteBtn');
+  if(kc) kc.addEventListener('click', async ()=>{
+    const o = {}; KEYS_T.forEach(([k, s])=>{ try{ const v = (localStorage.getItem(k) || '').trim(); if(v) o[s] = v; }catch(e){} });
+    if(!Object.keys(o).length){ say('Non ci sono chiavi da copiare su questo dispositivo.', false); return; }
+    const code = 'RTK1:' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+    try{ await navigator.clipboard.writeText(code); say('✅ Copiate (' + Object.keys(o).length + ' chiavi). Sull\'altro dispositivo tocca «Incolla le chiavi». Poi cancella il codice dagli appunti.', true); }
+    catch(e){ window.prompt('Copia questo codice (tieni premuto, Seleziona tutto, Copia):', code); }
+  });
+  if(kp) kp.addEventListener('click', ()=>{
+    const code = (window.prompt('Incolla qui il codice copiato dall\'altro dispositivo:', '') || '').trim();
+    if(!code) return;
+    try{
+      if(!/^RTK1:/.test(code)) throw new Error('codice non valido');
+      const o = JSON.parse(decodeURIComponent(escape(atob(code.slice(5))))); let n = 0;
+      KEYS_T.forEach(([k, s])=>{ if(typeof o[s] === 'string' && o[s].trim()){ try{ localStorage.setItem(k, o[s].trim()); n++; }catch(e){} } });
+      [['rawgKeyInput', 'jrpg_rawg_key'], ['ocKeyInput', 'jrpg_opencritic_key'], ['relayUrlInput', 'jrpg_relay_url']].forEach(([id, k])=>{ const el = document.getElementById(id); if(el) try{ el.value = localStorage.getItem(k) || ''; }catch(e){} });
+      try{ keyEl.value = geminiKey(); }catch(e){}
+      say('✅ Importate ' + n + ' chiavi. Ricarica la pagina per usarle subito dappertutto.', true); try{ refreshFab(); }catch(e){}
+    }catch(e){ say('❌ Codice non valido: copialo di nuovo dall\'altro dispositivo.', false); }
+  });
+  // chiavi cifrate nel programma: profilo + password → le chiavi tornano da sole (mancanti aggiunte, diverse sostituite)
+  const b64 = u=> btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(u)))), unb64 = s=> Uint8Array.from(atob(s), c=> c.charCodeAt(0));
+  async function kbKey(pw, salt, it){ const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({name: 'PBKDF2', salt, iterations: it, hash: 'SHA-256'}, base, {name: 'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']); }
+  async function kbEncrypt(obj, pw){ const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12)), it = 310000; const k = await kbKey(pw, salt, it); const ct = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify(obj))); return {s: b64(salt), v: b64(iv), c: b64(ct), i: it}; }
+  async function kbDecrypt(box, pw){ const k = await kbKey(pw, unb64(box.s), box.i); const pt = await crypto.subtle.decrypt({name: 'AES-GCM', iv: unb64(box.v)}, k, unb64(box.c)); return JSON.parse(new TextDecoder().decode(pt)); }
+  const applyKeys = o=>{
+    const added = [], changed = [], NM = {g: 'Gemini', r: 'RAWG', o: 'OpenCritic', p: 'Ponte'};
+    KEYS_T.forEach(([k, s])=>{ const v = typeof o[s] === 'string' ? o[s].trim() : ''; if(!v) return; let cur = ''; try{ cur = (localStorage.getItem(k) || '').trim(); }catch(e){}
+      if(!cur){ added.push(NM[s]); } else if(cur !== v){ changed.push(NM[s]); } else return; try{ localStorage.setItem(k, v); }catch(e){} });
+    [['rawgKeyInput', 'jrpg_rawg_key'], ['ocKeyInput', 'jrpg_opencritic_key'], ['relayUrlInput', 'jrpg_relay_url']].forEach(([id, k])=>{ const el = document.getElementById(id); if(el) try{ el.value = localStorage.getItem(k) || ''; }catch(e){} });
+    try{ keyEl.value = geminiKey(); }catch(e){}
+    return {added, changed};
+  };
+  // Salva/Recupera le chiavi in un attimo: utente + password. Le chiavi, cifrate con la password, stanno in un gist pubblico del tuo GitHub (illeggibile senza password)
+  const GH_USER = /\.github\.io$/.test(location.hostname) ? location.hostname.split('.')[0] : 'kur0chanx';
+  const kbDesc = u=> 'RaccoonTier-chiavi-' + u.toLowerCase();
+  const askUP = (verb)=>{
+    const u = (window.prompt('Utente (es. Mario):', localStorage.getItem('jrpg_keys_user') || 'Mario') || '').trim().replace(/[^A-Za-z0-9À-ÿ_-]/g, '').slice(0, 24); if(!u) return null;
+    const pw = window.prompt('Password di ' + u + (verb === 'save' ? ' (almeno 12 caratteri; se la perdi dovrai rincollare le chiavi a mano)' : '') + ':', '') || ''; if(!pw) return null;
+    if(verb === 'save' && pw.length < 12){ say('❌ Password troppo corta: servono almeno 12 caratteri (il codice sta su un sito pubblico, una password debole si indovina).', false); return null; }
+    try{ localStorage.setItem('jrpg_keys_user', u); }catch(e){}
+    return {u, pw};
+  };
+  const kenc = document.getElementById('keysEncBtn'), krec = document.getElementById('keysRecBtn');
+  if(kenc) kenc.addEventListener('click', async ()=>{
+    if(!(window.crypto && crypto.subtle)){ say('❌ Questo browser non può cifrare (serve https).', false); return; }
+    const tok = (localStorage.getItem('jrpg_sync_token') || '').trim();
+    if(!tok){ say('❌ Serve il token GitHub attivo (sezione «Sincronizzazione tra dispositivi» qui sotto) su questo dispositivo.', false); return; }
+    const o = {}; KEYS_T.forEach(([k, s])=>{ try{ const v = (localStorage.getItem(k) || '').trim(); if(v) o[s] = v; }catch(e){} });
+    o.t = tok;
+    if(Object.keys(o).length < 2){ say('Non ci sono chiavi da salvare su questo dispositivo.', false); return; }
+    const up = askUP('save'); if(!up) return;
+    say('Cifro e salvo…');
+    try{
+      const box = await kbEncrypt(o, up.pw), content = JSON.stringify(box), desc = kbDesc(up.u);
+      const H = {'Authorization': 'Bearer ' + tok, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json'};
+      let id = null;
+      for(let page = 1; page <= 5 && !id; page++){
+        const r = await fetch('https://api.github.com/gists?per_page=100&page=' + page, {headers: H}); if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+        const l = await r.json(); const f = l.find(g=> g.description === desc); if(f) id = f.id; if(l.length < 100) break;
+      }
+      const body = JSON.stringify({description: desc, public: true, files: {'chiavi.json': {content}}});
+      const r2 = await fetch('https://api.github.com/gists' + (id ? '/' + id : ''), {method: id ? 'PATCH' : 'POST', headers: H, body});
+      if(!r2.ok){ const e = new Error('HTTP ' + r2.status); e.status = r2.status; throw e; }
+      say('✅ Chiavi salvate per «' + up.u + '». Sugli altri dispositivi: «🔑 Accedi» (o il QR), utente e password.', true);
+    }catch(e){ say('❌ Non sono riuscito a salvare: ' + (e && e.status === 401 ? 'token GitHub non valido.' : e && e.status === 403 ? 'il token deve avere il permesso «gist».' : 'controlla la connessione.'), false); }
+  });
+  // ---- Accedi / Nuovo utente (anche da QR): utente + password → chiavi, token e sincronizzazione completa del profilo ----
+  async function cloudLogin(u, pw, say2){
+    const r = await fetch('https://api.github.com/users/' + GH_USER + '/gists?per_page=100'); if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    const f = (await r.json()).find(g=> g.description === kbDesc(u)); const file = f && f.files && f.files['chiavi.json'];
+    if(!file){ say2('❌ Non trovo l\'utente «' + u + '». Sul dispositivo che ha le chiavi tocca prima «☁️ Salva chiavi».'); return false; }
+    const box = await (await fetch(file.raw_url)).json();
+    let keys; try{ keys = await kbDecrypt(box, pw); }catch(e){ say2('❌ Password sbagliata.'); return false; }
+    const res = applyKeys(keys);
+    if(keys.t){ try{ localStorage.setItem('jrpg_sync_token', keys.t); localStorage.removeItem('jrpg_sync_gist'); localStorage.setItem('jrpg_keys_user', u); }catch(e){} }
+    say2('✅ Accesso fatto' + (res.added.length || res.changed.length ? ' (chiavi: ' + res.added.concat(res.changed).join(', ') + ')' : '') + '. Scarico tutto il tuo profilo…');
+    try{ if(typeof syncNow === 'function') await syncNow({noReload: true}); }catch(e){}
+    setTimeout(()=> location.reload(), 1200);
+    return true;
+  }
+  function openLogin(){
+    let el = document.getElementById('loginBackdrop');
+    if(!el){ el = document.createElement('div'); el.id = 'loginBackdrop'; el.className = 'dup-backdrop'; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
+    const U = localStorage.getItem('jrpg_keys_user') || 'Mario';
+    el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🔑 Accedi o crea utente</b><button class="btn" data-ui-close>Chiudi</button></div>
+      <div class="lp-tools"><button class="btn primary" id="lgTabIn">Accedi</button><button class="btn" id="lgTabNew">Nuovo utente</button></div>
+      <div id="lgBody"></div><div class="lp-sub" id="lgMsg"></div></div>`;
+    el.classList.add('show');
+    const msg = t=>{ const m = el.querySelector('#lgMsg'); if(m) m.textContent = t; }, body = el.querySelector('#lgBody');
+    // il campo password è un testo «a pallini» (non type=password): così Chrome/Google non propone «Salva/Aggiorna la password?»
+    const HIDE_OK = !!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc'));
+    const fld = (id, label, type, val)=> `<label style="display:block;margin:8px 0">${label}<input id="${id}" name="rt-${id}" type="${type === 'password' && HIDE_OK ? 'text' : type}" value="${val || ''}" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocapitalize="none" spellcheck="false" style="${type === 'password' && HIDE_OK ? '-webkit-text-security:disc;' : ''}width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font-size:1rem"></label>`;
+    const showIn = ()=>{ el.querySelector('#lgTabIn').classList.add('primary'); el.querySelector('#lgTabNew').classList.remove('primary');
+      body.innerHTML = `<div class="lp-sub">Come se fossi sul telefono: chiavi, sincronizzazione e tutti i tuoi dati.</div>${fld('lgUser', 'Utente', 'text', U)}${fld('lgPw', 'Password', 'password', '')}<div class="lp-tools"><button class="btn primary" id="lgGo">Accedi</button></div>`;
+      el.querySelector('#lgGo').addEventListener('click', async ()=>{ const u = el.querySelector('#lgUser').value.trim(), pw = el.querySelector('#lgPw').value; if(!u || !pw){ msg('Scrivi utente e password.'); return; } msg('Accedo…'); try{ await cloudLogin(u, pw, msg); }catch(e){ msg('❌ Non riesco a leggere da GitHub' + (e && e.status === 403 ? ' (troppe richieste, riprova tra un po\')' : '') + '.'); } });
+    };
+    const showNew = ()=>{ el.querySelector('#lgTabNew').classList.add('primary'); el.querySelector('#lgTabIn').classList.remove('primary');
+      body.innerHTML = `<div class="lp-sub">Avrai tutti i giochi, le schede e le informazioni complete; preferiti, tier, classifiche e recensioni saranno solo tuoi.</div>${fld('lgNu', 'Nome del nuovo utente', 'text', '')}${fld('lgNp', 'Password nuova (almeno 12 caratteri)', 'password', '')}<div class="lp-tools"><button class="btn primary" id="lgMk">Crea utente</button></div>`;
+      el.querySelector('#lgMk').addEventListener('click', async ()=>{
+        const n = el.querySelector('#lgNu').value.trim().replace(/[^A-Za-z0-9À-ÿ _-]/g, '').slice(0, 24), pw = el.querySelector('#lgNp').value;
+        if(!n){ msg('Scrivi il nome.'); return; } if(pw.length < 12){ msg('Password troppo corta: almeno 12 caratteri.'); return; }
+        if(typeof PROFILES === 'undefined' || typeof switchProfile !== 'function'){ msg('Profili non disponibili.'); return; }
+        if(PROFILES.some(p=> p.name.toLowerCase() === n.toLowerCase())){ msg('Esiste già un utente con questo nome.'); return; }
+        msg('Creo l\'utente e scarico il catalogo…');
+        try{ if(typeof loadCatalog === 'function') await loadCatalog({force: true}); }catch(e){}
+        const id = nextGuestId(); PROFILES.push({id, name: n}); saveProfiles(); try{ localStorage.setItem('jrpg_keys_user', n); }catch(e){}
+        switchProfile(id); msg('✅ Utente «' + n + '» creato. Ricarico…'); setTimeout(()=> location.reload(), 1200);
+      });
+    };
+    el.querySelector('#lgTabIn').addEventListener('click', showIn); el.querySelector('#lgTabNew').addEventListener('click', showNew);
+    showIn();
+  }
+  window.openLogin = openLogin;
+  if(krec) krec.addEventListener('click', openLogin);
+  const kqr = document.getElementById('keysQrBtn');
+  if(kqr) kqr.addEventListener('click', async ()=>{
+    let el = document.getElementById('qrLoginBackdrop');
+    if(!el){ el = document.createElement('div'); el.id = 'qrLoginBackdrop'; el.className = 'dup-backdrop'; document.body.appendChild(el); el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-ui-close]')) el.classList.remove('show'); }); }
+    const url = 'https://' + GH_USER + '.github.io/TierListGame/#login';
+    el.innerHTML = '<div class="lp-card"><div class="lp-head"><b>📱 QR per un altro dispositivo</b><button class="btn" data-ui-close>Chiudi</button></div><div class="lp-sub">Inquadralo con l\'altro dispositivo: si apre il programma e ti chiede utente e password (o di creare un nuovo utente).</div><div id="qrLoginBox" style="background:#fff;padding:12px;border-radius:12px;max-width:280px;margin:10px auto"></div></div>'; el.classList.add('show');
+    try{
+      if(typeof qrcode === 'undefined') await new Promise((res, rej)=>{ const s = document.createElement('script'); s.src = 'qrcode.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+      const q = qrcode(0, 'M'); q.addData(url); q.make(); el.querySelector('#qrLoginBox').innerHTML = q.createSvgTag({cellSize: 4, margin: 2, scalable: true});
+    }catch(e){ el.querySelector('#qrLoginBox').textContent = url; }
+  });
+  if(location.hash === '#login'){ setTimeout(()=>{ try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} openLogin(); }, 1500); }
   const modEl = document.getElementById('geminiModelInput');
   if(modEl){ modEl.value = geminiCustomModel(); modEl.addEventListener('change', ()=>{ const v = modEl.value.trim(); try{ if(v) localStorage.setItem('jrpg_gemini_model', v); else localStorage.removeItem('jrpg_gemini_model'); }catch(e){} geminiBadModels = new Set(); say(v ? 'Modello impostato: ' + v + ' (se non esiste uso automaticamente ' + GEMINI_MODEL + ').' : 'Modello automatico: ' + GEMINI_MODEL + ' (sempre l\'ultimo Flash).'); }); }
   document.getElementById('geminiClearBtn').addEventListener('click', ()=>{ setGeminiKey(''); keyEl.value = ''; say('Chiave rimossa.'); });
@@ -214,7 +382,7 @@ document.addEventListener('change', (e)=>{
   if(!t || !t.classList || !t.classList.contains('novita-engine-select')) return;
   setLlmEngine(t.value);
   document.querySelectorAll('.novita-engine-select, #llmEngineSelect').forEach(s=>{ s.value = t.value; });
-  if(t.value !== 'claude' && !geminiKey()) showToast('Per usare Gemini incolla la chiave in Chiedi → ⚙️ Motore AI', 4000);
+  if(t.value !== 'claude' && !geminiKey()) showToast('Per usare Gemini incolla la chiave in Chiedi → ⚙️ Impostazioni', 4000);
 });
 
 // Messaggio d'errore per l'utente, con il dettaglio di Google quando è un errore Gemini
@@ -222,3 +390,15 @@ function llmErrorText(e){
   const base = askErrorCopy(e && e.code);
   return (e && e.code && String(e.code).indexOf('gemini_') === 0 && e.message) ? base + ' (' + String(e.message).slice(0, 160) + ')' : base;
 }
+
+// I campi delle chiavi (Gemini, RAWG, OpenCritic, token GitHub) sono testi «a pallini», non type=password: Chrome/Google non propone più «Salva/Aggiorna la password?».
+(function(){
+  try{
+    if(!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc'))) return;           // senza questo supporto (Firefox) restano campi password normali
+    ['geminiKeyInput', 'rawgKeyInput', 'ocKeyInput', 'syncTokenInput'].forEach(id=>{
+      const el = document.getElementById(id); if(!el) return;
+      el.type = 'text'; el.style.webkitTextSecurity = 'disc';
+      el.setAttribute('name', 'rt-' + id); el.setAttribute('data-lpignore', 'true'); el.setAttribute('data-1p-ignore', 'true'); el.setAttribute('data-form-type', 'other');
+    });
+  }catch(e){}
+})();
