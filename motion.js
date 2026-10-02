@@ -63,7 +63,7 @@
       if(i > 13) break; if(tr.classList.contains('sk')) continue;
       const r = tr.getBoundingClientRect(); if(r.bottom < 0) continue; if(r.top > vh) break;
       const RF = ROWFX[AID];
-      try{ tr.animate(RF ? RF.kf : [{opacity: 0, transform: 'translateY(14px)'}, {opacity: 1, transform: 'none'}], {duration: RF ? RF.dur : 420, delay: i * (RF ? RF.step : 26), easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards'}); }catch(e){}
+      try{ tr.animate(RF ? RF.kf : [{opacity: 0, transform: 'translateY(14px)'}, {opacity: 1, transform: 'none'}], {duration: (RF ? RF.dur : 420) / uiSpd(), delay: i * (RF ? RF.step : 26) / uiSpd(), easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards'}); }catch(e){}
       i++;
     }
   }
@@ -87,7 +87,11 @@
     {id: 'telefono', n: '📱 Come il mio telefono', d: 'Cresce dall\'icona toccata fino a tutto schermo, come le app di Android (circa 0,24 s).'}
   ];
   const animId = ()=>{ const v = LSG(AK, 'zoom'); return STYLES.some(s=> s.id === v) ? v : 'zoom'; };
-  const syncAnim = ()=> html.setAttribute('data-anim', animId());
+  // v224: velocità: 1× = come prima; 0,5× = metà velocità (animazioni lente); due selettori: apertura scheda e «tutto il resto»
+  const SPEEDS = [1.25, 1, .85, .7, .5];
+  const spdOf = (k)=>{ const v = +LSG(k, 1); return SPEEDS.includes(v) ? v : 1; };
+  const cardSpd = ()=> spdOf('jrpg_anim_speed'), uiSpd = ()=> spdOf('jrpg_ui_speed');
+  const syncAnim = ()=>{ html.setAttribute('data-anim', animId()); html.style.setProperty('--spd', String(1 / cardSpd())); html.style.setProperty('--spd2', String(1 / uiSpd())); };
   syncAnim();
   const EASE_PH = 'cubic-bezier(.2,.85,.25,1)';
   // apertura della scheda: keyframe (solo scale/translate: la dissolvenza la fa il CSS, e «transform:none» dei CSS non blocca queste proprietà)
@@ -133,9 +137,9 @@
     const id = animId(); if(!box) box = card.getBoundingClientRect();
     const fx = openFx(id, T, box); if(!fx) return;
     if(fx.origin) card.style.transformOrigin = (T ? Math.round(T.x - box.left) : box.width / 2) + 'px ' + (T ? Math.round(T.y - box.top) : box.height * .6) + 'px';
-    card.style.willChange = 'transform, opacity'; if(fx.round) card.classList.add('rt-an-round');
-    const done = ()=>{ card.style.transformOrigin = ''; card.style.willChange = ''; card.classList.remove('rt-an-round'); };
-    try{ card.animate(fx.kf, {duration: fx.dur, easing: fx.ease}).finished.then(done, done); }catch(e){ done(); }
+    card.style.willChange = 'transform, opacity'; card.classList.add('rt-opening'); if(fx.round) card.classList.add('rt-an-round');
+    const done = ()=>{ card.style.transformOrigin = ''; card.style.willChange = ''; card.classList.remove('rt-an-round', 'rt-opening'); };
+    try{ card.animate(fx.kf, {duration: fx.dur / cardSpd(), easing: fx.ease}).finished.then(done, done); }catch(e){ done(); }
   }
   // cambio sezione (Classifica, Novità…): il pannello nuovo compare già visibile (parte da metà opacità: nessun ritardo percepito)
   const SECT = {
@@ -149,7 +153,7 @@
   function section(){
     if(!moOn()) return; const S = SECT[animId()]; if(!S) return;
     const el = PANELS.map(id=> document.getElementById(id)).find(e=> e && e.style.display !== 'none' && getComputedStyle(e).display !== 'none'); if(!el) return;
-    try{ el.animate(S.kf, {duration: S.dur, easing: S.ease}); }catch(e){}
+    try{ el.animate(S.kf, {duration: S.dur / uiSpd(), easing: S.ease}); }catch(e){}
   }
   // righe della lista che entrano (a cascata)
   const ROWFX = {
@@ -163,8 +167,11 @@
     STYLES, id: animId,
     set(id){ if(!STYLES.some(s=> s.id === id)) return; LSS(AK, id); syncAnim(); },
     section,
-    demo(el){ if(!el || !el.animate) return; const id = animId(), fx = openFx(id, null, null); if(!fx){ el.animate([{opacity: .3}, {opacity: 1}], {duration: 90}); return; }
-      el.style.transformOrigin = '50% 50%'; el.animate(fx.kf, {duration: fx.dur, easing: fx.ease}); }
+    setSpeed(kind, v){ if(!SPEEDS.includes(+v)) return; LSS(kind === 'ui' ? 'jrpg_ui_speed' : 'jrpg_anim_speed', +v); syncAnim(); },
+    speed(kind){ return kind === 'ui' ? uiSpd() : cardSpd(); },
+    demo(el){ if(!el || !el.animate) return; el.getAnimations().forEach(a=> a.cancel()); const id = animId(), fx = openFx(id, null, null), k = cardSpd();
+      if(!fx){ el.animate([{opacity: .3}, {opacity: 1}], {duration: 90 / k}); return; }
+      el.style.transformOrigin = '50% 50%'; el.animate(fx.kf.map((f, i)=> Object.assign({opacity: i ? 1 : .35}, f)), {duration: fx.dur / k, easing: fx.ease}); }
   };
 
   // ---------------------------------------------------------------- la scheda si apre dalla riga toccata
@@ -256,17 +263,27 @@
       // avvicinandosi dal punto toccato (solo transform/opacity: lo fa la scheda grafica, non pesa sul telefono). Il cartoncino resta solo come riserva (RT_GHOST).
       if(!was && moOn() && VW <= 760 && !window.RT_GHOST){
         const T = tap && performance.now() - tap.t < 2500 ? tap : null; tap = null; haptic('soft');
-      window.__rtOpenAt = performance.now(); window.__rtOpenUntil = performance.now() + 420;                     // v218: per questa frazione di secondo i lavori di sottofondo aspettano (l'animazione ha tutta la forza)
-        const r = origOpen.apply(this, arguments);
-        try{
-          const card = document.getElementById('modalCard');
-          if(card && card.animate){
-            openWithSeed(card, T, {left: 0, top: 0, width: VW, height: VH}, seedCover(card, T));
-            countUp(card);
-          }
-          if(T && T.el && T.el.classList) T.el.classList.remove('rt-press');
-        }catch(e){}
-        return r;
+        const self = this; let args = arguments;
+        // v224: «passaggio a blocco unico»: se i testi lunghi non ci sono ancora li aspetto (al massimo 140 ms) PRIMA di costruire la scheda, così non si ridisegna mentre si apre
+        const g0 = args[0], needTx = !!(g0 && window.rtTexts && !rtTexts.has(g0));
+        const run = ()=>{
+          if(needTx && rtTexts.has(g0) && typeof GAMES !== 'undefined'){ const fresh = GAMES.find(x=> x.id === g0.id); if(fresh) args = [fresh].concat([].slice.call(args, 1)); }
+          window.__rtOpenAt = performance.now(); window.__rtOpenUntil = performance.now() + 520;                     // v218: per questa frazione di secondo i lavori di sottofondo aspettano (l'animazione ha tutta la forza)
+          const r = origOpen.apply(self, args);
+          try{
+            const card = document.getElementById('modalCard');
+            if(card && card.animate){
+              openWithSeed(card, T, {left: 0, top: 0, width: VW, height: VH}, seedCover(card, T));
+              countUp(card);
+            }
+            if(T && T.el && T.el.classList) T.el.classList.remove('rt-press');
+          }catch(e){}
+          return r;
+        };
+        if(!needTx) return run();
+        window.__rtOpenAt = performance.now(); window.__rtOpenUntil = performance.now() + 700;
+        Promise.race([rtTexts.ensure(g0).catch(()=>{}), new Promise(r=> setTimeout(r, 140))]).then(()=>{ try{ run(); }catch(e){} });
+        return;
       }
       if(!was && R && moOn() && VW <= 760 && document.body.animate){
         tap = null; haptic('soft');
@@ -424,7 +441,12 @@
       <label class="ask-toggle"><input type="checkbox" id="moOn" ${LSG(K_MO, 'on') !== 'off' ? 'checked' : ''}> Animazioni dell'interfaccia</label>
       <div class="an-h">Stile delle animazioni <small>(vale per tutta l'app: schede, sezioni, righe, pannelli, tocco)</small></div>
       <div class="an-grid">${STYLES.map(s=> `<button type="button" class="an-opt${s.id === animId() ? ' on' : ''}" data-an="${s.id}" aria-pressed="${s.id === animId()}"><b>${s.n}</b><small>${s.d}</small></button>`).join('')}</div>
-      <div class="an-demo" id="anDemo">Tocca uno stile per provarlo qui</div>
+      <div class="an-prev"><div class="an-demo" id="anDemo"><i></i><div><b>Final Fantasy VII</b><small>Prova qui: tocca uno stile o «Rivedi»</small></div></div><button type="button" class="btn" id="anAgain">▶ Rivedi</button></div>
+      <div class="an-h">Velocità apertura scheda <small>(1× = come prima, 0,5× = più lenta)</small></div>
+      <div class="an-spd" data-k="card">${SPEEDS.map(v=> `<button type="button" class="an-sp${cardSpd() === v ? ' on' : ''}" data-v="${v}">${String(v).replace('.', ',')}×</button>`).join('')}</div>
+      <div class="an-h">Velocità di tutto il resto <small>(righe, pannelli, cambio sezione, tocco)</small></div>
+      <div class="an-spd" data-k="ui">${SPEEDS.map(v=> `<button type="button" class="an-sp${uiSpd() === v ? ' on' : ''}" data-v="${v}">${String(v).replace('.', ',')}×</button>`).join('')}</div>
+      <div class="lp-sub">La fluidità segue lo schermo: a 90 o 120 Hz l'app si muove già a 90 o 120 fotogrammi, e la velocità scelta qui non cambia.</div>
       <label class="ask-toggle"><input type="checkbox" id="moHap" ${hapOn() ? 'checked' : ''}> Vibrazione brevissima al tocco <small>(Android e iPhone da iOS 17.4; l'iPad non ha il motorino della vibrazione, quindi lì non si sente)</small></label>
       <button type="button" class="btn" id="moTry" style="margin-top:8px">${typeof giIcon === 'function' ? giIcon('star') : ''} Provala</button>`);
     body.querySelector('#moOn').addEventListener('change', e=>{ LSS(K_MO, e.target.checked ? 'on' : 'off'); syncMo(); });
@@ -433,6 +455,12 @@
       body.querySelectorAll('[data-an]').forEach(x=>{ const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
       window.rtAnim.demo(body.querySelector('#anDemo'));
     }));
+    const again = ()=> window.rtAnim.demo(body.querySelector('#anDemo'));
+    body.querySelector('#anAgain').addEventListener('click', again);
+    body.querySelectorAll('.an-spd').forEach(row=> row.querySelectorAll('.an-sp').forEach(b=> b.addEventListener('click', ()=>{
+      window.rtAnim.setSpeed(row.dataset.k, +b.dataset.v); haptic('tick'); row.querySelectorAll('.an-sp').forEach(x=> x.classList.toggle('on', x === b));
+      if(row.dataset.k === 'card') again(); else { const g = body.querySelector('.an-grid'); try{ g.animate([{opacity: .5, translate: '0 10px'}, {opacity: 1, translate: '0 0'}], {duration: 300 / window.rtAnim.speed('ui'), easing: 'cubic-bezier(.22,1,.36,1)'}); }catch(e){} }
+    })));
     body.querySelector('#moHap').addEventListener('change', e=>{ try{ localStorage.setItem(K_HP, e.target.checked ? 'on' : 'off'); }catch(err){} if(e.target.checked) haptic('success'); });
     body.querySelector('#moTry').addEventListener('click', e=>{ const r = e.currentTarget.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2); haptic('success'); });
   }});

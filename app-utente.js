@@ -3,6 +3,15 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v224', date:'2026-10-02', time:'12:10', items:[
+    'Apertura dell\'app: la locandina «Inizia a frugare» non si muove più quando il telefono passa a schermo intero (prima la finestra cambiava altezza e la locandina si spostava, con la banda bianca sotto). Ora resta ferma e l\'app si apre solo a finestra assestata; sfondo scuro anche prima del caricamento.',
+    'Tasto «Inizia a frugare»: fermo finché non lo tocchi; al tocco si schiaccia e rimbalza restando nello schermo. Vibrazione appena tocchi e suono che parte subito (tre note brevi, nessuna coda).',
+    'Animazioni: due selettori di velocità (1,25× · 1× · 0,85× · 0,7× · 0,5×): uno per l\'apertura della scheda, uno per tutto il resto (righe, pannelli, cambio sezione, tocco). Nelle impostazioni c\'è un\'anteprima sempre visibile in alto: tocca uno stile e la vedi muoversi, «Rivedi» la ripete. La fluidità segue lo schermo (90/120 Hz già inclusi).',
+    'Apertura del gioco «a blocco unico»: se mancano i testi lunghi li aspetto un attimo (max 0,14 s) prima di costruire la scheda, e non la ridisegno mentre si apre. Via la cornice chiara sottile durante la transizione.',
+    'Barra dei generi in classifica: «Tutti» per primo, poi JRPG/RPG, poi i generi che scegli di tenere in vista, «Tutti i generi» alla fine. In «Tutti i generi» c\'è «📌 Scegli quali tenere in vista» (o «Usa i più cercati» per tornare all\'automatico).',
+    'Player nella scheda su una sola riga (precedente · play · successivo · ⋯). Dietro «⋯»: elenco, cambia, cerca, Auto, stop e il volume della musica. Il volume, appena lo imposti, si blocca 🔒 e resta anche riaprendo l\'app; tocca il lucchetto per sbloccarlo e cambiarlo.',
+    'Ascolta la storia: mentre la voce parla la musica scende al 25% del volume scelto e poi risale piano.',
+  ]},
   {version:'v223', date:'2026-10-02', time:'10:15', items:[
     'Scheda del gioco: in alto, sotto il titolo, c\'è il tasto piccolo «Ascolta la storia». Legge prima la storia e subito dopo le informazioni principali (anno, tier, voto, punti di forza, durata).',
     'Accanto c\'è l\'interruttore «Auto»: acceso, la lettura parte da sola circa 2 secondi dopo che la scheda si è aperta e ferma (così non rovina l\'animazione); spento, parte solo se tocchi il tasto. Si ferma da sola se chiudi la scheda o esci dall\'app.',

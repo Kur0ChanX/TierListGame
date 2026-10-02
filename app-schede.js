@@ -787,7 +787,7 @@ function openModal(g){
 function openModalBody(g){
   currentModalGame = g;
   // v209: testi lunghi non ancora arrivati (catalogo a pezzi)? apro subito con l'indice e, appena arrivano, aggiorno la scheda
-  try{ if(window.rtTexts && !rtTexts.has(g)){ const id = g.id; rtTexts.ensure(g).then(()=>{ if(currentModalGame && currentModalGame.id === id && modalBackdrop.classList.contains('show') && rtTexts.has(currentModalGame)){ const y = modalCard.scrollTop; openModal(GAMES.find(x=> x.id === id) || currentModalGame); modalCard.scrollTop = y; } }); } }catch(e){}
+  try{ if(window.rtTexts && !rtTexts.has(g)){ const id = g.id; rtTexts.ensure(g).then(()=> new Promise(r=> setTimeout(r, Math.max(0, (window.__rtOpenUntil || 0) - performance.now()) + 30))).then(()=>{ if(currentModalGame && currentModalGame.id === id && modalBackdrop.classList.contains('show') && rtTexts.has(currentModalGame)){ const y = modalCard.scrollTop; openModal(GAMES.find(x=> x.id === id) || currentModalGame); modalCard.scrollTop = y; } }); } }catch(e){}
   modalCard.classList.remove('wide');
   const isFav = FAVS.has(g.id);
   const storyHtml = g.story

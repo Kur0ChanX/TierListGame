@@ -91,6 +91,16 @@
   const isIA = t=> t && String(t[0]).indexOf('ia:') === 0;
   // un brano che non si carica passa al successivo; se non se ne carica nessuno mi fermo (prima girava all'infinito senza rete)
   function failNext(){ cur.fails = (cur.fails || 0) + 1; if(cur.fails >= Math.max(1, cur.list.length)){ cur.playing = false; cur.fails = 0; paint(); toast('La colonna sonora non si carica ora (rete o sito): riprova tra poco', 3200); return; } next(true); }
+  // v224: volume della musica (0-100, resta salvato; dopo che lo imposti si blocca 🔒 finché non lo sblocchi) e abbassamento automatico mentre parla la voce
+  const VOLK = 'jrpg_music_vol', VOLL = 'jrpg_music_vol_lock';
+  let duckK = 1, duckT = 0;
+  const baseVol = ()=>{ const v = +LS.get(VOLK, 70); return Math.max(0, Math.min(100, isNaN(v) ? 70 : v)) / 100; };
+  const curVol = ()=> baseVol() * duckK;
+  function applyVol(){ try{ if(au) au.volume = Math.max(0, Math.min(1, curVol())); }catch(e){} try{ if(yt && yt.setVolume) yt.setVolume(Math.round(curVol() * 100)); }catch(e){} }
+  function duck(on){        // con la voce che parla la musica scende al 25% in 0,4 s e poi risale piano
+    const to = on ? .25 : 1; clearInterval(duckT); const from = duckK, t0 = performance.now(), dur = on ? 400 : 900;
+    duckT = setInterval(()=>{ const f = Math.min(1, (performance.now() - t0) / dur); duckK = from + (to - from) * f; applyVol(); if(f >= 1) clearInterval(duckT); }, 50);
+  }
   function audio(){ if(!au){ au = new Audio(); au.preload = 'auto'; au.addEventListener('ended', endTrack); au.addEventListener('error', ()=> failNext()); au.addEventListener('playing', ()=>{ cur.fails = 0; cur.playing = true; paint(); }); au.addEventListener('pause', ()=>{ if(!au.ended){ cur.playing = false; paint(); } }); } return au; }
   function loadYT(){
     if(ytReady) return ytReady;
@@ -172,7 +182,7 @@
     const g = GAMES.find(x=> x.id === cur.id); d.querySelector('.rm-t small').textContent = g ? g.name + ' · ' + (cur.i + 1) + '/' + cur.list.length : '';
     paintBar();
   }
-  function paintBar(){ const mb = document.getElementById('mzBar'); if(mb && typeof currentModalGame !== 'undefined' && currentModalGame){ const l0 = mb.querySelector('.mz2-list'), open = !!(l0 && !l0.hidden); mb.outerHTML = barHtml(currentModalGame); wireBar(currentModalGame); if(open){ const l = document.querySelector('#mzBar .mz2-list'); if(l) l.hidden = false; } } }
+  function paintBar(){ const mb = document.getElementById('mzBar'); if(mb && typeof currentModalGame !== 'undefined' && currentModalGame){ const l0 = mb.querySelector('.mz2-list'), open = !!(l0 && !l0.hidden), m0 = mb.querySelector('.mz2-more'), mopen = !!(m0 && !m0.hidden); mb.outerHTML = barHtml(currentModalGame); wireBar(currentModalGame); if(open){ const l = document.querySelector('#mzBar .mz2-list'); if(l) l.hidden = false; } if(mopen){ const m = document.querySelector('#mzBar .mz2-more'); if(m){ m.hidden = false; const mb2 = document.querySelector('#mzBar [data-mz="more"]'); if(mb2) mb2.setAttribute('aria-expanded', 'true'); } } } }
   // ---- ricerca su YouTube: tre tentativi in ordine («triade») e, a mano, con le parole che vuoi ----
   const USER = 'rt_ost_user', MISS = 'rt_ost_miss2', LIVE = 'rt_ost_live2', STAT = {};      // v220: chiavi nuove: le ricerche vecchie potevano avere la versione sbagliata (es. Remake al posto dell'originale)
   try{ ['rt_ost_ia2', 'rt_ost_live', 'rt_ost_miss'].forEach(k=>{ if(localStorage.getItem(k) != null) localStorage.removeItem(k); }); }catch(e){}
@@ -338,7 +348,7 @@
     const t = cur.list[cur.i]; if(!t) return;
     if(isIA(t)){
       try{ yt && yt.pauseVideo(); }catch(e){}
-      dock(); const a = audio(); a.src = t[0].slice(3); a.volume = .7;
+      dock(); const a = audio(); a.src = t[0].slice(3); a.volume = curVol();
       try{ await a.play(); cur.playing = true; }catch(e){ cur.playing = false; if(e && e.name === 'NotAllowedError') toast('Tocca ▶ per far partire la musica', 2500); }
       paint(); return;
     }
@@ -347,7 +357,7 @@
     dock();
     if(!yt){
       yt = new YT.Player('rtYt', {host: 'https://www.youtube-nocookie.com', width: 200, height: 113, videoId: t[0], playerVars: {autoplay: 1, playsinline: 1, controls: 0, rel: 0, modestbranding: 1},
-        events: {onReady: e=>{ try{ e.target.setVolume(70); e.target.playVideo(); }catch(x){} }, onStateChange: e=>{ cur.playing = e.data === 1; if(e.data === 1) cur.fails = 0; if(e.data === 0) endTrack(); paint(); }, onError: ()=> failNext()}});
+        events: {onReady: e=>{ try{ e.target.setVolume(Math.round(curVol() * 100)); e.target.playVideo(); }catch(x){} }, onStateChange: e=>{ cur.playing = e.data === 1; if(e.data === 1) cur.fails = 0; if(e.data === 0) endTrack(); paint(); }, onError: ()=> failNext()}});
     } else { try{ yt.loadVideoById(t[0]); }catch(e){} }
     cur.playing = true; paint();
   }
@@ -364,7 +374,7 @@
   function resume(){ const t = cur.list[cur.i]; if(isIA(t)){ if(au && au.src) au.play().catch(()=>{}); else playTrack(); } else { try{ yt && yt.playVideo(); }catch(e){} } cur.playing = true; paint(); }
   function next(auto){ if(!cur.list.length) return; cur.i = (cur.i + 1) % cur.list.length; if(!auto){ const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); } playTrack(); }
   function stopAll(){ try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Brano fermo: premi ▶ per farlo ripartire', 2200); }
-  window.rtMusic = {playFor, stop: stopAll, on: ON, dock, _test: {namesGame, queriesFor}};      // _test: per i controlli automatici
+  window.rtMusic = {duck, vol: baseVol, playFor, stop: stopAll, on: ON, dock, _test: {namesGame, queriesFor}};      // _test: per i controlli automatici
   // barra nella scheda del gioco
   // ---- lettore nella scheda (v198): titolo grande, album/fonte, barra di avanzamento toccabile, ⏮ ⏯ ⏭, elenco dei brani, 🔁 cambia, 🔎 cerca ----
   const albumOf = g=>{ try{ const e = (LS.get(IA, {}) || {})[g.id]; return e && e.album ? e.album : ''; }catch(e){ return ''; } };
@@ -374,11 +384,13 @@
     const src = t ? (isIA(t) ? '🚫📢 senza pubblicità · ' + (albumOf(g) || 'Internet Archive') : '▶ YouTube') : '';
     const status = STAT[g.id] || (cur.id === g.id && cur.none ? 'Non trovata: prova col tasto 🔎' : (apCard() ? 'Cerco la colonna sonora…' : 'Premi ▶ per ascoltarla (o accendi «Auto» per farla partire da sola)'));
     const list = mine ? `<div class="mz2-list" hidden>${cur.list.map((x, i)=> `<button type="button" class="mz2-li${i === cur.i ? ' cur' : ''}" data-mz="pick" data-i="${i}"><span>${i + 1}</span><b>${esc(x[1])}</b><small>${esc(x[2] || '')}</small></button>`).join('')}</div>` : '';
-    return `<div class="mz2${playing ? ' on' : ''}" id="mzBar">
-      <div class="mz2-top"><div class="mz2-art${playing ? ' spin' : ''}">🎵</div><div class="mz2-info"><b class="mz2-title">${t ? esc(t[1]) : 'Colonna sonora'}</b><small>${t ? esc(src) + ' · ' + (cur.i + 1) + '/' + cur.list.length + (locked ? ' · 🔒 scelti da te' : '') : esc(status)}</small></div></div>
+    const vl = !!LS.get(VOLL, false), vv = Math.round(baseVol() * 100);
+    return `<div class="mz2 mz2c${playing ? ' on' : ''}" id="mzBar">
+      <div class="mz2-top"><div class="mz2-art${playing ? ' spin' : ''}">🎵</div><div class="mz2-info"><b class="mz2-title">${t ? esc(t[1]) : 'Colonna sonora'}</b><small>${t ? esc(src) + ' · ' + (cur.i + 1) + '/' + cur.list.length + (locked ? ' · 🔒 scelti da te' : '') : esc(status)}</small></div>
+        <div class="mz2-ctl mz2-main"><button type="button" data-mz="prev" title="Brano precedente" aria-label="Precedente">⏮</button><button type="button" class="mz2-play" data-mz="play" aria-label="Play o pausa">${playing ? '❚❚' : '▶'}</button><button type="button" data-mz="next" title="Brano successivo" aria-label="Successivo">⏭</button><button type="button" data-mz="more" title="Altri comandi" aria-label="Altri comandi" aria-expanded="false">⋯</button></div></div>
       ${mine ? `<div class="mz2-prog"><span class="mz2-cur">0:00</span><div class="mz2-pb" data-mz="seek"><i></i></div><span class="mz2-dur">${esc(t[2] || '')}</span></div>` : ''}
-      <div class="mz2-ctl"><button type="button" data-mz="prev" title="Brano precedente" aria-label="Precedente">⏮</button><button type="button" class="mz2-play" data-mz="play" aria-label="Play o pausa">${playing ? '❚❚' : '▶'}</button><button type="button" data-mz="next" title="Brano successivo" aria-label="Successivo">⏭</button>
-        <span class="mz2-sep"></span><button type="button" data-mz="list" title="Elenco dei brani" aria-label="Elenco">☰</button><button type="button" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato 🔒)" aria-label="Cambia brano">🔁</button><button type="button" data-mz="find" title="Cerca con parole tue" aria-label="Cerca">🔎</button><button type="button" class="mz2-ap${apCard() ? ' on' : ''}" data-mz="ap" title="Auto play: aprendo un gioco la sua musica parte da sola" aria-label="Auto play" aria-pressed="${apCard()}">Auto</button><button type="button" data-mz="stop" title="Ferma il brano" aria-label="Ferma">■</button></div>
+      <div class="mz2-more" hidden><div class="mz2-ctl mz2-sec"><button type="button" data-mz="list" title="Elenco dei brani" aria-label="Elenco">☰</button><button type="button" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato 🔒)" aria-label="Cambia brano">🔁</button><button type="button" data-mz="find" title="Cerca con parole tue" aria-label="Cerca">🔎</button><button type="button" class="mz2-ap${apCard() ? ' on' : ''}" data-mz="ap" title="Auto play: aprendo un gioco la sua musica parte da sola" aria-label="Auto play" aria-pressed="${apCard()}">Auto</button><button type="button" data-mz="stop" title="Ferma il brano" aria-label="Ferma">■</button></div>
+        <div class="mz2-volrow"><span aria-hidden="true">🔈</span><input type="range" class="mz2-vol" data-mz="vol" min="0" max="100" step="5" value="${vv}" ${vl ? 'disabled' : ''} aria-label="Volume della musica"><b class="mz2-vv">${vv}%</b><button type="button" class="mz2-vl${vl ? ' on' : ''}" data-mz="vlock" aria-label="${vl ? 'Sblocca il volume' : 'Blocca il volume'}" title="${vl ? 'Volume bloccato: tocca per modificarlo' : 'Blocca il volume scelto'}">${vl ? '🔒' : '🔓'}</button></div></div>
       ${list}</div>`;
   }
   const mmss = x=>{ x = Math.max(0, Math.floor(+x || 0)); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); };
@@ -402,10 +414,18 @@
       else if(m === 'list'){ const l = b.querySelector('.mz2-list'); if(l) l.hidden = !l.hidden; else toast('Fai partire la musica per vedere i brani', 2000); }
       else if(m === 'pick'){ cur.i = +x.dataset.i; const p = LS.get(PICK, {}) || {}; p[g.id] = cur.i; LS.set(PICK, p); playTrack(); }
       else if(m === 'seek'){ const r = x.getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), t = cur.list[cur.i]; try{ if(isIA(t) && au && au.duration) au.currentTime = f * au.duration; else if(yt && yt.getDuration) yt.seekTo(f * yt.getDuration(), true); }catch(err){} progTick(); }
+      else if(m === 'more'){ const mo = b.querySelector('.mz2-more'); if(mo){ mo.hidden = !mo.hidden; x.setAttribute('aria-expanded', mo.hidden ? 'false' : 'true'); x.classList.toggle('on', !mo.hidden); } }
+      else if(m === 'vlock'){ const on = !LS.get(VOLL, false); LS.set(VOLL, on); const r = b.querySelector('.mz2-vol'); if(r) r.disabled = on; x.classList.toggle('on', on); x.textContent = on ? '🔒' : '🔓'; x.setAttribute('aria-label', on ? 'Sblocca il volume' : 'Blocca il volume'); toast(on ? 'Volume bloccato 🔒: resta così anche riaprendo l\'app' : 'Volume sbloccato: puoi modificarlo', 2200); }
+      else if(m === 'vol'){ }
       else if(m === 'stop') stopAll();
       else if(m === 'ap'){ LS.set('jrpg_ap_card', apCard() ? 'off' : 'on'); x.classList.toggle('on', apCard()); x.setAttribute('aria-pressed', apCard() ? 'true' : 'false'); toast(apCard() ? 'Auto play acceso: aprendo un gioco la sua musica parte da sola' : 'Auto play spento: la musica parte solo se premi ▶', 2600); const st = b.querySelector('.mz2-info small'); }
       else if(m === 'prev'){ if(mine) prev(); }
       else if(m === 'next'){ if(mine) next(); else { playFor(g, true); } } });
+    const vr = b.querySelector('.mz2-vol');
+    if(vr){
+      vr.addEventListener('input', ()=>{ LS.set(VOLK, +vr.value); const o = b.querySelector('.mz2-vv'); if(o) o.textContent = vr.value + '%'; applyVol(); });
+      vr.addEventListener('change', ()=>{ LS.set(VOLL, true); vr.disabled = true; const l = b.querySelector('.mz2-vl'); if(l){ l.classList.add('on'); l.textContent = '🔒'; } toast('Volume impostato e bloccato 🔒', 1800); });      // impostato: si blocca; il lucchetto lo sblocca
+    }
     progTick();
   }
   const origOpen = window.openModal;

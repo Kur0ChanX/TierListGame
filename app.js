@@ -823,15 +823,19 @@ function listUsage(){ try{ return JSON.parse(localStorage.getItem(profileKey('jr
 function setActiveList(id){ ACTIVE_LIST = id; bumpListUsage(id); saveLists(); renderListBar(); if(typeof setView === 'function') setView(state.view); }
 // barra dei generi «salva-pollice»: JRPG/RPG, i generi più usati (max 4), Tutti e il pulsante che apre il selettore completo a gruppi
 const LIST_BAR_MAX = 4;
+// v224: «Tutti» per primo, poi JRPG/RPG, poi i generi che hai scelto di tenere in vista (📌) o, se non ne hai scelti, i più usati; «Tutti i generi» per ultimo
+function listPins(){ try{ const v = JSON.parse(localStorage.getItem(profileKey('jrpg_list_pins')) || 'null'); return Array.isArray(v) ? v.filter(c=> TAG_INFO[c]) : null; }catch(e){ return null; } }
+function saveListPins(a){ try{ if(a == null) localStorage.removeItem(profileKey('jrpg_list_pins')); else localStorage.setItem(profileKey('jrpg_list_pins'), JSON.stringify(a)); }catch(e){} }
 function renderListBar(){
   const bar = document.getElementById('listBar'); if(!bar) return;
   const chip = (id, icon, label)=> `<button class="list-chip${ACTIVE_LIST===id?' active':''}" data-list="${id}">${icon} ${escHtml(label)} <span class="list-cnt">${listCount(id)}</span></button>`;
   const GI = n=> `<svg class="gi" viewBox="0 0 32 32" aria-hidden="true"><use href="#g-${n}"/></svg>`;
   const use = listUsage();
   const cand = MY_LISTS.map(c=> ({c, n: listCount(c), u: use[c] || 0})).filter(o=> o.n > 0 && TAG_INFO[o.c]).sort((a, b)=> b.u - a.u || b.n - a.n);
-  let shown = cand.slice(0, LIST_BAR_MAX).map(o=> o.c);
-  if(ACTIVE_LIST !== 'jrpg' && ACTIVE_LIST !== 'all' && TAG_INFO[ACTIVE_LIST] && !shown.includes(ACTIVE_LIST)) shown = [ACTIVE_LIST].concat(shown.slice(0, LIST_BAR_MAX - 1));
-  bar.innerHTML = chip('jrpg', GI('pad'), 'JRPG / RPG') + shown.map(c=> chip(c, TAG_INFO[c].icon, TAG_INFO[c].label)).join('') + chip('all', GI('globe'), 'Tutti') + `<button class="list-chip list-add" id="listAddBtn" title="Tutti i generi, divisi per gruppi">${GI('lens')} Tutti i generi</button>`;
+  const pins = listPins();
+  let shown = pins ? pins.slice() : cand.slice(0, LIST_BAR_MAX).map(o=> o.c);
+  if(ACTIVE_LIST !== 'jrpg' && ACTIVE_LIST !== 'all' && TAG_INFO[ACTIVE_LIST] && !shown.includes(ACTIVE_LIST)) shown = [ACTIVE_LIST].concat(pins ? shown : shown.slice(0, LIST_BAR_MAX - 1));
+  bar.innerHTML = chip('all', GI('globe'), 'Tutti') + chip('jrpg', GI('pad'), 'JRPG / RPG') + shown.map(c=> chip(c, TAG_INFO[c].icon, TAG_INFO[c].label)).join('') + `<button class="list-chip list-add" id="listAddBtn" title="Tutti i generi, divisi per gruppi">${GI('lens')} Tutti i generi</button>`;
   bar.querySelectorAll('[data-list]').forEach(b=> b.addEventListener('click', ()=> setActiveList(b.dataset.list)));
   document.getElementById('listAddBtn').addEventListener('click', ()=> openListPicker());
 }
@@ -848,24 +852,30 @@ function genreAccordionHtml(chipFn, countFn, q){
 function wireAccordion(root, hasQuery){
   root.querySelectorAll('details.gg').forEach(d=> d.addEventListener('toggle', ()=>{ if(hasQuery) return; const i = +d.dataset.gg; if(d.open) GG_OPEN.add(i); else GG_OPEN.delete(i); }));
 }
+let PIN_MODE = false;
 function openListPicker(q){
   q = typeof q === 'string' ? q.trim().toLowerCase() : '';
   let el = document.getElementById('listPickerBackdrop');
   if(!el){
     el = document.createElement('div'); el.id = 'listPickerBackdrop'; el.className = 'dup-backdrop';
-    el.addEventListener('click', (e)=>{ if(e.target === el || e.target.closest('[data-lp-close]')){ el.classList.remove('show'); renderListBar(); } });
+    el.addEventListener('click', (e)=>{ if(e.target === el || e.target.closest('[data-lp-close]')){ PIN_MODE = false; el.classList.remove('show'); renderListBar(); } });
     document.body.appendChild(el);
   }
-  const chip = c=>{ const n = listCount(c); return `<button class="list-chip${ACTIVE_LIST===c?' active':''}${n ? '' : ' lp-zero'}" data-lp="${c}">${TAG_INFO[c].icon} ${escHtml(TAG_INFO[c].label)} <span class="list-cnt">${n}</span></button>`; };
+  const pinned = new Set(listPins() || []), chip = c=>{ const n = listCount(c); return `<button class="list-chip${ACTIVE_LIST===c?' active':''}${n ? '' : ' lp-zero'}${PIN_MODE && pinned.has(c) ? ' pinned' : ''}" data-lp="${c}">${PIN_MODE ? (pinned.has(c) ? '📌 ' : '') : ''}${TAG_INFO[c].icon} ${escHtml(TAG_INFO[c].label)} <span class="list-cnt">${n}</span></button>`; };
   el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🔍 Tutti i generi</b><button class="btn" data-lp-close>Chiudi</button></div>
-    <div class="lp-sub">Tocca un genere per aprire la sua classifica. I gruppi si aprono e si chiudono; i più usati restano nella barra.</div>
+    <div class="lp-sub">${PIN_MODE ? 'Tocca i generi da tenere in vista nella barra (📌 = in vista). Gli altri restano qui sotto «Tutti i generi».' : 'Tocca un genere per aprire la sua classifica. I gruppi si aprono e si chiudono.'}</div>
+    <div class="lp-tools"><button class="btn${PIN_MODE ? ' primary' : ''}" type="button" id="lpPin">📌 ${PIN_MODE ? 'Fatto' : 'Scegli quali tenere in vista'}</button>${listPins() ? '<button class="btn" type="button" id="lpAuto">Usa i più cercati</button>' : ''}</div>
     <input class="lp-search" id="lpSearch" type="search" placeholder="Cerca un genere (es. horror, kart, puzzle)…" value="${escHtml(q)}" autocomplete="off">
     <div class="gg-wrap">${genreAccordionHtml(chip, codes=> codes.filter(c=> listCount(c) > 0).length, q)}</div></div>`;
   const inp = el.querySelector('#lpSearch');
   let h = 0; inp.addEventListener('input', ()=>{ clearTimeout(h); h = setTimeout(()=>{ const v = inp.value; openListPicker(v); const n = document.getElementById('lpSearch'); if(n){ n.focus(); n.setSelectionRange(v.length, v.length); } }, 200); });
   wireAccordion(el, !!q);
+  el.querySelector('#lpPin').addEventListener('click', ()=>{ PIN_MODE = !PIN_MODE; if(PIN_MODE && !listPins()) saveListPins(MY_LISTS.map(c=> ({c, u: listUsage()[c] || 0})).sort((a, b)=> b.u - a.u).slice(0, LIST_BAR_MAX).map(o=> o.c)); renderListBar(); openListPicker(q); });
+  const au = el.querySelector('#lpAuto'); if(au) au.addEventListener('click', ()=>{ saveListPins(null); PIN_MODE = false; renderListBar(); openListPicker(q); });
   el.querySelectorAll('[data-lp]').forEach(b=> b.addEventListener('click', ()=>{
-    const c = b.dataset.lp; if(!MY_LISTS.includes(c)){ MY_LISTS.push(c); }
+    const c = b.dataset.lp;
+    if(PIN_MODE){ const a = (listPins() || []).slice(), i = a.indexOf(c); if(i >= 0) a.splice(i, 1); else { a.push(c); if(!MY_LISTS.includes(c)) MY_LISTS.push(c); saveLists(); } saveListPins(a); renderListBar(); openListPicker(q); return; }
+    if(!MY_LISTS.includes(c)){ MY_LISTS.push(c); }
     el.classList.remove('show'); setActiveList(c);
   }));
   el.classList.add('show');

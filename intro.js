@@ -13,7 +13,7 @@
   document.documentElement.classList.add('intro-on');
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const msg = el.querySelector('.intro-msg'), start = el.querySelector('.intro-start');
-  let closed = false, timeUp = false;
+  let closed = false, timeUp = false, pressV = false;
   const isFull = ()=> !!document.fullscreenElement || (window.matchMedia && matchMedia('(display-mode: fullscreen)').matches);   // v208: l'app installata (standalone) NON è a schermo intero: lo schermo intero si attiva comunque
   const canFull = !!document.documentElement.requestFullscreen && !isFull();   // iPhone/Safari e app installata: niente da fare o già a schermo intero
 
@@ -31,19 +31,29 @@
   function guardTaps(){ ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.addEventListener(n, swallow, true)); setTimeout(()=> ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.removeEventListener(n, swallow, true)), 330); }
   // il browser permette lo schermo intero solo dopo un tocco: il tocco su "ENTRA" lo attiva e apre il programma
   // v214: piccolo suono d'ingresso (due note rapide, creato nel telefono: nessun file). Niente suono se i suoni sono spenti in ✨ → Suoni.
-  function chime(){
+  // v224: il contesto audio nasce quando il dito tocca lo schermo (non a tocco finito) e il suono parte subito: niente attesa e niente «coda» (tre note brevi, fine netta dopo ~0,3 s)
+  let ac = null;
+  function prime(){
     try{
       if(localStorage.getItem('jrpg_sfx') === 'off') return;
       const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
-      const ac = new AC(), now = ac.currentTime, vol = Math.max(0, Math.min(1, +(localStorage.getItem('jrpg_sfx_vol') || .6))) * .22, out = ac.createGain(); out.gain.value = vol; out.connect(ac.destination);
-      [[659.25, 0], [987.77, .09], [1318.5, .18]].forEach(([f, t], i)=>{
-        const o = ac.createOscillator(), g = ac.createGain(); o.type = i === 2 ? 'sine' : 'triangle'; o.frequency.value = f;
-        g.gain.setValueAtTime(0, now + t); g.gain.linearRampToValueAtTime(1, now + t + .012); g.gain.exponentialRampToValueAtTime(.001, now + t + (i === 2 ? .5 : .22));
-        o.connect(g); g.connect(out); o.start(now + t); o.stop(now + t + .55);
-      });
-      setTimeout(()=>{ try{ ac.close(); }catch(e){} }, 900);
+      if(!ac) ac = new AC(); if(ac.state === 'suspended') ac.resume();
     }catch(e){}
   }
+  function chime(){
+    try{
+      if(!ac || localStorage.getItem('jrpg_sfx') === 'off') return;
+      const now = ac.currentTime + .005, vol = Math.max(0, Math.min(1, +(localStorage.getItem('jrpg_sfx_vol') || .6))) * .2, out = ac.createGain(); out.gain.value = vol; out.connect(ac.destination);
+      [[783.99, 0, .11], [1174.66, .06, .13], [1567.98, .12, .2]].forEach(([f, t, d])=>{
+        const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, now + t); g.gain.exponentialRampToValueAtTime(1, now + t + .008); g.gain.exponentialRampToValueAtTime(.0001, now + t + d);
+        o.connect(g); g.connect(out); o.start(now + t); o.stop(now + t + d + .02);
+      });
+      setTimeout(()=>{ try{ out.disconnect(); }catch(e){} }, 600);
+    }catch(e){}
+  }
+  el.addEventListener('pointerdown', ()=>{ prime(); if(!pressV){ pressV = true; try{ navigator.vibrate && navigator.vibrate(8); }catch(e){} } }, {passive: true});
+  el.addEventListener('pointerup', ()=>{ pressV = false; }, {passive: true}); el.addEventListener('pointercancel', ()=>{ pressV = false; }, {passive: true});
   let entering = false;
   function enter(){
     if(closed || entering) return;
@@ -51,12 +61,19 @@
     if(!ready){ wantIn = true; if(start) start.textContent = '⏳ UN ATTIMO…'; return; }     // toccato prima che i giochi siano pronti: entro appena lo sono
     entering = true;
     guardTaps();
-    chime();
-    try{ navigator.vibrate && navigator.vibrate(14); }catch(e){}
-    if(canFull && wantFs){ try{ document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){} }
+    prime(); chime();
+    try{ navigator.vibrate && navigator.vibrate([0, 18]); }catch(e){}
+    // v224: lo schermo intero cambia l'altezza della finestra: fermo la locandina alla misura di adesso (non si muove, niente bande) e apro l'app solo a finestra assestata
+    const fr = el.querySelector('.intro-frame'); if(fr){ const r = fr.getBoundingClientRect(); fr.style.width = r.width + 'px'; fr.style.height = r.height + 'px'; fr.style.flex = 'none'; }
     if(start) start.classList.add('hit');                              // il pulsante fa «pop» con un anello di luce…
-    el.classList.add('entering');                                      // …e la schermata si apre in avanti
-    setTimeout(close, reduce ? 0 : 230);
+    const go = ()=>{ el.classList.add('entering'); setTimeout(close, reduce ? 0 : 230); };      // …e la schermata si apre in avanti
+    if(canFull && wantFs){
+      let done = false; const fin = ()=>{ if(done) return; done = true; window.removeEventListener('resize', onR); setTimeout(go, 60); };
+      const onR = ()=>{ clearTimeout(onR.t); onR.t = setTimeout(fin, 90); };      // finestra ferma per 90 ms = assestata
+      window.addEventListener('resize', onR);
+      setTimeout(fin, 380);                                                        // se il telefono non cambia nulla, non aspetto oltre
+      try{ document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(fin); }catch(e){ fin(); }
+    } else go();
   }
   let wantIn = false;
   function onKey(e){ enter(); }

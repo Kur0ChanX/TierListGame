@@ -54,6 +54,7 @@
 
   // ---- stato e tasti
   const btn = ()=> document.getElementById('vcBtn'), tog = ()=> document.getElementById('vcAuto');
+  const duck = on=>{ try{ window.rtMusic && rtMusic.duck && rtMusic.duck(on); }catch(e){} };      // v224: mentre la voce parla la musica scende al 25% e poi risale piano
   function paint(){
     const b = btn(); if(b){ b.dataset.s = state; b.querySelector('span').textContent = state === 'idle' ? 'Ascolta la storia' : state === 'load' ? 'Preparo la voce…' : 'Ferma'; b.setAttribute('aria-label', b.querySelector('span').textContent); }
     const t = tog(); if(t){ t.setAttribute('aria-checked', autoOn() ? 'true' : 'false'); t.classList.toggle('on', autoOn()); }
@@ -62,22 +63,22 @@
     token++; state = 'idle';
     try{ if(audio){ audio.pause(); URL.revokeObjectURL(audio.src); audio = null; } }catch(e){}
     try{ window.speechSynthesis && speechSynthesis.cancel(); }catch(e){}
-    paint();
+    duck(false); paint();
   }
   async function play(g){
     stop(); const my = ++token; state = 'load'; paint();
     const T = textFor(g), full = [T.story, T.info].filter(Boolean).join(' ');
     if(!full){ state = 'idle'; paint(); return; }
-    const fin = ()=>{ if(my === token){ state = 'idle'; paint(); } };
+    const fin = ()=>{ if(my === token){ state = 'idle'; duck(false); paint(); } };
     let blob = null;
     try{ blob = await aiAudio(full.slice(0, 4000)); }catch(e){ if(!play.warned){ play.warned = 1; try{ XUI.toast('Voce AI non disponibile ora: uso quella del telefono', 3000); }catch(_){} } }
     if(my !== token) return;
     if(blob){
       audio = new Audio(URL.createObjectURL(blob)); audio.onended = fin; audio.onerror = fin;
-      try{ await audio.play(); if(my === token){ state = 'play'; paint(); } }catch(e){ fin(); }       // il browser può rifiutare l'avvio automatico: in quel caso resta il tasto
+      try{ await audio.play(); if(my === token){ state = 'play'; duck(true); paint(); } }catch(e){ fin(); }       // il browser può rifiutare l'avvio automatico: in quel caso resta il tasto
       return;
     }
-    state = 'play'; paint(); browserSpeak(full, fin);
+    state = 'play'; duck(true); paint(); browserSpeak(full, fin);
   }
 
   const origOpen = window.openModal;
