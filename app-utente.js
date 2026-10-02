@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v248', date:'2026-10-02', time:'23:04', items:[
+    'Trame riscritte (parte 5, fine): anche gli ultimi 165 giochi, compresi i grandi classici (Final Fantasy, Chrono Trigger, Persona, Xenoblade, Dragon Quest), hanno la presentazione nuova senza spoiler. Ora tutte le 765 trame dei giochi di base sono riscritte.'
+  ]},
   {version:'v247', date:'2026-10-02', time:'22:58', items:[
     'Trame riscritte (parte 4): altri 150 giochi con la presentazione nuova senza spoiler (600 in tutto), tra cui Final Fantasy, Dragon Quest, Pokémon, Shin Megami Tensei, Kingdom Hearts e Suikoden.'
   ]},
