@@ -144,3 +144,6 @@ Guscio WebView che apre il sito online (`https://kur0chanx.github.io/TierListGam
 - **`extras4.js`**: Previsione `.pv3` (anello con `@property --pvp` animato, barra `.pv3-track` con 10 perline, `paintTrack`, `wireTrack`: tocco/trascinamento; click da tastiera con `e.detail === 0`).
 - **`voce.js`**: `coolUntil` — un 429 con attesa > 6 s non si aspetta: si passa alla voce di riserva.
 - **`media.js`**: `WEB.arm()` chiede il permesso degli appunti toccando «Apri la ricerca» e ne segna il contenuto; `WEB.auto(g)` al ritorno mette da sola l'immagine nuova come locandina (permesso `clipboard-read` concesso), altrimenti resta l'avviso da toccare.
+
+## v251 (3/10/2026)
+- **`voce.js`**: tolta l'uscita rapida di v250 sui 429 di Gemini (`coolUntil` resta ma non viene più impostato): con «retry in N s» si aspetta fino a 60 s (`onWait` sul tasto) e si riprova lo stesso modello. Le voci di riserva solo per quota del giorno finita, chiave rifiutata o Gemini che non risponde.

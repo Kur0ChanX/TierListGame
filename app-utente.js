@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v251', date:'2026-10-03', time:'01:24', items:[
+    'Voce Gemini di nuovo affidabile: quando Google dice «aspetta qualche secondo» l\'app aspetta (conto alla rovescia sul tasto, massimo 1 minuto) e riprova Gemini, invece di dire «non disponibile» e passare subito alle voci di riserva.'
+  ]},
   {version:'v250', date:'2026-10-03', time:'00:37', items:[
     'Novità in ELENCO: tutte le proposte in una lista con ✓ (aggiungi) e ✕ (scarta) su ogni gioco e «Accetta tutte» in alto. Tieni premuto un gioco (o tocca il nome) per vedere locandina, foto, gameplay e recensioni. «Una alla volta» resta disponibile in alto.',
     'Il controllo dei giochi nuovi con Wikipedia/Wikidata non apre più un avviso grande per ogni gioco: una barretta piccola in basso mostra «2/60 · 3%» e l\'ultimo gioco aggiornato.',
