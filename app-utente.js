@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v230', date:'2026-10-02', time:'13:03', items:[
+    'Apertura dei giochi: nel nuovo video (85 fotogrammi al secondo) l\'apertura scattava ancora mentre la chiusura era fluida. Causa: la copia sfocata della copertina dietro la locandina e l\'ombra sulle foto del carosello venivano ricalcolate a ogni fotogramma mentre la scheda si ingrandiva. Ora durante il movimento la sfocatura non c\'è (compare in dissolvenza subito dopo) e le foto del carosello non hanno più quell\'ombra pesante.',
+  ]},
   {version:'v229', date:'2026-10-02', time:'12:39', items:[
     'SCHERMO INTERO, la causa vera: l\'app installata partiva «normale» (con la barra dell\'ora) e poi il programma forzava lo schermo intero; Android lo toglie ogni volta che esci dall\'app o cambi schermata, da qui i salti, le bande nere e il «flash» in classifica. Ora l\'app chiede ad Android di essere a schermo intero fin dall\'avvio (come un gioco): niente più forzature. Il telefono aggiorna l\'app installata da solo (può volerci un giorno), oppure subito reinstallandola.',
     'Apertura dei giochi più fluida: nel video a 88 fotogrammi il movimento si fermava 2-3 fotogrammi alla volta. Causa: insieme alla scheda partivano ~25 piccole animazioni dei riquadri interni (servono solo cambiando linguetta) e il carosello delle foto si preparava a metà animazione. Ora i riquadri si animano solo cambiando linguetta, il carosello si prepara a scheda aperta e la scheda viene disegnata (invisibile) un attimo prima di muoversi.',
