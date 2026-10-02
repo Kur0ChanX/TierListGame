@@ -188,13 +188,24 @@
   const sync = ()=>{
     const n = ovs().length;
     while(pushed < n){ try{ history.pushState({rtov: pushed + 1}, ''); }catch(e){} pushed++; }
-    if(pushed > n){ const d = pushed - n; pushed = n; ignore += d; try{ history.go(-d); }catch(e){} }        // chiusa dal pulsante: tolgo i segni in più
+    if(pushed > n){ const d = pushed - n; pushed = n; ignore += d; window.__rtSelfPops = (window.__rtSelfPops || 0) + d; try{ history.go(-d); }catch(e){} }        // chiusa dal pulsante: tolgo i segni in più
+    if(n > lastN) openedT = performance.now(); lastN = n;
   };
+  let openedT = 0, lastN = 0;
   new MutationObserver(sync).observe(document.body, {subtree: true, attributes: true, attributeFilter: ['class']});
-  window.addEventListener('popstate', ()=>{
-    if(ignore > 0){ ignore--; return; }
+  window.addEventListener('popstate', e=>{
+    // v217: dopo ogni «indietro» rileggo dalla cronologia quanti segni ci sono davvero (prima li contavo a memoria e il conto poteva sballare)
+    const st = e.state, depth = st && st.rtov ? st.rtov : 0;
+    // un «indietro» partito dal programma stesso non chiude niente
+    if((window.rtSelfPop && window.rtSelfPop(e)) || ignore > 0){
+      if(ignore > 0) ignore--;
+      if(!ignore && !(window.__rtSelfPops > 0)){ pushed = depth; setTimeout(sync, 0); }
+      return;
+    }
+    pushed = depth;
     const el = top(); if(!el) return;
-    pushed = Math.max(0, pushed - 1);
+    // una finestra appena aperta (meno di 0,4 s) non può essere chiusa da un «indietro» vero: è un segnale in ritardo → rimetto il segno
+    if(performance.now() - openedT < 400){ setTimeout(sync, 0); return; }
     const b = el.querySelector('[data-ui-close], .modal-close, button[id$="CloseBtn"]');
     if(b) b.click(); else el.classList.remove('show');
     setTimeout(sync, 50);

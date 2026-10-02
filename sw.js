@@ -60,8 +60,19 @@ async function anyCopy(r){
   if(r.mode === 'navigate'){ const home = await caches.match('./'); if(home) return home; }
   return null;
 }
+// v217: «Condividi immagine» da Chrome (o dalla galleria) → Raccoon Tier: tengo l'immagine da parte e apro l'app, che la mette come locandina
+const SHARED = new Request('./__shared-cover');
+async function takeShare(r){
+  try{
+    const fd = await r.formData(), f = fd.get('image'), c = await caches.open(CACHE);
+    if(f && f.size) await c.put(SHARED, new Response(f, {headers: {'content-type': f.type || 'image/jpeg', 'x-sw-t': String(Date.now())}}));
+    else { const t = ['url', 'text', 'title'].map(k=> fd.get(k)).filter(Boolean).join(' '); if(t) await c.put(SHARED, new Response(t, {headers: {'content-type': 'text/plain', 'x-sw-t': String(Date.now())}})); }
+  }catch(err){}
+  return Response.redirect(new URL('./?shared=cover', self.location).href, 303);
+}
 self.addEventListener('fetch', e=>{
   const r = e.request;
+  if(r.method === 'POST' && /\/share-cover\/?$/.test(new URL(r.url).pathname)){ e.respondWith(takeShare(r)); return; }
   // copertine in miniatura (wsrv.nl, con CORS): prima la copia salvata, così si vedono anche offline
   if(r.method === 'GET' && /^https:\/\/wsrv\.nl\//.test(r.url)){ e.respondWith(coverFetch(r)); return; }
   if(r.method !== 'GET' || new URL(r.url).origin !== self.location.origin) return;

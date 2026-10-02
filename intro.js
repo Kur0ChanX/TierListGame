@@ -6,6 +6,7 @@
   const forced = /[?&]intro=force/.test(location.search);
   let off = false, seen = false;
   try{ off = localStorage.getItem('jrpg_intro') === 'off'; seen = sessionStorage.getItem('jrpg_intro_seen') === '1'; }catch(e){}
+  if(/[?&]shared=/.test(location.search)) seen = true;           // v217: aperta da «Condividi immagine»: niente intro, si va dritti alla locandina
   const bot = !!navigator.webdriver;                   // i test automatici non devono essere coperti dall'intro
   if(!forced && (off || seen || bot)){ el.remove(); return; }
   try{ sessionStorage.setItem('jrpg_intro_seen', '1'); }catch(e){}

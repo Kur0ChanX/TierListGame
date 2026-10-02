@@ -161,6 +161,79 @@
     if(after) after.insertAdjacentElement('afterend', btn); else block.prepend(btn);
     if(!hasImg) block.classList.add('cv-noimg');           // senza locandina «✨ Trova copertina» resta in vista
   }
+  // ---------- v217: la locandina presa da internet con un tocco ----------
+  // 1) «Cerca su internet» apre Google Immagini; sulla foto scelta: tieni premuto → «Condividi immagine» → Raccoon Tier
+  //    (il service worker la riceve, l'app si apre e la mette come locandina del gioco da cui eri partito);
+  // 2) oppure «Copia immagine» e al ritorno l'avviso «Tocca per metterla come locandina» (legge gli appunti);
+  // 3) se l'immagine arriva senza un gioco di partenza resta da parte: «📥 Usa l'immagine ricevuta» nel menu della locandina.
+  const WAIT = 'rt_cover_wait', SHARED = './__shared-cover', WCACHE = 'raccoon-tier-v2';
+  const WEB = {pending: false};
+  const byId = id=> (typeof GAMES !== 'undefined' ? GAMES : []).find(x=> String(x.id) === String(id));
+  const ready = ()=> new Promise(res=>{ const t0 = Date.now(); const f = ()=>{ if((typeof COVER_ASSETS !== 'undefined' && COVER_ASSETS && typeof COVER_DB !== 'undefined' && COVER_DB) || Date.now() - t0 > 15000) res(); else setTimeout(f, 300); }; f(); });
+  async function putCover(g, blob){
+    if(!g || !blob) return;
+    await ready();
+    if(typeof currentModalGame === 'undefined' || !currentModalGame || currentModalGame.id !== g.id) openModal(g);
+    if(typeof handleCoverUpload === 'function'){ await handleCoverUpload(g, blob); try{ setLock(g, {cover: 1}); }catch(e){} try{ renderWhenIdle({list: true}); }catch(e){} }
+  }
+  WEB.help = g=>{
+    try{ localStorage.setItem(WAIT, JSON.stringify({id: g.id, t: Date.now()})); }catch(e){}
+    const url = typeof coverSearchUrl === 'function' ? coverSearchUrl(g) : 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(g.name + ' cover art');
+    const body = sheet('xCvWeb', '🌐 Locandina da internet', `<div class="lp-sub">Si apre la ricerca immagini di <b>${esc(g.name)}</b>. Sulla foto che ti piace:</div>
+      <ol class="cvw-steps"><li><b>Tieni premuto</b> sulla foto</li><li>Tocca <b>«Condividi immagine»</b> e scegli <b>Raccoon Tier</b>: la metto io come locandina 🔒</li><li>Oppure tocca <b>«Copia immagine»</b> e torna qui: ti chiedo se usarla</li></ol>
+      <div class="lp-tools"><a class="btn primary" id="cvwGo" href="${esc(url)}" target="_blank" rel="noopener">🌐 Apri la ricerca</a><button type="button" class="btn" id="cvwPaste">📋 Ho già copiato: incolla</button></div>
+      <div class="lp-sub" style="opacity:.75">Se Raccoon Tier non compare tra le app di «Condividi», usa «Copia immagine» (il telefono aggiorna l'elenco delle app da solo, può volerci qualche giorno).</div>`);
+    body.querySelector('#cvwGo').addEventListener('click', ()=>{ try{ localStorage.setItem(WAIT, JSON.stringify({id: g.id, t: Date.now(), out: 1})); }catch(e){} const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); });
+    body.querySelector('#cvwPaste').addEventListener('click', ()=>{ const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); WEB.paste(g); });
+  };
+  WEB.paste = async g=>{
+    if(!navigator.clipboard){ toast('Questo telefono non mi lascia leggere gli appunti: usa «Condividi immagine» o «Carica dal telefono»', 4000); return; }
+    try{
+      if(navigator.clipboard.read){
+        const items = await navigator.clipboard.read();
+        for(const it of items){ const ty = it.types.find(t=> /^image\//.test(t)); if(ty){ const b = await it.getType(ty); toast('📋 Immagine presa dagli appunti', 1600); await putCover(g, b); return; } }
+      }
+      const t = navigator.clipboard.readText ? (await navigator.clipboard.readText() || '').trim() : '';
+      const u = (t.match(/https?:\/\/\S+/) || [])[0];
+      if(u && typeof saveCoverUrl === 'function'){ await saveCoverUrl(g, u); try{ setLock(g, {cover: 1}); }catch(e){} return; }
+      toast('Negli appunti non c\'è un\'immagine: su internet tieni premuto sulla foto → «Copia immagine»', 4500);
+    }catch(e){ toast('Non posso leggere gli appunti (permesso negato): riprova e tocca «Consenti», oppure usa «Condividi immagine»', 5000); }
+  };
+  async function sharedEntry(del){
+    try{ const c = await caches.open(WCACHE), r = await c.match(SHARED); if(del) await c.delete(SHARED); return r || null; }catch(e){ return null; }
+  }
+  WEB.useShared = async g=>{
+    const r = await sharedEntry(true); WEB.pending = false;
+    if(!r){ toast('Non c\'è nessuna immagine ricevuta', 2200); return; }
+    const ty = r.headers.get('content-type') || '';
+    if(/^image\//.test(ty)){ await putCover(g, await r.blob()); return; }
+    const u = ((await r.text()).match(/https?:\/\/\S+/) || [])[0];
+    if(u && typeof saveCoverUrl === 'function'){ await ready(); await saveCoverUrl(g, u); try{ setLock(g, {cover: 1}); }catch(e){} }
+    else toast('Quello che hai condiviso non è un\'immagine', 2600);
+  };
+  // all'avvio: arrivo da «Condividi immagine»?
+  (async ()=>{
+    const fromShare = /[?&]shared=cover/.test(location.search);
+    if(fromShare){ try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch(e){} }
+    const r = await sharedEntry(false); if(!r) return;
+    WEB.pending = true;
+    if(!fromShare) return;
+    let w = null; try{ w = JSON.parse(localStorage.getItem(WAIT) || 'null'); }catch(e){}
+    const wait = ()=> new Promise(res=>{ const f = ()=> typeof GAMES !== 'undefined' && GAMES.length ? res() : setTimeout(f, 200); f(); });
+    await wait();
+    const g = w && Date.now() - w.t < 60 * 60e3 ? byId(w.id) : null;
+    if(g){ try{ localStorage.removeItem(WAIT); }catch(e){} toast('📥 Immagine ricevuta: la metto come locandina di ' + g.name, 2600); await WEB.useShared(g); }
+    else if(window.showToast) showToast('📥 Immagine ricevuta. Apri il gioco giusto → 🖼️ Locandina e foto → «Usa l\'immagine ricevuta»', 9000);
+  })();
+  // al ritorno da internet: se avevi copiato un'immagine te la propongo (un tocco, così il telefono mi lascia leggere gli appunti)
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden) return;
+    let w = null; try{ w = JSON.parse(localStorage.getItem(WAIT) || 'null'); }catch(e){}
+    if(!w || !w.out || Date.now() - w.t > 20 * 60e3) return;
+    const g = byId(w.id); if(!g) return;
+    try{ localStorage.setItem(WAIT, JSON.stringify({id: w.id, t: w.t})); }catch(e){}
+    setTimeout(()=>{ if(window.showToast) showToast('📋 Hai copiato un\'immagine per ' + g.name + '? Tocca per metterla come locandina', 9000, ()=> WEB.paste(g)); }, 600);
+  });
   function openMenu(g){
     const block = document.getElementById('coverBlock'); if(!block || !U.sheet) return;
     const lk = lockOf(g) || {};
@@ -172,7 +245,9 @@
       has('[data-cover-camera-input]') ? ['cam', '📷', 'Scatta una foto', 'con la fotocamera, adesso'] : null,
       !lk.cover && has('.x-autocover button') ? ['auto', '✨', has('.cover-frame') ? 'Aggiorna in automatico' : 'Trova la copertina in automatico', 'la cerco io nelle fonti ufficiali'] : null,
       !lk.cover && has('[data-cover-alt]') ? ['alt', '🔍', 'Prova la prossima immagine', 'una alla volta, tra quelle trovate online'] : null,
-      ['web', '🌐', 'Cerca su internet', 'apre la ricerca immagini'],
+      WEB.pending ? ['shared', '📥', 'Usa l\'immagine ricevuta', 'quella che hai condiviso con Raccoon Tier'] : null,
+      ['web', '🌐', 'Cerca su internet', 'tieni premuto sulla foto che ti piace → Condividi → Raccoon Tier'],
+      ['paste', '📋', 'Incolla l\'immagine copiata', 'se su internet hai scelto «Copia immagine»'],
       has('.cover-more') ? ['link', '🔗', 'Usa un link', 'incolla l\'indirizzo di un\'immagine'] : null,
       lk.cover ? ['unlock', '🔓', 'Sblocca la locandina', 'torna automatica'] : null,
       has('[data-cover-diag]') ? ['diag', '🩺', 'Diagnostica immagini', 'se le immagini non si vedono'] : null
@@ -187,7 +262,9 @@
       else if(k === 'cam'){ close(); press('[data-cover-camera-input]'); }
       else if(k === 'auto'){ close(); press('.x-autocover button'); toast('Cerco la locandina…', 1800); }
       else if(k === 'alt'){ close(); press('[data-cover-alt]'); }
-      else if(k === 'web'){ close(); press('.cover-tools a.cover-pill'); }
+      else if(k === 'web'){ close(); WEB.help(g); }
+      else if(k === 'paste'){ close(); WEB.paste(g); }
+      else if(k === 'shared'){ close(); WEB.useShared(g); }
       else if(k === 'link'){ close(); const d = block.querySelector('.cover-more'); if(d){ d.classList.add('cv-show'); d.open = true; const i = d.querySelector('input'); if(i) setTimeout(()=> i.focus(), 150); } }
       else if(k === 'unlock'){ setLock(g, {cover: null}); toast('Locandina sbloccata: torna automatica', 2000); close(); reopen(g); }
       else if(k === 'diag'){ close(); press('[data-cover-diag]'); }

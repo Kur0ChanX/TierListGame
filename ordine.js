@@ -313,6 +313,7 @@
     {id: 'motion', n: '🎛️ Animazioni e vibrazione', d: 'Righe a cascata, scintille, tic al tocco'}
   ];
   const SOFT = [
+    {k: 'calm', n: '🧘 Modalità calma (tutto a mano)', d: 'Niente lavori automatici da internet: Update+ all\'avvio, controllo con Gemini, copertine e foto cercate da sole. Per un gioco premi tu ⚡ Update+ nella scheda: scarica tutto (voto, info, copertina, foto). Il backup resta acceso.', get: ()=> !!(window.rtCalm && rtCalm()), set: v=>{ try{ localStorage.setItem('rt_calm', v ? 'on' : 'off'); }catch(e){} }},
     {k: 'cardorder', n: '📑 Scheda in 3 parti', d: 'Divide la scheda in Per te / Il gioco / Altro (con ↕️ scegli tu l\'ordine dei riquadri)', get: ()=> cardOrderOn(), set: v=> window.rtCardOrder.setOn(v)},
     {k: 'menurooms', n: '🗂️ Menu ✨ in stanze', d: 'Raggruppa le voci per argomento, con ricerca', get: ()=> roomsOn(), set: v=> window.rtMenuRooms.setOn(v)},
     {k: 'oggi', n: '🌅 Riquadro «Oggi» e avviso unico', d: 'Un solo avviso all\'avvio e il riquadro con le novità', get: ()=> todayOn(), set: v=>{ LS.set(TON, v ? 'on' : 'off'); renderToday(); }}

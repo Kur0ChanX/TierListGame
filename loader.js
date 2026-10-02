@@ -5,6 +5,9 @@
 // sono contati (copertine, verifica generi) è esatta.
 // ---- Registro diagnostico nascosto (per il debug): ogni richiesta a una fonte esterna, con esito, tempo e status HTTP ----
 // Non contiene MAI chiavi o token (redatti) né il testo delle richieste. Si apre toccando 5 volte «Database aggiornato…» o con ?debug=1.
+// v217: MODALITÀ CALMA (rt_calm, solo su questo telefono): nessun lavoro automatico verso internet (Update+ all'avvio, controllo in background
+// con Gemini, copertine cercate da sole, foto RAWG del carosello). Restano: il tasto Update+ del gioco (fa tutto lui), il backup, i dati del sito.
+window.rtCalm = ()=>{ try{ return localStorage.getItem('rt_calm') === 'on'; }catch(e){ return false; } };
 (function(){
   const KEY = 'rt_debuglog';                                   // niente prefisso jrpg_: non viene sincronizzato sul Gist
   let buf = []; try{ buf = JSON.parse(localStorage.getItem(KEY) || '[]') || []; }catch(e){}

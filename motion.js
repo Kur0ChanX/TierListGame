@@ -239,7 +239,7 @@
       swallowTab = tab; swallowUntil = performance.now() + 900;
       const ab = document.getElementById('askBackdrop');
       if(tab.dataset.view && ab && ab.classList.contains('show')){ const cb = document.getElementById('askCloseBtn'); if(cb) cb.click(); else ab.classList.remove('show'); }      // da «Chiedi» a un'altra sezione: chiudo Chiedi
-      if(tab.dataset.view){ if(tab.dataset.view !== state.view) setView(tab.dataset.view); else { try{ scrollTo({top: 0, behavior: 'instant'}); }catch(x){} } }
+      if(tab.dataset.view){ if(tab.dataset.view !== state.view) setView(tab.dataset.view); else { try{ if(window.rtViewTop) rtViewTop(); else scrollTo({top: 0, behavior: 'instant'}); }catch(x){} } }
       else if(tab.dataset.ask && typeof openAsk === 'function') openAsk();
       haptic('tick');
     }, true);
