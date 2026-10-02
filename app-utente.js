@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v226', date:'2026-10-02', time:'11:18', items:[
+    'Scheda del gioco: toccando «Per te», «Il gioco» o «Altro» dopo aver scorso la scheda, ora la vista torna all\'inizio della parte scelta (prima restava giù e sembrava che il tasto non facesse nulla).',
+    'Voce Gemini: niente più falsi «quota finita». Prima partivano più richieste insieme e Google rispondeva «troppe richieste»: ora ne parte una alla volta, la storia è divisa in meno pezzi e, se Google dice di aspettare, il tasto mostra «Gemini occupato, riprovo tra N s» e riprova da solo.',
+    'Se un modello di voce ha finito la quota del giorno passo al successivo (ognuno ha la sua). Solo se sono finiti tutti te lo dico chiaramente.',
+    'Con la Voce AI scelta non parte più la voce robotica del telefono al suo posto: se Gemini proprio non risponde vedi il motivo e puoi riprovare.',
+  ]},
   {version:'v225', date:'2026-10-02', time:'11:07', items:[
     'Voce della lettura: la voce robotica era quella del telefono, perché a settembre 2026 Google ha cambiato i modelli della voce AI (Gemini 3.8) e il vecchio modo di chiamarla non funzionava più. Ora uso i modelli nuovi (e, se non rispondono, quelli vecchi) e ricordo quale funziona.',
     'Accanto ad «Auto» c\'è il nome della voce (es. «Charon ▾»): si apre «Voce della lettura» con il motore (✨ Voce AI oppure 📱 Voce del telefono) e 16 voci AI, 8 maschili e 8 femminili; toccandone una la senti subito. Con il telefono puoi scegliere tra le sue voci italiane.',
