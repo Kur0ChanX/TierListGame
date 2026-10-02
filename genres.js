@@ -141,5 +141,6 @@
     el.classList.add('show');
   };
   document.addEventListener('DOMContentLoaded', ()=>{ const b = document.getElementById('genreCheckBtn'); if(b) b.addEventListener('click', window.openGenreCheck); });
-  try{ applyTagOverrides(); renderListBar(); if(state.view === 'list') render(); }catch(e){}
+  // v219: ridisegno solo se ci sono davvero correzioni dei generi da applicare (prima sempre: 100-200 ms in più a ogni avvio)
+  try{ if(Object.keys(loadJson(OV_KEY, {})).length){ applyTagOverrides(); renderListBar(); if(state.view === 'list') render(); } }catch(e){}
 })();

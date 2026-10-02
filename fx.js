@@ -192,7 +192,7 @@
     flip(b, 'rt-mopen', l.length > 0); flip(b, 'rt-gopen', id('modalBackdrop')); flip(b, 'rt-ask', id('askBackdrop'));
     flip(b, 'rt-sheet', !!document.querySelector('.x-sheet.show, .tt2.show'));
     const fp = document.getElementById('filtersPanel'), fo = !!(fp && fp.classList.contains('open'));
-    flip(document.documentElement, 'rt-filt', fo); flip(b, 'rt-filt', fo); flip(document.querySelector('.wrap'), 'rt-filt', fo);
+    flip(document.documentElement, 'rt-filt', fo); flip(b, 'rt-filt', fo); flip(document.querySelector('.wrap'), 'rt-filt', fo); flip(document.querySelector('.topbar'), 'rt-filt', fo);
     const rn = document.getElementById('rtNote'); flip(b, 'rt-noteon', !!(rn && rn.classList.contains('show')));
   };
   const sync = ()=>{

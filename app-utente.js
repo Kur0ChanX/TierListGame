@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v220', date:'2026-10-02', time:'09:08', items:[
+    'Filtri «super scattosi»: con il pannello Filtri aperto la griglia non scorreva più da sola e il programma caricava a raffica tutte le copertine (fino a 1500, un blocco dopo l\'altro). Ora ne carica solo quante servono: aprire i Filtri passa da ~190 a ~10 ms (telefono simulato lento). Il pannello non anima più l\'altezza ma si apre con una breve dissolvenza.',
+    'Dal tuo Rapporto lentezza: toccare «Classifica» costava ~150 ms. Con la griglia (copertine) il programma costruiva anche la tabella nascosta a ogni ridisegno: ora non più (il ridisegno costa circa 8 volte meno).',
+    'Aprire un gioco: tolto un costo mio della v218 (riportare la scheda in cima obbligava a impaginare tutta la pagina: ~40 ms), e l\'elenco dei «top» non si rilegge più per ogni riga.',
+    'Locandina immediata: aprendo un gioco compare subito la miniatura già vista nella lista (niente più riquadro viola vuoto con il bordino chiaro per 0,4 s), poi arriva quella nitida.',
+    'Sincronizzazione: se il tuo archivio su GitHub non è cambiato risponde «nessuna novità» e non c\'è niente da scaricare né da analizzare (prima ~0,2-0,3 s a ogni ritorno nell\'app); non parte più a ogni ritorno ma al massimo ogni 3 minuti e mai mentre tocchi lo schermo.',
+    'Avvio: la lista non si ridisegna più una seconda volta se non ci sono correzioni dei generi da applicare.'
+  ]},
   {version:'v219', date:'2026-10-02', time:'08:38', items:[
     'Animazioni: 6 stili + il tuo (✨ → Movimento e vibrazione → «Stile delle animazioni»): Lampo, Morbida, Zoom (quello di sempre), Rimbalzo, Scorrimento, Cinema e «Come il mio telefono» (la finestra cresce dalla copertina toccata fino a tutto schermo, circa 0,24 s, come le app di Android). Lo stile vale per tutta l\'app: apertura e chiusura delle schede, cambio sezione, righe della lista, pannelli e tocco. Tutto solo con movimenti leggeri (li fa la scheda grafica): nessun lavoro in più e nessun ritardo al tocco.',
     'Molto più leggera ogni apertura e ogni cambio sullo schermo: il calcolo degli stili è sceso da ~330 ms a ~75 ms (misura su telefono simulato lento). Erano regole «:has()» che a ogni cambio facevano controllare tutta la pagina. Anche la scheda ora disegna subito solo la prima schermata e il resto quando ti avvicini (l\'impaginazione più lunga: da ~58 a ~12 ms).',

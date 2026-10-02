@@ -1171,15 +1171,17 @@ function render(){
   emptyMsg.style.display='none';
 
   const dnaProfileForRow = state.sortKey==='dna' ? buildTasteProfile() : null;
+  // v219: l'elenco dei «top» si legge UNA volta per ridisegno (prima: una volta per ogni riga, centinaia di volte)
+  const topIds = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return Array.isArray(t) ? t : []; }catch(e){ return []; } })();
+  const topSet = new Set(topIds);
+  try{ const tb = document.getElementById('gameTable'); if(tb && tb.classList.contains('has-top') !== !!topIds.length) tb.classList.toggle('has-top', !!topIds.length); }catch(e){}
   function buildRow(g){
     const tr = document.createElement('tr');
     tr.dataset.gid = g.id;
     const isFav = FAVS.has(g.id);
     // v212: i tuoi top in assoluto (👑 «Nei miei top») hanno lo stemma del procione con gli occhi a cuore (disegnato da Mario) a sinistra della stella e la riga bordata d'oro
-    const topIds = (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return Array.isArray(t) ? t : []; }catch(e){ return []; } })();
-    const isTop = topIds.includes(g.id);
+    const isTop = topSet.has(g.id);
     if(isTop) tr.className = 'is-top';
-    try{ const tb = document.getElementById('gameTable'); if(tb && tb.classList.contains('has-top') !== !!topIds.length) tb.classList.toggle('has-top', !!topIds.length); }catch(e){}
     const topBadge = isTop ? '<img class="row-badge" src="icons/top-procione-64.webp" srcset="icons/top-procione-64.webp 1x, icons/top-procione-128.webp 2x" alt="Nei tuoi top" title="Nei tuoi top: uno dei giochi che ami di più in assoluto" width="24" height="24" decoding="async">' : '';
     const heartBadge = '';
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip${d.approved ? ' appr' : ''}" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};"${d.approved ? ' title="Approvato dal procione: sintonia altissima con i tuoi gusti"' : ''}>${d.approved ? '<img src="icons/approved.webp" alt="" width="16" height="17">' : ''}${d.pct}%</span>` : ''; })();
@@ -1206,6 +1208,9 @@ function render(){
     return tr;
   }
   window.__rtBuildRow = buildRow;         // usata per aggiornare una sola riga senza ridisegnare la lista
+  // v219: con la griglia (copertine) o l'elenco compatto la tabella è nascosta: non la costruisco (80 righe inutili a ogni ridisegno, ~150 ms sul telefono).
+  // Quando torni alla tabella si ridisegna da sola (setMode in extras.js).
+  try{ if(window.rtAltMode && window.rtAltMode()){ tbody.innerHTML = ''; lastViewKey = ''; lastShownRows = 0; updateArrows(); return; } }catch(e){}
   // Righe a blocchi: ne disegniamo ROW_PAGE subito e le altre solo quando ci si avvicina in fondo alla lista (molto più leggero sul telefono)
   // se cambia solo un dato di una riga (preferito, stato...) manteniamo le righe già scese, così la posizione nella lista non salta
   const viewKey = JSON.stringify([state.search, [...state.tiers], state.method, state.decade, state.minScore, state.onlyFavs, state.onlyStory, [...state.tags], state.status, state.sortKey, state.sortDir, state.mood, typeof ACTIVE_LIST !== 'undefined' ? ACTIVE_LIST : '']);
