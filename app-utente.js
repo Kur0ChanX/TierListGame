@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v246', date:'2026-10-02', time:'22:52', items:[
+    'Trame riscritte (parte 3): altri 150 giochi con la presentazione nuova senza spoiler (450 in tutto), tra cui Tales, Star Ocean, Fire Emblem, Persona, Atelier, Ys e Wild Arms.'
+  ]},
   {version:'v245', date:'2026-10-02', time:'22:42', items:[
     'Trame riscritte (parte 2): altri 150 giochi hanno una presentazione nuova senza spoiler (300 in tutto). Corretti anche alcuni errori delle trame vecchie (nomi dei protagonisti, anni, rivelazioni di fine gioco tolte).'
   ]},
