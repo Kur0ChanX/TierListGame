@@ -1587,8 +1587,9 @@ function renderWhenIdle(parts){
   const tick = ()=>{
     const quiet = Date.now() - rtLastInput;
     if(quiet < 1000){ rtIdleTimer = setTimeout(tick, 1050 - quiet); return; }
-    // v218: con la scheda di un gioco aperta la lista sotto non si vede: aspetto che la chiudi (poi ridisegno una volta sola)
-    try{ const mb = document.getElementById('modalBackdrop'); if(mb && mb.classList.contains('show')){ rtIdleTimer = setTimeout(tick, 1500); return; } }catch(e){}
+    // v218: con la scheda di un gioco aperta la lista sotto non si vede: non la ridisegno mentre la scheda si apre o la scorri;
+    // solo quando è aperta da un po' e ferma (così il ridisegno è già fatto quando la chiudi: niente copertine che lampeggiano al ritorno)
+    try{ const mb = document.getElementById('modalBackdrop'); if(mb && mb.classList.contains('show') && (performance.now() - (window.__rtOpenAt || 0) < 3000 || window.__rtCardScrolling)){ rtIdleTimer = setTimeout(tick, 1200); return; } }catch(e){}
     const p = rtPendingParts; rtPendingParts = null;
     try{ if(p.metrics) renderMetrics(); if(p.stats) renderStats(); if(p.list) render(); if(p.bar) renderListBar(); }catch(e){}
   };

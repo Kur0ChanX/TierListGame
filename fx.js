@@ -185,14 +185,29 @@
   const ovs = ()=> Array.from(document.querySelectorAll('[id$="Backdrop"].show, .dup-backdrop.show'));
   let pushed = 0, ignore = 0;
   const top = ()=>{ const l = ovs(); return l.sort((a, b)=> (parseInt(getComputedStyle(b).zIndex, 10) || 0) - (parseInt(getComputedStyle(a).zIndex, 10) || 0))[0]; };
+  // v218: «etichette» sul corpo della pagina al posto delle regole CSS con :has() (ogni ricalcolo degli stili le doveva verificare scorrendo TUTTA la pagina: decine di ms)
+  const flip = (el, c, on)=>{ if(el && el.classList.contains(c) !== on) el.classList.toggle(c, on); };
+  const states = l=>{
+    const b = document.body, id = x=> l.some(e=> e.id === x);
+    flip(b, 'rt-mopen', l.length > 0); flip(b, 'rt-gopen', id('modalBackdrop')); flip(b, 'rt-ask', id('askBackdrop'));
+    flip(b, 'rt-sheet', !!document.querySelector('.x-sheet.show, .tt2.show'));
+    const fp = document.getElementById('filtersPanel'), fo = !!(fp && fp.classList.contains('open'));
+    flip(document.documentElement, 'rt-filt', fo); flip(b, 'rt-filt', fo); flip(document.querySelector('.wrap'), 'rt-filt', fo);
+    const rn = document.getElementById('rtNote'); flip(b, 'rt-noteon', !!(rn && rn.classList.contains('show')));
+  };
   const sync = ()=>{
-    const n = ovs().length;
+    const lst = ovs(), n = lst.length; states(lst);
     while(pushed < n){ try{ history.pushState({rtov: pushed + 1}, ''); }catch(e){} pushed++; }
     if(pushed > n){ const d = pushed - n; pushed = n; ignore += d; window.__rtSelfPops = (window.__rtSelfPops || 0) + d; try{ history.go(-d); }catch(e){} }        // chiusa dal pulsante: tolgo i segni in più
     if(n > lastN) openedT = performance.now(); lastN = n;
   };
   let openedT = 0, lastN = 0;
-  new MutationObserver(sync).observe(document.body, {subtree: true, attributes: true, attributeFilter: ['class']});
+  // si riguarda solo quando cambia un «show» o «open» (prima a ogni cambio di classe di qualsiasi riga della lista)
+  new MutationObserver(recs=>{ for(const r of recs){ const o = r.oldValue || ''; if(r.target.classList.contains('show') || r.target.classList.contains('open') || o.indexOf('show') > -1 || o.indexOf('open') > -1){ sync(); return; } } })
+    .observe(document.body, {subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true});
+  sync();
+  // la lista vuota («nessun risultato») nasconde la tabella: etichetta sul contenitore
+  try{ const em = document.getElementById('emptyMsg'), wr = document.querySelector('.wrap'); if(em && wr){ const f = ()=> flip(wr, 'rt-empty', !/none/.test(em.getAttribute('style') || '')); new MutationObserver(f).observe(em, {attributes: true, attributeFilter: ['style']}); f(); } }catch(e){}
   window.addEventListener('popstate', e=>{
     // v217: dopo ogni «indietro» rileggo dalla cronologia quanti segni ci sono davvero (prima li contavo a memoria e il conto poteva sballare)
     const st = e.state, depth = st && st.rtov ? st.rtov : 0;

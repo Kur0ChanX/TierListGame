@@ -362,9 +362,9 @@ html.intro-on{overflow:hidden}
 .pal-n{font-size:.72rem; font-weight:600; text-align:center; line-height:1.15}
 /* con i filtri aperti la barra in alto smette di restare fissa e la lista resta lunga: scorri giù e la vedi tutta */
 .topbar:has(#filtersPanel.open){position:relative}
-.wrap:has(#filtersPanel.open) .table-wrap, .wrap:has(#filtersPanel.open) .alt-view{min-height:62vh}
-@media (max-width:760px){ #filtersPanel.open{max-height:40vh} .wrap:has(#filtersPanel.open){padding-bottom:calc(var(--navh) + 10px) !important} .wrap:has(#filtersPanel.open) .table-wrap, .wrap:has(#filtersPanel.open) .alt-view{margin-bottom:calc(var(--navh) + 12px)} }
-html:has(#filtersPanel.open), body:has(#filtersPanel.open){height:auto; min-height:100%}
+.wrap.rt-filt .table-wrap, .wrap.rt-filt .alt-view{min-height:62vh}
+@media (max-width:760px){ #filtersPanel.open{max-height:40vh} .wrap.rt-filt{padding-bottom:calc(var(--navh) + 10px) !important} .wrap.rt-filt .table-wrap, .wrap.rt-filt .alt-view{margin-bottom:calc(var(--navh) + 12px)} }
+html.rt-filt, body.rt-filt{height:auto; min-height:100%}
 
 /* ===== Icone e materiali in stile Apple (squircle, vetro satinato, riflessi sottili) ===== */
 :root{--squircle:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M100.00 50.00 L99.96 66.80 L99.83 72.14 L99.61 76.01 L99.31 79.12 L98.92 81.75 L98.44 84.05 L97.87 86.08 L97.20 87.89 L96.44 89.52 L95.58 91.00 L94.61 92.33 L93.53 93.53 L92.33 94.61 L91.00 95.58 L89.52 96.44 L87.89 97.20 L86.08 97.87 L84.05 98.44 L81.75 98.92 L79.12 99.31 L76.01 99.61 L72.14 99.83 L66.80 99.96 L50.00 100.00 L33.20 99.96 L27.86 99.83 L23.99 99.61 L20.88 99.31 L18.25 98.92 L15.95 98.44 L13.92 97.87 L12.11 97.20 L10.48 96.44 L9.00 95.58 L7.67 94.61 L6.47 93.53 L5.39 92.33 L4.42 91.00 L3.56 89.52 L2.80 87.89 L2.13 86.08 L1.56 84.05 L1.08 81.75 L0.69 79.12 L0.39 76.01 L0.17 72.14 L0.04 66.80 L0.00 50.00 L0.04 33.20 L0.17 27.86 L0.39 23.99 L0.69 20.88 L1.08 18.25 L1.56 15.95 L2.13 13.92 L2.80 12.11 L3.56 10.48 L4.42 9.00 L5.39 7.67 L6.47 6.47 L7.67 5.39 L9.00 4.42 L10.48 3.56 L12.11 2.80 L13.92 2.13 L15.95 1.56 L18.25 1.08 L20.88 0.69 L23.99 0.39 L27.86 0.17 L33.20 0.04 L50.00 0.00 L66.80 0.04 L72.14 0.17 L76.01 0.39 L79.12 0.69 L81.75 1.08 L84.05 1.56 L86.08 2.13 L87.89 2.80 L89.52 3.56 L91.00 4.42 L92.33 5.39 L93.53 6.47 L94.61 7.67 L95.58 9.00 L96.44 10.48 L97.20 12.11 L97.87 13.92 L98.44 15.95 L98.92 18.25 L99.31 20.88 L99.61 23.99 L99.83 27.86 L99.96 33.20Z'/%3E%3C/svg%3E");--grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E")}
@@ -584,7 +584,7 @@ html:not(.fx-on) .table-wrap, html:not(.fx-on) .glabel, html:not(.fx-on) .filter
 .vb-because{font-size:.85rem; line-height:1.35}
 .novita-compact .novita-badge-new{position:static !important; transform:none !important; justify-self:start; margin:0}
 .novita-compact .novita-link-btn{display:inline-flex; align-items:center; gap:4px; white-space:nowrap}
-body:has(.dup-backdrop.show) .au-badge, body:has(.modal-backdrop.show) .au-badge{display:none !important}
+body.rt-mopen .au-badge{display:none !important}
 
 /* v121: Mia Tier con ricerca, salto rapido, trascinamento col dito */
 .mt-search{display:flex; gap:6px; margin:6px 0}
@@ -819,7 +819,7 @@ html.rt-tinted #modalCard{box-shadow:0 0 0 2px rgba(var(--rt-tint),.55), 0 20px 
 .pv-box{margin:8px 0; padding:9px 11px; border-radius:14px; background:rgba(var(--a1rgb),.08); border:1px solid rgba(var(--a1rgb),.28); font-size:.84rem} .pv-top svg.gi{width:17px !important; height:17px !important; vertical-align:-3px} .pv-res{margin-top:4px}
 .pv-votes{display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin-top:6px} .pv-v{width:30px; height:30px; border-radius:50%; border:1px solid rgba(128,128,160,.4); background:var(--card,#fff); color:inherit; font-weight:800} .pv-v.on{background:linear-gradient(180deg,#ffd97a,#e07b00); color:#3b2200; border-color:#e07b00}
 .rv-box{padding:8px 10px; border-radius:12px; background:rgba(128,128,160,.07); font-size:.85rem} .rv-text{white-space:pre-wrap; line-height:1.45} .rv-d{opacity:.7} .rv-live{padding:8px; font-style:italic} .rv-cmp{margin-top:6px} .rv-cmp>div{padding:6px 8px; margin:3px 0 6px; border-radius:10px; background:var(--card,#fff)} .rv-listen{margin:8px 0 4px}
-body:has(#modalBackdrop.show) .pet-av, body:has(.x-sheet.show) .pet-av, body:has(.tt2.show) .pet-av{display:none}
+body.rt-gopen .pet-av, body.rt-sheet .pet-av{display:none}
 /* v137: player musicale spostabile con pressione lunga */
 .rt-music{touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
 .rt-music.moving{outline:2px dashed #ffd24a; outline-offset:3px; scale:1.05; box-shadow:0 14px 34px rgba(0,0,0,.5)}
@@ -827,7 +827,7 @@ body:has(#modalBackdrop.show) .pet-av, body:has(.x-sheet.show) .pet-av, body:has
 /* v140 scorrimento: niente «overscroll-behavior: contain» su tabella e filtri (intrappolava il tocco: se la tabella aveva anche solo 1 px di scarto la pagina non si muoveva più).
    Il «tira per aggiornare» lo blocca la pagina intera; tra un contenitore e la pagina lo scorrimento passa sempre. */
 html{overscroll-behavior-y:contain}
-@media (max-width:760px){ .wrap:has(#filtersPanel.open) .table-wrap{overflow:visible} }   /* col pannello filtri aperto scorre tutta la pagina: la tabella non è un secondo contenitore */
+@media (max-width:760px){ .wrap.rt-filt .table-wrap{overflow:visible} }   /* col pannello filtri aperto scorre tutta la pagina: la tabella non è un secondo contenitore */
 
 /* iPad / tablet (touch, schermo largo): barra in basso più grande e raccolta al centro, icone e scritte leggibili */
 @media (min-width:761px) and (hover:none) and (pointer:coarse){
@@ -996,7 +996,7 @@ body{font-kerning:normal; text-rendering:optimizeLegibility; -webkit-font-smooth
 /* sensazione di risposta immediata: la riga si illumina appena la tocchi */
 tbody tr:active{background:rgba(var(--a1rgb),.16)}
 /* lista vuota: al posto della tabella vuota resta solo Frugu */
-.wrap:has(#emptyMsg:not([style*="none"])) #tableWrap{display:none !important}
+.wrap.rt-empty #tableWrap{display:none !important}
 
 /* ===== v177: radar di gusto ===== */
 .gs-card{border:1px solid var(--glass-line); border-radius:18px; padding:12px 12px 14px; margin:10px 0; background:var(--glass)}
@@ -1024,7 +1024,7 @@ html.mo-off .gs-poly, html.mo-off .gs-dot{animation:none}
 .rt-music.docked .rm-g{display:none}
 .rt-music.docked .rm-b{background:rgba(var(--a1rgb),.24); color:inherit}
 .rt-music.docked.idle:not(.moving){opacity:1}
-body:has(#modalBackdrop.show) .rt-music.docked{display:none !important}
+body.rt-gopen .rt-music.docked{display:none !important}
 .btn.danger{background:rgba(220,60,60,.2) !important; border-color:rgba(220,60,60,.7) !important; color:#ff9a9a}
 .saga-upd{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px}
 .saga-upd .lp-sub{flex-basis:100%; margin:0}
@@ -1616,8 +1616,8 @@ td.fav{white-space:nowrap}
   #askBackdrop{bottom:var(--navh,60px) !important; transition:opacity .1s linear !important}
   #askBackdrop .modal-card{transition:none !important; transform:none !important}
   html:not(.mo-off) #askBackdrop:not(.show) .modal-card{transform:none !important}
-  body:has(#askBackdrop.show) #viewTabs{z-index:101}
-  body:has(#askBackdrop.show) .ask-fab, body:has(#askBackdrop.show) .scrolltop-fab{display:none !important}
+  body.rt-ask #viewTabs{z-index:101}
+  body.rt-ask .ask-fab, body.rt-ask .scrolltop-fab{display:none !important}
 }
 #gameTable.has-top td.fav{text-align:right}
 /* v213: stemma intero (orecchie e cornice di Mario), senza cerchio aggiunto; nella griglia piccolo nell'angolo (prima la regola delle copertine lo ingrandiva a tutta la locandina) */
@@ -1672,7 +1672,7 @@ html.mo-off #bellBtn.has-new .ib-ic svg{animation:none}
 .rn-rt{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px} .rn-rt b{font-size:.86rem; line-height:1.3; font-weight:600} .rn-rt small{opacity:.65; font-size:.72rem}
 .rn-dot{width:9px; height:9px; border-radius:50%; background:#ff5c8a; box-shadow:0 0 8px #ff5c8a; flex-shrink:0}
 /* con il popup in basso, i pulsanti tondi non ci finiscono sotto */
-body:has(.rt-note.show) .scrolltop-fab, body:has(.rt-note.show) .au-badge{transform:translateY(-74px)}
+body.rt-noteon .scrolltop-fab, body.rt-noteon .au-badge{transform:translateY(-74px)}
 /* v215: con 6 icone in alto (anche «Schermo», nel browser) le stringo un po' per non coprire il logo */
 @media (max-width:430px){
   .topbar-row1:has(#fsBtn:not([style*="none"])) .iconbtn.lbl{width:41px !important}
@@ -1700,9 +1700,69 @@ html:not(.mo-off) #tbody tr.rt-press{filter:brightness(1.25)}
 .cvw-steps{margin:8px 0 12px 18px;padding:0;line-height:1.5}
 .cvw-steps li{margin:4px 0}
 /* v217: con la scheda di un gioco aperta, sotto non si muove niente (il luccichio dei badge S+ era l'unica animazione rimasta accesa) */
-body:has(> #modalBackdrop.show) .badge.Splus, body:has(> #modalBackdrop.show) .row-top::after{animation-play-state:paused !important}
+body.rt-gopen .badge.Splus, body.rt-gopen .row-top::after{animation-play-state:paused !important}
 /* v218: tasto «Auto» (auto play) del player in home e della scheda */
 .rt-music .rm-ap{width:auto !important; padding:0 9px; font-size:11px; font-weight:800; letter-spacing:.02em; opacity:.55}
 .rt-music .rm-ap.on{opacity:1; color:var(--pk-accent,#a5b4fc); box-shadow:inset 0 0 0 1.5px currentColor}
 .mz2-ctl .mz2-ap{width:auto !important; padding:0 12px; font-size:.78rem !important; font-weight:800; opacity:.6}
 .mz2-ctl .mz2-ap.on{opacity:1; color:var(--pk-accent,#a5b4fc); box-shadow:inset 0 0 0 1.5px currentColor}
+/* v218: la scheda del gioco impagina subito solo la prima schermata (nome, locandina, azioni, barra delle parti); i blocchi più in basso si disegnano quando ci si avvicina.
+   Prima l'apertura impaginava tutta la scheda in un colpo solo (~150 ms di blocco sul telefono). */
+#modalCard > *:nth-child(n+9){content-visibility:auto; contain-intrinsic-size:auto 240px}
+/* v218: sfondo della scheda «alla copertina», stile moderno: non più un colore piatto ma 4 bagliori morbidi (i 3 colori della copertina) sopra al fondo scuro.
+   I colori passano dolcemente da un gioco all'altro (--a1rgb/a2rgb/a3rgb sono animate). Solo sfondo statico: nessun costo mentre scorri. */
+html.rt-tinted .modal-card, html.rt-tinted:not(.fx-on) .modal-card{
+  background:
+    radial-gradient(125% 52% at 10% -8%, rgba(var(--a1rgb),.52), transparent 64%),
+    radial-gradient(95% 48% at 108% 8%, rgba(var(--a2rgb),.36), transparent 62%),
+    radial-gradient(85% 42% at -10% 55%, rgba(var(--a3rgb),.20), transparent 66%),
+    radial-gradient(110% 40% at 55% 112%, rgba(var(--a1rgb),.24), transparent 62%),
+    var(--card) !important;
+}
+/* «Tema dalla copertina» (colore medio): stessa idea, con quel colore + i due accenti dell'app */
+html .modal-card.x-tinted, html:not(.fx-on) .modal-card.x-tinted{
+  background:
+    radial-gradient(125% 52% at 10% -8%, rgba(var(--x-tint),.50), transparent 64%),
+    radial-gradient(95% 48% at 108% 8%, rgba(var(--a2rgb),.30), transparent 62%),
+    radial-gradient(85% 42% at -10% 55%, rgba(var(--a3rgb),.16), transparent 66%),
+    radial-gradient(110% 40% at 55% 112%, rgba(var(--x-tint),.22), transparent 62%),
+    var(--card) !important;
+}
+html[data-theme="light"].rt-tinted .modal-card{background:
+    radial-gradient(125% 52% at 10% -8%, rgba(var(--a1rgb),.30), transparent 64%),
+    radial-gradient(95% 48% at 108% 8%, rgba(var(--a2rgb),.22), transparent 62%),
+    radial-gradient(85% 42% at -10% 55%, rgba(var(--a3rgb),.12), transparent 66%),
+    var(--card) !important}
+
+/* v218: STILI DI ANIMAZIONE (scelta in ✨ → Movimento e vibrazione; html[data-anim]). Solo transform/opacity: niente lavoro in più per il telefono. */
+html[data-anim="lampo"]{--an-fade:.08s; --an-tdur:.08s; --an-close:none; --an-press:1; --an-sheet:none}
+html[data-anim="morbida"]{--an-fade:.2s; --an-tdur:.22s; --an-close:translateY(16px); --an-press:.97; --an-sheet:anShM .22s cubic-bezier(.22,1,.36,1) both}
+html[data-anim="zoom"]{--an-fade:.2s; --an-tdur:.24s; --an-close:translateY(22px) scale(.985); --an-press:.95; --an-sheet:anShZ .18s cubic-bezier(.2,.9,.25,1) both}
+html[data-anim="rimbalzo"]{--an-fade:.2s; --an-tdur:.24s; --an-close:scale(.92); --an-press:.9; --an-sheet:anShR .34s linear both}
+html[data-anim="scivola"]{--an-fade:.22s; --an-tdur:.26s; --an-close:translateY(7%); --an-press:.97; --an-sheet:anShS .26s cubic-bezier(.32,.72,0,1) both}
+html[data-anim="cinema"]{--an-fade:.3s; --an-tdur:.3s; --an-close:scale(1.04); --an-press:.98; --an-sheet:anShC .3s ease-out both}
+html[data-anim="telefono"]{--an-fade:.18s; --an-tdur:.2s; --an-close:scale(.8); --an-press:.95; --an-sheet:anShT .22s cubic-bezier(.2,.85,.25,1) both}
+html:not(.mo-off) .modal-backdrop{transition:opacity var(--an-fade,.22s) ease !important}
+/* aprendo: il movimento lo fa solo lo stile scelto (WAAPI in motion.js), il CSS cambia soltanto la trasparenza; chiudendo: il CSS porta la scheda verso lo stato «chiuso» dello stile */
+html:not(.mo-off) .modal-backdrop.show .modal-card, html:not(.mo-off) .modal-backdrop.show .modal-card.wide{transition:opacity var(--an-fade,.2s) ease !important}
+html:not(.mo-off) .modal-backdrop:not(.show) .modal-card, html:not(.mo-off) .modal-backdrop:not(.show) .modal-card.wide{transition:opacity var(--an-fade,.2s) ease, transform var(--an-tdur,.24s) cubic-bezier(.4,0,.2,1) !important; transform:var(--an-close, translateY(22px) scale(.985)) !important}
+html:not(.mo-off) #askBackdrop:not(.show) .modal-card{transform:none !important}
+html:not(.mo-off) .x-card.rt-press, html:not(.mo-off) .x-row.rt-press{transform:scale(var(--an-press,.95)); filter:brightness(1.15)}
+html:not(.mo-off) .x-sheet.show .lp-card{animation:var(--an-sheet,none)}
+@keyframes anShM{from{opacity:.4;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes anShZ{from{opacity:.4;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes anShR{0%{opacity:.4;transform:scale(.88)}62%{opacity:1;transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+@keyframes anShS{from{opacity:.5;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes anShC{from{opacity:.3;transform:scale(1.05)}to{opacity:1;transform:none}}
+@keyframes anShT{from{opacity:.4;transform:scale(.88)}to{opacity:1;transform:none}}
+.modal-card.rt-an-round{border-radius:36px !important; overflow:hidden}
+/* pannello di scelta */
+.an-h{margin:12px 0 4px; font-weight:700}
+.an-h small{font-weight:400; opacity:.7}
+.an-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0}
+.an-opt{display:flex; flex-direction:column; gap:3px; text-align:left; padding:10px 11px; border-radius:14px; border:1.5px solid var(--glass-line,rgba(127,127,127,.3)); background:rgba(127,127,127,.08); color:inherit; font:inherit; cursor:pointer}
+.an-opt b{font-size:.92rem}
+.an-opt small{font-size:.72rem; opacity:.72; line-height:1.25}
+.an-opt.on{border-color:var(--pk-accent,#6366f1); background:color-mix(in srgb,var(--pk-accent,#6366f1) 16%,transparent); box-shadow:0 0 0 1px var(--pk-accent,#6366f1) inset}
+.an-opt:last-child{grid-column:1/-1}
+.an-demo{margin:10px 0 4px; padding:22px 12px; text-align:center; border-radius:16px; background:linear-gradient(135deg,rgba(var(--a1rgb),.28),rgba(var(--a2rgb),.2)); font-size:.85rem; opacity:.95}
