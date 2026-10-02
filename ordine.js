@@ -160,6 +160,7 @@
   document.addEventListener('click', e=>{
     const tb = e.target.closest && e.target.closest('.cd-tabs [data-ctab]'); if(!tb) return;
     e.preventDefault(); const card = document.getElementById('modalCard'); if(!card) return;
+    card.classList.add('rt-tabsw'); clearTimeout(card._tabswT); card._tabswT = setTimeout(()=> card.classList.remove('rt-tabsw'), 400);      // v229: animazione dei riquadri solo cambiando linguetta
     LS.set('jrpg_card_tab', tb.dataset.ctab); card.dataset.ctab = tb.dataset.ctab; const br = tb.closest('.cd-tabs'); if(br) br.style.setProperty('--i', TABS.findIndex(x=> x[0] === tb.dataset.ctab));
     card.querySelectorAll('.cd-tabs [data-ctab]').forEach(b=>{ const on = b === tb; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}

@@ -126,11 +126,16 @@
     return null;
   }
   // la scheda compare insieme alla sua locandina: se c'è la miniatura, aspetto che sia decodificata (al massimo 110 ms) e solo allora parte l'animazione
+  // v229: la scheda si disegna PRIMA di muoversi. Nel video a 88 fotogrammi l'apertura si fermava 2-3 fotogrammi alla volta (la chiusura no):
+  // il telefono dipingeva la scheda intera proprio nei primi fotogrammi dell'animazione. Ora resta quasi trasparente (0,001: viene comunque dipinta)
+  // per due fotogrammi + la miniatura decodificata (max 110 ms), e solo allora parte il movimento, già pronto.
   function openWithSeed(card, T, box, seed){
-    if(!seed || !card){ playOpen(card, T, box); return; }
-    const bd = document.getElementById('modalBackdrop') || card; bd.style.visibility = 'hidden'; let done = false;      // nasconde sfondo + scheda: sullo schermo non cambia nulla finché è tutto pronto
-    const go = ()=>{ if(done) return; done = true; bd.style.visibility = ''; playOpen(card, T, box); };
-    seed.then(go, go); setTimeout(go, 110);
+    if(!card){ return; }
+    const bd = document.getElementById('modalBackdrop') || card; bd.style.opacity = '0.001'; bd.style.transition = 'none'; let done = false, frames = false, img = !seed;
+    const go = ()=>{ if(done || !frames || !img) return; done = true; bd.style.transition = ''; bd.style.opacity = ''; playOpen(card, T, box); };
+    requestAnimationFrame(()=> requestAnimationFrame(()=>{ frames = true; go(); }));
+    if(seed){ seed.then(()=>{ img = true; go(); }, ()=>{ img = true; go(); }); setTimeout(()=>{ img = true; go(); }, 110); }
+    setTimeout(()=>{ frames = true; img = true; go(); }, 160);              // rete di sicurezza
   }
   function playOpen(card, T, box){
     if(!card || !card.animate) return;
