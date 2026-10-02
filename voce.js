@@ -105,7 +105,7 @@
             last = e;
             if(e.status === 401 || e.status === 403 || (e.status === 400 && /api key/i.test(e.message))){ ls.set(ERR_K, 'la chiave Gemini non è valida'); e.fatal = true; throw e; }
             if(e.status === 404 || (e.status === 400 && /model|not found|not supported|unknown/i.test(e.message))){ badModels.add(m); break; }      // modello che non c'è: il prossimo
-            if(e.status === 429 && !e.perDay && tries < 3){ const w = Math.max(1500, e.retryMs || 4000 * (tries + 1)); if(w > 6000){ coolUntil[m] = Date.now() + w; break; } if(onWait) onWait(Math.ceil(w / 1000)); await sleep(w + 300); continue; }      // v250: attese lunghe (anche 60 s) = niente attesa, passo alla voce di riserva
+            if(e.status === 429 && !e.perDay && tries < 3){ const w = Math.min(60000, Math.max(1500, e.retryMs || 4000 * (tries + 1))); if(onWait) onWait(Math.ceil(w / 1000)); await sleep(w + 300); continue; }      // v251: «aspetta N secondi» = aspetto (massimo 60 s, conto alla rovescia sul tasto) e riprovo Gemini. In v250 passavo subito alla voce di riserva e Gemini risultava «non disponibile»
             if(e.status === 429){ dayOut[m] = today; break; }                        // quota del giorno di questo modello: il prossimo
             if((e.status === -1 || e.status >= 500 || e.status === 0) && tries < 2){ if(onWait) onWait(2); await sleep(1500 * (tries + 1)); continue; }   // rete o Google occupato: riprovo
             break;

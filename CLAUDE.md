@@ -37,6 +37,9 @@ App statica (si apre anche con doppio clic, file://), senza server né build. Ut
 - Non riscrivere, semplificare o rimuovere funzioni esistenti se non richiesto.
 - Modifiche di routine (testi, colori, dati): modello leggero. Logica nuova o bug: Sonnet.
 
+## Chat nuova (regola dell'utente)
+Nel PRIMO messaggio di ogni sessione nuova metti in cima una riga ben visibile, es. «🆕 **NUOVA CHAT — Rankoon Tiers**», e dai alla sessione un titolo che inizia con «🆕 Nome progetto — argomento» (`set_session_title`). Nomi dei progetti: **Rankoon Tiers** (tier list videogiochi, questa app), **Racoon TierliVerse** (anime, manga, film: cartella `anime-manga/`), **Raccoon GF Card Game** (il gioco di carte, repo `kur0chanx/raccoon-triad`). Quando crei una sessione nuova scrivi questa regola anche nel suo prompt.
+
 ## Regole fisse
 - Numero dei giochi: SEMPRE quello reale (`GAMES.length`, comprende i giochi aggiunti dall'utente: 1369 al 1/10/2026), mai i 765 di base.
 - Ad OGNI versione: `DATA_BUILD_VERSION` e `DATA_BUILD_DATE` in `app-ai.js`, `<meta name="build" content="vNN">` nell'HTML (devono coincidere), voce nel CHANGELOG di `app-utente.js` con data E ORARIO (`date:'AAAA-MM-GG', time:'HH:MM'`, ora italiana: `TZ=Europe/Rome date`). Poi `node tools/check-data.js` (deve dire «Nessun avviso») e `node tools/check-conflitti.js` («Nessun conflitto»).
