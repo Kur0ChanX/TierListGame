@@ -406,7 +406,8 @@
     return {name: cleanTitle(g.name), plat: (g.platforms || []).map(x=> x.platform && x.platform.name).filter(Boolean).slice(0, 4).join(' / '), year: (g.released || '').slice(0, 4), score, tier: score != null ? tierOf(score) : 'B', tags: rawgTags(g, fb), story: '', fitIf: ''};
   }
   const rawgOk = c=> c.name && (c.score == null || c.score >= 50);
-  const rawgList = (j, fl)=> (j.results || []).filter(g=> !rawgJunk(g)).map(g=> rawgItem(g, fl)).filter(rawgOk);
+  // v242: i sospetti non si buttano più: escono segnati (sus) e Frugu li mette nella pila «🧹 Sospetti» invece che tra le proposte
+  const rawgList = (j, fl)=> (j.results || []).map(g=>{ const jk = rawgJunk(g), it = rawgItem(g, fl); if(jk) it.sus = jk === 'adulti' ? 'adulti' : 'raro'; return it; }).filter(rawgOk);
   M.rawg = async ctx=>{           // scoperta: ogni giro cambia anni, generi e ordinamento, così non si ripete mai
     const fl = foc(ctx), slugs = [...new Set(fl.map(c=> RAWG_SLUG[c]).filter(Boolean))].sort(()=> Math.random() - .5).slice(0, 2);
     const y1 = ri(1985, 2023), noMc = Math.random() < .4;

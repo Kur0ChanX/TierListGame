@@ -244,7 +244,7 @@
     {id: 'gusto', n: '🧬 Il tuo gusto', rx: /gusti|Livello|cronologia|Traguardi|preferiti/i},
     {id: 'aspetto', n: '🎨 Aspetto e comportamento', rx: /Palette|Temi grafici|Set di icone|Movimento|Suoni|Anteprima cinematografica|Vetro sfocato|Colori della scheda|Tema dalla copertina|Gesti|Impostazioni|Moduli|Ordine della scheda/i},
     {id: 'condividi', n: '📤 Condividi e mostra', rx: /Condividi|carta profilo|Tier list animata|QR|vetrina|Screenshot nell/i},
-    {id: 'dati', n: '🗂️ Dati e manutenzione', rx: /Controllo dati|Completa le schede|Copertin|Backup|Rapporto qualit|Versione di sicurezza|offline/i}
+    {id: 'dati', n: '🗂️ Dati e manutenzione', rx: /Controllo dati|Sospetti|Completa le schede|Copertin|Backup|Rapporto qualit|Versione di sicurezza|offline/i}
   ];
   const MP = 'jrpg_menu_pins', MR = 'jrpg_menu_recent', MO = 'jrpg_menu_rooms', MON = 'jrpg_menu_rooms_on';
   const roomsOn = ()=> LS.get(MON, 'on') !== 'off';
