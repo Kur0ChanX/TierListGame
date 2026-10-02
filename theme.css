@@ -1784,3 +1784,17 @@ html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1
 .mz2-ctl .mz2-play{width:50px !important; height:50px !important}
 .mz2-ctl .mz2-ap{height:38px !important; border-radius:19px !important}
 .rt-music .rm-b{flex:0 0 auto}
+
+/* v223: Ascolta la storia (piccolo, discreto, subito sotto il titolo) */
+.vc-row{display:flex; align-items:center; gap:8px; margin:-4px 0 10px}
+.vc-btn{display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px 0 10px; border-radius:999px; border:1px solid color-mix(in srgb, var(--text) 16%, transparent); background:color-mix(in srgb, var(--text) 6%, transparent); color:var(--text); font:600 .78rem/1 inherit; cursor:pointer; -webkit-tap-highlight-color:transparent}
+.vc-btn:active{transform:scale(.97)}
+.vc-btn .vc-s{display:none} .vc-btn[data-s="play"] .vc-s{display:block} .vc-btn[data-s="play"] .vc-p{display:none}
+.vc-btn svg{fill:currentColor}
+.vc-btn[data-s="load"] svg{animation:vcPulse 1s ease-in-out infinite}
+@keyframes vcPulse{50%{opacity:.35}}
+.vc-auto{display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 4px; border:0; background:none; color:var(--sub); font:600 .72rem/1 inherit; cursor:pointer; -webkit-tap-highlight-color:transparent}
+.vc-auto i{position:relative; width:28px; height:16px; border-radius:999px; background:color-mix(in srgb, var(--text) 22%, transparent); transition:background .15s}
+.vc-auto i::after{content:''; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff; transition:transform .15s}
+.vc-auto.on i{background:var(--accent, #6aa9ff)} .vc-auto.on i::after{transform:translateX(12px)}
+.vc-auto.on{color:var(--text)}
