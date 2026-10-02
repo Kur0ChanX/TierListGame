@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v253', date:'2026-10-03', time:'01:51', items:[
+    'Voce: nella finestra «Voce della lettura» (tasto con il nome della voce, accanto ad Auto) c\'è «🩺 Controlla Gemini». Prova ogni modello di voce Gemini e mostra la risposta di Google: così si vede subito perché non legge.',
+    'Voce Gemini: se Google dice che per un modello la quota gratuita è zero, l\'app non aspetta più e passa subito a un altro modello.'
+  ]},
   {version:'v252', date:'2026-10-03', time:'01:49', items:[
     'Voce Gemini: niente più «Gemini occupato, riprovo tra 60 s» all\'infinito. Quando un modello di voce Gemini ha finito la quota del giorno (o è occupato) l\'app passa SUBITO a un altro modello Gemini, che ha la sua quota. Aspetta solo se sono occupati tutti.'
   ]},

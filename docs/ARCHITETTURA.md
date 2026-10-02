@@ -150,3 +150,6 @@ Guscio WebView che apre il sito online (`https://kur0chanx.github.io/TierListGam
 
 ## v252 (2026-10-03)
 - **`voce.js` `aiAudio`**: `e.perDay` dipende solo dal tipo di quota (Google mette «retry in 50s» anche sulla quota del giorno: prima si aspettava 60 s all'infinito sullo stesso modello). Giri (max 3): si provano subito tutti i modelli non occupati; 429 lungo → `coolUntil[m]` e modello successivo; si aspetta (max 60 s, `onWait`) solo se sono tutti occupati. Quota del giorno salvata in `rt_tts_dayout` ({day, m:[modelli]}). Prova: `tools/test/tvoce2.js` (modi `day60`, `min60`).
+
+## v253 (2026-10-03)
+- **`voce.js`**: `diagnose(bt, box)` = tasto «🩺 Controlla Gemini» (`[data-vdiag]`, risultati in `.vs-diag`) nella finestra `#xVoce`: una `callModel` per modello con «Ciao.», riga ✅/❌ con il messaggio di Google. `e.perDay` vale anche con `per_day` nel testo o `limit: 0`.
