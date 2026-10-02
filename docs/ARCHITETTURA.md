@@ -137,3 +137,10 @@ Guscio WebView che apre il sito online (`https://kur0chanx.github.io/TierListGam
 - **`music.js`**: `jrpg_music_hold` = musica tenuta ferma dall'utente (pausa/stop) finché non preme ▶ (`playFor` non forzato ed `ensure` non partono).
 - **Scheda**: `openModalBody` conserva lo scorrimento quando ridisegna lo stesso gioco (`modalCard._keepY/_keepUntil`, rispettati da `ordine.js`); barra `.cd-tabs` subito dopo `.modal-head`; blocco `previsione` (`.pv-box.pv2`) primo in «Per te».
 - **Novità** (`app-ai.js`): `novitaPatchCard`, `novitaSwap`, `novitaHoldHeight`, `NOVITA_CHIP_ORDER`. `showToast` mette in fila gli avvisi (min 1,3 s ciascuno); su telefono `showAddedBanner` usa `showToast`.
+
+## v250 (3/10/2026)
+- **Novità in elenco** (`app-ai.js`): `novitaListMode()` (chiave `jrpg_novita_mode`: assente/`list` = elenco, `card` = una alla volta), `novitaModeHtml`, `novitaRowHtml`, `novitaListHtml`, `wireNovitaList(panel, kind, rerender)` (✓/✕ per riga con animazione, pressione lunga 450 ms o tocco sul nome → `rtSus.peek`). Vale per Novità e Novità per genere.
+- **`verify.js`**: `verifyNewGameGenres` mostra la barretta `#rtVng` (`.rt-vng`, conteggio e %) invece di un avviso per gioco.
+- **`extras4.js`**: Previsione `.pv3` (anello con `@property --pvp` animato, barra `.pv3-track` con 10 perline, `paintTrack`, `wireTrack`: tocco/trascinamento; click da tastiera con `e.detail === 0`).
+- **`voce.js`**: `coolUntil` — un 429 con attesa > 6 s non si aspetta: si passa alla voce di riserva.
+- **`media.js`**: `WEB.arm()` chiede il permesso degli appunti toccando «Apri la ricerca» e ne segna il contenuto; `WEB.auto(g)` al ritorno mette da sola l'immagine nuova come locandina (permesso `clipboard-read` concesso), altrimenti resta l'avviso da toccare.
