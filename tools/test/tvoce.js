@@ -1,0 +1,23 @@
+// v223: «Ascolta la storia»: tasto subito visibile, ordine storia→info, avvio automatico on/off, voce AI (finta) con riserva
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
+const ctx=await b.newContext({viewport:{width:412,height:915},isMobile:true,hasTouch:true});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await ctx.route('**/*',r=>{const u=r.request().url(); if(u.startsWith('file:')) return r.continue(); return r.abort();});
+await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di%20Mario.html'); await p.waitForTimeout(8000);
+await p.evaluate(()=>{ window.__sp=[]; speechSynthesis.speak=u=>{__sp.push(u.text); setTimeout(()=>u.onend&&u.onend(),20);}; });
+await p.evaluate(()=>{ const g=GAMES.find(x=>x.story)||GAMES[3]; window.__g=g; openModal(g); });
+await p.waitForTimeout(600);
+const pos=await p.evaluate(()=>{const r=document.getElementById('vcBtn').getBoundingClientRect(); return {top:Math.round(r.top),h:Math.round(r.height),vis:r.bottom<innerHeight}});
+console.log('tasto visibile senza scroll:',pos);
+console.log('testo → storia prima:', await p.evaluate(()=>{const t=rtStory.text(__g); return t.story.length>0 && t.info.includes(__g.name)}));
+await p.waitForTimeout(3500);
+console.log('avvio automatico (voce telefono):', await p.evaluate(()=>__sp.length>0), '| prima frase è la storia:', await p.evaluate(()=>{const s=__sp[0]||''; const st=rtStory.text(__g).story; return st.startsWith(s.trim().slice(0,20))}));
+await p.evaluate(()=>document.getElementById('vcAuto').click()); await p.waitForTimeout(200);
+console.log('auto spento:', await p.evaluate(()=>localStorage.getItem('jrpg_story_auto')));
+await p.evaluate(()=>{ __sp.length=0; document.getElementById('modalCloseBtn').click(); }); await p.waitForTimeout(600);
+await p.evaluate(()=>openModal(__g)); await p.waitForTimeout(3500);
+console.log('con auto spento non parte:', await p.evaluate(()=>__sp.length===0));
+await p.evaluate(()=>document.getElementById('vcBtn').click()); await p.waitForTimeout(400);
+console.log('tocco manuale parte:', await p.evaluate(()=>__sp.length>0));
+console.log('wav header:', await p.evaluate(async()=>{const b=rtStory._wav(new Uint8Array(10),24000); const t=await b.slice(0,4).text(); return t+' '+b.size}));
+console.log('ERR',errs);await b.close();})();

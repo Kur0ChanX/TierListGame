@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v223', date:'2026-10-02', time:'10:15', items:[
+    'Scheda del gioco: in alto, sotto il titolo, c\'è il tasto piccolo «Ascolta la storia». Legge prima la storia e subito dopo le informazioni principali (anno, tier, voto, punti di forza, durata).',
+    'Accanto c\'è l\'interruttore «Auto»: acceso, la lettura parte da sola circa 2 secondi dopo che la scheda si è aperta e ferma (così non rovina l\'animazione); spento, parte solo se tocchi il tasto. Si ferma da sola se chiudi la scheda o esci dall\'app.',
+    'Voce più naturale: se nelle impostazioni hai la chiave Gemini usa la voce AI (Kore) e la tiene in memoria, così la seconda volta è subito pronta e non consuma; senza chiave, o se Gemini non risponde, usa la migliore voce italiana del telefono.',
+  ]},
   {version:'v222', date:'2026-10-02', time:'09:59', items:[
     'PROBLEMA ALLA RADICE trovato: la funzione «tema dalla copertina» cambiava i colori di TUTTA l\'app animandoli per 0,7 s. Quei colori sono ereditati da ~1650 elementi, quindi a ogni fotogramma, mentre la scheda si apriva (e quando si chiudeva), il telefono ricalcolava gli stili di tutta la pagina: per questo le animazioni «non avevano influenza». Ora i colori stanno solo sulla scheda (~500 elementi) e non c\'è più l\'animazione sulla radice. Nel telefono simulato lento: calcolo degli stili all\'apertura da ~530 a ~65 ms, disegno da ~685 a ~310 ms.',
     'Sincronizzazione: la parte pesante (160-260 ms) non parte più mentre usi l\'app: aspetta almeno 5 minuti dall\'ultima volta e che tu non tocchi lo schermo; le modifiche non inviate partono quando lasci l\'app. All\'avvio parte dopo 6 s e a schermo fermo.',
