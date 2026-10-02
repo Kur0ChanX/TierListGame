@@ -1871,3 +1871,7 @@ html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1
 .cover-frame::before{transition:opacity .35s ease}
 #modalCard.rt-opening .cover-frame::before{opacity:0}
 .hero-shots .hs{filter:none !important}
+
+/* v231: la scheda ha SEMPRE il suo strato pronto per muoversi. Prima lo strato nasceva all'inizio dell'animazione e spariva alla fine:
+   il telefono ridisegnava la scheda da zero e per 2 fotogrammi la mostrava vuota (il «flash» di icone e locandina nel video). */
+#modalCard{will-change:transform, scroll-position}
