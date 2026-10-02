@@ -737,5 +737,9 @@
   function openTT(){ toast('Apro Raccoon Triad…', 1500); location.href = TT_URL; }
   window.openTT = openTT;
   menu(gi('cards') + ' Raccoon Triad (gioco di carte)', openTT);
+  // v238: l'app Anime, Film e Manga è separata (cartella anime-manga/, niente in comune con questa): qui solo il collegamento, in cima al menu ✨
+  function openAnime(){ toast('Apro Raccoon Anime…', 1500); location.href = location.protocol === 'file:' ? 'anime-manga/index.html' : 'anime-manga/'; }
+  window.openAnimeApp = openAnime;
+  (window.XMENU = window.XMENU || []).unshift({html: '🌸 <b>Prova l\'app Anime, Film e Manga</b> <small>(nuova)</small>', run: openAnime});
   menu(gi('orb') + ' Tema dalla copertina: ' + (TINT_ON() ? 'acceso' : 'spento'), ()=>{ LS.set('jrpg_app_tint', !TINT_ON()); toast('Tema dalla copertina ' + (TINT_ON() ? 'acceso' : 'spento'), 2500); });
 })();
