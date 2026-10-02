@@ -13,6 +13,7 @@ await ctx.route('**/*',r=>{const u=r.request().url();
     if(mode==='ix' && u.includes('interactions')) return r.fulfill({status:200,headers:H,body:JSON.stringify({steps:[{type:'model_output',content:[{type:'audio',mime_type:'audio/wav',data:wav}]}]})});
     if(mode==='gc' && u.includes(':generateContent')) return r.fulfill({status:200,headers:H,body:JSON.stringify({candidates:[{content:{parts:[{inlineData:{mimeType:'audio/L16;codec=pcm;rate=24000',data:pcm.toString('base64')}}]}}]})});
     if(mode==='quota') return r.fulfill({status:429,headers:H,body:JSON.stringify({error:{message:'quota',details:[{violations:[{quotaId:'GenerateRequestsPerDayPerProjectPerModel'}]}]}})});
+    if(mode==='day60'||mode==='min60'){ if(body.model==='gemini-3.8-flash-tts') return r.fulfill({status:429,headers:H,body:JSON.stringify({error:{message:'quota, Please retry in 50s',details:[{violations:[{quotaId:mode==='day60'?'GenerateRequestsPerDayPerProjectPerModel-FreeTier':'GenerateRequestsPerMinutePerProjectPerModel-FreeTier'}]},{retryDelay:'50s'}]}})}); if(u.includes('interactions')) return r.fulfill({status:200,headers:H,body:JSON.stringify({steps:[{type:'model_output',content:[{type:'audio',mime_type:'audio/wav',data:wav}]}]})}); }
     if(mode==='rpm'){ rpm++; if(rpm===1) return r.fulfill({status:429,headers:H,body:JSON.stringify({error:{message:'quota',details:[{retryDelay:'1s'}]}})}); if(u.includes('interactions')) return r.fulfill({status:200,headers:H,body:JSON.stringify({steps:[{type:'model_output',content:[{type:'audio',mime_type:'audio/wav',data:wav}]}]})}); }
     return r.fulfill({status:404,headers:H,body:JSON.stringify({error:{message:'model not found'}})}); }
   if(u.startsWith('file:')) return r.continue(); return r.abort();});
@@ -36,6 +37,11 @@ await p.evaluate(()=>document.getElementById('vcBtn').click()); await p.waitForT
 console.log('troppe richieste → tasto dice:', await p.evaluate(()=>document.querySelector('#vcBtn span').textContent));
 await p.waitForTimeout(2500);
 console.log('dopo l\'attesa riparte con Gemini:', await p.evaluate(()=>document.getElementById('vcBtn').dataset.s), '| richieste:', seen.length, '| robot:', await p.evaluate(()=>window.__robot||0));
+// v252: quota del giorno con «riprova tra 50 s» e occupato per un minuto → subito il modello successivo, niente attesa
+for(const md of ['day60','min60']){ await p.reload(); await p.waitForTimeout(6500); await p.evaluate(()=>{ localStorage.removeItem('rt_tts_dayout'); localStorage.setItem('rt_tts_ok','gemini-3.8-flash-tts'); speechSynthesis.speak=u=>{window.__robot=(window.__robot||0)+1;}; window.__robot=0; openModal(GAMES.find(x=>x.story)||GAMES[3]); }); await p.waitForTimeout(600);
+  mode=md; seen.length=0; await p.evaluate(async()=>{ const c=await caches.open('rt_voce1'); for(const k of await c.keys()) await c.delete(k); });
+  await p.evaluate(()=>document.getElementById('vcBtn').click()); await p.waitForTimeout(1500);
+  console.log(md,'→', seen.slice(0,4).join(' , '), '| tasto:', await p.evaluate(()=>document.querySelector('#vcBtn span').textContent), '| robot:', await p.evaluate(()=>window.__robot||0), '| giorno segnato:', await p.evaluate(()=>localStorage.getItem('rt_tts_dayout'))); }
 // finestra voce
 await p.evaluate(()=>rtStory.stop()); mode='ix'; seen.length=0;
 await p.evaluate(()=>document.getElementById('vcSet').click()); await p.waitForTimeout(300);

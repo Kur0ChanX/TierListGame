@@ -147,3 +147,6 @@ Guscio WebView che apre il sito online (`https://kur0chanx.github.io/TierListGam
 
 ## v251 (3/10/2026)
 - **`voce.js`**: tolta l'uscita rapida di v250 sui 429 di Gemini (`coolUntil` resta ma non viene più impostato): con «retry in N s» si aspetta fino a 60 s (`onWait` sul tasto) e si riprova lo stesso modello. Le voci di riserva solo per quota del giorno finita, chiave rifiutata o Gemini che non risponde.
+
+## v252 (2026-10-03)
+- **`voce.js` `aiAudio`**: `e.perDay` dipende solo dal tipo di quota (Google mette «retry in 50s» anche sulla quota del giorno: prima si aspettava 60 s all'infinito sullo stesso modello). Giri (max 3): si provano subito tutti i modelli non occupati; 429 lungo → `coolUntil[m]` e modello successivo; si aspetta (max 60 s, `onWait`) solo se sono tutti occupati. Quota del giorno salvata in `rt_tts_dayout` ({day, m:[modelli]}). Prova: `tools/test/tvoce2.js` (modi `day60`, `min60`).
