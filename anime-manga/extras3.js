@@ -5,7 +5,7 @@
   'use strict';
   const U = window.XUI; if(!U) return;
   const {sheet, toast, esc, LS, TIER_COL} = U;
-  // v208: BLOCCHI DI 40 SECONDI all'avvio — il modello dei gusti si ricalcolava per OGNI gioco (rileggendo tutti i dati ogni volta).
+  // v208: BLOCCHI DI 40 SECONDI all'avvio — il modello dei gusti si ricalcolava per OGNI titolo (rileggendo tutti i dati ogni volta).
   // Ora c'è un contatore di versione: cambia solo quando cambia davvero un dato dei gusti (preferiti, stati, voti, cuori, icone, valutazioni, DNA…).
   // Finché non cambia, il modello è già pronto e costa zero. Le letture «solo per guardare» non rifanno il JSON.parse se il testo è uguale.
   let TVER = 1;
@@ -68,7 +68,7 @@
     if(!it.length){ sheet('xRadar', gi('target') + ' Radar delle uscite', '<div class="lp-sub">Il radar si aggiorna ogni notte su GitHub (workflow «Dati settimanali»). Non ci sono ancora dati: lancialo una volta da Actions, poi torna qui.</div>'); return; }
     const row = x=> `<div class="rd-row"><div><b>${esc(x.name)}</b>${x.inWish ? ' <span class="rd-wish">dalla tua wishlist</span>' : ''}<br><small>${esc(x.date)} · ${x.pct}% positive su ${fmtN(x.cnt)} · ${x.tags.map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', ')}${x.price ? ' · ' + esc(x.price) : ''}</small></div>
       <div class="rd-act"><a class="btn" href="https://store.steampowered.com/app/${x.app}/" target="_blank" rel="noopener">Steam</a><button class="btn" data-rd-add="${esc(x.name)}" type="button">${gi('heart')}</button></div></div>`;
-    const body = sheet('xRadar', gi('target') + ' Radar delle uscite', `<div class="lp-sub">Giochi usciti negli ultimi 45 giorni su Steam nei generi della app, con almeno il 70% di recensioni positive. Prima quelli della tua wishlist, poi quelli più vicini ai tuoi gusti. Aggiornato il ${esc(RADAR.built)}.</div><div class="rd-list">${it.slice(0, 60).map(row).join('')}</div>`);
+    const body = sheet('xRadar', gi('target') + ' Radar delle uscite', `<div class="lp-sub">Titoli usciti negli ultimi 45 giorni su Steam nei generi della app, con almeno il 70% di recensioni positive. Prima quelli della tua wishlist, poi quelli più vicini ai tuoi gusti. Aggiornato il ${esc(RADAR.built)}.</div><div class="rd-list">${it.slice(0, 60).map(row).join('')}</div>`);
     body.querySelectorAll('[data-rd-add]').forEach(b=> b.addEventListener('click', ()=>{
       const x = it.find(y=> y.name === b.dataset.rdAdd); if(!x) return;
       try{ askToolAddCustomGame({name: x.name, plat: 'PC', year: x.date.slice(0, 4), score: x.pct, tier: x.pct >= 95 ? 'S' : x.pct >= 90 ? 'A' : x.pct >= 80 ? 'B' : 'C', tags: x.tags.filter(t=> TAG_INFO[t])}, 'Radar delle uscite'); b.disabled = true; b.textContent = '✓'; }
@@ -95,14 +95,14 @@
   function thermoHtml(g){
     const f = facts(g), s = f && f.s; if(!s || s.rp == null || s.ap == null) return '';
     const d = s.rp - s.ap, cls = d >= 5 ? 'up' : d <= -5 ? 'down' : 'flat';
-    const txt = d >= 5 ? 'Sta migliorando: gli ultimi giocatori lo apprezzano più di prima (patch, aggiornamenti o riscoperta)' : d <= -5 ? 'In calo: le recensioni recenti sono peggiori di quelle di sempre (controlla cosa è cambiato)' : 'Stabile: i giocatori di oggi la pensano come quelli di sempre';
+    const txt = d >= 5 ? 'Sta migliorando: gli ultimi appassionati lo apprezzano più di prima (patch, aggiornamenti o riscoperta)' : d <= -5 ? 'In calo: le recensioni recenti sono peggiori di quelle di sempre (controlla cosa è cambiato)' : 'Stabile: i appassionati di oggi la pensano come quelli di sempre';
     return `<div class="thermo thermo-${cls}"><div class="thermo-bar"><i style="width:${s.ap}%"></i><u style="left:${s.rp}%"></u></div><div><b>Termometro Steam</b> · ultimi 30 giorni <b>${s.rp}%</b> (${s.rn} recensioni) · da sempre <b>${s.ap}%</b><br><small>${txt}</small></div></div>`;
   }
   const MODERN = /\b(pc|steam|windows|switch|ps4|ps5|xbox|mobile|ios|android|stadia|mac|linux)\b/i;
   function rarityHtml(g){
     const p = String(g.plat || ''), f = facts(g);
     const notes = [];
-    if(p && !MODERN.test(p)) notes.push('Esiste solo su console di vecchia generazione: oggi si trova usato o tramite emulazione/collezioni. Se ti interessa, compralo finché si trova a buon prezzo.');
+    if(false && p && !MODERN.test(p)) notes.push(      /* versione Anime: niente console */'Esiste solo su console di vecchia generazione: oggi si trova usato o tramite emulazione/collezioni. Se ti interessa, compralo finché si trova a buon prezzo.');
     if(f && f.s && f.s.id && !f.s.p) notes.push('Su Steam la pagina esiste ma non ha un prezzo: potrebbe essere stato ritirato dalla vendita.');
     if(!notes.length) return '';
     return `<div class="rarity">${gi('gem')} <div><b>Rischio introvabile</b><br><small>${notes.join('<br>')}</small></div></div>`;
@@ -118,24 +118,25 @@
     let totH = 0, totP = 0, nP = 0;
     const rows = list.map(x=>{
       const base = nrm(x.name);
-      const skip = x.score < 75 ? 'saltabile (voto basso)' : (!(x.tags || []).includes('REMAKE') && [...hasRemake].some(r=> r && base.startsWith(r))) ? 'c\'è il remake: gioca quello' : '';
+      const skip = x.score < 75 ? 'saltabile (voto basso)' : (!(x.tags || []).includes('REMAKE') && [...hasRemake].some(r=> r && base.startsWith(r))) ? 'c\'è il remake: guarda quello' : '';
       if(!skip){ totH += hrs(x); const pr = price(x); if(pr != null){ totP += pr; nP++; } }
       const st = STATUSES[x.id];
       return `<button type="button" class="sp-row${x.id === g.id ? ' cur' : ''}${skip ? ' skip' : ''}" data-sp="${x.id}"><span class="badge ${TIER_LABEL[x.tier]}">${x.tier}</span><span class="sp-n">${esc(x.name)}<small>${esc(x.year || '')}${hrs(x) ? ' · ' + hrs(x) + ' h' : ''}${price(x) != null ? ' · ' + eur(price(x)) : ''}${skip ? ' · ' + skip : ''}</small></span>${st === 'played' ? gi('check') : ''}</button>`;
     }).join('');
     return `<details class="sp-box"${list.length <= 6 ? ' open' : ''}><summary><span class="modal-section-title">${gi('layers')} Percorso della saga (${list.length})</span><span class="sp-tot">Consigliato: <b>${totH || '?'} ore</b>${nP ? ' · circa <b>' + eur(totP) + '</b> su Steam (' + nP + ' con prezzo)' : ''}</span></summary><div class="sp-list">${rows}</div></details>`;
   }
-  // 4) mappa delle versioni (AI con ricerca web, salvata per ogni gioco)
+  // 4) mappa delle versioni (AI con ricerca web, salvata per ogni titolo)
   const VK = 'atl_versions';
   function versionsHtml(g){
     const v = (LS.get(VK, {}) || {})[g.id];
     const table = v && v.list && v.list.length ? `<div class="vm-list">${v.list.map(x=> `<div class="vm-row${x.best ? ' best' : ''}"><b>${esc(x.name)}</b>${x.best ? ' <span class="vm-best">consigliata</span>' : ''}<br><small>${esc([x.platforms, x.year, x.italian ? 'italiano: ' + x.italian : '', x.note].filter(Boolean).join(' · '))}</small></div>`).join('')}</div><div class="lp-sub">Dall'AI con ricerca web il ${esc(new Date(v.t).toLocaleDateString('it-IT'))}: verifica prima di comprare.</div>` : '';
-    return `<div class="modal-section-title">${gi('screen')} Quale versione conviene?</div>${table}<button class="btn" type="button" id="vmBtn">${gi('lens')} ${table ? 'Rifai l\'analisi' : 'Confronta le versioni'}</button>`;
+    return `<div class="modal-section-title">${gi('screen')} Quale versione ${isWatch(g) ? 'guardare' : 'leggere'}?</div>${table}<button class="btn" type="button" id="vmBtn">${gi('lens')} ${table ? 'Rifai l\'analisi' : 'Confronta le versioni'}</button>`;
   }
   async function runVersions(g){
     if(typeof llmAvailable === 'function' && !llmAvailable()){ toast('Serve una chiave Gemini (⚙️ Impostazioni in Chiedi)', 4000); return; }
     const f = facts(g);
-    const prompt = `Elenca le versioni ufficiali del videogioco "${g.name}" (originale, remaster, remake, porting e collezioni) che si possono giocare oggi. Per ognuna: name, platforms, year, italian ("testi e doppiaggio" | "sottotitoli" | "no" | "?"), note (breve: qualità tecnica, contenuti extra, difetti noti), best (true solo per quella che conviene di più oggi). Dati di Steam già noti: ${f && f.s ? 'italiano Steam ' + (f.s.it || '?') + (f.s.p ? ', prezzo ' + f.s.p.f + '€' : '') : 'nessuno'}. Non inventare: se non sei sicuro scrivi "?". Rispondi SOLO con JSON: {"list":[...]}`;
+    const prompt = isWatch(g) ? `Elenca le versioni ufficiali di "${g.name}" (${(KIND_BY_ID[g.kind] || {}).full || 'anime'}) che si possono guardare oggi: serie originale, remake o reboot, film riassuntivi, director's cut, versioni restaurate, eventuali adattamenti alternativi (es. Fullmetal Alchemist 2003 e Brotherhood). Per ognuna: name, platforms (dove si trova in Italia, es. Netflix, Crunchyroll, Blu-ray), year, italian ("doppiaggio" | "sottotitoli" | "no" | "?"), note (breve: quanto è fedele all'opera originale, differenze, difetti noti), best (true solo per quella da guardare per prima). Non inventare: se non sei sicuro scrivi "?". Rispondi SOLO con JSON: {"list":[...]}`
+      : `Elenca le edizioni ufficiali del ${(KIND_BY_ID[g.kind] || {}).full || 'manga'} "${g.name}" che si possono leggere oggi in Italia: prima edizione, nuove edizioni, deluxe/perfect/ultimate edition, versioni a colori o digitali, eventuali remake a fumetti. Per ognuna: name, platforms (editore italiano e formato, es. "Star Comics, brossurato"), year, italian ("completa" | "in corso" | "interrotta" | "no" | "?"), note (breve: traduzione, qualità della carta, volumi, fuori catalogo o no), best (true solo per quella che conviene di più oggi). Non inventare: se non sei sicuro scrivi "?". Rispondi SOLO con JSON: {"list":[...]}`;
     const b = document.getElementById('vmBtn'); if(b){ b.disabled = true; b.textContent = 'Sto confrontando…'; }
     try{
       const r = await askLLM(prompt, {}, {search: true, label: 'Confronto le versioni di ' + g.name + '…'});
@@ -220,7 +221,7 @@
     DARK:    {ic: '🩸', n: 'Toni cupi e maturi', d: 'violenza, tragedia, temi adulti'},
     MIND:    {ic: '🧠', n: 'Psicologico e riflessivo', d: 'introspezione, filosofia, domande sulla natura umana'},
     MYST:    {ic: '🔍', n: 'Mistero e suspense', d: 'indagini, enigmi, tensione da thriller'},
-    STRAT:   {ic: '♟️', n: 'Strategia e giochi mentali', d: 'piani geniali, battaglie di cervelli, tattica'},
+    STRAT:   {ic: '♟️', n: 'Strategia e titoli mentali', d: 'piani geniali, battaglie di cervelli, tattica'},
     COMBAT:  {ic: '⚔️', n: 'Combattimenti', d: 'scontri spettacolari, duelli, arti marziali'},
     POWER:   {ic: '📈', n: 'Poteri e crescita di forza', d: 'poteri speciali, tornei, power-up sempre più grandi'},
     HYPE:    {ic: '⚡', n: 'Momenti hype', d: 'scene esaltanti che fanno venire la pelle d\'oca'},
@@ -244,7 +245,7 @@
   function mechOf(g){
     const e = g.enrich || {}, c = MC.get(g.id), dwS = (()=>{ try{ const v = (LSro('atl_dna_why', {}) || {})[g.id]; return v ? JSON.stringify(v) : ''; }catch(x){ return ''; } })(), sig = (e._lite ? 'L' : 'F') + (g.tags || []).join(',') + '|' + (e.whyLikeIt || '').length + '|' + ((e.pros || []).length) + '|' + ((g.label || {}).d || 0) + '|' + String(g.story || '').length + '|' + dwS;
     if(c && c.sig === sig) return c.list;
-    // tratti dai testi: se i testi lunghi del gioco non sono ancora caricati uso quelli calcolati dal server (e.mx), identici
+    // tratti dai testi: se i testi lunghi del titolo non sono ancora caricati uso quelli calcolati dal server (e.mx), identici
     const tt = e._lite ? {mx: e.mx || [], cbt: e.cbt || 0} : (TR() ? TR().textTraits(g) : {mx: [], cbt: 0});
     const out = new Set(tt.mx), tg = g.tags || [], l = g.label || {};
     // indizi dai dati della scheda (etichette, simboli); i tratti dei tag li dà già tratti.js
@@ -259,7 +260,7 @@
   window.rtMech = MECH; window.rtMechOf = mechOf;
   const DECL = 'atl_taste_mech';                                  // le meccaniche che dici tu: 1 = mi piace, -1 = evito
   const declared = ()=> LS.get(DECL, {}) || {};
-  // v208: i tratti di un gioco si calcolano una volta e si riusano finché non cambiano i tuoi dati o quelli del gioco
+  // v208: i tratti di un titolo si calcolano una volta e si riusano finché non cambiano i tuoi dati o quelli del titolo
   const FC = new Map();
   function feats(g){
     const l0 = g.label || {}, ck = TVER + '|' + (g.tags || []).join(',') + '|' + (l0.d || 0) + (l0.g || 0) + (l0.s || 0) + (l0.p || '') + (l0.h || 0) + '|' + ((g.enrich && g.enrich.hoursMain) || 0) + '|' + (g.ysort || 0);
@@ -279,7 +280,7 @@
     try{ const cu = LSro('atl_dna_custom', {}) || {}, ks = Object.keys(cu); if(ks.length){ const e = g.enrich || {}, txt = mnrm([g.story, e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (g.label || {}).ok].join(' . ')); ks.forEach(k=>{ const c = cu[k]; if((c.no || []).includes(g.id)) return; if((c.by || []).includes(g.id) || (c.games || []).includes(g.id) || (c.kw || []).some(w=> w && w.length >= 4 && txt.includes(mnrm(w)))) f.push('mine:' + k); }); } }catch(e){}
     return f;
   }
-  const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mine'){ const c = (LS.get('atl_dna_custom', {}) || {})[b]; return c ? c.n : b; } if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'giochi brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'giochi lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
+  const FLAB = k=>{ const [a, b] = k.split(':'); if(a === 'mine'){ const c = (LS.get('atl_dna_custom', {}) || {})[b]; return c ? c.n : b; } if(a === 'mech') return MECH[b] ? MECH[b].n : b; if(a === 'tag') return TAG_INFO[b] ? TAG_INFO[b].label : b; if(a === 'ore') return {brevi: 'titoli brevi (sotto 20 h)', medie: 'durata media (20-50 h)', lunghe: 'titoli lunghi (oltre 50 h)'}[b] || b; return ({diff: 'difficoltà ', grind: 'grinding ', storia: 'storia ', ritmo: 'ritmo ', ore: 'durata ', epoca: 'anni '}[a] || '') + (a === 'epoca' ? String(b).slice(2) : b); };
   let TM = null, TMkey = '';
   let TMver = 0, TMn = 0;
   function tasteModel(){
@@ -289,9 +290,9 @@
     const sum = {}, cnt = {};
     sig.forEach(({g, w})=> feats(g).forEach(k=>{ sum[k] = (sum[k] || 0) + w; cnt[k] = (cnt[k] || 0) + 1; }));
     const wts = {}; Object.keys(sum).forEach(k=> wts[k] = sum[k] / (cnt[k] + 2));
-    // quello che dici tu pesa subito (anche con pochi giochi segnati); il resto lo imparo dai tuoi giochi
+    // quello che dici tu pesa subito (anche con pochi titoli segnati); il resto lo imparo dai tuoi titoli
     Object.keys(dc).forEach(m=>{ if(!MECH[m] || !dc[m]) return; const k = 'mech:' + m; wts[k] = (wts[k] || 0) + dc[m] * 1.1; cnt[k] = Math.max(cnt[k] || 0, 2); });
-    // «cosa ti ha preso di questo gioco» (🧬 nella scheda): ogni tratto che indichi tu su un gioco pesa come un segnale forte
+    // «cosa ti ha preso di questo titolo» (🧬 nella scheda): ogni tratto che indichi tu su un titolo pesa come un segnale forte
     const dwc = {}; Object.keys(dw).forEach(id=> Object.keys(dw[id] || {}).forEach(m=>{ if(MECH[m] && dw[id][m] && Math.abs(dw[id][m]) >= 1) dwc[m] = (dwc[m] || 0) + dw[id][m]; })      /* 🤷 Ni (0.5) = neutro */);
     Object.keys(dwc).forEach(m=>{ const k = 'mech:' + m, v = dwc[m]; wts[k] = (wts[k] || 0) + Math.sign(v) * Math.min(1.6, .55 * Math.abs(v)); cnt[k] = Math.max(cnt[k] || 0, 2); });
     // v200: i tratti che hai creato a parole contano subito (come quelli che segni con 👍/👎)
@@ -324,7 +325,7 @@
     const pos = e.filter(x=> x[1] > .25).sort((a, b)=> b[1] - a[1]).slice(0, 8).map(x=> FLAB(x[0]));
     const neg = e.filter(x=> x[1] < -.2).sort((a, b)=> a[1] - b[1]).slice(0, 5).map(x=> FLAB(x[0]));
     const tol = tolerances(m);
-    return `\nGUSTI DI MARIO IMPARATI DALL'APP (da ${m.n} giochi segnati): ama ${pos.join(', ') || '—'}; evita ${neg.join(', ') || '—'}.${tol.length ? ' ' + tol.join('. ') + '.' : ''} Usali per consigliare.`;
+    return `\nGUSTI DI MARIO IMPARATI DALL'APP (da ${m.n} titoli segnati): ama ${pos.join(', ') || '—'}; evita ${neg.join(', ') || '—'}.${tol.length ? ' ' + tol.join('. ') + '.' : ''} Usali per consigliare.`;
   };
   // i consigli dell'app usano anche il modello dei gusti: DNA (ordine «Più adatti a te») e prompt dell'AI
   if(typeof dnaForGame === 'function'){
@@ -339,20 +340,20 @@
   });
   // un'etichetta chiara per ogni «gusto»: le meccaniche con la loro icona
   const tlab = k=>{ const [a, b] = k.split(':'); return a === 'mech' && MECH[b] ? MECH[b].ic + ' ' + MECH[b].n : FLAB(k); };
-  function why(m, k){          // i giochi che ti hanno «insegnato» questo gusto
+  function why(m, k){          // i titoli che ti hanno «insegnato» questo gusto
     return m.sig.filter(x=> x.w > .5 && feats(x.g).includes(k)).sort((a, b)=> b.w - a.w).slice(0, 2).map(x=> x.g.name);
   }
   function openTaste(){
     const m = tasteModel(), dc = declared();
     const hasDecl = Object.keys(dc).some(k=> dc[k]);
-    const intro = `<div class="lp-sub"><b>A cosa serve:</b> guardo i giochi che hai segnato (preferiti, giocati, droppati, i tuoi voti e la tua tier list) e capisco cosa hanno in comune: non solo il genere, ma anche <b>le meccaniche che ti tengono incollato</b> (loot, build, crescita del personaggio, farming, collezionabili…). Poi lo uso per «Più adatti a te», per i verdetti, per il Radar e per i consigli di Chiedi.</div>`;
+    const intro = `<div class="lp-sub"><b>A cosa serve:</b> guardo i titoli che hai segnato (preferiti, visti, droppati, i tuoi voti e la tua tier list) e capisco cosa hanno in comune: non solo il genere, ma anche <b>le meccaniche che ti tengono incollato</b> (loot, build, crescita del personaggio, farming, collezionabili…). Poi lo uso per «Più adatti a te», per i verdetti, per il Radar e per i consigli di Chiedi.</div>`;
     // 1) le meccaniche: le dici tu (tocca per ciclare: 👍 mi piace → 👎 evito → neutro) e le imparo io
     const mrow = k=>{ const v = dc[k] || 0, kk = 'mech:' + k, w = m.wts[kk] || 0, learned = m.cnt[kk] >= 2 && !v ? (w > .25 ? 'imparato: ti piace' : w < -.2 ? 'imparato: lo eviti' : '') : '';
       const w2 = why(m, kk);
       return `<div class="tg-mech"><button type="button" class="tg-mbtn${v > 0 ? ' like' : v < 0 ? ' no' : ''}" data-mech="${k}" aria-label="${esc(MECH[k].n)}"><span class="tg-mi">${MECH[k].ic}</span><span class="tg-mt"><b>${esc(MECH[k].n)}</b><small>${esc(MECH[k].d)}</small>${learned ? `<small class="tg-lrn">${learned}${w2.length ? ' · da ' + esc(w2.join(', ')) : ''}</small>` : ''}</span><span class="tg-ms">${v > 0 ? '👍' : v < 0 ? '👎' : '＋'}</span></button></div>`; };
-    const mech = `<h4>🧬 Il tuo DNA: cosa ti prende in un gioco</h4><div class="lp-sub">Dimmelo tu: tocca una meccanica per «mi piace» 👍, ancora per «la evito» 👎, ancora per toglierla. Quello che dici pesa subito; il resto lo imparo dai tuoi giochi.</div><div class="tg-mechs">${Object.keys(MECH).map(mrow).join('')}</div>`;
+    const mech = `<h4>🧬 Il tuo DNA: cosa ti prende in un titolo</h4><div class="lp-sub">Dimmelo tu: tocca una meccanica per «mi piace» 👍, ancora per «la evito» 👎, ancora per toglierla. Quello che dici pesa subito; il resto lo imparo dai tuoi giochi.</div><div class="tg-mechs">${Object.keys(MECH).map(mrow).join('')}</div>`;
     if(m.n < 3 && !hasDecl){
-      const body0 = sheet('xTaste', gi('dna') + ' I tuoi gusti', `${intro}<div class="lp-sub">Per cominciare segna almeno <b>3 giochi</b> come preferiti, giocati o droppati (o spostali nella tua tier list), oppure scegli qui sotto le meccaniche che ami.</div>${mech}`);
+      const body0 = sheet('xTaste', gi('dna') + ' I tuoi gusti', `${intro}<div class="lp-sub">Per cominciare segna almeno <b>3 titoli</b> come preferiti, visti o droppati (o spostali nella tua tier list), oppure scegli qui sotto le meccaniche che ami.</div>${mech}`);
       wireMech(body0); return;
     }
     const e = Object.entries(m.wts).filter(([k])=> m.cnt[k] >= 2);
@@ -362,13 +363,13 @@
     const likedMech = Object.keys(MECH).filter(k=> (m.wts['mech:' + k] || 0) > .25);
     const recs = GAMES.filter(g=> !STATUSES[g.id] && !FAVS.has(g.id)).map(g=> ({g, s: tasteScore(g)})).sort((a, b)=> b.s - a.s).slice(0, 8);
     const body = sheet('xTaste', gi('dna') + ' I tuoi gusti', `${intro}
-      <div class="tg-status">${m.n >= 3 ? `Ho imparato da <b>${m.n}</b> giochi` : 'Per ora conto solo su quello che mi hai detto'} · ${m.n >= 25 ? '🟢 profilo affidabile' : m.n >= 10 ? '🟡 profilo discreto: più giochi segni, meglio è' : '🔴 profilo ancora debole: segna altri giochi'}</div>
+      <div class="tg-status">${m.n >= 3 ? `Ho imparato da <b>${m.n}</b> titoli` : 'Per ora conto solo su quello che mi hai detto'} · ${m.n >= 25 ? '🟢 profilo affidabile' : m.n >= 10 ? '🟡 profilo discreto: più titoli segni, meglio è' : '🔴 profilo ancora debole: segna altri giochi'}</div>
       ${mech}
       ${window.rtRadar ? String(window.rtRadar(null) || "").replace('id="gsCard"', 'id="gsTaste"') : ''}
       <h4>Generi e stile che ti piacciono</h4>${pos.map(x=> bar(...x)).join('') || '<small>ancora poco chiaro</small>'}
       <h4>Tendi a evitare</h4>${neg.map(x=> bar(...x)).join('') || '<small>niente di netto</small>'}
       ${tol.length ? '<h4>Nonostante…</h4>' + tol.map(t=> `<div class="tg-tol">${esc(t)}</div>`).join('') : ''}
-      ${(()=>{ const ps = window.rtPredictStats && rtPredictStats(); return ps ? `<h4>Quanto ti conosce l'app</h4><div class="tg-tol">Previsioni azzeccate (entro 1 punto): <b>${ps.hit}%</b> su ${ps.n} giochi votati · errore medio ${ps.avg.toFixed(1)}</div>` : ''; })()}
+      ${(()=>{ const ps = window.rtPredictStats && rtPredictStats(); return ps ? `<h4>Quanto ti conosce l'app</h4><div class="tg-tol">Previsioni azzeccate (entro 1 punto): <b>${ps.hit}%</b> su ${ps.n} titoli votati · errore medio ${ps.avg.toFixed(1)}</div>` : ''; })()}
       <h4>Da provare secondo i tuoi gusti</h4><div class="tg-recs">${recs.map(r=>{ const mm = mechOf(r.g).filter(k=> likedMech.includes(k) || (dc[k] || 0) > 0); return `<button class="btn" type="button" data-tg="${r.g.id}">${esc(r.g.name)}${mm.length ? ` <span class="tg-why">${mm.map(k=> MECH[k].ic).join('')}</span>` : ''}</button>`; }).join('')}</div>${likedMech.length ? '<div class="lp-sub">Le icone dicono quali delle tue meccaniche preferite ha ogni gioco.</div>' : ''}`);
     body.querySelectorAll('[data-tg]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xTaste').classList.remove('show'); openModal(GAMES.find(g=> g.id == b.dataset.tg)); }));
     wireMech(body);
@@ -385,7 +386,7 @@
   menu(gi('dna') + ' I tuoi gusti (imparati)', openTaste);
 
   // =====================================================================
-  // 20) TEMA DALLA COPERTINA: aprendo un gioco l'app prende i suoi colori (si toglie chiudendo la scheda)
+  // 20) TEMA DALLA COPERTINA: aprendo un titolo l'app prende i suoi colori (si toglie chiudendo la scheda)
   // =====================================================================
   const TINT_ON = ()=> LS.get('atl_app_tint', true) && !document.documentElement.hasAttribute('data-pack');
   const wsrv = (u, w, fmt)=> 'https://wsrv.nl/?url=' + encodeURIComponent(u) + '&w=' + w + (fmt ? '&output=' + fmt : '&output=webp');
@@ -435,7 +436,7 @@
     const my = g.id, cols = await coverColors(url);
     if(!cols || typeof currentModalGame === 'undefined' || !currentModalGame || currentModalGame.id !== my || !document.getElementById('modalBackdrop').classList.contains('show')) return;
     tintPut(my, cols);
-    // v227: i colori nuovi cambiano lo stile di TUTTA la scheda: mai durante l'apertura o mentre scorri (era lo scatto «a volte», la prima volta di ogni gioco)
+    // v227: i colori nuovi cambiano lo stile di TUTTA la scheda: mai durante l'apertura o mentre scorri (era lo scatto «a volte», la prima volta di ogni titolo)
     const still = ()=> currentModalGame && currentModalGame.id === my && document.getElementById('modalBackdrop').classList.contains('show');
     const go = ()=>{ if(!still()) return; if((window.__rtOpenUntil && performance.now() < window.__rtOpenUntil + 150) || window.__rtCardScrolling){ setTimeout(go, 250); return; } tintSet(cols); };
     go();
@@ -445,7 +446,7 @@
   new MutationObserver(()=>{ if(!document.getElementById('modalBackdrop').classList.contains('show')){ clearTimeout(tcT); tcT = setTimeout(()=>{ if(!document.getElementById('modalBackdrop').classList.contains('show')) tintClear(); }, 650); } }).observe(document.getElementById('modalBackdrop'), {attributes: true, attributeFilter: ['class']});
 
   // =====================================================================
-  // aggancio alla scheda del gioco
+  // aggancio alla scheda del titolo
   // =====================================================================
   const OWN = 'atl_owned';
   const owned = ()=> new Set(LS.get(OWN, []) || []);
@@ -504,7 +505,7 @@
       });
       x.textAlign = 'left';
     }
-    body.innerHTML = `<div class="lp-sub">${items.length} giochi · ${Math.round(total)} secondi. Il video si crea nel telefono (nessun caricamento online).</div><canvas class="anim-cv"></canvas><div class="lp-tools"><button class="btn primary" type="button" id="anRec">${gi('play')} Crea il video</button><button class="btn" type="button" id="anPlay">Anteprima</button></div>`;
+    body.innerHTML = `<div class="lp-sub">${items.length} titoli · ${Math.round(total)} secondi. Il video si crea nel telefono (nessun caricamento online).</div><canvas class="anim-cv"></canvas><div class="lp-tools"><button class="btn primary" type="button" id="anRec">${gi('play')} Crea il video</button><button class="btn" type="button" id="anPlay">Anteprima</button></div>`;
     const view = body.querySelector('.anim-cv'); view.width = W; view.height = H; const vx = view.getContext('2d');
     const play = (rec)=> new Promise(done=>{ const t0 = performance.now(); (function step(){ const t = (performance.now() - t0) / 1000; frame(Math.min(t, total)); vx.drawImage(c, 0, 0); if(t < total) requestAnimationFrame(step); else done(); })(); });
     body.querySelector('#anPlay').addEventListener('click', ()=> play());
@@ -531,7 +532,7 @@
   // =====================================================================
   function openShowcase(){
     const list = (GAMES.filter(g=> FAVS.has(g.id) && effectiveCover(g)).length >= 5 ? GAMES.filter(g=> FAVS.has(g.id)) : GAMES.filter(g=> ['S+', 'S', 'A'].includes(g.tier))).filter(g=> effectiveCover(g)).sort(()=> Math.random() - .5);
-    if(list.length < 2){ toast('Servono almeno 2 giochi con copertina (preferiti o tier alti)', 4000); return; }
+    if(list.length < 2){ toast('Servono almeno 2 titoli con copertina (preferiti o tier alti)', 4000); return; }
     const el = document.createElement('div'); el.className = 'showcase'; document.body.appendChild(el);
     el.innerHTML = '<div class="sc-bg"></div><div class="sc-bg sc-b2"></div><img class="sc-img" alt=""><div class="sc-cap"></div><button class="sc-x" type="button" aria-label="Chiudi">✕</button>';
     let i = 0, tm = 0, wake = null;
@@ -556,7 +557,7 @@
   menu(gi('screen') + ' Modalità vetrina (schermo intero)', openShowcase);
 
   // =====================================================================
-  // 11) SCANSIONE DELLO SCAFFALE (foto delle custodie → giochi posseduti)
+  // 11) SCANSIONE DELLO SCAFFALE (foto delle custodie → titoli posseduti)
   // =====================================================================
   function matchName(t){
     const n = nrm(t); if(n.length < 3) return null;
@@ -565,7 +566,7 @@
     return bs >= 1.5 ? best : null;
   }
   function openShelf(){
-    const body = sheet('xShelf', gi('cam') + ' Scansione dello scaffale', `<div class="lp-sub">Fotografa i tuoi giochi fisici (coste delle custodie ben leggibili, anche più foto). L'AI legge i titoli, io li cerco nel database e tu confermi quali segnare come posseduti.</div>
+    const body = sheet('xShelf', gi('cam') + ' Scansione dello scaffale', `<div class="lp-sub">Fotografa i tuoi titoli fisici (coste delle custodie ben leggibili, anche più foto). L'AI legge i titoli, io li cerco nel database e tu confermi quali segnare come posseduti.</div>
       <label class="btn primary sh-pick">${gi('cam')} Scatta o scegli le foto<input type="file" accept="image/*" multiple capture="environment" hidden></label><div class="sh-out"></div>`);
     const inp = body.querySelector('input'), out = body.querySelector('.sh-out');
     inp.addEventListener('change', async ()=>{
@@ -582,17 +583,17 @@
       const own = owned();
       out.innerHTML = `<div class="lp-sub">Letti ${titles.length} titoli: ${found.length} trovati nel database.</div>${found.map(g=> `<label class="ask-toggle"><input type="checkbox" data-sh="${g.id}" checked> ${esc(g.name)}${own.has(g.id) ? ' <small>(già posseduto)</small>' : ''}</label>`).join('')}
         ${missing.length ? `<div class="lp-sub">Non nel database: ${missing.map(esc).join(', ')}</div>` : ''}${found.length ? `<button class="btn primary" type="button" id="shSave">${gi('check')} Segna come posseduti</button>` : ''}`;
-      const sv = out.querySelector('#shSave'); if(sv) sv.addEventListener('click', ()=>{ const s = owned(); out.querySelectorAll('[data-sh]:checked').forEach(c=> s.add(+c.dataset.sh)); LS.set(OWN, [...s]); toast(s.size + ' giochi posseduti in tutto', 3000); document.getElementById('xShelf').classList.remove('show'); });
+      const sv = out.querySelector('#shSave'); if(sv) sv.addEventListener('click', ()=>{ const s = owned(); out.querySelectorAll('[data-sh]:checked').forEach(c=> s.add(+c.dataset.sh)); LS.set(OWN, [...s]); toast(s.size + ' titoli posseduti in tutto', 3000); document.getElementById('xShelf').classList.remove('show'); });
     });
   }
-  menu(gi('cam') + ' Scansiona lo scaffale (giochi fisici)', openShelf);
+  menu(gi('cam') + ' Scansiona lo scaffale (titoli fisici)', openShelf);
 
   // =====================================================================
   // 23) GESTI RAPIDI nella lista (opzionali, ognuno si sceglie)
   // =====================================================================
   const GK = 'atl_gestures';
   const gset = ()=> Object.assign({on: false, right: 'played', left: 'backlog', hold: true}, LS.get(GK, {}) || {});
-  const ACTS = {none: 'Niente', played: 'Giocato', playing: 'In corso', backlog: 'Da giocare', dropped: 'Droppato', fav: 'Preferito'};
+  const ACTS = {none: 'Niente', played: 'Visto', playing: 'In corso', backlog: 'Da vedere', dropped: 'Droppato', fav: 'Preferito'};
   function doAct(g, a){
     if(a === 'fav'){ if(FAVS.has(g.id)) FAVS.delete(g.id); else FAVS.add(g.id); saveFavs(); toast(FAVS.has(g.id) ? '★ Aggiunto ai preferiti' : 'Tolto dai preferiti', 1600); }
     else if(STATUS_INFO[a]){ setStatus(g.id, a); toast((STATUSES[g.id] === a ? STATUS_INFO[a].label : 'Stato tolto') + ': ' + g.name, 1600); }
@@ -636,7 +637,7 @@
   })();
   function openGestures(){
     const s = gset(), opt = v=> Object.entries(ACTS).map(([k, l])=> `<option value="${k}"${k === v ? ' selected' : ''}>${l}</option>`).join('');
-    const body = sheet('xGest', gi('pad') + ' Gesti rapidi', `<div class="lp-sub">Nella lista dei giochi (telefono): scorri una riga verso destra o sinistra per un'azione veloce, tieni premuto per un'anteprima. Scegli tu cosa fa ogni gesto.</div>
+    const body = sheet('xGest', gi('pad') + ' Gesti rapidi', `<div class="lp-sub">Nella lista dei titoli (telefono): scorri una riga verso destra o sinistra per un'azione veloce, tieni premuto per un'anteprima. Scegli tu cosa fa ogni gesto.</div>
       <label class="ask-toggle"><input type="checkbox" id="gsOn" ${s.on ? 'checked' : ''}> Attiva i gesti rapidi</label>
       <label class="gs-row">Scorri a destra → <select id="gsR">${opt(s.right)}</select></label>
       <label class="gs-row">Scorri a sinistra ← <select id="gsL">${opt(s.left)}</select></label>
@@ -700,15 +701,15 @@
     if(typeof QUALITY === 'undefined'){ sheet('xQual', gi('pulse') + ' Rapporto qualità notturno', '<div class="lp-sub">Il rapporto si crea ogni notte su GitHub (workflow «Dati settimanali»). Non è ancora disponibile.</div>'); return; }
     const by = {}; QUALITY.issues.forEach(i=> (by[i[2]] = by[i[2]] || []).push(i));
     const LAB = {doppione: 'Nomi doppi', anno: 'Anni', tag: 'Generi', testo: 'Testi legati al tempo', voto: 'Voti diversi dal Metascore', lingua: 'Lingua italiana', community: 'Recensioni in calo', copertina: 'Copertine rotte'};
-    const body = sheet('xQual', gi('pulse') + ' Rapporto qualità notturno', `<div class="lp-sub">Controllo del ${esc(QUALITY.built)}: ${QUALITY.issues.length} segnalazioni. Tocca un gioco per aprirlo e usare «Update+» o «Aggiorna info».</div>` +
+    const body = sheet('xQual', gi('pulse') + ' Rapporto qualità notturno', `<div class="lp-sub">Controllo del ${esc(QUALITY.built)}: ${QUALITY.issues.length} segnalazioni. Tocca un titolo per aprirlo e usare «Update+» o «Aggiorna info».</div>` +
       Object.keys(by).map(k=> `<details class="hist"><summary>${esc(LAB[k] || k)} (${by[k].length})</summary>${by[k].slice(0, 80).map(i=> `<button class="btn qr-row" type="button" data-qr="${i[0]}"><b>${esc(i[1])}</b><br><small>${esc(i[3])}</small></button>`).join('')}</details>`).join(''));
     body.querySelectorAll('[data-qr]').forEach(b=> b.addEventListener('click', ()=>{ const g = GAMES.find(x=> x.id == b.dataset.qr); if(g){ document.getElementById('xQual').classList.remove('show'); openModal(g); } }));
   }
   menu(gi('pulse') + ' Rapporto qualità notturno', openQuality);
-  // Triple Triad: ora è un gioco a parte (repository raccoon-triad); qui resta solo il collegamento
+  // Triple Triad: ora è un titolo a parte (repository raccoon-triad); qui resta solo il collegamento
   const TT_URL = 'https://kur0chanx.github.io/raccoon-triad/';
   function openTT(){ toast('Apro Raccoon Triad…', 1500); location.href = TT_URL; }
   window.openTT = openTT;
-  menu(gi('cards') + ' Raccoon Triad (gioco di carte)', openTT);
+  menu(gi('cards') + ' Raccoon Triad (titolo di carte)', openTT);
   menu(gi('orb') + ' Tema dalla copertina: ' + (TINT_ON() ? 'acceso' : 'spento'), ()=>{ LS.set('atl_app_tint', !TINT_ON()); toast('Tema dalla copertina ' + (TINT_ON() ? 'acceso' : 'spento'), 2500); });
 })();

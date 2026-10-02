@@ -2,7 +2,7 @@
 const TIER_ORDER = {'S+':0,'S':1,'A':2,'B':3,'C':4,'D':5,'E':6,'F':7,'ND':8};
 const TIER_LABEL = {'S+':'Splus','S':'S','A':'A','B':'B','C':'C','D':'D','E':'E','F':'F','ND':'ND'};
 const TIERS_LIST = ['S+','S','A','B','C','D','E','F','ND'];      // ND = voto non verificato (né Metacritic né OpenCritic): sta sotto tutti i rank
-// testo del voto: «ND» quando il gioco non ha un voto verificato
+// testo del voto: «ND» quando il titolo non ha un voto verificato
 function scoreTxt(g){ return g.tier === 'ND' ? 'ND' : g.score; }
 
 // ---- Generi, pubblico, temi e studi (definiti nei dati: GIOCHI_DATA.meta) ----
@@ -25,6 +25,12 @@ const KINDS = [
 ];
 const KIND_BY_ID = {}; KINDS.forEach(k=>{ KIND_BY_ID[k.id] = k; });
 const isWatch = g=> !g || !KIND_BY_ID[g.kind] || KIND_BY_ID[g.kind].watch;
+// parole giuste per il tipo: si GUARDA (anime, film, animazione) o si LEGGE (manga, manhwa); senza titolo: «visto/letto»
+function kw(g){
+  if(g === undefined) return {done:'Visto/letto', todo:'Da vedere/leggere', again:'Lo rivedrei', againTu:'Lo rivedresti', ask:'L\'hai visto o letto?', verb:'guardare o leggere', done_l:'visto o letto', img:'immagini'};
+  return isWatch(g) ? {done:'Visto', todo:'Da vedere', again:'Lo rivedrei', againTu:'Lo rivedresti', ask:'L\'hai visto?', verb:'guardare', done_l:'visto', img:'fotogrammi'}
+    : {done:'Letto', todo:'Da leggere', again:'Lo rileggerei', againTu:'Lo rileggeresti', ask:'L\'hai letto?', verb:'leggere', done_l:'letto', img:'tavole'};
+}
 // Gruppi del selettore «Tutti i generi»
 const GENRE_GROUPS = [
   {icon:'🎬', title:'Generi', codes: AM_META.tags.filter(t=> t.g === 'Generi').map(t=> t.c)},
@@ -42,7 +48,7 @@ const GENRE_HINT = {
 };
 function genreGlossary(codes){ return codes.map(c=> `${c} = ${TAG_INFO[c] ? TAG_INFO[c].label : c}${GENRE_HINT[c] ? ' (' + GENRE_HINT[c] + ')' : ''}`).join('; '); }
 
-// Mappa id gioco -> chiave saga (raggruppamento automatico per franchise, solo sighe con 2+ titoli in classifica)
+// Mappa id titolo -> chiave saga (raggruppamento automatico per franchise, solo sighe con 2+ titoli in classifica)
 const SAGA_MAP = GIOCHI_DATA.sagaMap;
 // Info per ogni saga: nome, ordine consigliato, nota
 // Info per ogni saga: nome (dai dati), ordine consigliato e nota (si possono aggiungere a mano qui)
@@ -78,7 +84,7 @@ const WIZARD_QUESTIONS = [
   ]}
 ];
 
-// v209: indice «a tabella» (enc 't1'): una riga per gioco → oggetti come prima (stesso codice di tools/data-io.js decodeT1)
+// v209: indice «a tabella» (enc 't1'): una riga per titolo → oggetti come prima (stesso codice di tools/data-io.js decodeT1)
 (function decodeIndex(D){
   if(!D || D.enc !== 't1' || !D.t) return;
   const NUL = '\u2205', dec = v=> v === NUL ? null : v, T = D.t, gc = T.cols.g, lc = T.cols.l, ec = T.cols.e, games = [], labels = {}, lite = {};
@@ -94,10 +100,10 @@ const WIZARD_QUESTIONS = [
   D.games = games; D.labels = labels; D.lite = lite; delete D.t;
 })(typeof GIOCHI_DATA !== 'undefined' ? GIOCHI_DATA : null);
 const GAMES = GIOCHI_DATA.games;
-// ---- DATI v3 (v209): INDICE LEGGERO + TESTI A PEZZI (pensato per 20.000+ giochi) ----
-// giochi.js ha solo l'indice: nome, generi, voto, tier, etichetta in numeri e un «lite» per gioco (storyTag, dopamina, ore,
+// ---- DATI v3 (v209): INDICE LEGGERO + TESTI A PEZZI (pensato per 20.000+ titoli) ----
+// giochi.js ha solo l'indice: nome, generi, voto, tier, etichetta in numeri e un «lite» per titolo (storyTag, dopamina, ore,
 // punteggi, locandina e i tratti già riconosciuti nei testi, mx). I testi lunghi (trama, analisi, pro/contro, «fa per te se»,
-// dopamina) stanno in dati/testi-K.js (250 giochi a pezzo) e arrivano quando servono: apri un gioco, Update+, Oracolo…
+// dopamina) stanno in dati/testi-K.js (250 titoli a pezzo) e arrivano quando servono: apri un titolo, Update+, Oracolo…
 // Se il catalogo non è enorme li carico anche in sottofondo, un pezzo alla volta, quando il telefono è libero.
 // Fino all'arrivo dei testi g.enrich è il «lite» (con _lite: true) e g.story manca: il codice lo gestisce già (come prima, in attesa dei dettagli).
 const DATA_V3 = GIOCHI_DATA.v === 3, TEXT_SH = GIOCHI_DATA.sh || 250;
@@ -160,19 +166,19 @@ window.rtTexts = {
   },
   loaded: ()=> RT_TEXT.have.size, shard: textShard
 };
-// i testi dei giochi «vicini» al dito arrivano prima del tocco: inizio a caricarli appena lo appoggi
+// i testi dei titoli «vicini» al dito arrivano prima del tocco: inizio a caricarli appena lo appoggi
 document.addEventListener('pointerdown', e=>{
   try{ const el = e.target.closest && e.target.closest('[data-gid],[data-id],[data-open],[data-brg],[data-sp]'); if(!el) return;
     const id = el.dataset.gid || el.dataset.id || el.dataset.open || el.dataset.brg || el.dataset.sp; if(id && /^\d+$/.test(id)) rtTexts.ensure(+id); }catch(x){}
 }, {capture: true, passive: true});
 // in sottofondo, quando il telefono è libero: con un catalogo normale carico tutti i testi (un pezzo ogni ~0,6 s),
-// con uno enorme solo quelli dei giochi che contano per i tuoi gusti (preferiti, giocati, nel cuore, votati)
+// con uno enorme solo quelli dei titoli che contano per i tuoi gusti (preferiti, visti, nel cuore, votati)
 setTimeout(function fill(){
   if(!DATA_V3) return;
   const idle = f=> (window.requestIdleCallback ? requestIdleCallback(f, {timeout: 4000}) : setTimeout(f, 200));
   const total = GAMES.length;
   let ks;
-  // v215: prima i pezzi con i TUOI giochi (preferiti, giocati, nel cuore): sono quelli che apri di più
+  // v215: prima i pezzi con i TUOI titoli (preferiti, visti, nel cuore): sono quelli che apri di più
   let mineK = []; try{ const top = new Set((window.rtLSro ? rtLSro('atl_top', []) : []) || []); mineK = [...new Set(GAMES.filter(g=> !g.custom && (FAVS.has(g.id) || STATUSES[g.id] || top.has(g.id))).map(g=> textShard(g.id)))]; }catch(e){}
   if(total <= 6000) ks = [...new Set(mineK.concat(GAMES.filter(g=> !g.custom).map(g=> textShard(g.id))))];
   else { let mine = []; try{ mine = GAMES.filter(g=> FAVS.has(g.id) || STATUSES[g.id]); }catch(e){} ks = [...new Set(mine.map(g=> textShard(g.id)))]; }
@@ -180,7 +186,7 @@ setTimeout(function fill(){
   let i = 0;
   const step = ()=>{ if(i >= ks.length) return; if(document.hidden){ setTimeout(step, 3000); return; } const k = ks[i++]; textLoad(k).then(()=> setTimeout(()=> idle(step), 350)); };
   idle(step);
-}, 2500);          // v215: prima partiva dopo 7 s, e chi apriva un gioco subito aspettava i testi (locandina sola sul nero per ~0,7 s)
+}, 2500);          // v215: prima partiva dopo 7 s, e chi apriva un titolo subito aspettava i testi (locandina sola sul nero per ~0,7 s)
 // compatibilità: chi aspettava «i dettagli» li ha già (indice)
 if(DATA_V3) setTimeout(()=>{ try{ window.dispatchEvent(new Event('details-ready')); }catch(e){} }, 0);
 // ---- formato vecchio (fino alla v208): dettagli in 4 pezzi, se qualcuno li ha ancora ----
@@ -380,16 +386,16 @@ function openListPicker(q){
   el.classList.add('show');
 }
 function ensureGenreLists(tags){
-  // crea la classifica del genere principale (primo tag) e di ogni genere non-RPG del gioco
+  // crea la classifica del genere principale (primo tag) e di ogni genere non-RPG del titolo
   const wanted = [];
   (tags || []).forEach((t, i)=>{ if(TAG_INFO[t] && (i === 0 || EXTRA_GENRE_INFO[t]) && !wanted.includes(t)) wanted.push(t); });
   const added = wanted.filter(t=> !MY_LISTS.includes(t));
   if(added.length){ added.forEach(t=> MY_LISTS.push(t)); saveLists(); renderListBar(); }
   return added;
 }
-// Conferma grande e ben visibile (al centro dello schermo) quando un gioco viene aggiunto
+// Conferma grande e ben visibile (al centro dello schermo) quando un titolo viene aggiunto
 function showAddedBanner(name, tags, newLists){
-  if(window.__bulkAdd) return;                         // «Accetta tutto»: niente banner per ogni gioco, c'è l'elenco finale
+  if(window.__bulkAdd) return;                         // «Accetta tutto»: niente banner per ogni titolo, c'è l'elenco finale
   let el = document.getElementById('addedBanner');
   if(!el){ el = document.createElement('div'); el.id = 'addedBanner'; el.className = 'added-banner'; document.body.appendChild(el); }
   const parts = [];
@@ -429,16 +435,16 @@ function renderMetrics(){
   const withLabel = GAMES.filter(g=>g.label).length;
   const labelPct = GAMES.length ? Math.round((withLabel/GAMES.length)*100) : 0;
   document.getElementById('metricsRow').innerHTML = `
-    <div class="metric"><b>${GAMES.length}</b>giochi totali</div>
+    <div class="metric"><b>${GAMES.length}</b>titoli totali</div>
     <div class="metric"><b>${avg}</b>voto medio</div>
     <div class="metric"><b>${median}</b>voto mediano</div>
     <div class="metric"><b>${minY}\u2013${maxY}</b>periodo coperto</div>
     <div class="metric"><b>${withStory}</b>schede narrative</div>
     <div class="metric"><b>${FAVS.size}</b>preferiti</div>
-    <div class="metric"><b>${playedCount} (${pct}%)</b>giocati da te</div>
-    <div class="metric" title="Giochi con una copertina visibile"><b>${withCover}/${GAMES.length} (${coverPct}%)</b>copertine</div>
-    <div class="metric" title="Giochi con scheda approfondita (pro/contro, ore, dopamina...)"><b>${withEnrich}/${GAMES.length} (${enrichPct}%)</b>schede complete</div>
-    <div class="metric" title="Giochi con l'etichetta (difficoltà, ore, fa per te se...)"><b>${withLabel}/${GAMES.length} (${labelPct}%)</b>etichette</div>
+    <div class="metric"><b>${playedCount} (${pct}%)</b>visti da te</div>
+    <div class="metric" title="Titoli con una copertina visibile"><b>${withCover}/${GAMES.length} (${coverPct}%)</b>copertine</div>
+    <div class="metric" title="Titoli con scheda approfondita (pro/contro, ore, dopamina...)"><b>${withEnrich}/${GAMES.length} (${enrichPct}%)</b>schede complete</div>
+    <div class="metric" title="Titoli con l'etichetta (difficoltà, ore, fa per te se...)"><b>${withLabel}/${GAMES.length} (${labelPct}%)</b>etichette</div>
   `;
 }
 
@@ -533,11 +539,11 @@ function renderStatsPanel(){
   });
   const platRows = Object.entries(platCounts).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([label,count])=>({label,count}));
 
-  const statusCounts = {Giocato:0, 'In corso':0, 'Da giocare':0, Droppato:0};
+  const statusCounts = {Visto:0, 'In corso':0, 'Da vedere':0, Droppato:0};
   Object.values(STATUSES).forEach(s=>{
-    if(s==='played') statusCounts.Giocato++;
+    if(s==='played') statusCounts.Visto++;
     else if(s==='playing') statusCounts['In corso']++;
-    else if(s==='backlog') statusCounts['Da giocare']++;
+    else if(s==='backlog') statusCounts['Da vedere']++;
     else if(s==='dropped') statusCounts.Droppato++;
   });
   statusCounts['Non tracciato'] = GAMES.length - Object.keys(STATUSES).length;
@@ -562,8 +568,8 @@ function renderStatsPanel(){
   });
 
   panel.innerHTML =
-    `<div class="metrics" style="margin-bottom:16px;"><div class="metric"><b>${Math.round(totalHoursPlayed)}h</b>ore stimate giocate (titoli "giocato"/"in corso" con dati di durata)</div><div class="metric"><b>${gamesPlayedCount}</b>giochi con stato "giocato"</div></div>` +
-    chartHtml('Completamento per tier (% giocato)', completionRows) +
+    `<div class="metrics" style="margin-bottom:16px;"><div class="metric"><b>${Math.round(totalHoursPlayed)}h</b>ore stimate giocate (titoli "visto"/"in corso" con dati di durata)</div><div class="metric"><b>${gamesPlayedCount}</b>titoli con stato "visto"</div></div>` +
+    chartHtml('Completamento per tier (% visto)', completionRows) +
     chartHtml('Distribuzione per tier', tierRows) +
     chartHtml('Distribuzione per decade', decadeRows) +
     chartHtml('Piattaforme pi\u00F9 rappresentate', platRows) +
@@ -643,7 +649,7 @@ function applyFilters(){
   return list;
 }
 
-function methodIcon(m, g){ const f = g && typeof freshInfo === 'function' ? freshInfo(g) : null; if(m==='V'){ return f ? '<span class="vplus" title="Voto verificato e gioco aggiornato con Update+">V+</span>' : '✅'; } return f ? '<span class="vplus s" title="Gioco aggiornato con Update+, ma il voto è ancora una stima: nessuna fonte affidabile (Metacritic) lo ha confermato. Diventa V+ appena una fonte lo conferma.">🗳️+</span>' : '🗳️'; }   // V+ dorata = voto verificato + Update+   // V dorata = voto verificato + Update+
+function methodIcon(m, g){ const f = g && typeof freshInfo === 'function' ? freshInfo(g) : null; if(m==='V'){ return f ? '<span class="vplus" title="Voto verificato e titolo aggiornato con Update+">V+</span>' : '✅'; } return f ? '<span class="vplus s" title="Titolo aggiornato con Update+, ma il voto è ancora una stima: nessuna fonte affidabile (Metacritic) lo ha confermato. Diventa V+ appena una fonte lo conferma.">🗳️+</span>' : '🗳️'; }   // V+ dorata = voto verificato + Update+   // V dorata = voto verificato + Update+
 // fonte del voto: logo piccolo nella lista (AniList, IMDb, MyAnimeList, TMDB, Kitsu; STIMA = non verificato)
 function srcKind(g){
   if(g.m !== 'V') return 'stima';
@@ -695,7 +701,7 @@ function render(){
     // v212: i tuoi top in assoluto (👑 «Nei miei top») hanno lo stemma del procione con gli occhi a cuore (disegnato da Mario) a sinistra della stella e la riga bordata d'oro
     const isTop = topSet.has(g.id);
     if(isTop) tr.className = 'is-top';
-    const topBadge = isTop ? '<img class="row-badge" src="icons/top-procione.svg" alt="Gioco che amo" title="Gioco che amo" width="24" height="24" decoding="async">' : '';
+    const topBadge = isTop ? '<img class="row-badge" src="icons/top-procione.svg" alt="Titolo che amo" title="Titolo che amo" width="24" height="24" decoding="async">' : '';
     const heartBadge = '';
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip${d.approved ? ' appr' : ''}" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};"${d.approved ? ' title="Approvato dal procione: sintonia altissima con i tuoi gusti"' : ''}>${d.approved ? '<img src="icons/approved.webp" alt="" width="16" height="17">' : ''}${d.pct}%</span>` : ''; })();
     tr.innerHTML = `
@@ -709,14 +715,14 @@ function render(){
       <td class="method" title="${methodLabel(g.m)}${g.m==='V' && freshInfo(g) && !freshInfo(g).m ? ' · aggiornato con Update+' : ''}">${srcIcon(g)}</td>
       <td class="storyicon">${itBadge(g)}</td>
     `;
-    { const rb = tr.querySelector('.row-badge'); if(rb) rb.addEventListener('click', ev=>{ ev.stopPropagation(); try{ showToast('😍 È un gioco che ami (lo togli dalla scheda: «Gioco che amo»)', 2600); }catch(x){} }); }
+    { const rb = tr.querySelector('.row-badge'); if(rb) rb.addEventListener('click', ev=>{ ev.stopPropagation(); try{ showToast('😍 È un titolo che ami (lo togli dalla scheda: «Titolo che amo»)', 2600); }catch(x){} }); }
     tr.querySelector('[data-role="fav"]').addEventListener('click', (ev)=>{
       ev.stopPropagation();
       if(FAVS.has(g.id)){ FAVS.delete(g.id); showToast('Rimosso dai preferiti'); }
       else { FAVS.add(g.id); showToast('Aggiunto ai preferiti'); }
       saveFavs(); renderMetrics(); render();
     });
-    // toccando un simbolo (💕🤝✨💉) si legge PERCHÉ il gioco ce l'ha; il resto della riga apre la scheda
+    // toccando un simbolo (💕🤝✨💉) si legge PERCHÉ il titolo ce l'ha; il resto della riga apre la scheda
     tr.addEventListener('click', ev=>{ const mi = ev.target.closest && ev.target.closest('.mini-icon'); if(mi && mi.dataset.why){ ev.stopPropagation(); showToast(mi.dataset.why, 5200); return; } openModal(g); });
     return tr;
   }
@@ -755,7 +761,7 @@ const EXTRA_SORT = {
   dopa: g=> g.enrich && g.enrich.dopamine ? 1 : 0,
   status: g=> ST_ORDER[STATUSES[g.id]] || 0
 };
-const SORT_MENU = [['heart', '😍', 'Giochi che amo'], ['fav', '⭐', 'Preferiti'], ['st_romance', '💕', 'Storia romantica'], ['st_affinity', '🤝', 'Legame speciale'], ['st_wow', '🤯', 'Storia sorprendente'], ['dopa', '💉', 'Effetto dopamina'], ['status', '✅', 'Stato (in corso, giocato…)'], ['id', '🏆', 'Classifica normale']];
+const SORT_MENU = [['heart', '😍', 'Titoli che amo'], ['fav', '⭐', 'Preferiti'], ['st_romance', '💕', 'Storia romantica'], ['st_affinity', '🤝', 'Legame speciale'], ['st_wow', '🤯', 'Storia sorprendente'], ['dopa', '💉', 'Effetto dopamina'], ['status', '✅', 'Stato (in corso, visto…)'], ['id', '🏆', 'Classifica normale']];
 function openSortMenu(anchor){
   let m = document.getElementById('sortMenu');
   if(m){ m.remove(); return; }
@@ -792,7 +798,7 @@ document.querySelectorAll('thead th[data-key]').forEach(th=>{
 });
 
 // Debounce: sulla ricerca digitando velocemente non ricostruiamo la lista ad OGNI tasto premuto
-// (con centinaia di giochi, e destinati a crescere, tenerla reattiva anche su telefoni più lenti).
+// (con centinaia di titoli, e destinati a crescere, tenerla reattiva anche su telefoni più lenti).
 let searchDebounceTimer = null;
 document.getElementById('search').addEventListener('input', (e)=>{
   state.search = e.target.value;
@@ -828,7 +834,7 @@ document.getElementById('randomBtn').addEventListener('click', ()=>{
 });
 document.getElementById('dnaSortBtn').addEventListener('click', ()=>{
   const profile = buildTasteProfile();
-  if(profile.n < 2){ showToast('Segna qualche preferito o gioco giocato prima: mi serve per capire i tuoi gusti'); return; }
+  if(profile.n < 2){ showToast('Segna qualche preferito o titolo visto prima: mi serve per capire i tuoi gusti'); return; }
   state.sortKey = 'dna'; state.sortDir = -1;
   render();
   showToast('Ordinato per affinità con i tuoi gusti');
@@ -913,7 +919,7 @@ function itBadge(g){
 }
 let mtQuery = '';
 const mtNorm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-// trascinamento con il dito: tieni premuto ~0,35 s su un gioco, poi trascinalo su un altro tier
+// trascinamento con il dito: tieni premuto ~0,35 s su un titolo, poi trascinalo su un altro tier
 function mtEnableTouchDrag(chip, gid){
   let timer = 0, active = false, ghost = null, sx = 0, sy = 0, lastZone = null;
   const cleanup = ()=>{ clearTimeout(timer); if(ghost){ ghost.remove(); ghost = null; } if(lastZone) lastZone.classList.remove('dragover'); lastZone = null; chip.classList.remove('mt-dragging'); document.body.classList.remove('mt-noscroll'); active = false; };
@@ -941,7 +947,7 @@ function mtEnableTouchDrag(chip, gid){
   chip.addEventListener('touchend', ()=>{ if(active && lastZone){ const tier = lastZone.dataset.tier; cleanup(); moveToTier(gid, tier); } else cleanup(); });
   chip.addEventListener('touchcancel', cleanup);
 }
-// ---- La mia tier list: «Solo i miei giochi» (predefinita) oppure «Tutti» (parte dalla classifica ufficiale) ----
+// ---- La mia tier list: «Solo i miei titoli» (predefinita) oppure «Tutti» (parte dalla classifica ufficiale) ----
 const MT_TIERS = ['S+','S','A','B','C','D','E','F'];
 let mtMode = 'mine'; try{ mtMode = localStorage.getItem('atl_mt_mode') === 'all' ? 'all' : 'mine'; }catch(e){}
 function openTierSheet(g){
@@ -975,7 +981,7 @@ function renderMyTier(){
   const how = document.getElementById('mtHow'); if(how && !how.dataset.touched){ how.open = !GAMES.some(g=> MYTIER[g.id]); }
   const tray = document.getElementById('mtTray'); if(tray) tray.innerHTML = '';
   const grouped = {}; MT_TIERS.concat(['ND']).forEach(t=> grouped[t] = []);
-  // elenco di partenza: solo i miei (fuori dai filtri della home) oppure tutti i giochi filtrati come nella classifica
+  // elenco di partenza: solo i miei (fuori dai filtri della home) oppure tutti i titoli filtrati come nella classifica
   let base = mine ? GAMES.filter(g=> MYTIER[g.id]) : applyFilters();
   const rankedCount = GAMES.reduce((n, g)=> n + (MYTIER[g.id] ? 1 : 0), 0);
   let results = null;
@@ -986,14 +992,14 @@ function renderMyTier(){
     if(results){
       tray.innerHTML = `<div class="mt-tray-head"><b>Risultati per «${escHtml(mtQuery)}»</b><small>tocca «Scegli tier» per metterlo nella tua tier list</small></div><div class="mt-tray-list"></div>`;
       const host = tray.querySelector('.mt-tray-list'); results.forEach(g=> host.appendChild(mtChip(g, {tray: true})));
-      if(!results.length) host.innerHTML = '<div class="lp-sub">Nessun gioco con questo nome.</div>';
+      if(!results.length) host.innerHTML = '<div class="lp-sub">Nessun titolo con questo nome.</div>';
     } else {
       const sug = GAMES.filter(g=> !MYTIER[g.id] && (FAVS.has(g.id) || STATUSES[g.id] === 'played' || STATUSES[g.id] === 'playing')).sort((a, b)=> b.score - a.score);
       if(sug.length){
-        tray.innerHTML = `<div class="mt-tray-head"><b>Da classificare (${sug.length})</b><small>giochi che hai già giocato o messo tra i preferiti: scegli il tier di ognuno</small></div><div class="mt-tray-list"></div>`;
+        tray.innerHTML = `<div class="mt-tray-head"><b>Da classificare (${sug.length})</b><small>titoli che hai già visto o messo tra i preferiti: scegli il tier di ognuno</small></div><div class="mt-tray-list"></div>`;
         const host = tray.querySelector('.mt-tray-list'); sug.slice(0, 40).forEach(g=> host.appendChild(mtChip(g, {tray: true})));
       } else if(!rankedCount){
-        tray.innerHTML = `<div class="mt-empty-card"><b>La tua tier list è vuota</b><p>Cerca un gioco nella casella qui sotto e scegli il suo tier. Se segni qualche gioco come «Giocato» o tra i preferiti, comparirà qui da classificare.</p></div>`;
+        tray.innerHTML = `<div class="mt-empty-card"><b>La tua tier list è vuota</b><p>Cerca un titolo nella casella qui sotto e scegli il suo tier. Se segni qualche titolo come «Visto» o tra i preferiti, comparirà qui da classificare.</p></div>`;
       }
     }
   }
@@ -1008,7 +1014,7 @@ function renderMyTier(){
     const section = document.createElement('div');
     section.className = 'mytier-section' + (games.length ? '' : ' mt-empty');
     section.id = 'mt-sec-' + String(t).replace('+', 'plus');
-    section.innerHTML = `<div class="mytier-section-head"><span class="badge big ${TIER_LABEL[t]}">${t}</span><span class="count">${games.length} giochi</span></div>`;
+    section.innerHTML = `<div class="mytier-section-head"><span class="badge big ${TIER_LABEL[t]}">${t}</span><span class="count">${games.length} titoli</span></div>`;
     const dz = document.createElement('div');
     dz.className = 'mytier-dropzone';
     dz.dataset.tier = t;
@@ -1024,7 +1030,7 @@ function renderMyTier(){
     wrap.appendChild(section);
   });
   if(mine && !rankedCount && !q) wrap.innerHTML = '';
-  else if(q && !total && !results) wrap.innerHTML = window.rtEmpty ? window.rtEmpty('search') : '<div class="empty" style="padding:24px;text-align:center;">Nessun gioco trovato con questo nome.</div>';
+  else if(q && !total && !results) wrap.innerHTML = window.rtEmpty ? window.rtEmpty('search') : '<div class="empty" style="padding:24px;text-align:center;">Nessun titolo trovato con questo nome.</div>';
 }
 { const how = document.getElementById('mtHow'); if(how) how.addEventListener('toggle', e=>{ if(e.isTrusted !== false) how.dataset.touched = '1'; }); }
 document.getElementById('mtModes').addEventListener('click', e=>{ const b = e.target.closest('[data-mtm]'); if(!b) return; mtMode = b.dataset.mtm; try{ localStorage.setItem('atl_mt_mode', mtMode); }catch(x){} renderMyTier(); });
@@ -1038,7 +1044,7 @@ document.getElementById('mtModes').addEventListener('click', e=>{ const b = e.ta
 })();
 document.getElementById('resetMyTierBtn').addEventListener('click', ()=>{
   if(!Object.keys(MYTIER).length){ showToast('La tua tier list è già vuota'); return; }
-  if(!window.confirm('Ricomincio da zero? La tua tier list personale (' + Object.keys(MYTIER).length + ' giochi) verrà svuotata. I preferiti e gli stati restano.')) return;
+  if(!window.confirm('Ricomincio da zero? La tua tier list personale (' + Object.keys(MYTIER).length + ' titoli) verrà svuotata. I preferiti e gli stati restano.')) return;
   MYTIER = {}; saveMyTier(); renderMyTier();
   showToast('La tua tier list è stata svuotata');
 });
@@ -1093,7 +1099,7 @@ function faUpdate(){
   });
 })();
 
-// ---- Modal scheda gioco ----
+// ---- Modal scheda titolo ----
 
 const STORY_TAG_INFO = {
   romance:{icon:'💕', label:'Storia romantica'},
@@ -1102,7 +1108,7 @@ const STORY_TAG_INFO = {
 };
 // ---- Update+ : simbolo «super aggiornato» (dorato = tutte le fonti in automatico, viola = controllato a mano da te) ----
 // ---- Aggiornamenti in background senza bloccare lo scorrimento ----
-// Un dato cambiato (trama, simboli, lingua…) aggiorna SOLO la riga di quel gioco; i ridisegni completi (nuovi giochi, voto/tier cambiati)
+// Un dato cambiato (trama, simboli, lingua…) aggiorna SOLO la riga di quel titolo; i ridisegni completi (nuovi titoli, voto/tier cambiati)
 // si fanno quando non stai toccando lo schermo da almeno un secondo. Prima ogni aggiornamento ridisegnava tutto (~0,4 s bloccati sul telefono).
 let rtLastInput = 0, rtPendingParts = null, rtIdleTimer = 0;
 ['touchstart', 'touchmove', 'wheel', 'scroll', 'pointerdown'].forEach(ev=> document.addEventListener(ev, ()=>{ rtLastInput = Date.now(); }, {passive: true, capture: true}));
@@ -1127,7 +1133,7 @@ function renderWhenIdle(parts){
   const tick = ()=>{
     const quiet = Date.now() - rtLastInput;
     if(quiet < 1000){ rtIdleTimer = setTimeout(tick, 1050 - quiet); return; }
-    // v218: con la scheda di un gioco aperta la lista sotto non si vede: non la ridisegno mentre la scheda si apre o la scorri;
+    // v218: con la scheda di un titolo aperta la lista sotto non si vede: non la ridisegno mentre la scheda si apre o la scorri;
     // solo quando è aperta da un po' e ferma (così il ridisegno è già fatto quando la chiudi: niente copertine che lampeggiano al ritorno)
     try{ const mb = document.getElementById('modalBackdrop'); if(mb && mb.classList.contains('show') && (performance.now() - (window.__rtOpenAt || 0) < 3000 || window.__rtCardScrolling)){ rtIdleTimer = setTimeout(tick, 1200); return; } }catch(e){}
     const p = rtPendingParts; rtPendingParts = null;
@@ -1140,7 +1146,7 @@ function freshWhy(f){
   let d = ''; try{ d = new Date(f.t).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}); }catch(e){}
   return (f.m ? 'Controllato a mano da te il ' : 'Update V+ il ') + d + ' · fonti: ' + ((f.src && f.src.length) ? f.src.join(', ') : 'ricerca manuale') + (f.pe ? ' · ' + f.pe + ' modifiche da approvare' : '') + '. Non lo aggiorno più (tranne i prezzi).';
 }
-// aggiorna SOLO la riga di un gioco (la V+ dorata nella colonna voto; il simbolo Update+ sta solo nella scheda) senza ridisegnare la lista: niente sfarfallio negli aggiornamenti in background
+// aggiorna SOLO la riga di un titolo (la V+ dorata nella colonna voto; il simbolo Update+ sta solo nella scheda) senza ridisegnare la lista: niente sfarfallio negli aggiornamenti in background
 function refreshRowFresh(g){
   try{
     const tr = document.querySelector('#tbody tr[data-gid="' + g.id + '"]'); if(!tr) return;

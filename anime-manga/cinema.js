@@ -1,5 +1,5 @@
-// ---- Scheda «cinematografica»: copertina ferma in alto per qualche secondo, poi dissolvenze sulle schermate di gioco ----
-// Le schermate vengono da shots.js (Steam, costruito dai server ogni settimana) e, per i giochi senza Steam, da RAWG (serve la tua chiave).
+// ---- Scheda «cinematografica»: copertina ferma in alto per qualche secondo, poi dissolvenze sulle schermate di titolo ----
+// Le schermate vengono da shots.js (Steam, costruito dai server ogni settimana) e, per i titoli senza Steam, da RAWG (serve la tua chiave).
 // Si spegne da ✨ → «Anteprima cinematografica» (o da solo con il risparmio dati / «riduci animazioni» del telefono). La musica non si tocca.
 (function(){
   if(window.RT_OFF && window.RT_OFF.cinema) return;
@@ -18,7 +18,7 @@
   const fadeS = ()=> Math.max(.2, Math.min(3, +LSG('atl_hero_fade', .9)));            // v218: durata della dissolvenza tra due foto
   const MAX_CYCLES = 12, MIN_SHOTS = 5;      // giro di schermate → copertina ferma → di nuovo le schermate, e così via
 
-  // v218: ricerche su internet (foto, locandine) non appena apri il gioco: aspettano che la scheda sia aperta da un paio di secondi e ferma
+  // v218: ricerche su internet (foto, locandine) non appena apri il titolo: aspettano che la scheda sia aperta da un paio di secondi e ferma
   let openAt = performance.now();
   window.rtSettle = ms=> new Promise(res=>{ const go = ()=>{ if(window.__rtCardScrolling){ setTimeout(go, 400); return; } res(); }; setTimeout(go, Math.max(0, (ms || 2500) - (performance.now() - openAt))); });
 
@@ -34,7 +34,7 @@
     }catch(e){ return []; }
   }
   async function rawgShots(g, force){
-    const c = LSG('art_shots_rawg4', {}), e = c[g.id];      // v201: chiave nuova, le vecchie cercate col nome italiano potevano essere di un altro gioco
+    const c = LSG('art_shots_rawg4', {}), e = c[g.id];      // v201: chiave nuova, le vecchie cercate col nome italiano potevano essere di un altro titolo
     if(e && Date.now() - e.t < 30 * 864e5) return e.u || [];
     if(!force && window.rtCalm && rtCalm()) return e ? e.u || [] : [];          // v217: modalità calma: solo quelle già scaricate (le nuove le porta Update+)
     try{
@@ -53,7 +53,7 @@
     const s = steamShots(g); if(s.length >= MIN_SHOTS) return s;
     const r = await rawgShots(g);                                        // poche schermate: aggiungo quelle di RAWG (se c'è la chiave)
     let all = s.concat(r.filter(u=> !s.includes(u)));
-    // v218: ancora poche (vecchi giochi senza Steam, senza RAWG): schermate di gioco e del titolo da Libretro (gratis, senza chiave)
+    // v218: ancora poche (vecchi titoli senza Steam, senza RAWG): schermate di titolo e del titolo da Libretro (gratis, senza chiave)
     if(all.length < MIN_SHOTS && window.XCOVER && XCOVER.lrShots){ try{ const l = await XCOVER.lrShots(g, !!(window.rtCalm && rtCalm())); all = all.concat(l.filter(u=> !all.includes(u))); }catch(e){} }
     return all.slice(0, 12);
   }
@@ -133,7 +133,7 @@
   }
   window.rtHero = {run, stop, enabled};
 
-  // ---- aggancio alla scheda del gioco ----
+  // ---- aggancio alla scheda del titolo ----
   const origOpen = window.openModal;
   window.openModal = function(g){
     stop(); openAt = performance.now();
@@ -149,8 +149,8 @@
   const heroEntry = {html: '🎬 Anteprima cinematografica delle schede', run: function(){
     const U = window.XUI; if(!U) return;
     const on = LSG(K_ON, 'on') !== 'off', hold = +LSG(K_HOLD, 5);
-    const body = U.sheet('xHero', '🎬 Anteprima cinematografica', `<div class="lp-sub">Aprendo un gioco la copertina resta ferma in alto per qualche secondo, poi passa con dissolvenze alle schermate di gioco (senza filmati, quindi poco spoiler e pochi dati). La musica continua.</div>
-      <label class="ask-toggle"><input type="checkbox" id="hrOn" ${on ? 'checked' : ''}> Attiva nelle schede dei giochi</label>
+    const body = U.sheet('xHero', '🎬 Anteprima cinematografica', `<div class="lp-sub">Aprendo un titolo la copertina resta ferma in alto per qualche secondo, poi passa con dissolvenze alle schermate di titolo (senza filmati, quindi poco spoiler e pochi dati). La musica continua.</div>
+      <label class="ask-toggle"><input type="checkbox" id="hrOn" ${on ? 'checked' : ''}> Attiva nelle schede dei titoli</label>
       <label class="gs-row">Locandina ferma prima che parta il carosello <select id="hrHold">${[2, 3, 5, 8, 12].map(n=> `<option value="${n}"${n === hold ? ' selected' : ''}>${n} secondi</option>`).join('')}</select></label>
       <label class="gs-row">Ogni foto resta <select id="hrSlide">${[2.5, 3.5, 4.4, 6, 8, 10].map(n=> `<option value="${n}"${n === +LSG('atl_hero_slide', 4.4) ? ' selected' : ''}>${String(n).replace('.', ',')} secondi</option>`).join('')}</select></label>
       <label class="gs-row">Locandina tra un giro e l'altro <select id="hrBack">${[2, 4, 6, 10].map(n=> `<option value="${n}"${n === +LSG('atl_hero_back', 4) ? ' selected' : ''}>${n} secondi</option>`).join('')}</select></label>

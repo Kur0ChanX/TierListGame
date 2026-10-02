@@ -49,11 +49,11 @@
   async function openBackup(){
     const st = storageStats(), pct = Math.min(100, Math.round(st.total / st.limit * 100)), last = LS.get('art_last_backup', 0), per = await persisted();
     const body = sheet('xBackup', gi('gem') + ' Backup e spazio', `
-      <div class="lp-sub">Il backup salva preferiti, stati, giochi aggiunti, tier personale, wishlist e correzioni approvate in un solo file (senza chiavi personali). ${last ? 'Ultimo backup: <b>' + esc(fmtDate(last)) + '</b>.' : '<b>Non hai ancora fatto un backup.</b>'}</div>
+      <div class="lp-sub">Il backup salva preferiti, stati, titoli aggiunti, tier personale, wishlist e correzioni approvate in un solo file (senza chiavi personali). ${last ? 'Ultimo backup: <b>' + esc(fmtDate(last)) + '</b>.' : '<b>Non hai ancora fatto un backup.</b>'}</div>
       <div class="lp-tools"><button class="btn primary" id="bkSave">💾 Salva backup</button><button class="btn" id="bkLoad">📂 Ripristina da file</button><input type="file" id="bkFile" accept="application/json,.json" hidden></div>
       <div class="lp-sub" style="margin-top:14px"><b>Spazio del browser</b>: ${kb(st.total)} usati su circa ${kb(st.limit)} (${pct}%)</div>
       <div class="bk-bar"><i style="width:${pct}%" class="${pct > 85 ? 'bad' : pct > 65 ? 'mid' : ''}"></i></div>
-      ${(()=>{ try{ const bi = window.rtBig && rtBig.info(); return bi && bi.ok ? `<div class="lp-sub">📦 <b>Archivio grande</b> (giochi aggiunti, copertine e foto): ${kb(bi.bytes)}, fuori da questo limite.</div>` : ''; }catch(e){ return ''; } })()}
+      ${(()=>{ try{ const bi = window.rtBig && rtBig.info(); return bi && bi.ok ? `<div class="lp-sub">📦 <b>Archivio grande</b> (titoli aggiunti, copertine e foto): ${kb(bi.bytes)}, fuori da questo limite.</div>` : ''; }catch(e){ return ''; } })()}
       <div class="bk-keys">${st.per.map(p=> `<div><span>${esc(p[0])}</span><b>${kb(p[1])}</b></div>`).join('')}</div>
       <div class="lp-tools"><button class="btn" id="bkClean">🧹 Libera spazio (registro e cache)</button><button class="btn" id="bkPersist">🛡️ Proteggi i dati: ${per ? 'attivo ✅' : 'attiva'}</button></div>
       <div class="lp-sub">«Proteggi» chiede al browser di non cancellare i dati dell'app quando il telefono ha poco spazio. Con la sincronizzazione (⚙️) i dati stanno anche sul tuo GitHub.</div>`);
@@ -82,7 +82,7 @@
     const played = GAMES.filter(g=> S[g.id] === 'played'), playing = GAMES.filter(g=> S[g.id] === 'playing');
     const top = played.filter(g=> g.tier === 'S+' || g.tier === 'S').length, custom = GAMES.filter(g=> g.custom).length;
     const badges = (LS.get('atl_badges', []) || []).length, audited = Math.min(500, Object.keys(LS.get('atl_audit', {}) || {}).length);
-    const parts = [['Giochi finiti', played.length * 30], ['Giochi in corso', playing.length * 10], ['Capolavori giocati (S/S+)', top * 10], ['Preferiti', (typeof FAVS !== 'undefined' ? FAVS.size : 0) * 5], ['Giochi aggiunti da te', custom * 15], ['Traguardi', badges * 100], ['Schede controllate', audited]];
+    const parts = [['Titoli finiti', played.length * 30], ['Titoli in corso', playing.length * 10], ['Capolavori visti (S/S+)', top * 10], ['Preferiti', (typeof FAVS !== 'undefined' ? FAVS.size : 0) * 5], ['Titoli aggiunti da te', custom * 15], ['Traguardi', badges * 100], ['Schede controllate', audited]];
     const xp = parts.reduce((a, p)=> a + p[1], 0), level = Math.floor(Math.sqrt(xp / 40)) + 1, cur = 40 * (level - 1) * (level - 1), next = 40 * level * level;
     const title = LEVELS.slice().reverse().find(l=> level >= l[0])[1];
     return {xp, level, title, pct: Math.round((xp - cur) / (next - cur) * 100), toNext: next - xp, parts, played, playing};
@@ -94,7 +94,7 @@
       <div class="lv-card"><div class="lv-num">${x.level}</div><div><b>${esc(x.title)}</b><br><small>${x.xp} punti esperienza · ${x.toNext} al livello ${x.level + 1}</small></div></div>
       <div class="bk-bar"><i style="width:${x.pct}%"></i></div>
       <div class="bk-keys">${x.parts.map(p=> `<div><span>${esc(p[0])}</span><b>+${p[1]}</b></div>`).join('')}</div>
-      <div class="lp-sub">Si guadagna esperienza giocando, aggiungendo giochi, segnando i preferiti, controllando le schede e sbloccando i traguardi.</div>
+      <div class="lp-sub">Si guadagna esperienza guardando, aggiungendo titoli, segnando i preferiti, controllando le schede e sbloccando i traguardi.</div>
       <div class="lp-tools"><button class="btn primary" id="lvCard">🖼️ La mia carta profilo</button><button class="btn" id="lvTl">📜 La mia cronologia</button></div>`);
     body.querySelector('#lvCard').addEventListener('click', ()=>{ document.getElementById('xLevel').classList.remove('show'); openCard(); });
     body.querySelector('#lvTl').addEventListener('click', ()=>{ document.getElementById('xLevel').classList.remove('show'); openTimeline(); });
@@ -107,7 +107,7 @@
   function openTimeline(){
     const S = (typeof STATUSES !== 'undefined') ? STATUSES : {};
     const list = GAMES.filter(g=> (S[g.id] === 'played' || S[g.id] === 'playing') && g.ysort).sort((a, b)=> a.ysort - b.ysort || b.score - a.score);
-    if(!list.length){ sheet('xTimeline', gi('table') + ' La mia cronologia', '<div class="lp-sub">Segna qualche gioco come «Giocato» o «In corso» dalla sua scheda e qui comparirà la tua storia da giocatore, anno per anno.</div>'); return; }
+    if(!list.length){ sheet('xTimeline', gi('table') + ' La mia cronologia', '<div class="lp-sub">Segna qualche titolo come «Visto» o «In corso» dalla sua scheda e qui comparirà la tua storia da spettatore, anno per anno.</div>'); return; }
     const plat = {}; list.forEach(g=>{ const p = String(g.plat || '').split('/')[0].trim(); if(p) plat[p] = (plat[p] || 0) + 1; });
     const topPlat = Object.entries(plat).sort((a, b)=> b[1] - a[1]).slice(0, 3).map(p=> p[0] + ' (' + p[1] + ')').join(', ');
     const hours = list.reduce((a, g)=> a + (hoursOf(g) || 0), 0);
@@ -116,11 +116,11 @@
       const n = Object.values(byDec[d]).reduce((a, x)=> a + x.length, 0);
       return `<div class="tl-dec"><h4>Anni ${d} <small>${n} ${n === 1 ? 'gioco' : 'giochi'}</small></h4>${Object.keys(byDec[d]).sort().map(y=> `<div class="tl-row"><b>${y}</b><div>${byDec[d][y].map(g=> `<button class="tl-chip" data-open="${g.id}"><span class="tl-t" style="background:${TIER_COL[g.tier] || '#7c5cff'}">${esc(g.tier)}</span>${esc(g.name)}</button>`).join('')}</div></div>`).join('')}</div>`;
     }).join('');
-    const body = sheet('xTimeline', gi('table') + ' La mia cronologia', `<div class="lp-sub"><b>${list.length}</b> giochi giocati dal <b>${list[0].ysort}</b> al <b>${list[list.length - 1].ysort}</b>${hours ? ' · circa <b>' + Math.round(hours) + ' ore</b>' : ''}${topPlat ? ' · console preferite: ' + esc(topPlat) : ''}</div><div class="tl">${html}</div><div class="lp-tools"><button class="btn primary" id="tlCard">🖼️ Crea la carta profilo</button></div>`);
+    const body = sheet('xTimeline', gi('table') + ' La mia cronologia', `<div class="lp-sub"><b>${list.length}</b> titoli visti dal <b>${list[0].ysort}</b> al <b>${list[list.length - 1].ysort}</b>${hours ? ' · circa <b>' + Math.round(hours) + ' ore</b>' : ''}${topPlat ? ' · console preferite: ' + esc(topPlat) : ''}</div><div class="tl">${html}</div><div class="lp-tools"><button class="btn primary" id="tlCard">🖼️ Crea la carta profilo</button></div>`);
     body.querySelectorAll('[data-open]').forEach(b=> b.addEventListener('click', ()=>{ const g = byId(b.dataset.open); if(g){ document.getElementById('xTimeline').classList.remove('show'); openModal(g); } }));
     body.querySelector('#tlCard').addEventListener('click', ()=>{ document.getElementById('xTimeline').classList.remove('show'); openCard(); });
   }
-  menu(gi('table') + ' La mia cronologia da giocatore', openTimeline);
+  menu(gi('table') + ' La mia cronologia da spettatore', openTimeline);
 
   // =====================================================================
   // 4) CARTA PROFILO (immagine da condividere)
@@ -153,7 +153,7 @@
       x.fillStyle = '#fff'; x.font = '900 24px system-ui, sans-serif'; x.textAlign = 'center'; x.fillText(g.tier, 882, y + 34); x.textAlign = 'left';
       x.font = '700 26px system-ui, sans-serif'; x.globalAlpha = .85; x.fillText(String(g.score), 930, y + 35); x.globalAlpha = 1;
     });
-    if(!top.length){ x.font = '600 32px system-ui, sans-serif'; x.globalAlpha = .8; x.fillText('Aggiungi qualche gioco ai preferiti per riempire la carta.', 70, 440); x.globalAlpha = 1; }
+    if(!top.length){ x.font = '600 32px system-ui, sans-serif'; x.globalAlpha = .8; x.fillText('Aggiungi qualche titolo ai preferiti per riempire la carta.', 70, 440); x.globalAlpha = 1; }
     // generi preferiti
     const tags = {}; GAMES.filter(g=> FAVS.has(g.id) || S[g.id] === 'played').forEach(g=> (g.tags || []).forEach(t=>{ tags[t] = (tags[t] || 0) + 1; }));
     const topT = Object.entries(tags).sort((a, b)=> b[1] - a[1]).slice(0, 5), mx = topT.length ? topT[0][1] : 1;
@@ -164,7 +164,7 @@
       rr(x, 390, y + 6, 560, 22, 11); x.fillStyle = 'rgba(255,255,255,.15)'; x.fill(); rr(x, 390, y + 6, Math.max(22, 560 * n / mx), 22, 11); x.fillStyle = '#7c5cff'; x.fill();
     });
     x.fillStyle = '#fff'; x.font = '700 28px system-ui, sans-serif'; x.globalAlpha = .9;
-    x.fillText(X.played.length + ' giocati · ' + FAVS.size + ' preferiti · ' + GAMES.length + ' giochi nel database', 70, 1300); x.globalAlpha = 1;
+    x.fillText(X.played.length + ' visti · ' + FAVS.size + ' preferiti · ' + GAMES.length + ' titoli nel database', 70, 1300); x.globalAlpha = 1;
     x.font = '600 22px system-ui, sans-serif'; x.globalAlpha = .6; x.textAlign = 'right'; x.fillText('kur0chanx.github.io/TierListGame', 1010, 1300); x.textAlign = 'left'; x.globalAlpha = 1;
     return new Promise(res=> c.toBlob(res, 'image/png'));
   }
@@ -229,7 +229,7 @@
     if(!hits.length) return;
     hits.forEach(h=>{ w[h.id].thAlerted = h.eu; });
     LS.set('atl_wishlist', w);
-    const msg = hits.length === 1 ? `🔔 ${hits[0].it.name} costa ${eur(hits[0].eu)}: sotto i tuoi ${eur(hits[0].it.th)}` : `🔔 ${hits.length} giochi della wishlist sono sotto la tua soglia di prezzo`;
+    const msg = hits.length === 1 ? `🔔 ${hits[0].it.name} costa ${eur(hits[0].eu)}: sotto i tuoi ${eur(hits[0].it.th)}` : `🔔 ${hits.length} titoli della wishlist sono sotto la tua soglia di prezzo`;
     if(typeof showToast === 'function') showToast(msg + ' · tocca per vedere', 9000, ()=>{ if(window.openWishlist) window.openWishlist(); }); else toast(msg, 8000);
     try{ if('Notification' in window && Notification.permission === 'granted') new Notification('Raccoon Tier', {body: msg, icon: 'icons/icon-192.png'}); }catch(e){}
   }
@@ -243,13 +243,13 @@
     const old = document.getElementById('bkCard'); if(old) old.remove();
     const S = (typeof STATUSES !== 'undefined') ? STATUSES : {}, list = GAMES.filter(g=> S[g.id] === 'backlog' || S[g.id] === 'playing');
     const card = document.createElement('div'); card.id = 'bkCard'; card.className = 'bk-card';
-    if(!list.length){ card.innerHTML = `<h3>${gi('table')} Il tuo backlog</h3><div class="lp-sub">Non hai giochi «Da giocare» o «In corso»: aggiungine dalla schermata Scopri.</div>`; panel.appendChild(card); return; }
+    if(!list.length){ card.innerHTML = `<h3>${gi('table')} Il tuo backlog</h3><div class="lp-sub">Non hai titoli «Da vedere» o «In corso»: aggiungine dalla schermata Scopri.</div>`; panel.appendChild(card); return; }
     const hrs = list.reduce((a, g)=> a + (hoursOf(g) || 0), 0), known = list.filter(g=> hoursOf(g)).length;
     const render = (cost, priced)=>{
       const wk = LS.get('art_hpw', 8);
       card.innerHTML = `<h3>${gi('table')} Il tuo backlog</h3>
-        <div class="bk-grid"><div><b>${list.length}</b><small>giochi</small></div><div><b>${Math.round(hrs)}</b><small>ore (${known} su ${list.length} con durata nota)</small></div><div><b>${cost == null ? '…' : eur(cost)}</b><small>${priced == null ? 'calcolo prezzi…' : 'prezzo noto per ' + priced + ' su ' + list.length}</small></div></div>
-        <label class="bk-hpw">Ore che riesci a giocare a settimana: <b id="hpwV">${wk}</b><input type="range" id="hpw" min="1" max="40" value="${wk}"></label>
+        <div class="bk-grid"><div><b>${list.length}</b><small>titoli</small></div><div><b>${Math.round(hrs)}</b><small>ore (${known} su ${list.length} con durata nota)</small></div><div><b>${cost == null ? '…' : eur(cost)}</b><small>${priced == null ? 'calcolo prezzi…' : 'prezzo noto per ' + priced + ' su ' + list.length}</small></div></div>
+        <label class="bk-hpw">Ore che riesci a guardare o leggere a settimana: <b id="hpwV">${wk}</b><input type="range" id="hpw" min="1" max="40" value="${wk}"></label>
         <div class="lp-sub" id="hpwOut">${hrs ? 'Per finirlo servono circa <b>' + Math.ceil(hrs / wk) + ' settimane</b> (' + (Math.ceil(hrs / wk) / 4.345).toFixed(1).replace('.', ',') + ' mesi).' : 'Servono le durate per stimare i tempi: usa «Aggiorna info» nelle schede.'}</div>`;
       const r = card.querySelector('#hpw'); r.addEventListener('input', ()=>{ LS.set('art_hpw', +r.value); card.querySelector('#hpwV').textContent = r.value; card.querySelector('#hpwOut').innerHTML = hrs ? 'Per finirlo servono circa <b>' + Math.ceil(hrs / +r.value) + ' settimane</b> (' + (Math.ceil(hrs / +r.value) / 4.345).toFixed(1).replace('.', ',') + ' mesi).' : ''; });
     };

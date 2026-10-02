@@ -225,7 +225,7 @@
     if(b) b.click(); else el.classList.remove('show');
     setTimeout(sync, 50);
   });
-  // 2) tieni premuto il titolo di un gioco: anteprima veloce (copertina, voto, trama breve) senza aprire la scheda
+  // 2) tieni premuto il titolo di un titolo: anteprima veloce (copertina, voto, trama breve) senza aprire la scheda
   let timer = 0, sx = 0, sy = 0, fired = 0;
   const cell = t=> t && t.closest && t.closest('#tbody tr td:nth-child(3)');
   const start = (t, x, y)=>{

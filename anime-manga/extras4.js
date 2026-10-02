@@ -41,14 +41,14 @@
   }
 
   // =====================================================================
-  // 1) ORACOLO DEL PROCIONE: descrivi una sensazione, trova il gioco
+  // 1) ORACOLO DEL PROCIONE: descrivi una sensazione, trova il titolo
   // =====================================================================
   function gameText(g){
     const e = g.enrich || {}, l = g.label || {};
     return nrm([g.name, (g.tags || []).map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(' '), g.story, e.whyLikeIt, e.storyTagNote, e.gameplayNote, e.agingNote, (e.pros || []).join(' '), l.ok, l.ko, e.storyTag && STORY_TAG_INFO && STORY_TAG_INFO[e.storyTag] ? STORY_TAG_INFO[e.storyTag].label : ''].filter(Boolean).join(' '));
   }
-  const STOP = new Set('il lo la i gli le un una uno di da in con su per tra fra e o ma che mi ti si ci vi non piu meno molto voglio vorrei qualcosa gioco giochi un po come quando dove sono sei essere avere ho hai del della dei delle al alla ai alle nel nella sul sulla'.split(' '));
-  // sinonimi: una sensazione chiama le parole con cui i giochi sono descritti
+  const STOP = new Set('il lo la i gli le un una uno di da in con su per tra fra e o ma che mi ti si ci vi non piu meno molto voglio vorrei qualcosa titolo titoli un po come quando dove sono sei essere avere ho hai del della dei delle al alla ai alle nel nella sul sulla'.split(' '));
+  // sinonimi: una sensazione chiama le parole con cui i titoli sono descritti
   const SYN = {piangere: ['commovente', 'emozion', 'dramm', 'lacrim', 'triste', 'perdita', 'sacrific'], ridere: ['umorism', 'comic', 'divertent', 'ironi', 'buffo'], rilass: ['rilass', 'tranquill', 'cozy', 'calm', 'vita'], paura: ['horror', 'paura', 'inquietant', 'angosc'], sfida: ['difficil', 'sfida', 'tattic', 'punitiv', 'strateg'], esplorare: ['esplor', 'mondo aperto', 'open world', 'segret', 'scopr'], turni: ['turni', 'a turni'], tattico: ['tattic', 'griglia', 'strateg'], storia: ['trama', 'storia', 'narrat', 'personagg'], breve: ['breve', 'corto', 'poche ore'], lungo: ['epico', 'lungo', 'centinaia', 'ore di gioco'], amicizia: ['amicizi', 'compagni', 'legame', 'gruppo'], amore: ['amore', 'romant', 'relazion'], viaggio: ['viaggio', 'avventur'], nostalgia: ['nostalg', 'retro', 'classico', 'anni 90', 'pixel'], musica: ['colonna sonora', 'musica', 'soundtrack'], mostri: ['mostri', 'cattur', 'creature'], carte: ['carte', 'deck', 'mazzo'], azione: ['azione', 'combattimenti in tempo reale', 'action'], mistero: ['mister', 'enigm', 'segret', 'indagin']};
   function localOracle(q){
     const words = nrm(q).split(/[^a-z0-9]+/).filter(w=> w.length > 2 && !STOP.has(w));
@@ -59,13 +59,13 @@
   }
   async function askOracle(q, out){
     out.innerHTML = '<div class="lp-sub">🦝 Frugu Frugu annusa il tuo desiderio…</div>';
-    try{ if(window.rtTexts && rtTexts.loaded && GAMES.length <= 6000) await rtTexts.ensureAll(); }catch(e){}       // v209: l'Oracolo cerca nei testi di tutti i giochi
+    try{ if(window.rtTexts && rtTexts.loaded && GAMES.length <= 6000) await rtTexts.ensureAll(); }catch(e){}       // v209: l'Oracolo cerca nei testi di tutti i titoli
     const local = localOracle(q);
     let picks = [];
     if(hasAI()){
       const cand = (local.length >= 12 ? local.slice(0, 70).map(x=> x.g) : local.map(x=> x.g).concat(GAMES.slice().sort((a, b)=> b.score - a.score).slice(0, 70))).slice(0, 80);
       const list = [...new Set(cand)].map(g=> `${g.id}|${g.name}|${g.year || ''}|${(g.tags || []).map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(',')}|${String((g.enrich && g.enrich.whyLikeIt) || g.story || '').slice(0, 170)}`).join('\n');
-      const prompt = `Sei l'Oracolo del procione. Mario descrive una sensazione o un desiderio: "${q}". Tra i giochi qui sotto (formato id|nome|anno|generi|descrizione) scegli i 5 che realizzano MEGLIO proprio quella sensazione. Per ognuno scrivi "why": una frase in seconda persona, concreta, che spiega perché dà quella sensazione (usa solo le informazioni date, niente invenzioni). ${window.tasteSummary ? tasteSummary() : ''}\nRispondi SOLO con JSON: {"picks":[{"id":123,"why":"..."}]}\n\n${list}`;
+      const prompt = `Sei l'Oracolo del procione. Mario descrive una sensazione o un desiderio: "${q}". Tra i titoli qui sotto (formato id|nome|anno|generi|descrizione) scegli i 5 che realizzano MEGLIO proprio quella sensazione. Per ognuno scrivi "why": una frase in seconda persona, concreta, che spiega perché dà quella sensazione (usa solo le informazioni date, niente invenzioni). ${window.tasteSummary ? tasteSummary() : ''}\nRispondi SOLO con JSON: {"picks":[{"id":123,"why":"..."}]}\n\n${list}`;
       try{
         const r = await askLLM(prompt, {}, {label: 'L\'Oracolo sta pensando…'});
         const t = String(r && r.text || ''), j = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
@@ -74,12 +74,12 @@
     }
     if(!picks.length) picks = local.slice(0, 5).map(x=> ({g: x.g, why: 'Nella sua descrizione ci sono: ' + x.hits.slice(0, 4).join(', ')}));
     if(!picks.length){ out.innerHTML = '<div class="lp-sub">L\'Oracolo non ha trovato niente: prova a descrivere la sensazione con altre parole (es. «voglio emozionarmi con una storia di amicizia e combattimenti a turni»).</div>'; return; }
-    out.innerHTML = picks.map((p, i)=> `<button class="or-pick" type="button" data-or="${p.g.id}"><span class="or-n">${i + 1}</span><span><b>${esc(p.g.name)}</b> <span class="badge ${TIER_LABEL[p.g.tier]}">${p.g.tier}</span>${STATUSES[p.g.id] === 'played' ? ' <small>(già giocato)</small>' : ''}<br><small>${esc(p.why || '')}</small></span></button>`).join('') + (hasAI() ? '' : '<div class="lp-sub">Senza chiave Gemini l\'Oracolo usa solo le parole delle schede: con l\'AI capisce molto meglio le sensazioni.</div>');
+    out.innerHTML = picks.map((p, i)=> `<button class="or-pick" type="button" data-or="${p.g.id}"><span class="or-n">${i + 1}</span><span><b>${esc(p.g.name)}</b> <span class="badge ${TIER_LABEL[p.g.tier]}">${p.g.tier}</span>${STATUSES[p.g.id] === 'played' ? ' <small>(già visto)</small>' : ''}<br><small>${esc(p.why || '')}</small></span></button>`).join('') + (hasAI() ? '' : '<div class="lp-sub">Senza chiave Gemini l\'Oracolo usa solo le parole delle schede: con l\'AI capisce molto meglio le sensazioni.</div>');
     out.querySelectorAll('[data-or]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xOracle').classList.remove('show'); openModal(GAMES.find(g=> g.id == b.dataset.or)); }));
     try{ window.rtSfx && rtSfx('success'); }catch(e){}
   }
   function openOracle(){
-    const body = sheet('xOracle', '🔮 Oracolo del procione', `<div class="lp-sub">Descrivi con parole tue una sensazione o un desiderio, e l'Oracolo trova il gioco che te lo fa provare. Esempi: «voglio piangere ma con combattimenti a turni», «qualcosa di rilassante da 20 ore», «un mondo misterioso da esplorare di notte».</div>
+    const body = sheet('xOracle', '🔮 Oracolo del procione', `<div class="lp-sub">Descrivi con parole tue una sensazione o un desiderio, e l'Oracolo trova il titolo che te lo fa provare. Esempi: «voglio piangere ma con combattimenti a turni», «qualcosa di rilassante da 20 ore», «un mondo misterioso da esplorare di notte».</div>
       <textarea id="orQ" rows="3" class="or-q" placeholder="Cosa vuoi provare?"></textarea>
       <div class="lp-tools">${SR ? `<button class="btn" type="button" id="orMic">${gi('mic')} Detta</button>` : ''}<button class="btn primary" type="button" id="orGo">🔮 Chiedi all'Oracolo</button></div><div class="or-out"></div>`);
     const q = body.querySelector('#orQ'), out = body.querySelector('.or-out');
@@ -126,7 +126,7 @@
     };
     body.querySelectorAll('[data-q]').forEach(b=> b.addEventListener('click', ()=>{ cur = b.dataset.q; show(); }));
     body.querySelector('#qrCopy').addEventListener('click', ()=>{ const u = cur === 'tl' ? tl : inv; try{ navigator.clipboard.writeText(u).then(()=> toast('Link copiato', 1800)); }catch(e){ prompt('Copia il link', u); } });
-    body.querySelector('#qrShare').addEventListener('click', ()=>{ const u = cur === 'tl' ? tl : inv; if(navigator.share) navigator.share({title: 'Raccoon Tier', text: cur === 'tl' ? 'Guarda la mia tier list dei giochi!' : 'Ti regalo Raccoon Tier: la tier list dei giochi con il procione!', url: u}).catch(()=>{}); else { try{ navigator.clipboard.writeText(u); toast('Link copiato', 1800); }catch(e){} } });
+    body.querySelector('#qrShare').addEventListener('click', ()=>{ const u = cur === 'tl' ? tl : inv; if(navigator.share) navigator.share({title: 'Raccoon Tier', text: cur === 'tl' ? 'Guarda la mia tier list dei titoli!' : 'Ti regalo Raccoon Tier: la tier list dei titoli con il procione!', url: u}).catch(()=>{}); else { try{ navigator.clipboard.writeText(u); toast('Link copiato', 1800); }catch(e){} } });
     show();
   }
   menu(gi('globe') + ' Condividi con un QR (tier list o app)', openShare);
@@ -157,7 +157,7 @@
       const n = body.querySelector('#wlName').value.trim();
       try{ if(n && typeof PROFILES !== 'undefined'){ PROFILES[0].name = n; saveProfiles(); } }catch(e){}
       try{ localStorage.setItem('atl_welcomed', '1'); }catch(e){}
-      document.getElementById('xWelcome').classList.remove('show'); clean(); toast('Ciao ' + (n || 'giocatore') + '! Tocca un gioco per iniziare', 3500);
+      document.getElementById('xWelcome').classList.remove('show'); clean(); toast('Ciao ' + (n || 'spettatore') + '! Tocca un titolo per iniziare', 3500);
       try{ typeof renderProfileBadge === 'function' && renderProfileBadge(); }catch(e){}
     });
   }
@@ -165,17 +165,17 @@
   whenReady(viewShared); setTimeout(welcome, 1500);
 
   // =====================================================================
-  // 11) PREVISIONE DEL VOTO  +  16) RECENSIONE A VOCE (nella scheda del gioco)
+  // 11) PREVISIONE DEL VOTO  +  16) RECENSIONE A VOCE (nella scheda del titolo)
   // =====================================================================
   const MV = 'atl_myvote', PR = 'atl_prediction', RV = 'atl_reviews';
-  // v213: la previsione usa la Sintonia (lo stesso «cervello» dei consigli: gusti, giochi che ami, qualità), non più il vecchio profilo DNA che dava voti bassissimi.
+  // v213: la previsione usa la Sintonia (lo stesso «cervello» dei consigli: gusti, titoli che ami, qualità), non più il vecchio profilo DNA che dava voti bassissimi.
   // Quella che vedi prima di votare è quella che si «congela» al voto (anche se nel frattempo hai dato le 6 valutazioni o un 👍 che cambiano la Sintonia).
   const SHOWN = new Map();
   function predict(g){
     try{ const s = window.rtSintonia && rtSintonia(g); if(s && typeof s.pct === 'number' && s.n > 0) return Math.max(1, Math.min(10, Math.round(1 + s.pct / 100 * 9))); }catch(e){}
     let pct = 55;
     try{ const d = dnaForGame(g, buildTasteProfile()); if(d) pct = d.pct; else if(window.tasteScore) pct = 50 + tasteScore(g) * 40; }catch(e){}
-    const q = (g.score - 70) / 30;                      // un gioco molto votato parte avvantaggiato
+    const q = (g.score - 70) / 30;                      // un titolo molto votato parte avvantaggiato
     return Math.max(1, Math.min(10, Math.round(3.5 + pct / 100 * 5 + q * 1.5)));
   }
   window.rtPredict = predict;
@@ -185,14 +185,14 @@
     const words = n=> n >= 9 ? 'lo adorerai' : n >= 7 ? 'ti piacerà' : n >= 5 ? 'potrebbe piacerti' : 'probabilmente non fa per te';
     let h = `<div class="pv-box"><div class="pv-top">${gi('orb')} <b>Previsione:</b> ${my != null ? (pr != null ? pr : now) : now}/10 · <small>${esc(words(my != null && pr != null ? pr : now))}</small></div>`;
     if(my != null){ const p = pr != null ? pr : now, d = my - p; h += `<div class="pv-res">Il tuo voto: <b>${my}/10</b> · ${Math.abs(d) <= 1 ? '🎯 previsione azzeccata' : d > 0 ? 'ti è piaciuto più del previsto (+' + d + ')' : 'ti è piaciuto meno del previsto (' + d + ')'}</div>`; }
-    h += `<div class="pv-votes">${my != null ? '<small>Cambia voto:</small>' : '<small>' + (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : 'L\'hai giocato? Il tuo voto:') + '</small>'} ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}" data-vote="${n}">${n}</button>`).join('')}</div>`;
+    h += `<div class="pv-votes">${my != null ? '<small>Cambia voto:</small>' : '<small>' + (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : kw(g).ask + ' Il tuo voto:') + '</small>'} ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}" data-vote="${n}">${n}</button>`).join('')}</div>`;
     return h + '</div>';
   }
   function reviewHtml(g){
     const r = (LS.get(RV, {}) || {})[g.id];
     return `<div class="modal-section-title">${gi('mic')} La tua recensione</div><div class="rv-box">${r ? `<div class="rv-text">${esc(r.text)}</div><small class="rv-d">${new Date(r.t).toLocaleDateString('it-IT')}${r.ai ? ' · sistemata dall\'AI' : ''}</small>` : '<small>Detta a voce cosa ne pensi: l\'AI lo sistema (senza cambiare le tue opinioni) e lo salvo qui.</small>'}
       <div class="lp-tools">${SR ? `<button class="btn" type="button" id="rvMic">${gi('mic')} ${r ? 'Rifalla a voce' : 'Detta'}</button>` : ''}<button class="btn" type="button" id="rvWrite">✍️ Scrivi</button>${r ? '<button class="btn" type="button" id="rvRead">🔊 Ascolta</button>' : ''}</div><div class="rv-edit"></div></div>
-      <button class="btn rv-listen" type="button" id="rvCard">🔊 Ascolta la scheda del gioco</button>`;
+      <button class="btn rv-listen" type="button" id="rvCard">🔊 Ascolta la scheda</button>`;
   }
   async function polish(g, raw){
     if(!hasAI()) return null;
@@ -251,7 +251,7 @@
     const err = ids.map(id=> Math.abs(mv[id] - pr[id]));
     return {n: ids.length, avg: err.reduce((a, b)=> a + b, 0) / ids.length, hit: Math.round(100 * err.filter(e=> e <= 1).length / ids.length)};
   };
-  // link d'invito al Triple Triad (#tt=room:CODICE o #tt=friend:CODICE): il gioco ora sta su Raccoon Triad, giro l'invito lì
+  // link d'invito al Triple Triad (#tt=room:CODICE o #tt=friend:CODICE): il titolo ora sta su Raccoon Triad, giro l'invito lì
   (function(){
     const m = location.hash.match(/#tt=[^&]+/); if(!m) return;
     location.replace('https://kur0chanx.github.io/raccoon-triad/' + m[0]);

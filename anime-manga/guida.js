@@ -1,6 +1,6 @@
-// ---- «Come iniziare al meglio» (guida per ogni gioco) + «Compagno di gioco» (aiuto a livelli, senza spoiler) ----
+// ---- «Come iniziare al meglio» (guida per ogni titolo: versione, ordine, cosa saltare) + «Compagno di visione/lettura» (aiuto a livelli, senza spoiler) ----
 // Tutto nasce da Gemini con le fonti aperte (Wikipedia, RAWG) e la ricerca web; se non è sicuro di un dato scrive null.
-// La guida si prepara una volta sola per gioco e resta salvata (e condivisa nel catalogo). Il compagno tiene un diario di dove sei arrivato.
+// La guida si prepara una volta sola per titolo e resta salvata (e condivisa nel catalogo). Il compagno tiene un diario di dove sei arrivato.
 (function(){
   if(window.RT_OFF && window.RT_OFF.guida) return;
   const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
@@ -21,7 +21,7 @@
     const head = `<div class="modal-section-title gd-title">🚀 Come iniziare al meglio</div>`;
     if(!e){
       return `<div class="gd-card" id="gdCard">${head}<div class="gd-empty">${aiOk()
-        ? 'Una guida breve e senza spoiler: impostazioni da scegliere, scelte iniziali, errori da evitare e dopo quante ore il gioco «ingrana».<div class="lp-tools"><button class="btn primary" type="button" id="gdMake">✨ Prepara la guida</button></div>'
+        ? 'Una guida breve e senza spoiler: quale versione scegliere, in che ordine ' + (isWatch(g) ? 'guardare stagioni, film e OVA' : 'leggere la serie e gli spin-off') + ', cosa si può saltare e dopo quanto «ingrana».<div class="lp-tools"><button class="btn primary" type="button" id="gdMake">✨ Prepara la guida</button></div>'
         : 'Per preparare la guida serve una chiave Gemini (⚙️ in «Chiedi»).'}</div></div>`;
     }
     const d = e.d || {};
@@ -35,10 +35,10 @@
     return `<div class="gd-card" id="gdCard">${head}
       ${d.tip ? `<div class="gd-gold">💡 ${esc(d.tip)}</div>` : ''}
       ${list('⚙️', 'Prima di cominciare', d.settings)}
-      ${list('🧭', 'Scelte iniziali', d.firstChoices)}
-      ${list('🚫', 'Errori da evitare', d.mistakes)}
+      ${list('🧭', 'In che ordine', d.firstChoices)}
+      ${list('🚫', 'Cosa saltare o evitare', d.mistakes)}
       ${hook}
-      ${d.testDrive ? `<div class="gd-blk"><h4>🎯 Quanto provarlo</h4><p>${esc(d.testDrive)}</p></div>` : ''}
+      ${d.testDrive ? `<div class="gd-blk"><h4>🎯 Quanto dargli</h4><p>${esc(d.testDrive)}</p></div>` : ''}
       <div class="gd-foot">Preparata il ${esc(fmtD(e.t))} con ${esc((e.src && e.src.length ? e.src.join(', ') + ' e ' : '') + 'la ricerca web')} · senza spoiler · <button type="button" class="gd-lnk" id="gdMake">rifai</button></div></div>`;
   }
   async function makeGuide(g, btn){
@@ -48,10 +48,11 @@
     let dg = {names: [], text: ''};
     try{ if(typeof rtSourceDigest === 'function') dg = await Promise.race([rtSourceDigest(g), new Promise(res=> setTimeout(()=> res({names: [], text: ''}), 9000))]); }catch(e){}       // se le fonti sono lente vado avanti lo stesso
     const l = g.label || {};
-    const prompt = today() + `Sei Frugu Frugu, un amico esperto di videogiochi. Scrivi la guida «Come iniziare al meglio» per "${g.name}" (${g.year || 'anno n.d.'}, ${g.plat}) per Mario, che sta per iniziarlo (o vuole ricominciarlo).
-REGOLE: NESSUNO SPOILER (niente colpi di scena, morti di personaggi, boss finali, finali). Usa le fonti qui sotto e, se serve, la ricerca web. Se NON sei sicuro di un'informazione scrivi null: non inventare. Italiano semplice, frasi brevi, dai del tu. Niente frasi legate al tempo («uscito da poco»): usa gli anni.
-Rispondi SOLO con un oggetto JSON valido con questi campi: settings (da 2 a 4 impostazioni o opzioni da scegliere PRIMA di cominciare: difficoltà, lingua/audio, comandi, accessibilità, versione/piattaforma; ognuna con il motivo in una frase), firstChoices (da 2 a 4 scelte iniziali importanti: classe, personaggio, modalità, stile; con un consiglio per un principiante), mistakes (da 2 a 4 errori tipici dei nuovi giocatori da evitare), hook (oggetto: hours = dopo quante ore circa il gioco ingrana davvero, numero o null; note = una frase su cosa aspettarsi all'inizio: lento, difficile, tutorial lungo…), testDrive (una frase: quanto giocare prima di decidere se fa per te e cosa osservare), tip (il consiglio d'oro, una frase).
-Dati già noti: difficoltà ${l.d || 'n.d.'}/5, ritmo ${l.p || 'n.d.'}, ore per la storia ${l.h || 'n.d.'}.
+    const W = isWatch(g), tipo = (KIND_BY_ID[g.kind] || {}).full || (W ? 'anime' : 'manga');
+    const prompt = today() + `Sei Frugu Frugu, un amico esperto di anime, manga e cinema d'animazione. Scrivi la guida «Come iniziare al meglio» per "${g.name}" (${tipo}, ${g.year || 'anno n.d.'}, ${g.plat}) per Mario, che sta per ${W ? 'guardarlo' : 'leggerlo'} (o vuole ricominciarlo).
+REGOLE: NESSUNO SPOILER (niente colpi di scena, morti di personaggi, identità dei cattivi, finali). Usa le fonti qui sotto e, se serve, la ricerca web. Se NON sei sicuro di un'informazione scrivi null: non inventare. Italiano semplice, frasi brevi, dai del tu. Niente frasi legate al tempo («uscito da poco»): usa gli anni.
+Rispondi SOLO con un oggetto JSON valido con questi campi: settings (da 2 a 4 cose da decidere PRIMA di cominciare: ${W ? 'quale versione o adattamento (es. originale o remake), doppiaggio italiano o sottotitoli, dove trovarlo' : 'quale edizione italiana, se leggerlo in volumi o in digitale, se conviene partire dal manga o dalla serie animata'}; ognuna con il motivo in una frase), firstChoices (da 2 a 4 punti dell'ORDINE consigliato: ${W ? 'stagioni, film, OVA e special in che ordine' : 'volumi, archi narrativi e spin-off in che ordine'}; con un consiglio per chi parte da zero), mistakes (da 2 a 4 cose da saltare o evitare: ${W ? 'episodi filler o riassuntivi, sigle e anteprime che fanno spoiler, film non canonici' : 'volumi riassuntivi, spin-off da leggere dopo, copertine o extra che fanno spoiler'}), hook (oggetto: hours = dopo quante ore circa ingrana davvero, numero o null; note = una frase su cosa aspettarsi all'inizio, citando ${W ? 'gli episodi' : 'i volumi o capitoli'}: lento, confuso, prologo lungo…), testDrive (una frase: quanto ${W ? 'guardarne (es. i primi 3 episodi)' : 'leggerne (es. i primi 2 volumi)'} prima di decidere se fa per te e cosa osservare), tip (il consiglio d'oro, una frase).
+Dati già noti: impegno ${l.d || 'n.d.'}/5, ritmo ${l.p || 'n.d.'}, filler ${l.g || 'n.d.'}/5, ore totali ${l.h || 'n.d.'}.
 ${dg.text}`;
     try{
       const r = await askLLM(prompt, {}, {search: true, silent: true, label: 'Preparo la guida…'});
@@ -70,15 +71,15 @@ ${dg.text}`;
 
   // ============================== COMPAGNO ==============================
   const comp = ()=> LSG(K_CP, {});
-  const LV = {1: ['💡', 'Solo un indizio', 'Dammi solo una spinta, senza dire la soluzione.'], 2: ['🧭', 'Consiglio di strategia', 'Spiegami come affrontarlo, senza svelare gli eventi della storia.'], 3: ['📖', 'Soluzione completa', 'Dimmi esattamente cosa fare, passo per passo.']};
+  const LV = {1: ['💡', 'Solo un indizio', 'Dammi solo una spinta, senza svelare niente.'], 2: ['🧭', 'Spiegazione', 'Spiegami quello che ho già visto o letto, senza anticipare niente.'], 3: ['📖', 'Risposta completa', 'Dimmi tutto, anche se è uno spoiler.']};
   function compHtml(g){
     const st = (typeof STATUSES !== 'undefined') ? STATUSES[g.id] : null, data = comp()[g.id] || {progress: '', log: []};
     if(st !== 'playing' && !(data.log && data.log.length)) return '';
     const log = (data.log || []).slice(-4).reverse().map((x, i)=> `<details class="cp-old"><summary>${LV[x.lv] ? LV[x.lv][0] : '💬'} ${esc(x.q).slice(0, 70)}<small> · ${esc(fmtD(x.t))}</small></summary><div class="cp-ans">${esc(x.a).replace(/\n/g, '<br>')}</div></details>`).join('');
-    return `<details class="cp-card" id="cpCard" ${st === 'playing' ? 'open' : ''}><summary>🦝 Compagno di gioco <small>aiuto senza spoiler</small></summary>
+    return `<details class="cp-card" id="cpCard" ${st === 'playing' ? 'open' : ''}><summary>🦝 Compagno di ${isWatch(g) ? 'visione' : 'lettura'} <small>aiuto senza spoiler</small></summary>
       <div class="cp-body">
-        <label class="cp-l">A che punto sei? <input id="cpProg" type="text" maxlength="120" value="${esc(data.progress || '')}" placeholder="es. dopo il primo villaggio, ore 6"></label>
-        <label class="cp-l">Cosa ti blocca o cosa vuoi sapere? <textarea id="cpQ" rows="2" maxlength="300" placeholder="es. non riesco a battere il boss della miniera"></textarea></label>
+        <label class="cp-l">A che punto sei? <input id="cpProg" type="text" maxlength="120" value="${esc(data.progress || '')}" placeholder="${isWatch(g) ? 'es. stagione 2, episodio 5' : 'es. volume 4, capitolo 30'}"></label>
+        <label class="cp-l">Cosa ti blocca o cosa vuoi sapere? <textarea id="cpQ" rows="2" maxlength="300" placeholder="es. non ho capito chi è il personaggio con la maschera"></textarea></label>
         <div class="cp-lv">${[1, 2, 3].map(n=> `<button type="button" class="btn${n === 1 ? ' primary' : ''}" data-lv="${n}" title="${esc(LV[n][2])}">${LV[n][0]} ${LV[n][1]}</button>`).join('')}</div>
         <div class="cp-out" id="cpOut"></div>
         ${log ? `<div class="cp-hist"><small>Ultime domande</small>${log}</div>` : ''}
@@ -91,11 +92,11 @@ ${dg.text}`;
     if(q.trim().length < 4){ out.innerHTML = '<div class="lp-sub">Scrivi cosa ti blocca, anche in poche parole.</div>'; return; }
     const data = comp(); data[g.id] = data[g.id] || {progress: '', log: []}; data[g.id].progress = prog.trim(); LSS(K_CP, data);
     out.innerHTML = '<div class="lp-sub">🦝 Ci penso…</div>';
-    const levelTxt = {1: 'LIVELLO 1 — SOLO UN INDIZIO: una o due frasi che spingano nella direzione giusta, SENZA dire la soluzione né nomi di oggetti o mosse decisive.', 2: 'LIVELLO 2 — STRATEGIA: spiega come ragionare o prepararsi (equipaggiamento, abilità, schemi da osservare) senza rivelare eventi della storia e senza la soluzione passo per passo.', 3: 'LIVELLO 3 — SOLUZIONE: elenco numerato di cosa fare, passo per passo.'}[lv];
-    const prompt = today() + `Sei Frugu Frugu, il compagno di gioco di Mario. Mario sta giocando a "${g.name}" (${g.year || ''}, ${g.plat}).${prog.trim() ? ' È arrivato a: ' + prog.trim() + '.' : ''}
+    const levelTxt = {1: 'LIVELLO 1 — SOLO UN INDIZIO: una o due frasi che aiutino a ricordare o a notare il dettaglio giusto, SENZA rivelare niente di nuovo.', 2: 'LIVELLO 2 — SPIEGAZIONE: chiarisci quello che è già successo fino al punto in cui si trova (personaggi, fatti, regole del mondo) senza anticipare nulla di quello che viene dopo.', 3: 'LIVELLO 3 — RISPOSTA COMPLETA: rispondi del tutto, anche con spoiler, ma avvisa subito con «⚠️ Spoiler».'}[lv];
+    const prompt = today() + `Sei Frugu Frugu, il compagno di ${isWatch(g) ? 'visione' : 'lettura'} di Mario. Mario sta ${isWatch(g) ? 'guardando' : 'leggendo'} "${g.name}" (${(KIND_BY_ID[g.kind] || {}).full || ''}, ${g.year || ''}, ${g.plat}).${prog.trim() ? ' È arrivato a: ' + prog.trim() + '.' : ''}
 Domanda di Mario: "${q.trim()}"
 ${levelTxt}
-REGOLE FERME: NIENTE SPOILER oltre a ciò che serve per rispondere; non parlare di quello che succede DOPO il punto in cui si trova; se non sei sicuro della risposta (versione, punto del gioco) dillo e chiedi una precisazione invece di inventare. Usa la ricerca web. Italiano semplice, dai del tu, massimo 140 parole.`;
+REGOLE FERME: NIENTE SPOILER oltre a ciò che serve per rispondere; non parlare di quello che succede DOPO il punto in cui si trova; se non sei sicuro della risposta (versione, edizione, punto della storia) dillo e chiedi una precisazione invece di inventare. Usa la ricerca web. Italiano semplice, dai del tu, massimo 140 parole.`;
     try{
       const r = await askLLM(prompt, {}, {search: true, silent: true, label: 'Il compagno cerca…'});
       const ans = String(r && r.text || '').trim(); if(!ans) throw new Error('vuota');

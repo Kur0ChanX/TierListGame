@@ -92,9 +92,9 @@
         if(!syncable(k)) return;
         const r = remoteKeys[k]; if(!r || typeof r.t !== 'number') return;
         if(UNION.includes(k)){
-          // archivi di "elenchi" (giochi aggiunti, copertine, foto): si uniscono documento per documento.
-          // Ogni documento ha una data di modifica (_u): vince il più recente, quindi due dispositivi che modificano giochi DIVERSI non si sovrascrivono
-          // e nemmeno lo stesso gioco (vince l'ultima modifica). Le cancellazioni viaggiano come «lapidi» (_d) e si ripuliscono dopo 60 giorni.
+          // archivi di "elenchi" (titoli aggiunti, copertine, foto): si uniscono documento per documento.
+          // Ogni documento ha una data di modifica (_u): vince il più recente, quindi due dispositivi che modificano titoli DIVERSI non si sovrascrivono
+          // e nemmeno lo stesso titolo (vince l'ultima modifica). Le cancellazioni viaggiano come «lapidi» (_d) e si ripuliscono dopo 60 giorni.
           let lo = {}, ro = {};
           try{ lo = JSON.parse(ls.get(k) || '{}') || {}; }catch(e){}
           try{ ro = JSON.parse(r.v || '{}') || {}; }catch(e){}
@@ -178,7 +178,7 @@
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') flushHidden(); });
   window.addEventListener('pagehide', flushHidden);
 
-  // ---- Catalogo condiviso (dati NON personali): giochi aggiunti, correzioni, Update+ già fatto, note sul voto ----
+  // ---- Catalogo condiviso (dati NON personali): titoli aggiunti, correzioni, Update+ già fatto, note sul voto ----
   // Il dispositivo di Mario lo pubblica in un gist pubblico; ogni altro dispositivo lo scarica da solo all'avvio, così non parte da zero e non rifà gli Update+ già fatti.
   const CAT_KEYS = ['atl_db_customGames', 'atl_db_covers', 'atl_game_overrides', 'atl_fresh', 'atl_info_checked', 'atl_vote_diag', 'atl_vote_state', 'atl_guides', 'atl_tag_overrides'];
   const CAT_DESC = 'RaccoonAnime-catalogo', CAT_FILE = 'catalogo.json';

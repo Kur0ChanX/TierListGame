@@ -216,7 +216,7 @@ async function askLLM(input, opts, extra){
     const v = rawgEl.value.trim(); try{ if(v) localStorage.setItem('atl_rawg_key', v); else localStorage.removeItem('atl_rawg_key'); }catch(e){}
     if(!v){ say('Chiave RAWG rimossa.'); return; }
     say('Verifico la chiave RAWG…');
-    try{ await window.SearchHub.rawg.ping(); say('✅ RAWG funziona: la uso per scoprire giochi, uscite, affini, saghe, voti, anni e copertine (richieste questo mese: ' + window.SearchHub.rawg.usage() + ' su 20.000).', true); }
+    try{ await window.SearchHub.rawg.ping(); say('✅ RAWG funziona: la uso per scoprire titoli, uscite, affini, saghe, voti, anni e copertine (richieste questo mese: ' + window.SearchHub.rawg.usage() + ' su 20.000).', true); }
     catch(e){ say('❌ RAWG non risponde con questa chiave: ' + String(e && e.message || e).slice(0, 120), false); }
   }); }
   const ocEl = document.getElementById('ocKeyInput');
@@ -336,7 +336,7 @@ async function askLLM(input, opts, extra){
       el.querySelector('#lgGo').addEventListener('click', async ()=>{ const u = el.querySelector('#lgUser').value.trim(), pw = el.querySelector('#lgPw').value; if(!u || !pw){ msg('Scrivi utente e password.'); return; } msg('Accedo…'); try{ await cloudLogin(u, pw, msg); }catch(e){ msg('❌ Non riesco a leggere da GitHub' + (e && e.status === 403 ? ' (troppe richieste, riprova tra un po\')' : '') + '.'); } });
     };
     const showNew = ()=>{ el.querySelector('#lgTabNew').classList.add('primary'); el.querySelector('#lgTabIn').classList.remove('primary');
-      body.innerHTML = `<div class="lp-sub">Avrai tutti i giochi, le schede e le informazioni complete; preferiti, tier, classifiche e recensioni saranno solo tuoi.</div>${fld('lgNu', 'Nome del nuovo utente', 'text', '')}${fld('lgNp', 'Password nuova (almeno 12 caratteri)', 'password', '')}<div class="lp-tools"><button class="btn primary" id="lgMk">Crea utente</button></div>`;
+      body.innerHTML = `<div class="lp-sub">Avrai tutti i titoli, le schede e le informazioni complete; preferiti, tier, classifiche e recensioni saranno solo tuoi.</div>${fld('lgNu', 'Nome del nuovo utente', 'text', '')}${fld('lgNp', 'Password nuova (almeno 12 caratteri)', 'password', '')}<div class="lp-tools"><button class="btn primary" id="lgMk">Crea utente</button></div>`;
       el.querySelector('#lgMk').addEventListener('click', async ()=>{
         const n = el.querySelector('#lgNu').value.trim().replace(/[^A-Za-z0-9À-ÿ _-]/g, '').slice(0, 24), pw = el.querySelector('#lgNp').value;
         if(!n){ msg('Scrivi il nome.'); return; } if(pw.length < 12){ msg('Password troppo corta: almeno 12 caratteri.'); return; }

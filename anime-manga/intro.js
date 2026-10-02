@@ -26,7 +26,7 @@
     setTimeout(()=>{ el.remove(); document.documentElement.classList.remove('intro-on'); }, 700);
     window.removeEventListener('keydown', onKey);
   }
-  // dopo "Entra" ignoriamo per un attimo ogni tocco/click residuo, così non apre per sbaglio un gioco
+  // dopo "Entra" ignoriamo per un attimo ogni tocco/click residuo, così non apre per sbaglio un titolo
   function swallow(e){ e.stopPropagation(); e.preventDefault(); }
   function guardTaps(){ ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.addEventListener(n, swallow, true)); setTimeout(()=> ['click','pointerup','pointerdown','touchend','mouseup','mousedown'].forEach(n=> window.removeEventListener(n, swallow, true)), 330); }
   // il browser permette lo schermo intero solo dopo un tocco: il tocco su "ENTRA" lo attiva e apre il programma
@@ -58,7 +58,7 @@
   function enter(){
     if(closed || entering) return;
     const ready = typeof GAMES !== 'undefined' && GAMES.length;
-    if(!ready){ wantIn = true; if(start) start.textContent = '⏳ UN ATTIMO…'; return; }     // toccato prima che i giochi siano pronti: entro appena lo sono
+    if(!ready){ wantIn = true; if(start) start.textContent = '⏳ UN ATTIMO…'; return; }     // toccato prima che i titoli siano pronti: entro appena lo sono
     entering = true;
     guardTaps();
     prime(); chime();
@@ -85,13 +85,13 @@
   function check(){
     if(closed) return;
     const ready = typeof GAMES !== 'undefined' && GAMES.length;
-    if(ready && msg) msg.textContent = `${GAMES.length} giochi pronti`;
+    if(ready && msg) msg.textContent = `${GAMES.length} titoli pronti`;
     if(ready && start && !start.classList.contains('ready')){ start.classList.add('ready'); if(!wantIn) start.textContent = '▶ INIZIA A FRUGARE'; }
     if(ready && wantIn){ enter(); return; }
     setTimeout(check, 150);
   }
   setTimeout(()=>{ timeUp = true; }, reduce ? 1200 : 2200);
-  // v202: se dopo 9 secondi i giochi non ci sono, quasi sempre è GitHub che rifiuta (troppe richieste dalla tua rete):
+  // v202: se dopo 9 secondi i titoli non ci sono, quasi sempre è GitHub che rifiuta (troppe richieste dalla tua rete):
   // lo dico chiaramente e riprovo da solo (al massimo 3 volte), invece di restare fermo su «Carico la tua collezione…»
   let touched = false; window.addEventListener('pointerdown', ()=>{ touched = true; }, {capture: true, once: true});
   setTimeout(()=>{
@@ -113,7 +113,7 @@
     for(let i = 0; i < 34; i++) h += `<u style="left:${R(0,100).toFixed(1)}%;--w2:${R(5,9).toFixed(0)}px;--h2:${R(8,15).toFixed(0)}px;--c:${colors[i%colors.length]};--dx:${R(-40,40).toFixed(0)}px;--d:${R(2.4,4.2).toFixed(2)}s;--w:-${R(0,4).toFixed(2)}s"></u>`;
     sp.innerHTML = h;
   }
-  // rete di sicurezza finale: se per qualsiasi motivo la schermata d'apertura resta in piedi con i giochi pronti, la tolgo (non deve mai coprire l'app)
+  // rete di sicurezza finale: se per qualsiasi motivo la schermata d'apertura resta in piedi con i titoli pronti, la tolgo (non deve mai coprire l'app)
   // (v214: solo se hai GIÀ toccato e qualcosa si è inceppato; altrimenti aspetta il tuo tocco quanto vuoi)
   setInterval(()=>{ const e = document.getElementById('intro'); if(e && !closed && (wantIn || entering) && typeof GAMES !== 'undefined' && GAMES.length){ close(); } if(!e) document.documentElement.classList.remove('intro-on'); }, 2000);
 })();

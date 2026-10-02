@@ -53,7 +53,7 @@
 
 
   // il segno nella cronologia: «indietro» del telefono = torna alla classifica
-  // v217: il segno non si toglie più con un «indietro» (arrivava in ritardo e poteva chiudere il gioco appena aperto): lo spengo sul posto e lo riuso
+  // v217: il segno non si toglie più con un «indietro» (arrivava in ritardo e poteva chiudere il titolo appena aperto): lo spengo sul posto e lo riuso
   const markPage = ()=>{ try{ const st = history.state; if(st && st.rtpage) return; if(st && st.rtdead) history.replaceState({rtpage: 1}, ''); else history.pushState({rtpage: 1}, ''); }catch(e){} };
   const unmarkPage = ()=>{ try{ if(history.state && history.state.rtpage) history.replaceState({rtdead: 1}, ''); }catch(e){} };
   // v217: gli «indietro» lanciati dal programma (fx.js, per togliere i segni delle finestre) arrivano un attimo dopo: li riconosco e non chiudono niente.
@@ -101,7 +101,7 @@
   try{ if(typeof state !== 'undefined' && state.view && state.view !== 'list'){ paint(state.view); markPage(); } }catch(e){}
   document.addEventListener('change', ()=>{ if(body.classList.contains('rt-page')) refreshFilt(); });
 
-  // scheda del gioco: quando la barra «Per te / Il gioco / Altro» resta ferma in alto, riempio lo spazio sopra di lei (classe .stuck)
+  // scheda del titolo: quando la barra «Per te / Il titolo / Altro» resta ferma in alto, riempio lo spazio sopra di lei (classe .stuck)
   const card = document.getElementById('modalCard');
   if(card){
     let raf = 0;

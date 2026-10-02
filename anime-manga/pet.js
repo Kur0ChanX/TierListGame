@@ -1,8 +1,8 @@
 // ---- Frugu, il procione da compagnia (Tamagotchi 3.0) ----
 // Vive nell'app: ha fame, sete, sonno, si sporca, si ammala, vuole coccole e giocare. Cresce (uovo → cucciolo → ragazzo → adulto → saggio)
-// e da adulto prende una forma che dipende dai TUOI giochi (il tuo genere preferito). Il tempo passa anche ad app chiusa (al massimo 2 giorni
+// e da adulto prende una forma che dipende dai TUOI titoli (il tuo genere preferito). Il tempo passa anche ad app chiusa (al massimo 2 giorni
 // alla volta, così non lo ritrovi mai disperato), non muore mai: se lo trascuri si intristisce o si ammala e guarisce con le cure.
-// Guadagna monete con i minigiochi e con quello che fai nell'app (finire un giochi, Update+, aggiungere giochi) e le spendi nel negozio.
+// Guadagna monete con i minigiochi e con quello che fai nell'app (finire un titoli, Update+, aggiungere titoli) e le spendi nel negozio.
 // Stato in localStorage «atl_pet» (quindi sincronizzato con il Gist come gli altri dati).
 (function(){
   'use strict';
@@ -34,7 +34,7 @@
     {id: 'sciarpa', n: 'Sciarpa', e: '🧣', cost: 30}, {id: 'joypad', n: 'Joypad', e: '🎮', cost: 60}
   ];
   const STAGES = [['uovo', 'Uovo', 0], ['cucciolo', 'Cucciolo', 0], ['ragazzo', 'Ragazzo', 2], ['adulto', 'Adulto', 7], ['saggio', 'Saggio', 30]];
-  // forma da adulto: dal genere che giochi di più
+  // forma da adulto: dal genere che titoli di più
   const FORMS = {TAC: ['Stratega', '#5b6cff'], TUR: ['Eroe classico', '#e0a100'], ACT: ['Guerriero', '#ef4444'], DUN: ['Esploratore', '#8b5cf6'], MON: ['Domatore', '#22c55e'], CARD: ['Giocatore di carte', '#0ea5e9'], SOUL: ['Cavaliere oscuro', '#475569'], ROG: ['Avventuriero', '#f97316'], HOR: ['Cacciatore di fantasmi', '#64748b'], VN: ['Poeta', '#ec4899'], LIFE: ['Contadino', '#84cc16'], MECH: ['Pilota', '#94a3b8']};
 
   const now = ()=> Date.now();
@@ -152,7 +152,7 @@
     spawn();
     const iv = setInterval(()=>{ t--; const el = box.querySelector('.pg-t'); if(el) el.textContent = t; if(t <= 0){ clearInterval(iv); alive = false; const c = Math.max(0, sc); P.fun = clamp(P.fun + 20); P.energy = clamp(P.energy - 10); P.food = clamp(P.food - 4); addLog('Minigioco monete: ' + sc + ' punti'); reward(4 + Math.floor(c / 3), c, 'ha giocato con te: ' + sc + ' punti'); paint(); } }, 1000);
   }
-  function gameTier(){    // indovina il tier di un gioco del database
+  function gameTier(){    // indovina il tier di un titolo del database
     const box = document.querySelector('.pet-play'); if(!box) return;
     let round = 0, ok = 0;
     const next = ()=>{
@@ -190,9 +190,9 @@
       <button class="btn pet-it" type="button" data-a="wash">🛁 Bagnetto</button><button class="btn pet-it" type="button" data-a="clean">🧹 Pulisci</button><button class="btn pet-it" type="button" data-a="heal">💊 Medicina</button>
       <button class="btn pet-it" type="button" data-a="love">🤗 Coccole</button><button class="btn pet-it" type="button" data-a="sleep">${P.asleep ? '☀️ Sveglia' : '🌙 A nanna'}</button></div>`;
     else if(tab === 'gioca') panel = `<div class="pet-play"><div class="pg-menu"><button class="btn" type="button" data-g="coins">🪙 Acchiappa le monete</button><button class="btn" type="button" data-g="tier">🏆 Quiz dei tier</button><button class="btn" type="button" data-g="rps">✊ Morra cinese</button></div></div>`;
-    else if(tab === 'negozio') panel = `<div class="pet-shop"><p class="lp-sub">Hai <b>${P.coins}</b> monete. Le guadagni con i minigiochi e usando l'app: gioco finito +25, gioco aggiunto +5, Update+ +2.</p>${SHOP.map(s=>{ const own = (P.owned || []).includes(s.id), on = (P.wear || []).includes(s.id); return `<button class="btn pet-it${on ? ' primary' : ''}" type="button" data-shop="${s.id}">${s.e} ${esc(s.n)} <small>${own ? (on ? 'indossato' : 'indossa') : s.cost + '🪙'}</small></button>`; }).join('')}</div>`;
+    else if(tab === 'negozio') panel = `<div class="pet-shop"><p class="lp-sub">Hai <b>${P.coins}</b> monete. Le guadagni con i minigiochi e usando l'app: titolo finito +25, titolo aggiunto +5, Update+ +2.</p>${SHOP.map(s=>{ const own = (P.owned || []).includes(s.id), on = (P.wear || []).includes(s.id); return `<button class="btn pet-it${on ? ' primary' : ''}" type="button" data-shop="${s.id}">${s.e} ${esc(s.n)} <small>${own ? (on ? 'indossato' : 'indossa') : s.cost + '🪙'}</small></button>`; }).join('')}</div>`;
     else panel = `<div class="pet-diary"><label class="gs-row">Nome <input id="petName" value="${esc(P.name)}" maxlength="14"></label>
-      <p class="lp-sub">Nato il ${new Date(P.born).toLocaleDateString('it-IT')} · ${Math.floor(ageDays())} giorni · ${P.games || 0} giochi finiti insieme</p>${(P.log || []).map(l=> `<div class="hist-row"><small>${new Date(l.t).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}</small> ${esc(l.x)}</div>`).join('')}</div>`;
+      <p class="lp-sub">Nato il ${new Date(P.born).toLocaleDateString('it-IT')} · ${Math.floor(ageDays())} giorni · ${P.games || 0} titoli finiti insieme</p>${(P.log || []).map(l=> `<div class="hist-row"><small>${new Date(l.t).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}</small> ${esc(l.x)}</div>`).join('')}</div>`;
     body.innerHTML = `<div class="pet-stage">${svg(true)}</div>
       <div class="pet-id"><b>${esc(P.name)}</b> · ${st[1]}${f ? ' ' + esc(f[0]) : ''} · liv. ${level()} · ${P.coins}🪙${n ? `<div class="pet-needtx">${esc(n)}</div>` : ''}</div>
       <div class="pet-stats">${bars}</div>
@@ -214,7 +214,7 @@
   // ---------- reagisce a quello che fai nell'app ----------
   if(typeof window.setStatus === 'function'){
     const o = window.setStatus;
-    window.setStatus = function(id, st){ const before = STATUSES[id]; const r = o.apply(this, arguments); try{ if(st === 'played' && before !== 'played' && STATUSES[id] === 'played'){ P.games = (P.games || 0) + 1; P.fun = clamp(P.fun + 15); addLog('Festa! Hai finito ' + ((GAMES.find(g=> g.id === id) || {}).name || 'un gioco')); reward(10, 25, 'fa festa perché hai finito un gioco!'); avatar(); } }catch(e){} return r; };
+    window.setStatus = function(id, st){ const before = STATUSES[id]; const r = o.apply(this, arguments); try{ if(st === 'played' && before !== 'played' && STATUSES[id] === 'played'){ P.games = (P.games || 0) + 1; P.fun = clamp(P.fun + 15); addLog('Festa! Hai finito ' + ((GAMES.find(g=> g.id === id) || {}).name || 'un gioco')); reward(10, 25, 'fa festa perché hai finito un titolo!'); avatar(); } }catch(e){} return r; };
     try{ setStatus = window.setStatus; }catch(e){}
   }
   window.addEventListener('update-plus', e=>{ if(e.detail && e.detail.ok){ P.coins += 2; P.xp += 1; save(); } });
