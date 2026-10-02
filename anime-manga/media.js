@@ -1,0 +1,288 @@
+// ---- Locandina e schermate scelte da te (v196): «🔄 Cambia locandina» e «🎞️ Scegli le schermate» nella scheda ----
+// Quello che scegli resta BLOCCATO 🔒 (atl_media_lock {id: {cover: 1, shots: [url…]}}): nessun aggiornamento automatico,
+// Update+ o ricerca in background lo cambia. Lo sblocchi dagli stessi pannelli.
+(function(){
+  'use strict';
+  const U = window.XUI; if(!U) return;
+  const {sheet, toast, esc} = U;
+  const K = 'atl_media_lock';
+  const LSG = (k, d)=>{ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } };
+  const LSS = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+  const lockOf = g=> (LSG(K, {}) || {})[g.id] || null;
+  const setLock = (g, patch)=>{ const all = LSG(K, {}) || {}, e = Object.assign({}, all[g.id] || {}, patch); Object.keys(e).forEach(k=>{ if(e[k] == null || e[k] === 0 || (Array.isArray(e[k]) && !e[k].length)) delete e[k]; }); if(Object.keys(e).length) all[g.id] = e; else delete all[g.id]; LSS(K, all); };
+  window.rtMediaLock = lockOf;
+
+  // la locandina bloccata non si sostituisce in automatico (Update+, giochi nuovi, catalogo…): solo da qui, con «force»
+  if(window.XCOVER && XCOVER.save){
+    const orig = XCOVER.save;
+    XCOVER.save = async function(g, url, opts){ if(g && (lockOf(g) || {}).cover && !(opts && opts.force)) return false; return orig.call(this, g, url, opts); };
+  }
+  const reopen = g=>{ try{ const ng = GAMES.find(x=> x.id === g.id) || g; if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) openModal(ng); }catch(e){} };
+
+  // ---------- 🔄 Cambia locandina ----------
+  async function openCovers(g){
+    const lk = lockOf(g) || {};
+    const body = sheet('xCovers', '🔄 Cambia locandina', `<div class="lp-sub">Tutte le locandine ufficiali che trovo (Steam, Libretro, Wikipedia, RAWG…). Tocca quella che ti piace: diventa la locandina del gioco e resta <b>bloccata 🔒</b>, nessun aggiornamento la cambia.</div>
+      ${lk.cover ? '<div class="lp-tools"><button class="btn" id="cvUnlock" type="button">🔓 Sblocca la locandina (torna automatica)</button></div>' : ''}<div id="cvRes" class="lp-sub">Cerco…</div>`);
+    const un = body.querySelector('#cvUnlock'); if(un) un.addEventListener('click', ()=>{ setLock(g, {cover: null}); toast('Locandina sbloccata', 1800); un.remove(); });
+    const res = body.querySelector('#cvRes');
+    let list = [];
+    try{ list = await XCOVER.all(g, t=>{ if(res) res.textContent = 'Cerco… ' + t; }); }catch(e){}
+    if(!res.isConnected) return;
+    if(!list.length){ res.textContent = 'Non trovo altre locandine ora. Puoi sempre caricarne una dal telefono («Carica dal telefono»).'; return; }
+    res.innerHTML = `<div class="cv-grid">${list.map((o, i)=> `<button type="button" class="cv-it" data-i="${i}"><img src="${esc(o.url)}" alt="" loading="lazy" decoding="async"><small>${esc(o.source)}</small></button>`).join('')}</div>`;
+    res.querySelectorAll('[data-i]').forEach(b=> b.addEventListener('click', async ()=>{
+      const o = list[+b.dataset.i]; b.classList.add('busy');
+      try{ await XCOVER.save(g, o.url, {force: true}); setLock(g, {cover: 1}); toast('🔒 Locandina scelta e bloccata', 2200); const sh = document.getElementById('xCovers'); if(sh) sh.classList.remove('show'); reopen(g); }
+      catch(e){ toast('Non riesco a salvarla: riprova', 2500); b.classList.remove('busy'); }
+    }));
+  }
+
+  // ---------- 🎞️ Schermate del carosello (v199): tocchi una foto → tante alternative → tocchi quella nuova: la sostituisce e la blocca 🔒 ----------
+  const thumbOf = new Map();          // foto grande -> miniatura (per la griglia, più leggera)
+  async function steamId(g){ try{ return (await SearchHub.resolveGame(g)).sid; }catch(e){ return null; } }
+  async function steamAll(g){
+    try{
+      const id = await steamId(g); if(!id) return [];
+      const j = await SearchHub.json('https://store.steampowered.com/api/appdetails?appids=' + id + '&filters=screenshots,movies', {timeout: 15000});
+      const d = j && j[id] && j[id].success ? j[id].data : null, out = [];
+      ((d && d.screenshots) || []).forEach(x=>{ const full = String(x.path_full || x.path_thumbnail || '').replace(/\?.*$/, ''); if(full){ out.push(full); thumbOf.set(full, String(x.path_thumbnail || full).replace(/\?.*$/, '')); } });
+      ((d && d.movies) || []).forEach(m=>{ const u = String(m.thumbnail || '').replace(/\?.*$/, ''); if(u) out.push(u); });      // fotogrammi dei trailer
+      return out;
+    }catch(e){ return []; }
+  }
+  // anteprima grande (tieni premuto su una foto, o tocca 🔍)
+  function preview(src){
+    let ov = document.getElementById('rtPrev');
+    if(!ov){ ov = document.createElement('div'); ov.id = 'rtPrev'; ov.className = 'rt-prev'; ov.innerHTML = '<img alt=""><small>Tocca per chiudere</small>'; ov.addEventListener('click', ()=> ov.classList.remove('show')); document.body.appendChild(ov); }
+    ov.querySelector('img').src = src; ov.classList.add('show');
+  }
+  window.rtPreview = preview;
+  let lpT = 0, lpDone = false, lpX = 0, lpY = 0;
+  document.addEventListener('pointerdown', e=>{
+    const it = e.target.closest && e.target.closest('.cv-it'), im = it && it.querySelector('img'); if(!im) return;
+    lpDone = false; lpX = e.clientX; lpY = e.clientY; clearTimeout(lpT);
+    lpT = setTimeout(()=>{ lpDone = true; preview(im.dataset.full || im.src); try{ navigator.vibrate && navigator.vibrate(15); }catch(x){} }, 450);
+  }, true);
+  document.addEventListener('pointermove', e=>{ if(lpT && Math.hypot(e.clientX - lpX, e.clientY - lpY) > 12){ clearTimeout(lpT); lpT = 0; } }, true);
+  ['pointerup', 'pointercancel'].forEach(t=> document.addEventListener(t, ()=>{ clearTimeout(lpT); lpT = 0; }, true));
+  document.addEventListener('click', e=>{ if(lpDone && e.target.closest && e.target.closest('.cv-it')){ e.stopPropagation(); e.preventDefault(); lpDone = false; } }, true);
+  document.addEventListener('contextmenu', e=>{ if(e.target.closest && e.target.closest('.cv-it')) e.preventDefault(); }, true);
+
+  async function openShots(g){
+    const body = sheet('xShots', '🎞️ Foto del carosello', `<div class="lp-sub"><b>Tocca la foto che non ti piace</b>: ti mostro tante alternative, tocchi quella nuova e la sostituisce, bloccata 🔒. <b>Tieni premuto</b> su una foto per vederla in grande.</div>
+      <div id="shCur" class="lp-sub">Cerco…</div><div id="shAlt"></div>
+      <div class="lp-tools"><button class="btn" id="shUnlock" type="button">🔓 Torna automatiche</button></div>`);
+    const cur = body.querySelector('#shCur'), alt = body.querySelector('#shAlt');
+    body.querySelector('#shUnlock').addEventListener('click', ()=>{ setLock(g, {shots: null}); toast('Foto di nuovo automatiche', 1800); const sh = document.getElementById('xShots'); if(sh) sh.classList.remove('show'); reopen(g); });
+    let slots = [];
+    try{ slots = (await (window.rtShotsFor ? rtShotsFor(g) : [])).slice(0, 12); }catch(e){}
+    const pool = [], add = u=>{ if(u && !pool.includes(u)) pool.push(u); };
+    let poolReady = (async()=>{
+      try{ (window.rtSteamShots ? rtSteamShots(g) : []).forEach(add); }catch(e){}
+      const [a, b] = await Promise.all([steamAll(g).catch(()=> []), (window.rtRawgShots ? rtRawgShots(g) : Promise.resolve([])).catch(()=> [])]);
+      a.forEach(add); (b || []).forEach(add);
+    })();
+    // v201: quando le foto finiscono, ne cerco altre senza fine: fotogrammi dei video di gameplay su YouTube (query sempre diverse)
+    let en = g.name; try{ en = await SearchHub.enName(g); }catch(e){}
+    const QS = ['gameplay', 'walkthrough part 1', 'boss fight', 'all cutscenes', 'walkthrough part 5', 'review', 'gameplay 4k', 'walkthrough part 10', 'combat', 'exploration', 'final boss', 'opening', 'walkthrough part 20', 'side quests', 'ending'];
+    // titolo del video valido se contiene il nome base del gioco (prima dei «:»), con i numeri romani = arabi (XI = 11)
+    const ROM = {i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10, xi: 11, xii: 12, xiii: 13, xiv: 14, xv: 15, xvi: 16};
+    const tk = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w=> w.length >= 2 && !['the', 'of', 'and'].includes(w)).map(w=> ROM[w] ? String(ROM[w]) : w);
+    const toks = tk(String(en).split(/:| - | – /)[0]);
+    const okTitle = t=>{ const x = new Set(tk(t)); return toks.length ? toks.every(w=> x.has(w)) : true; };
+    let qi = 0, moreBusy = null;
+    const more = ()=> moreBusy || (moreBusy = (async()=>{
+      const before = pool.length;
+      while(qi < QS.length && pool.length - before < 12){
+        const q = en + ' ' + QS[qi++];
+        let vids = []; try{ vids = window.rtYtSearch ? await rtYtSearch(q) : []; }catch(e){}
+        vids.filter(v=> okTitle(v[1])).slice(0, 10).forEach(v=>{ const id = v[0]; ['hq1', 'hq2', 'hq3', 'maxresdefault'].forEach(f=>{ const u = 'https://i.ytimg.com/vi/' + id + '/' + f + '.jpg'; add(u); thumbOf.set(u, 'https://i.ytimg.com/vi/' + id + '/' + (f === 'maxresdefault' ? 'hqdefault' : f) + '.jpg'); }); });
+      }
+      return pool.length - before;
+    })().finally(()=>{ moreBusy = null; }));
+    if(!cur.isConnected) return;
+    const locked = ()=> !!((lockOf(g) || {}).shots || []).length;
+    const img = u=> `<img src="${esc(thumbOf.get(u) || u)}" data-full="${esc(u)}" alt="" loading="lazy" decoding="async" onerror="this.closest('.cv-it').classList.add('bad')">`;
+    let sel = -1, page = 0;
+    const drawCur = ()=>{
+      cur.innerHTML = `<div class="cv-grid sh cur">${slots.map((u, i)=> `<button type="button" class="cv-it on${sel === i ? ' pick' : ''}" data-s="${i}">${img(u)}<span class="cv-n">${i + 1}${locked() ? ' 🔒' : ''}</span></button>`).join('')}${slots.length < 12 ? '<button type="button" class="cv-it cv-plus" data-s="new">＋<small>Aggiungi una foto</small></button>' : ''}</div>`;
+    };
+    const save = ()=>{ setLock(g, {shots: slots.slice()}); };
+    const drawAlt = async ()=>{
+      if(sel === -1){ alt.innerHTML = ''; return; }
+      alt.innerHTML = '<div class="lp-sub">Cerco le alternative…</div>';
+      await poolReady; if(!alt.isConnected) return;
+      let free = pool.filter(u=> !slots.includes(u));
+      if(free.length <= (page + 1) * 12){ alt.innerHTML = '<div class="lp-sub">Cerco altre foto (anche dai video di gameplay)…</div>'; await more(); if(!alt.isConnected) return; free = pool.filter(u=> !slots.includes(u)); }
+      if(!free.length){ alt.innerHTML = '<div class="lp-sub">Non trovo altre foto di questo gioco (Steam e, con la chiave, RAWG).</div>'; return; }
+      const per = 12, pages = Math.ceil(free.length / per); if(page >= pages) page = 0;
+      const show = free.slice(page * per, page * per + per);
+      alt.innerHTML = `<div class="gs2-h">${sel === 'new' ? 'Scegli la foto da aggiungere' : 'Al posto della foto ' + (sel + 1) + ':'} <small>(gruppo ${page + 1}${qi < QS.length ? ' · ne cerco sempre altre' : ' di ' + pages})</small></div>
+        <div class="cv-grid sh">${show.map(u=> `<button type="button" class="cv-it" data-a="${esc(u)}">${img(u)}</button>`).join('')}</div>
+        <div class="lp-tools">${qi < QS.length || pages > 1 ? '<button class="btn" type="button" id="shMore">🔄 Altre foto diverse</button>' : ''}${sel !== 'new' && slots.length > 1 ? '<button class="btn" type="button" id="shDel">🗑️ Togli questa foto</button>' : ''}<button class="btn" type="button" id="shCancel">Annulla</button></div>`;
+      const m = alt.querySelector('#shMore'); if(m) m.addEventListener('click', ()=>{ page++; drawAlt(); });
+      const d = alt.querySelector('#shDel'); if(d) d.addEventListener('click', ()=>{ slots.splice(sel, 1); sel = -1; save(); toast('Foto tolta 🔒', 1500); drawCur(); drawAlt(); });
+      alt.querySelector('#shCancel').addEventListener('click', ()=>{ sel = -1; drawCur(); drawAlt(); });
+      alt.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{
+        const u = b.dataset.a; if(sel === 'new') slots.push(u); else slots[sel] = u;
+        save(); toast('🔒 Foto ' + (sel === 'new' ? slots.length : sel + 1) + ' cambiata e bloccata', 1800);
+        sel = -1; drawCur(); drawAlt(); reopenSoft(g);
+      }));
+      try{ alt.scrollIntoView({behavior: 'smooth', block: 'start'}); }catch(e){}
+    };
+    cur.addEventListener('click', e=>{
+      const b = e.target.closest('[data-s]'); if(!b) return;
+      const v = b.dataset.s === 'new' ? 'new' : +b.dataset.s;
+      if(sel === v){ page++; } else { sel = v; page = 0; }      // ritocchi la stessa foto: altre alternative
+      drawCur(); drawAlt();
+    });
+    if(!slots.length){ await poolReady; if(!pool.length) await more(); slots = pool.slice(0, 6); }
+    if(!slots.length){ cur.textContent = 'Non trovo foto per questo gioco (servono Steam o la chiave RAWG).'; return; }
+    drawCur();
+  }
+  // quando chiudi il pannello, la scheda riparte con le foto nuove
+  const reopenSoft = g=>{
+    const sh = document.getElementById('xShots'); if(!sh || sh._rtObs) return;
+    const mo = new MutationObserver(()=>{ if(!sh.classList.contains('show')){ mo.disconnect(); sh._rtObs = null; reopen(g); } });
+    sh._rtObs = mo; mo.observe(sh, {attributes: true, attributeFilter: ['class']});
+  };
+
+  // ---------- v204: UN SOLO pulsante «🖼️ Locandina» con tutto dentro (prima erano 8 pulsanti sparsi) ----------
+  // Gli strumenti di sempre restano nella pagina, nascosti: il menu li «preme» per te (così caricare dal telefono, i link ecc. funzionano come prima).
+  function addButtons(g){
+    const block = document.getElementById('coverBlock'); if(!block) return;
+    block.classList.add('cv-compact');
+    if(block.querySelector(':scope > .cv-menu-btn')) return;
+    const lk = lockOf(g) || {}, hasImg = !!block.querySelector('.cover-frame');
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'cv-menu-btn'; btn.dataset.media = 'menu';
+    btn.innerHTML = `🖼️ <span>Locandina e foto</span>${lk.cover || lk.shots ? ' <small>🔒</small>' : ''} <b>▾</b>`;
+    const after = block.querySelector('.cover-frame') || block.querySelector('.placeholder-cover') || block.firstElementChild;
+    if(after) after.insertAdjacentElement('afterend', btn); else block.prepend(btn);
+    if(!hasImg) block.classList.add('cv-noimg');           // senza locandina «✨ Trova copertina» resta in vista
+  }
+  // ---------- v217: la locandina presa da internet con un tocco ----------
+  // 1) «Cerca su internet» apre Google Immagini; sulla foto scelta: tieni premuto → «Condividi immagine» → Raccoon Tier
+  //    (il service worker la riceve, l'app si apre e la mette come locandina del gioco da cui eri partito);
+  // 2) oppure «Copia immagine» e al ritorno l'avviso «Tocca per metterla come locandina» (legge gli appunti);
+  // 3) se l'immagine arriva senza un gioco di partenza resta da parte: «📥 Usa l'immagine ricevuta» nel menu della locandina.
+  const WAIT = 'art_cover_wait', SHARED = './__shared-cover', WCACHE = 'raccoon-anime-v1';
+  const WEB = {pending: false};
+  const byId = id=> (typeof GAMES !== 'undefined' ? GAMES : []).find(x=> String(x.id) === String(id));
+  const ready = ()=> new Promise(res=>{ const t0 = Date.now(); const f = ()=>{ if((typeof COVER_ASSETS !== 'undefined' && COVER_ASSETS && typeof COVER_DB !== 'undefined' && COVER_DB) || Date.now() - t0 > 15000) res(); else setTimeout(f, 300); }; f(); });
+  async function putCover(g, blob){
+    if(!g || !blob) return;
+    await ready();
+    if(typeof currentModalGame === 'undefined' || !currentModalGame || currentModalGame.id !== g.id) openModal(g);
+    if(typeof handleCoverUpload === 'function'){ await handleCoverUpload(g, blob); try{ setLock(g, {cover: 1}); }catch(e){} try{ renderWhenIdle({list: true}); }catch(e){} }
+  }
+  WEB.help = g=>{
+    try{ localStorage.setItem(WAIT, JSON.stringify({id: g.id, t: Date.now()})); }catch(e){}
+    const url = typeof coverSearchUrl === 'function' ? coverSearchUrl(g) : 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(g.name + ' cover art');
+    const body = sheet('xCvWeb', '🌐 Locandina da internet', `<div class="lp-sub">Si apre la ricerca immagini di <b>${esc(g.name)}</b>. Sulla foto che ti piace:</div>
+      <ol class="cvw-steps"><li><b>Tieni premuto</b> sulla foto</li><li>Tocca <b>«Condividi immagine»</b> e scegli <b>Raccoon Tier</b>: la metto io come locandina 🔒</li><li>Oppure tocca <b>«Copia immagine»</b> e torna qui: ti chiedo se usarla</li></ol>
+      <div class="lp-tools"><a class="btn primary" id="cvwGo" href="${esc(url)}" target="_blank" rel="noopener">🌐 Apri la ricerca</a><button type="button" class="btn" id="cvwPaste">📋 Ho già copiato: incolla</button></div>
+      <div class="lp-sub" style="opacity:.75">Se Raccoon Tier non compare tra le app di «Condividi», usa «Copia immagine» (il telefono aggiorna l'elenco delle app da solo, può volerci qualche giorno).</div>`);
+    body.querySelector('#cvwGo').addEventListener('click', ()=>{ try{ localStorage.setItem(WAIT, JSON.stringify({id: g.id, t: Date.now(), out: 1})); }catch(e){} const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); });
+    body.querySelector('#cvwPaste').addEventListener('click', ()=>{ const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); WEB.paste(g); });
+  };
+  window.rtWebPaste = g=> WEB.paste(g);      // v228: per gli avvisi «Hai copiato un'immagine…» anche dopo aver riaperto l'app
+  WEB.paste = async g=>{
+    if(!navigator.clipboard){ toast('Questo telefono non mi lascia leggere gli appunti: usa «Condividi immagine» o «Carica dal telefono»', 4000); return; }
+    try{
+      if(navigator.clipboard.read){
+        const items = await navigator.clipboard.read();
+        for(const it of items){ const ty = it.types.find(t=> /^image\//.test(t)); if(ty){ const b = await it.getType(ty); toast('📋 Immagine presa dagli appunti', 1600); await putCover(g, b); return; } }
+      }
+      const t = navigator.clipboard.readText ? (await navigator.clipboard.readText() || '').trim() : '';
+      const u = (t.match(/https?:\/\/\S+/) || [])[0];
+      if(u && typeof saveCoverUrl === 'function'){ await saveCoverUrl(g, u); try{ setLock(g, {cover: 1}); }catch(e){} return; }
+      toast('Negli appunti non c\'è un\'immagine: su internet tieni premuto sulla foto → «Copia immagine»', 4500);
+    }catch(e){ toast('Non posso leggere gli appunti (permesso negato): riprova e tocca «Consenti», oppure usa «Condividi immagine»', 5000); }
+  };
+  async function sharedEntry(del){
+    try{ const c = await caches.open(WCACHE), r = await c.match(SHARED); if(del) await c.delete(SHARED); return r || null; }catch(e){ return null; }
+  }
+  WEB.useShared = async g=>{
+    const r = await sharedEntry(true); WEB.pending = false;
+    if(!r){ toast('Non c\'è nessuna immagine ricevuta', 2200); return; }
+    const ty = r.headers.get('content-type') || '';
+    if(/^image\//.test(ty)){ await putCover(g, await r.blob()); return; }
+    const u = ((await r.text()).match(/https?:\/\/\S+/) || [])[0];
+    if(u && typeof saveCoverUrl === 'function'){ await ready(); await saveCoverUrl(g, u); try{ setLock(g, {cover: 1}); }catch(e){} }
+    else toast('Quello che hai condiviso non è un\'immagine', 2600);
+  };
+  // all'avvio: arrivo da «Condividi immagine»?
+  (async ()=>{
+    const fromShare = /[?&]shared=cover/.test(location.search);
+    if(fromShare){ try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch(e){} }
+    const r = await sharedEntry(false); if(!r) return;
+    WEB.pending = true;
+    if(!fromShare) return;
+    let w = null; try{ w = JSON.parse(localStorage.getItem(WAIT) || 'null'); }catch(e){}
+    const wait = ()=> new Promise(res=>{ const f = ()=> typeof GAMES !== 'undefined' && GAMES.length ? res() : setTimeout(f, 200); f(); });
+    await wait();
+    const g = w && Date.now() - w.t < 60 * 60e3 ? byId(w.id) : null;
+    if(g){ try{ localStorage.removeItem(WAIT); }catch(e){} toast('📥 Immagine ricevuta: la metto come locandina di ' + g.name, 2600); await WEB.useShared(g); }
+    else if(window.showToast) showToast('📥 Immagine ricevuta. Apri il gioco giusto → 🖼️ Locandina e foto → «Usa l\'immagine ricevuta»', 9000);
+  })();
+  // al ritorno da internet: se avevi copiato un'immagine te la propongo (un tocco, così il telefono mi lascia leggere gli appunti)
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden) return;
+    let w = null; try{ w = JSON.parse(localStorage.getItem(WAIT) || 'null'); }catch(e){}
+    if(!w || !w.out || Date.now() - w.t > 20 * 60e3) return;
+    const g = byId(w.id); if(!g) return;
+    try{ localStorage.setItem(WAIT, JSON.stringify({id: w.id, t: w.t})); }catch(e){}
+    setTimeout(()=>{ if(window.showToast) showToast('📋 Hai copiato un\'immagine per ' + g.name + '? Tocca per metterla come locandina', 9000, ()=> WEB.paste(g)); }, 600);
+  });
+  function openMenu(g){
+    const block = document.getElementById('coverBlock'); if(!block || !U.sheet) return;
+    const lk = lockOf(g) || {};
+    const has = sel=> !!block.querySelector(sel);
+    const items = [
+      ['cover', '🔄', lk.cover ? 'Cambia la locandina (ora bloccata 🔒)' : 'Scegli un\'altra locandina', 'scegli quella che vuoi: il lucchetto 🔒 serve solo a non farla cambiare dagli aggiornamenti'],
+      ['shots', '🎞️', lk.shots ? 'Foto del carosello (bloccate 🔒)' : 'Foto del carosello', 'cambia le foto una per una, con tante alternative'],
+      window.rtHeroSettings ? ['hero', '⚙️', 'Impostazioni del carosello', 'accendi o spegni, secondi per foto, velocità, attesa della locandina'] : null,
+      has('[data-cover-file-input]') ? ['file', '📱', 'Carica dal telefono', 'una foto dalla tua galleria'] : null,
+      has('[data-cover-camera-input]') ? ['cam', '📷', 'Scatta una foto', 'con la fotocamera, adesso'] : null,
+      !lk.cover && has('.x-autocover button') ? ['auto', '✨', has('.cover-frame') ? 'Aggiorna in automatico' : 'Trova la copertina in automatico', 'la cerco io nelle fonti ufficiali'] : null,
+      !lk.cover && has('[data-cover-alt]') ? ['alt', '🔍', 'Prova la prossima immagine', 'una alla volta, tra quelle trovate online'] : null,
+      WEB.pending ? ['shared', '📥', 'Usa l\'immagine ricevuta', 'quella che hai condiviso con Raccoon Tier'] : null,
+      ['web', '🌐', 'Cerca su internet', 'tieni premuto sulla foto che ti piace → Condividi → Raccoon Tier'],
+      ['paste', '📋', 'Incolla l\'immagine copiata', 'se su internet hai scelto «Copia immagine»'],
+      has('.cover-more') ? ['link', '🔗', 'Usa un link', 'incolla l\'indirizzo di un\'immagine'] : null,
+      lk.cover ? ['unlock', '🔓', 'Sblocca la locandina', 'torna automatica'] : null,
+      has('[data-cover-diag]') ? ['diag', '🩺', 'Diagnostica immagini', 'se le immagini non si vedono'] : null
+    ].filter(Boolean);
+    const body = U.sheet('xCvMenu', '🖼️ Locandina e foto', `<div class="cvm">${items.map(([k, ic, n, d])=> `<button type="button" class="cvm-i" data-cvm="${k}"><span class="cvm-ic">${ic}</span><span><b>${esc(n)}</b><small>${esc(d)}</small></span></button>`).join('')}</div>`);
+    body.querySelectorAll('[data-cvm]').forEach(b=> b.addEventListener('click', ()=>{
+      const k = b.dataset.cvm, sh = document.getElementById('xCvMenu'), close = ()=>{ if(sh) sh.classList.remove('show'); };
+      const press = sel=>{ const el = block.querySelector(sel); if(el) el.click(); };
+      if(k === 'cover'){ close(); openCovers(g); }
+      else if(k === 'shots'){ close(); openShots(g); }
+      else if(k === 'hero'){ close(); try{ rtHeroSettings(); }catch(e){} }
+      else if(k === 'file'){ close(); press('[data-cover-file-input]'); }
+      else if(k === 'cam'){ close(); press('[data-cover-camera-input]'); }
+      else if(k === 'auto'){ close(); press('.x-autocover button'); toast('Cerco la locandina…', 1800); }
+      else if(k === 'alt'){ close(); press('[data-cover-alt]'); }
+      else if(k === 'web'){ close(); WEB.help(g); }
+      else if(k === 'paste'){ close(); WEB.paste(g); }
+      else if(k === 'shared'){ close(); WEB.useShared(g); }
+      else if(k === 'link'){ close(); const d = block.querySelector('.cover-more'); if(d){ d.classList.add('cv-show'); d.open = true; const i = d.querySelector('input'); if(i) setTimeout(()=> i.focus(), 150); } }
+      else if(k === 'unlock'){ setLock(g, {cover: null}); toast('Locandina sbloccata: torna automatica', 2000); close(); reopen(g); }
+      else if(k === 'diag'){ close(); press('[data-cover-diag]'); }
+    }));
+  }
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('[data-media]'); if(!b || typeof currentModalGame === 'undefined' || !currentModalGame) return;
+    e.preventDefault();
+    const k = b.dataset.media; if(k === 'menu') openMenu(currentModalGame); else if(k === 'cover') openCovers(currentModalGame); else openShots(currentModalGame);
+  });
+  if(typeof window.openModal === 'function'){
+    const prev = window.openModal;
+    window.openModal = function(g){ const r = prev.apply(this, arguments); try{ if(g) addButtons(g); }catch(e){} return r; };
+    try{ openModal = window.openModal; }catch(e){}
+  }
+  // la copertina viene ridisegnata quando arriva l'immagine: rimetto i pulsanti se spariscono
+  try{ const card = document.getElementById('modalCard'); if(card) new MutationObserver(()=>{ if(typeof currentModalGame !== 'undefined' && currentModalGame && document.getElementById('coverBlock') && !document.querySelector('#coverBlock > .cv-menu-btn')) addButtons(currentModalGame); }).observe(card, {childList: true, subtree: true}); }catch(e){}
+})();

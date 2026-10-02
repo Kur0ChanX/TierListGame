@@ -1,0 +1,45 @@
+/* ===== Retrowave: cielo viola, sole a strisce che affonda, griglia neon che scorre verso di te ===== */
+@font-face{font-family:"Orbitron";src:url(../fonts/orbitron.woff2) format("woff2");font-weight:400 900;font-display:swap}
+@font-face{font-family:"Exo 2";src:url(../fonts/exo-2.woff2) format("woff2");font-weight:100 900;font-display:swap}
+
+html[data-pack="synth"]{
+  --pk-ff:"Exo 2",system-ui,sans-serif; --pk-fh:"Orbitron","Exo 2",system-ui,sans-serif; --pk-fc:"Exo 2",system-ui,sans-serif;
+  --pk-hfw:800; --pk-bfs:14px; --pk-hls:.04em; --pk-htt:uppercase; --pk-cls:.01em;
+  --pk-r:14px; --pk-r2:10px; --pk-rp:999px; --pk-rb:50%; --pk-bw:1px; --pk-bwc:1px; --pk-bc:rgba(255,46,151,.7);
+  --pk-block:rgba(24,6,52,.8); --pk-chip:rgba(30,8,64,.78); --pk-input:rgba(14,2,36,.85); --pk-ib:rgba(30,8,64,.85);
+  --pk-sh:0 0 0 1px rgba(255,46,151,.2), 0 0 22px rgba(255,46,151,.28), inset 0 0 24px rgba(0,229,255,.06); --pk-shs:0 0 12px rgba(255,46,151,.35); --pk-shc:0 0 8px rgba(255,46,151,.3);
+  --pk-top:linear-gradient(180deg,rgba(16,0,43,.55),rgba(16,0,43,.2)); --pk-nav:rgba(16,0,43,.9); --pk-nav-sh:0 -1px 0 rgba(0,229,255,.5), 0 -10px 24px rgba(255,46,151,.22);
+  --pk-th:linear-gradient(180deg,rgba(255,46,151,.28),rgba(124,58,237,.18)); --pk-th-c:#7df3ff; --pk-alt:rgba(124,58,237,.1); --pk-hov:rgba(255,46,151,.22); --pk-row-bd:1px solid rgba(255,46,151,.2);
+  --pk-act:linear-gradient(135deg,#ff2e97,#8b5cf6); --pk-act-c:#fff; --pk-act-sh:0 0 18px rgba(255,46,151,.7), inset 0 1px 0 rgba(255,255,255,.4); --pk-act-bc:rgba(255,255,255,.35); --pk-ib-act:linear-gradient(135deg,#ff2e97,#8b5cf6);
+  --pk-badge-r:8px; --pk-badge-bd:1px solid rgba(255,255,255,.55); --pk-badge-sh:0 0 12px currentColor; --pk-badge-c:#fff;
+  --t-splus:linear-gradient(135deg,#fff3a0,#ffb703); --t-s:linear-gradient(135deg,#ff2e97,#8b5cf6); --t-a:linear-gradient(135deg,#00e5ff,#3b82f6); --t-b:linear-gradient(135deg,#3dffb0,#06b6d4); --t-c:linear-gradient(135deg,#ffe14d,#ff9f1a); --t-d:linear-gradient(135deg,#ff9f1a,#ff4d6d); --t-e:linear-gradient(135deg,#ff4d6d,#c9184a); --t-f:linear-gradient(135deg,#8d8bb0,#5a5880); --t-nd:linear-gradient(135deg,#3a1d6e,#1d0a3d);
+  --t-splus-c:#3a2400; --t-c-c:#3a2000; --pk-bar:linear-gradient(90deg,#00e5ff,#ff2e97); --pk-bar-sh:0 0 8px rgba(255,46,151,.8); --pk-gi:drop-shadow(0 0 5px rgba(255,46,151,.55)); --pk-scrim:rgba(10,0,30,.72); --pk-tt-c:#7df3ff;
+}
+/* livello 1 (in fondo): cielo + stelle + bagliore del sole */
+html[data-pack="synth"]::before{content:""; position:fixed; inset:0; z-index:-4; pointer-events:none;
+  background:radial-gradient(1.4px 1.4px at 8% 9%,#fff,transparent),radial-gradient(1px 1px at 22% 4%,#cfe9ff,transparent),radial-gradient(1.4px 1.4px at 37% 12%,#fff,transparent),radial-gradient(1px 1px at 61% 6%,#ffe0f7,transparent),radial-gradient(1.4px 1.4px at 78% 11%,#fff,transparent),radial-gradient(1px 1px at 91% 5%,#cfe9ff,transparent),radial-gradient(1px 1px at 14% 20%,#fff,transparent),radial-gradient(1.2px 1.2px at 52% 21%,#fff,transparent),radial-gradient(1px 1px at 86% 23%,#ffe0f7,transparent),
+    radial-gradient(46vw 46vw at 50% 44vh,rgba(255,46,151,.5),transparent 70%),
+    linear-gradient(180deg,#0b0124 0%,#1c0540 30%,#4a0b6a 44vh,#a3197f 56vh,#ff2e97 64vh,#10002b 64vh)}
+/* livello 2: il sole, con le strisce che si allargano verso il basso */
+html[data-pack="synth"] body::before{content:""; position:fixed; z-index:-3; pointer-events:none; inset:auto; left:50%; top:44vh; width:min(62vw,340px); aspect-ratio:1; transform:translate(-50%,-80%); border-radius:50%; opacity:1;
+  background:linear-gradient(180deg,#fff3a0 0%,#ffd23f 28%,#ff9f43 52%,#ff3d8a 78%,#c2188f 100%);
+  -webkit-mask-image:linear-gradient(180deg,#000 0 46%,transparent 46% 50%,#000 50% 57%,transparent 57% 63%,#000 63% 70%,transparent 70% 77%,#000 77% 84%,transparent 84% 93%,#000 93%); mask-image:linear-gradient(180deg,#000 0 46%,transparent 46% 50%,#000 50% 57%,transparent 57% 63%,#000 63% 70%,transparent 70% 77%,#000 77% 84%,transparent 84% 93%,#000 93%)}
+/* livello 3: il pavimento a griglia in prospettiva */
+html[data-pack="synth"] body::after{content:""; position:fixed; z-index:-2; pointer-events:none; inset:auto; left:-70%; right:-70%; top:44vh; height:calc(56vh + 96px); transform-origin:50% 0; transform:perspective(420px) rotateX(62deg);
+  background:repeating-linear-gradient(90deg,rgba(255,46,151,.9) 0 2px,transparent 2px 72px),repeating-linear-gradient(0deg,rgba(0,229,255,.85) 0 2px,transparent 2px 48px),linear-gradient(180deg,#2a0a52,#14002e 70%,#0a001c);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 18%); mask-image:linear-gradient(180deg,transparent 0,#000 18%)}
+html[data-pack="synth"]:not(.pk-still) body::after{animation:swGrid 1.8s linear infinite}
+@keyframes swGrid{from{transform:perspective(420px) rotateX(62deg) translateY(-48px)}to{transform:perspective(420px) rotateX(62deg) translateY(0)}}
+/* livello 4: la linea di luce dell'orizzonte */
+html[data-pack="synth"]::after{content:""; position:fixed; z-index:-1; pointer-events:none; left:0; right:0; top:calc(44vh - 1px); height:2px; background:linear-gradient(90deg,transparent,#ff2e97 20%,#00e5ff 50%,#ff2e97 80%,transparent); box-shadow:0 0 14px 2px rgba(255,46,151,.8)}
+
+html[data-pack="synth"] .brand-logo{filter:drop-shadow(0 0 10px rgba(255,46,151,.75))}
+html[data-pack="synth"] .ib-lb, html[data-pack="synth"] .vt-tx{text-shadow:0 0 8px rgba(255,46,151,.7)}
+html[data-pack="synth"] thead th{font-size:.62rem; text-shadow:0 0 8px rgba(0,229,255,.6)}
+html[data-pack="synth"] td.score{font-family:var(--pk-fh); color:#7df3ff; text-shadow:0 0 10px rgba(0,229,255,.7); font-size:.95rem}
+html[data-pack="synth"] .badge:not(.outline){font-size:.82rem; min-width:2.1em; text-align:center; box-shadow:0 0 12px rgba(255,255,255,.35)}
+html[data-pack="synth"] .badge.S{box-shadow:0 0 14px rgba(255,46,151,.8)} html[data-pack="synth"] .badge.A{box-shadow:0 0 14px rgba(0,229,255,.8)} html[data-pack="synth"] .badge.Splus{box-shadow:0 0 16px rgba(255,200,40,.9)}
+html[data-pack="synth"] .modal-title{font-size:1.15rem; background:linear-gradient(180deg,#fff,#ffb3ec 55%,#ff2e97); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 10px rgba(255,46,151,.6))}
+html[data-pack="synth"] .vt-tx{font-size:.56rem !important; letter-spacing:.03em}
+html[data-pack="synth"] .iconbtn.lbl .ib-lb{font-size:.52rem; letter-spacing:.03em}
+html[data-pack="synth"] .upplus-line{color:#ffe14d !important}

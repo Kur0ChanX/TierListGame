@@ -1,0 +1,6 @@
+Font dei temi grafici (cartella packs/): famiglie di Google Fonts con licenza SIL Open Font License 1.1
+(Space Grotesk, Archivo Black, Pixelify Sans, Press Start 2P, DotGothic16, Bungee, Rubik, JetBrains Mono, VT323, Orbitron, Exo 2,
+Cinzel, EB Garamond, Almendra, Alegreya, Metamorphous, Special Elite, Shippori Mincho, Caveat, Patrick Hand, Jost, Poiret One,
+Josefin Sans, Bangers, Comic Neue, Bebas Neue, Courier Prime, Fredoka, Nunito, Sora, Comfortaa, Rajdhani, Share Tech Mono).
+File WOFF2 (solo caratteri latini) presi dai pacchetti Fontsource (@fontsource e @fontsource-variable) e salvati qui,
+così il sito non chiama nessun servizio esterno. Testo della licenza: https://openfontlicense.org

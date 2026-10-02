@@ -1,0 +1,16 @@
+/* Ritocchi dell'app Anime, Film, Manga e Animazione (si carica dopo style.css, theme.css e packs.css). */
+
+/* apertura: immagine SVG animata a tutto riquadro */
+.intro-bg{background-image:url(icons/intro.svg)}
+.intro-img{object-fit:cover; object-position:50% 50%}
+.intro-frame{background:#0b0524}
+
+/* logo: si rimpicciolisce da solo se lo spazio accanto ai pulsanti è poco */
+.topbar-row1 h1{flex:1 1 0 !important; min-width:0; margin:0 6px 0 0 !important; justify-content:flex-start}
+h1 picture{display:block; min-width:0; max-width:100%}
+.brand-logo,.topbar-row1 .brand-logo{height:auto !important; width:auto; max-height:54px; max-width:100%}
+@media (max-width:430px){ .brand-logo,.topbar-row1 .brand-logo{max-height:48px} }
+
+/* mascotte animata nella barra di caricamento */
+.rt-pet img{width:92px; height:92px; object-fit:contain}
+.row-badge,.x-top{object-fit:contain}

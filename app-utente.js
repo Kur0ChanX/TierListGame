@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v237', date:'2026-10-02', time:'17:57', items:[
+    'Preparazione per l\'app Anime & Manga sullo stesso sito (indirizzo …/TierListGame/anime-manga/): le due app non si cancellano più a vicenda le copie salvate per l\'uso senza rete'
+  ]},
   {version:'v236', date:'2026-10-02', time:'14:13', items:[
     'Avvio dell\'app: dopo la schermata di Android (quella con l\'icona: la mostra il telefono e non si può togliere) la locandina «Inizia a frugare» compare subito, senza dissolvenza (la dissolvenza girava mentre l\'app caricava e scattava). La locandina viene scaricata per prima e lo sfondo è dello stesso colore della schermata di Android, così il passaggio è pulito.',
     'Barra in basso a schermo intero: più spazio a destra, «Statistiche» non viene più tagliata dall\'angolo dello schermo.',
