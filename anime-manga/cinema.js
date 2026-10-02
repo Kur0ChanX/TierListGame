@@ -1,0 +1,168 @@
+// ---- Scheda «cinematografica»: copertina ferma in alto per qualche secondo, poi dissolvenze sulle schermate di titolo ----
+// Le schermate vengono da shots.js (Steam, costruito dai server ogni settimana) e, per i titoli senza Steam, da RAWG (serve la tua chiave).
+// Si spegne da ✨ → «Anteprima cinematografica» (o da solo con il risparmio dati / «riduci animazioni» del telefono). La musica non si tocca.
+(function(){
+  if(window.RT_OFF && window.RT_OFF.cinema) return;
+  const LSG = (k, d)=>{ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } };
+  const LSS = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+  const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  const K_ON = 'atl_hero', K_HOLD = 'atl_hero_hold';
+  const enabled = ()=> LSG(K_ON, 'on') !== 'off'
+    && !(navigator.connection && navigator.connection.saveData)
+    && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const holdMs = ()=> Math.max(2000, Math.min(12000, (+LSG(K_HOLD, 5)) * 1000));
+  // tempi ed effetto scelti in ✨ → Anteprima cinematografica (o ⚙️ Impostazioni): schermata, copertina tra un giro e l'altro, stile del passaggio
+  const slideMs = ()=> Math.max(2000, Math.min(15000, (+LSG('atl_hero_slide', 4.4)) * 1000));
+  const backMs = ()=> Math.max(1500, Math.min(15000, (+LSG('atl_hero_back', 4)) * 1000));
+  const fxName = ()=> LSG('atl_hero_fx', 'zoom');
+  const fadeS = ()=> Math.max(.2, Math.min(3, +LSG('atl_hero_fade', .9)));            // v218: durata della dissolvenza tra due foto
+  const MAX_CYCLES = 12, MIN_SHOTS = 5;      // giro di schermate → copertina ferma → di nuovo le schermate, e così via
+
+  // v218: ricerche su internet (foto, locandine) non appena apri il titolo: aspettano che la scheda sia aperta da un paio di secondi e ferma
+  let openAt = performance.now();
+  window.rtSettle = ms=> new Promise(res=>{ const go = ()=>{ if(window.__rtCardScrolling){ setTimeout(go, 400); return; } res(); }; setTimeout(go, Math.max(0, (ms || 2500) - (performance.now() - openAt))); });
+
+  let ticket = 0, timers = [], playing = false, obs = null;
+  const stop = ()=>{ ticket++; timers.forEach(clearTimeout); timers = []; playing = false; if(obs){ obs.disconnect(); obs = null; } };
+  const later = (fn, ms)=>{ const t = setTimeout(fn, ms); timers.push(t); return t; };
+
+  // ---- sorgenti delle schermate ----
+  function steamShots(g){
+    try{
+      if(typeof GAME_SHOTS === 'undefined' || !GAME_SHOTS || !GAME_SHOTS.games) return [];
+      const d = GAME_SHOTS.games[g.id]; return d ? d.map(u=> GAME_SHOTS.base + u) : [];
+    }catch(e){ return []; }
+  }
+  async function rawgShots(g, force){
+    const c = LSG('art_shots_rawg4', {}), e = c[g.id];      // v201: chiave nuova, le vecchie cercate col nome italiano potevano essere di un altro titolo
+    if(e && Date.now() - e.t < 30 * 864e5) return e.u || [];
+    if(!force && window.rtCalm && rtCalm()) return e ? e.u || [] : [];          // v217: modalità calma: solo quelle già scaricate (le nuove le porta Update+)
+    try{
+      if(!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has() && SearchHub.rawg.shots)) return [];
+      if(!force && window.rtSettle) await rtSettle();
+      let nm = g.name; try{ if(SearchHub.enName) nm = await SearchHub.enName(g); }catch(x){}
+      const u = await SearchHub.rawg.shots(nm);
+      c[g.id] = {t: (u && u.length) ? Date.now() : Date.now() - 27 * 864e5, u: u || []};        // v218: «nessuna foto» si ricorda solo 3 giorni (prima 30: un buco di RAWG toglieva il carosello per un mese)
+      const ks = Object.keys(c); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k=> delete c[k]);
+      LSS('art_shots_rawg4', c); return u || [];
+    }catch(e2){ return []; }
+  }
+  async function shotsFor(g){
+    try{ const lk = window.rtMediaLock && window.rtMediaLock(g); if(lk && lk.shots && lk.shots.length) return lk.shots; }catch(e){}     // schermate scelte da te: bloccate
+    try{ if(window.rtNight) await rtNight.ensure('shots', g.id); }catch(e){}
+    const s = steamShots(g); if(s.length >= MIN_SHOTS) return s;
+    const r = await rawgShots(g);                                        // poche schermate: aggiungo quelle di RAWG (se c'è la chiave)
+    let all = s.concat(r.filter(u=> !s.includes(u)));
+    // v218: ancora poche (vecchi titoli senza Steam, senza RAWG): schermate di titolo e del titolo da Libretro (gratis, senza chiave)
+    if(all.length < MIN_SHOTS && window.XCOVER && XCOVER.lrShots){ try{ const l = await XCOVER.lrShots(g, !!(window.rtCalm && rtCalm())); all = all.concat(l.filter(u=> !all.includes(u))); }catch(e){} }
+    return all.slice(0, 12);
+  }
+  window.rtShotsFor = shotsFor; window.rtSteamShots = steamShots; window.rtRawgShots = rawgShots;
+
+  const preload = u=> new Promise(res=>{ const im = new Image(); im.onload = ()=> res(u); im.onerror = ()=> res(null); im.decoding = 'async'; im.src = u; });
+
+  // ---- la sequenza ----
+  async function run(g){
+    stop(); const my = ticket;
+    if(!document.getElementById('modalCard') || !document.getElementById('coverBlock') || !enabled()) return;
+    if(window.rtNight){ await rtNight.ensure('shots', g.id); if(my !== ticket) return; }
+    else if(typeof GAME_SHOTS === 'undefined'){ await new Promise(res=>{ const f = ()=>{ window.removeEventListener('localdata', f); res(); }; window.addEventListener('localdata', f); setTimeout(res, 3500); }); if(my !== ticket) return; }
+    const urls0 = await shotsFor(g);
+    const same = ()=> my === ticket && typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id;
+    if(!same() || !urls0.length) return;
+
+    const layer = document.createElement('div'); layer.className = 'hero-shots';
+    layer.innerHTML = '<img class="hs" alt=""><img class="hs" alt=""><div class="hero-bar"></div>';
+    const imgs = layer.querySelectorAll('img.hs'), bar = layer.querySelector('.hero-bar');
+    // la cornice può essere ridisegnata da altri pezzi dell'app (copertina che arriva, dettagli pronti…): ogni passo la ritrova e ci rimette lo strato
+    const mount = ()=>{
+      const blk = document.getElementById('coverBlock'); if(!blk) return null;
+      let f = blk.querySelector('.cover-frame');
+      if(!f){
+        f = document.createElement('div'); f.className = 'cover-frame hero-only'; f.style.setProperty('--rn', '.75'); f.style.setProperty('--cov', `url("${urls[0] || urls0[0]}")`);
+        blk.insertBefore(f, blk.firstChild);
+        const ph = blk.querySelector('.placeholder-cover'); if(ph) ph.style.display = 'none';
+      }
+      if(layer.parentNode !== f) f.appendChild(layer);
+      return f;
+    };
+    let urls = [], cur = 0, cycles = 0, face = 0;
+    const first = await preload(urls0[0]);
+    if(!same()) return;
+    if(first) urls.push(first);
+    urls0.slice(1).forEach(u=> urls.push(u));                          // le altre si scaricano una alla volta, appena prima di mostrarle
+    // la locandina ufficiale arriva spesso un attimo dopo l'apertura della scheda: la aspetto (fino a 4 s), così si vede SEMPRE prima, ferma, con le sue proporzioni
+    const coverIn = ()=>{ const im = document.querySelector('#coverBlock img.modal-cover'); return !!(im && im.complete && im.naturalWidth); };
+    for(let w = 0; w < 40 && !coverIn(); w++){ await new Promise(r=> setTimeout(r, 100)); if(!same()) return; }
+    const frame0 = mount(); if(!frame0) return;
+    const hadCover = coverIn();
+    bar.innerHTML = urls.map(()=> '<i></i>').join('');
+    bar.style.setProperty('--hd', (slideMs() / 1000) + 's'); layer.dataset.fx = fxName(); layer.style.setProperty('--hsd', (slideMs() / 1000 + 2) + 's'); layer.style.setProperty('--hfd', fadeS() + 's');
+    const segs = [...bar.children];
+    // se un altro pezzo dell'app ridisegna la cornice mentre scorrono le schermate, la copertina non deve riaffacciarsi: rimetto subito lo strato e la classe
+    try{
+      const root = document.getElementById('modalBackdrop');
+      if(root){ obs = new MutationObserver(()=>{ if(!playing || my !== ticket) return; const f = mount(); if(f && !f.classList.contains('hero-play')) f.classList.add('hero-play'); }); obs.observe(root, {childList: true, subtree: true}); }
+    }catch(e){}
+    const clearTimers = ()=>{ timers.forEach(clearTimeout); timers = []; };
+    segs.forEach((sg, i)=> sg.addEventListener('click', e=>{ e.stopPropagation(); if(!same()) return; clearTimers(); cur = i; show(); }));
+    const setBar = idx=> segs.forEach((sg, i)=>{ sg.className = i < idx ? 'done' : (i === idx ? 'cur' : ''); });
+
+    async function show(){
+      if(!same()) return;
+      if(document.hidden){ later(show, 1000); return; }
+      if(window.__rtCardScrolling){ later(show, 350); return; }          // v216: mentre scorri la scheda le foto non cambiano (riparte appena ti fermi)
+      const frame = mount(); if(!frame) return;
+      if(cur >= urls.length){                                          // fine giro: torna la copertina
+        playing = false; frame.classList.remove('hero-play'); imgs.forEach(im=> im.classList.remove('on')); setBar(-1); cycles++;
+        if(cycles >= MAX_CYCLES) return;                               // dopo molti giri si ferma sulla copertina
+        cur = 0; later(show, backMs()); return;
+      }
+      const ok = await preload(urls[cur]);
+      if(!same()) return;
+      if(!ok){ urls.splice(cur, 1); const sg = segs.pop(); if(sg) sg.remove(); return show(); }
+      const next = imgs[face], prev = imgs[1 - face];
+      next.src = urls[cur]; face = 1 - face;
+      // v216: riparte il lento zoom SENZA ricalcolare la scheda intera (prima «void offsetWidth» la impaginava tutta a ogni foto: uno scatto ogni 4 s)
+      next.classList.remove('on'); requestAnimationFrame(()=> requestAnimationFrame(()=>{ if(same()) next.classList.add('on'); }));
+      prev.classList.remove('on');
+      playing = true; mount().classList.add('hero-play'); setBar(cur);
+      cur++; later(show, slideMs());
+    }
+    later(show, hadCover ? holdMs() : 1200);
+  }
+  window.rtHero = {run, stop, enabled};
+
+  // ---- aggancio alla scheda del titolo ----
+  const origOpen = window.openModal;
+  window.openModal = function(g){
+    stop(); openAt = performance.now();
+    const r = origOpen.apply(this, arguments);
+    try{ if(g && g.id != null) setTimeout(()=> run(g), Math.max(60, (window.__rtOpenUntil || 0) - performance.now() + 60)); }catch(e){}      // v229: il carosello si prepara a scheda aperta, non durante l'animazione
+    return r;
+  };
+  try{ openModal = window.openModal; }catch(e){}
+  try{ new MutationObserver(()=>{ const b = document.getElementById('modalBackdrop'); if(b && !b.classList.contains('show')) stop(); }).observe(document.getElementById('modalBackdrop'), {attributes: true, attributeFilter: ['class']}); }catch(e){}
+  document.addEventListener('visibilitychange', ()=>{ /* in pausa quando la pagina è nascosta: il passo successivo aspetta */ });
+
+  // ---- impostazioni ----
+  const heroEntry = {html: '🎬 Anteprima cinematografica delle schede', run: function(){
+    const U = window.XUI; if(!U) return;
+    const on = LSG(K_ON, 'on') !== 'off', hold = +LSG(K_HOLD, 5);
+    const body = U.sheet('xHero', '🎬 Anteprima cinematografica', `<div class="lp-sub">Aprendo un titolo la copertina resta ferma in alto per qualche secondo, poi passa con dissolvenze alle schermate di titolo (senza filmati, quindi poco spoiler e pochi dati). La musica continua.</div>
+      <label class="ask-toggle"><input type="checkbox" id="hrOn" ${on ? 'checked' : ''}> Attiva nelle schede dei titoli</label>
+      <label class="gs-row">Locandina ferma prima che parta il carosello <select id="hrHold">${[2, 3, 5, 8, 12].map(n=> `<option value="${n}"${n === hold ? ' selected' : ''}>${n} secondi</option>`).join('')}</select></label>
+      <label class="gs-row">Ogni foto resta <select id="hrSlide">${[2.5, 3.5, 4.4, 6, 8, 10].map(n=> `<option value="${n}"${n === +LSG('atl_hero_slide', 4.4) ? ' selected' : ''}>${String(n).replace('.', ',')} secondi</option>`).join('')}</select></label>
+      <label class="gs-row">Locandina tra un giro e l'altro <select id="hrBack">${[2, 4, 6, 10].map(n=> `<option value="${n}"${n === +LSG('atl_hero_back', 4) ? ' selected' : ''}>${n} secondi</option>`).join('')}</select></label>
+      <label class="gs-row">Velocità del passaggio tra due foto <select id="hrFade">${[[.4, 'Veloce'], [.9, 'Normale'], [1.5, 'Lenta'], [2.5, 'Molto lenta']].map(o=> `<option value="${o[0]}"${o[0] === +LSG('atl_hero_fade', .9) ? ' selected' : ''}>${o[1]}</option>`).join('')}</select></label>
+      <label class="gs-row">Effetto del passaggio <select id="hrFx">${[['zoom', 'Dissolvenza con zoom lento'], ['fade', 'Solo dissolvenza'], ['slide', 'Scorrimento laterale'], ['pan', 'Panoramica (si sposta piano)']].map(o=> `<option value="${o[0]}"${o[0] === fxName() ? ' selected' : ''}>${o[1]}</option>`).join('')}</select></label>
+      <div class="lp-sub">Si ferma da sola con il risparmio dati o con «riduci animazioni» del telefono. Per uno spettacolo a schermo intero con le tue copertine usa anche «Modalità vetrina».</div>`);
+    body.querySelector('#hrOn').addEventListener('change', e=>{ LSS(K_ON, e.target.checked ? 'on' : 'off'); if(!e.target.checked) stop(); });
+    body.querySelector('#hrHold').addEventListener('change', e=> LSS(K_HOLD, +e.target.value));
+    body.querySelector('#hrSlide').addEventListener('change', e=> LSS('atl_hero_slide', +e.target.value));
+    body.querySelector('#hrBack').addEventListener('change', e=> LSS('atl_hero_back', +e.target.value));
+    body.querySelector('#hrFx').addEventListener('change', e=> LSS('atl_hero_fx', e.target.value));
+    body.querySelector('#hrFade').addEventListener('change', e=> LSS('atl_hero_fade', +e.target.value));
+  }};
+  (window.XMENU = window.XMENU || []).push(heroEntry); window.rtHeroSettings = ()=> heroEntry.run();
+})();

@@ -1,0 +1,498 @@
+// ---- Musica e suoni (v135) ----
+// 21) Colonne sonore: entrando in un titolo parte la sua colonna sonora (YouTube). Play/Stop valgono OVUNQUE e restano in memoria:
+//     se è su Play, ogni titolo che apri suona da solo; se la fermi, non parte più finché non premi Play. Puoi scegliere un altro brano.
+//     I brani vengono da ost.js (preparato ogni settimana su GitHub, anche per i titoli aggiunti); se mancano li cerco al volo con tre tentativi
+//     («nome OST music» → «nome soundtrack» → «nome playlist complete music») e col tasto 🔎 puoi cercare tu con altre parole.
+//     Il player sta in un punto fisso della pagina (sotto la barra di ricerca): non ti segue, non copre nulla e sparisce quando è aperta una scheda.
+// 22) Suoni dell'interfaccia: 15 temi sintetizzati nel telefono (nessun file da scaricare), spenti di default, scegli tu tema e volume.
+(function(){
+  'use strict';
+  if(window.RT_OFF && window.RT_OFF.music) return;
+  const U = window.XUI; if(!U) return;
+  const {sheet, toast, esc, LS} = U;
+  const gi = n=> (typeof giIcon === 'function') ? giIcon(n) : '';
+  const menu = (html, run)=>{ (window.XMENU = window.XMENU || []).push({html, run}); };
+  const load = src=> (window.RT_LOAD ? window.RT_LOAD(src) : Promise.reject());
+
+  // =====================================================================
+  // 22) SUONI: motore Web Audio + 15 temi
+  // =====================================================================
+  let AC = null, master = null;
+  function ac(){
+    if(!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.connect(AC.destination); }catch(e){ return null; } }
+    if(AC.state === 'suspended') AC.resume().catch(()=>{});
+    master.gain.value = sfxVol();
+    return AC;
+  }
+  const sfxVol = ()=> Math.max(0, Math.min(1, +LS.get('atl_sfx_vol', 0.5)));
+  // nota: [frequenza Hz, durata s, ritardo s, frequenza finale (scivolata), onda, volume]
+  function tone(n, w){
+    const a = ac(); if(!a) return;
+    const [f, d, del = 0, f2, wave, vol = 0.25] = n, t = a.currentTime + del;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = wave || w || 'square'; o.frequency.setValueAtTime(f, t);
+    if(f2) o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t + d);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
+  }
+  function noise(d, del = 0, vol = 0.15, hp = 2000){
+    const a = ac(); if(!a) return;
+    const len = Math.floor(a.sampleRate * d), buf = a.createBuffer(1, len, a.sampleRate), ch = buf.getChannelData(0);
+    for(let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); f.type = 'highpass'; f.frequency.value = hp; g.gain.value = vol;
+    s.buffer = buf; s.connect(f); f.connect(g); g.connect(master); s.start(a.currentTime + del);
+  }
+  const N = (f, d, del, f2, w, v)=> [f, d, del, f2, w, v];
+  // ogni tema: onda di base e note per ogni evento (tap, open, close, nav, fav, success, error)
+  const THEMES = {
+    coin:    {name: 'Moneta 8-bit (stile platform)', w: 'square', tap: [N(988, .05)], open: [N(988, .07), N(1319, .18, .07)], close: [N(659, .06), N(494, .09, .05)], nav: [N(1175, .04)], fav: [N(988, .07), N(1319, .3, .07)], success: [N(523, .08), N(659, .08, .08), N(784, .08, .16), N(1047, .08, .24), N(1319, .08, .32), N(1568, .3, .4)], error: [N(196, .12), N(147, .2, .12)]},
+    ring:    {name: 'Anello blu (stile velocità)', w: 'triangle', tap: [N(1760, .06, 0, 0, 'sine', .18)], open: [N(1319, .08, 0, 0, 'sine'), N(1976, .22, .06, 0, 'sine')], close: [N(1976, .06, 0, 0, 'sine'), N(1319, .12, .05, 0, 'sine')], nav: [N(2093, .05, 0, 0, 'sine', .15)], fav: [N(1568, .08, 0, 0, 'sine'), N(2093, .08, .07, 0, 'sine'), N(2637, .35, .14, 0, 'sine')], success: [N(1047, .1), N(1319, .1, .09), N(1568, .1, .18), N(2093, .5, .27, 0, 'sine')], error: [N(440, .1, 0, 220), N(330, .2, .1, 160)]},
+    jrpg:    {name: 'Cursore JRPG', w: 'square', tap: [N(1200, .03, 0, 0, 'square', .15)], open: [N(880, .04), N(1320, .09, .04)], close: [N(660, .06)], nav: [N(1500, .025, 0, 0, 'square', .12)], fav: [N(1320, .05), N(1760, .12, .05)], success: [N(659, .12), N(784, .12, .12), N(988, .12, .24), N(1319, .5, .36, 0, 'triangle')], error: [N(110, .18, 0, 0, 'sawtooth', .2)]},
+    crystal: {name: 'Cristalli', w: 'sine', tap: [N(2637, .09, 0, 0, 'sine', .12)], open: [N(1760, .25, 0, 0, 'sine', .18), N(2637, .3, .04, 0, 'sine', .1)], close: [N(1318, .2, 0, 0, 'sine', .15)], nav: [N(3136, .08, 0, 0, 'sine', .1)], fav: [N(2093, .3, 0, 0, 'sine'), N(3136, .4, .08, 0, 'sine', .12)], success: [N(1568, .3), N(2093, .3, .1), N(2637, .3, .2), N(3136, .6, .3)], error: [N(740, .25, 0, 700, 'sine')]},
+    arcade:  {name: 'Arcade 16-bit', w: 'sawtooth', tap: [N(600, .05, 0, 900, 'sawtooth', .12)], open: [N(300, .12, 0, 1200, 'sawtooth', .15)], close: [N(1200, .12, 0, 300, 'sawtooth', .15)], nav: [N(800, .04, 0, 1000, 'square', .12)], fav: [N(700, .08, 0, 1400), N(1400, .16, .08, 2100)], success: [N(400, .1, 0, 800), N(600, .1, .1, 1200), N(800, .3, .2, 1600)], error: [N(300, .3, 0, 80, 'sawtooth', .2)]},
+    gameboy: {name: 'Console tascabile', w: 'square', tap: [N(2093, .03, 0, 0, 'square', .12)], open: [N(1047, .05), N(2093, .08, .05)], close: [N(2093, .05), N(1047, .08, .05)], nav: [N(1568, .03, 0, 0, 'square', .1)], fav: [N(1568, .06), N(2093, .06, .06), N(2637, .15, .12)], success: [N(1047, .07), N(1319, .07, .07), N(1568, .07, .14), N(2093, .25, .21)], error: [N(131, .1), N(98, .2, .1)]},
+    laser:   {name: 'Laser sci-fi', w: 'sawtooth', tap: [N(1800, .07, 0, 400, 'square', .1)], open: [N(2400, .18, 0, 300, 'sawtooth', .13)], close: [N(300, .15, 0, 2000, 'sawtooth', .12)], nav: [N(1500, .05, 0, 700, 'square', .1)], fav: [N(3000, .2, 0, 600, 'square', .12)], success: [N(200, .4, 0, 3000, 'sawtooth', .14)], error: [N(150, .35, 0, 60, 'sawtooth', .2)]},
+    bells:   {name: 'Campanellini', w: 'sine', tap: [N(2349, .15, 0, 0, 'sine', .12)], open: [N(1568, .3), N(2349, .3, .1)], close: [N(2349, .2), N(1568, .3, .1)], nav: [N(2794, .12, 0, 0, 'sine', .1)], fav: [N(1976, .25), N(2637, .4, .1)], success: [N(1568, .3), N(1976, .3, .12), N(2349, .3, .24), N(3136, .6, .36)], error: [N(880, .3, 0, 830)]},
+    xylo:    {name: 'Xilofono di legno', w: 'triangle', tap: [N(784, .08, 0, 0, 'triangle', .25)], open: [N(523, .1), N(784, .15, .08)], close: [N(784, .1), N(523, .15, .08)], nav: [N(988, .06, 0, 0, 'triangle', .2)], fav: [N(659, .1), N(988, .2, .09)], success: [N(523, .1), N(659, .1, .1), N(784, .1, .2), N(1047, .3, .3)], error: [N(220, .2), N(196, .25, .15)]},
+    retro:   {name: 'Beep da vecchio PC', w: 'sine', tap: [N(1000, .04, 0, 0, 'square', .1)], open: [N(800, .08, 0, 0, 'square', .12)], close: [N(500, .08, 0, 0, 'square', .12)], nav: [N(1200, .03, 0, 0, 'square', .08)], fav: [N(1000, .06), N(1500, .1, .08)], success: [N(800, .08), N(1000, .08, .1), N(1600, .2, .2)], error: [N(250, .35, 0, 0, 'square', .15)]},
+    bubble:  {name: 'Bolle', w: 'sine', tap: [N(400, .09, 0, 900, 'sine', .25)], open: [N(300, .15, 0, 1100, 'sine', .25)], close: [N(900, .15, 0, 300, 'sine', .2)], nav: [N(600, .07, 0, 1200, 'sine', .2)], fav: [N(500, .1, 0, 1200), N(700, .12, .08, 1600)], success: [N(300, .12, 0, 900), N(500, .12, .1, 1300), N(700, .25, .2, 1800)], error: [N(500, .3, 0, 150, 'sine', .25)]},
+    kawaii:  {name: 'Kawaii', w: 'triangle', tap: [N(1397, .06, 0, 1760, 'triangle', .2)], open: [N(1175, .07, 0, 1568), N(1568, .12, .07, 2093)], close: [N(1568, .08, 0, 1175)], nav: [N(1760, .05, 0, 2093, 'triangle', .15)], fav: [N(1319, .08, 0, 1760), N(1760, .08, .08, 2349), N(2349, .2, .16, 2637)], success: [N(1047, .1, 0, 1319), N(1319, .1, .1, 1568), N(1568, .1, .2, 2093), N(2093, .35, .3, 2637)], error: [N(700, .12, 0, 500), N(500, .2, .12, 350)]},
+    harp:    {name: 'Arpa incantata', w: 'triangle', tap: [N(1319, .2, 0, 0, 'triangle', .14)], open: [N(523, .3), N(659, .3, .05), N(784, .3, .1), N(1047, .4, .15)], close: [N(1047, .3), N(784, .3, .05), N(523, .4, .1)], nav: [N(1568, .15, 0, 0, 'triangle', .1)], fav: [N(784, .3), N(1047, .3, .06), N(1319, .5, .12)], success: [N(523, .3), N(659, .3, .07), N(784, .3, .14), N(1047, .3, .21), N(1319, .3, .28), N(1568, .7, .35)], error: [N(330, .4, 0, 0, 'triangle', .2)]},
+    synth:   {name: 'Synth cyberpunk', w: 'sawtooth', tap: [N(220, .07, 0, 440, 'sawtooth', .12)], open: [N(110, .25, 0, 880, 'sawtooth', .14)], close: [N(880, .2, 0, 110, 'sawtooth', .12)], nav: [N(330, .05, 0, 660, 'square', .1)], fav: [N(440, .1, 0, 880), N(660, .2, .1, 1320)], success: [N(220, .15, 0, 440), N(330, .15, .15, 660), N(440, .4, .3, 1760)], error: [N(80, .4, 0, 40, 'sawtooth', .22)]},
+    click:   {name: 'Click minimale', w: 'sine', tap: [], open: [], close: [], nav: [], fav: [N(1500, .05, 0, 0, 'sine', .12)], success: [N(1000, .06, 0, 0, 'sine', .12), N(1500, .08, .06, 0, 'sine', .12)], error: [N(300, .1, 0, 0, 'sine', .15)], noise: true}
+  };
+  const theme = ()=> LS.get('atl_sfx', 'off');
+  let lastT = 0;
+  window.rtSfx = function(ev, force){
+    const k = force || theme(); if(k === 'off' || !THEMES[k]) return;
+    const now = performance.now(); if(ev === 'tap' && now - lastT < 60) return; lastT = now;
+    const th = THEMES[k];
+    if(th.noise && ['tap', 'nav', 'open', 'close'].includes(ev)){ noise(ev === 'open' ? .05 : .025, 0, .12, ev === 'close' ? 800 : 2500); return; }
+    (th[ev] || th.tap || []).forEach(n=> tone(n, th.w));
+  };
+  // agganci: tocchi sui pulsanti, cambio vista, apertura/chiusura scheda, preferiti, titoli aggiunti, traguardi
+  document.addEventListener('pointerdown', e=>{ if(theme() === 'off') return; const b = e.target.closest && e.target.closest('button, .btn, a.btn, .view-tab, .list-chip, .qf-chip, .tagchip, .genre-chip, td.fav, summary'); if(!b) return; rtSfx(b.classList.contains('view-tab') ? 'nav' : 'tap'); }, true);
+  if(typeof window.showToast === 'function'){ const o = window.showToast; window.showToast = function(m){ try{ const t = String(m || ''); if(/aggiunto ai preferiti/i.test(t)) rtSfx('fav'); else if(/traguardo|completato|aggiunt[io] alla/i.test(t)) rtSfx('success'); else if(/non (sono riuscito|riesco)|errore/i.test(t)) rtSfx('error'); }catch(e){} return o.apply(this, arguments); }; try{ showToast = window.showToast; }catch(e){} }
+  if(typeof window.showAddedBanner === 'function'){ const o = window.showAddedBanner; window.showAddedBanner = function(){ rtSfx('success'); return o.apply(this, arguments); }; try{ showAddedBanner = window.showAddedBanner; }catch(e){} }
+
+  // =====================================================================
+  // 21) COLONNE SONORE
+  // =====================================================================
+  const ON = ()=> LS.get('atl_music', 'off') === 'on';
+  // v218: DUE interruttori «Auto play» separati. Scheda: apro un titolo → parte da sola la sua colonna sonora. Player in home: finito un brano → parte il successivo.
+  // (chi aveva già la musica accesa mantiene l'Auto play della scheda acceso)
+  const apCard = ()=>{ const v = LS.get('atl_ap_card', null); return v == null ? ON() : v === 'on'; };
+  const apHome = ()=> LS.get('atl_ap_home', 'on') !== 'off';
+  const endTrack = ()=>{ if(apHome()) next(true); else { cur.playing = false; try{ paint(); }catch(e){} } };
+  const PICK = 'atl_music_pick';
+  let yt = null, ytReady = null, cur = {id: null, list: [], i: 0, playing: false}, ostP = null;
+  // brani «ia:…» = file musicali di Internet Archive: si suonano con un normale lettore audio, quindi SENZA pubblicità
+  let au = null;
+  const isIA = t=> t && String(t[0]).indexOf('ia:') === 0;
+  // un brano che non si carica passa al successivo; se non se ne carica nessuno mi fermo (prima girava all'infinito senza rete)
+  function failNext(){ cur.fails = (cur.fails || 0) + 1; if(cur.fails >= Math.max(1, cur.list.length)){ cur.playing = false; cur.fails = 0; paint(); toast('La colonna sonora non si carica ora (rete o sito): riprova tra poco', 3200); return; } next(true); }
+  // v224: volume della musica (0-100, resta salvato; dopo che lo imposti si blocca 🔒 finché non lo sblocchi) e abbassamento automatico mentre parla la voce
+  const VOLK = 'atl_music_vol', VOLL = 'atl_music_vol_lock';
+  let duckK = 1, duckT = 0;
+  const baseVol = ()=>{ const v = +LS.get(VOLK, 70); return Math.max(0, Math.min(100, isNaN(v) ? 70 : v)) / 100; };
+  const curVol = ()=>{ const b = baseVol(); if(duckK >= 1) return b; return Math.max(b * duckK, Math.min(b, .12)); };      // v232: con la voce la musica scende, ma resta sempre udibile
+  function applyVol(){ try{ if(au) au.volume = Math.max(0, Math.min(1, curVol())); }catch(e){} try{ if(yt && yt.setVolume) yt.setVolume(Math.round(curVol() * 100)); }catch(e){} }
+  function volRow(){ const vl = !!LS.get(VOLL, false), vv = Math.round(baseVol() * 100);
+    return `<div class="mz2-volrow"><span aria-hidden="true">🔈</span><input type="range" class="mz2-vol" min="0" max="100" step="5" value="${vv}" ${vl ? 'disabled' : ''} aria-label="Volume della musica"><b class="mz2-vv">${vv}%</b><button type="button" class="mz2-vl${vl ? ' on' : ''}" data-m="vlock" data-mz="vlock" aria-label="${vl ? 'Sblocca il volume' : 'Blocca il volume'}">${vl ? '🔒' : '🔓'}</button></div>`; }
+  function wireVol(root){ const vr = root && root.querySelector('.mz2-vol'); if(!vr) return;
+    vr.addEventListener('input', ()=>{ LS.set(VOLK, +vr.value); const o = root.querySelector('.mz2-vv'); if(o) o.textContent = vr.value + '%'; applyVol(); });
+    vr.addEventListener('change', ()=>{ LS.set(VOLL, true); vr.disabled = true; const l = root.querySelector('.mz2-vl'); if(l){ l.classList.add('on'); l.textContent = '🔒'; } toast('Volume impostato e bloccato 🔒', 1800); }); }
+  function toggleVolLock(root){ const on = !LS.get(VOLL, false); LS.set(VOLL, on); if(root){ const r = root.querySelector('.mz2-vol'), l = root.querySelector('.mz2-vl'); if(r) r.disabled = on; if(l){ l.classList.toggle('on', on); l.textContent = on ? '🔒' : '🔓'; } } toast(on ? 'Volume bloccato 🔒: resta così anche riaprendo l\'app' : 'Volume sbloccato: puoi modificarlo', 2200); }
+  function duck(on){        // con la voce che parla la musica scende al 25% in 0,4 s e poi risale piano
+    const to = on ? .45 : 1; clearInterval(duckT); const from = duckK, t0 = performance.now(), dur = on ? 400 : 900;
+    duckT = setInterval(()=>{ const f = Math.min(1, (performance.now() - t0) / dur); duckK = from + (to - from) * f; applyVol(); if(f >= 1) clearInterval(duckT); }, 50);
+  }
+  function audio(){ if(!au){ au = new Audio(); au.preload = 'auto'; au.addEventListener('ended', endTrack); au.addEventListener('error', ()=> failNext()); au.addEventListener('playing', ()=>{ cur.fails = 0; cur.playing = true; paint(); }); au.addEventListener('pause', ()=>{ if(!au.ended){ cur.playing = false; paint(); } }); } return au; }
+  function loadYT(){
+    if(ytReady) return ytReady;
+    ytReady = new Promise((res, rej)=>{
+      if(window.YT && window.YT.Player){ res(); return; }
+      const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = ()=>{ try{ prev && prev(); }catch(e){} res(); };
+      const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; s.onerror = ()=>{ ytReady = null; rej(new Error('YouTube non raggiungibile')); }; document.head.appendChild(s);
+      setTimeout(()=> rej(new Error('YouTube lento')), 15000);
+    });
+    return ytReady;
+  }
+  const MODE = 'atl_music_mode';                                   // 'dock' (fisso nella pagina, predefinito) | 'float' (mobile, lo sposti tu)
+  const docked = ()=> LS.get(MODE, 'dock') !== 'float' && !!document.getElementById('rtMusicSlot');
+  function dock(){
+    let d = document.getElementById('rtMusic');
+    if(!d){
+      const fixed = docked();
+      d = document.createElement('div'); d.id = 'rtMusic'; d.className = 'rt-music' + (fixed ? ' docked' : '');
+      d.innerHTML = '<div class="rm-frame"><div id="rtYt"></div></div><button type="button" class="rm-g" data-m="grip" aria-label="Sposta o blocca il player" title="Trascina per spostare · tocca per bloccare"></button><button type="button" class="rm-b" data-m="toggle" aria-label="Play/Pausa"></button><div class="rm-t"><b></b><small></small></div><button type="button" class="rm-b" data-m="next" aria-label="Altro brano">⏭</button><button type="button" class="rm-b rm-ap" data-m="ap" aria-label="Auto play del player" title="Auto play: finito un brano parte il successivo">Auto</button><button type="button" class="rm-b" data-m="stop" aria-label="Ferma la musica">■</button><button type="button" class="rm-b" data-m="vol" aria-label="Volume" title="Volume">🔊</button><div class="rm-vol" hidden></div>';
+      if(fixed){ document.getElementById('rtMusicSlot').appendChild(d); }
+      else { document.body.appendChild(d); dragify(d); placeDock(d); }
+      lockPaint(d);
+      try{ const ab = d.querySelector('[data-m="ap"]'); if(ab) ab.classList.toggle('on', apHome()); }catch(e){}
+      if(!fixed && !LS.get('atl_music_hint', false)){ LS.set('atl_music_hint', true); setTimeout(()=> toast('Suggerimento: tieni premuto il player per spostarlo dove vuoi', 4500), 1500); }
+      d.addEventListener('click', e=>{ const b = e.target.closest('[data-m]'); if(!b) return; const m = b.dataset.m; if(m === 'toggle') cur.playing ? pause() : resume(); else if(m === 'next') next(); else if(m === 'stop') stopAll(); else if(m === 'ap'){ LS.set('atl_ap_home', apHome() ? 'off' : 'on'); paint(); toast(apHome() ? 'Auto in home acceso: chiudendo la scheda la canzone continua, poi passa alla successiva' : 'Auto in home spento: chiudendo la scheda la musica si ferma e in home non parte mai da sola', 3200); }
+        else if(m === 'vol'){ const v = d.querySelector('.rm-vol'); if(v){ if(v.hidden){ v.innerHTML = volRow(); wireVol(v); } v.hidden = !v.hidden; } }
+        else if(m === 'vlock'){ toggleVolLock(d.querySelector('.rm-vol')); } });
+    }
+    return d;
+  }
+  // il player si sposta dove vuoi: tienilo premuto (mezzo secondo), poi trascinalo; la posizione resta salvata
+  const POS = 'atl_music_pos', LOCK = 'atl_music_lock';
+  function lockPaint(d){ const on = !!LS.get(LOCK, false); d.classList.toggle('locked', on); const g = d.querySelector('.rm-g'); if(g) g.textContent = on ? '🔒' : '⠿'; }
+  function toggleLock(d){ const on = !LS.get(LOCK, false); LS.set(LOCK, on); lockPaint(d); toast(on ? 'Player bloccato 🔒: non si sposta per sbaglio' : 'Player sbloccato: trascina ⠿ per spostarlo', 2200); }
+  function placeDock(d){
+    if(d.classList.contains('docked')) return;
+    const p = LS.get(POS, null); if(!p) return;
+    const w = d.offsetWidth || 240, h = d.offsetHeight || 44;
+    d.style.left = Math.max(4, Math.min(innerWidth - w - 4, p.x * innerWidth)) + 'px'; d.style.top = Math.max(4, Math.min(innerHeight - h - 4, p.y * innerHeight)) + 'px'; d.style.bottom = 'auto';
+  }
+  function dragify(d){
+    let timer = 0, start = null, drag = null;
+    const fade = ()=>{ d.classList.remove('idle'); clearTimeout(d._idle); d._idle = setTimeout(()=> d.classList.add('idle'), 3500); };
+    fade();
+    d.addEventListener('pointerdown', e=>{
+      fade();
+      const grip = !!(e.target.closest && e.target.closest('[data-m="grip"]'));
+      if(LS.get(LOCK, false)){ if(grip) start = {x: e.clientX, y: e.clientY, lockTap: true}; return; }          // bloccato: solo il lucchetto risponde
+      start = {x: e.clientX, y: e.clientY, grip};
+      const begin = ()=>{ const r = d.getBoundingClientRect(); drag = {dx: e.clientX - r.left, dy: e.clientY - r.top, moved: false}; d.classList.add('moving'); try{ navigator.vibrate && navigator.vibrate(12); }catch(x){} try{ d.setPointerCapture(e.pointerId); }catch(x){} };
+      if(grip) begin(); else timer = setTimeout(begin, 480);       // dal piccolo grip si trascina subito; altrove serve tenere premuto
+    });
+    d.addEventListener('pointermove', e=>{
+      if(!drag){ if(start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) clearTimeout(timer); return; }
+      if(Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) drag.moved = true;
+      e.preventDefault();
+      const x = Math.max(4, Math.min(innerWidth - d.offsetWidth - 4, e.clientX - drag.dx)), y = Math.max(4, Math.min(innerHeight - d.offsetHeight - 4, e.clientY - drag.dy));
+      d.style.left = x + 'px'; d.style.top = y + 'px'; d.style.bottom = 'auto';
+    });
+    const end = ()=>{
+      clearTimeout(timer);
+      if(start && start.lockTap){ start = null; toggleLock(d); return; }
+      const wasTap = !!(drag && !drag.moved && start && start.grip); start = null;
+      if(wasTap){ drag = null; d.classList.remove('moving'); toggleLock(d); return; }          // un semplice tocco sul grip = blocca / sblocca
+      if(!drag) return; drag = null; d.classList.remove('moving');
+      const r = d.getBoundingClientRect(); LS.set(POS, {x: r.left / innerWidth, y: r.top / innerHeight});
+      d.dataset.moved = '1'; setTimeout(()=>{ delete d.dataset.moved; }, 350);
+      toast('Player spostato: resta qui', 1800);
+    };
+    d.addEventListener('pointerup', end); d.addEventListener('pointercancel', end);
+    d.addEventListener('click', e=>{ if(d.dataset.moved){ e.stopPropagation(); e.preventDefault(); } }, true);
+    window.addEventListener('resize', ()=> placeDock(d));
+  }
+  function paint(){
+    const d = dock(), t = cur.list[cur.i];
+    placeDock(d);
+    d.classList.toggle('show', !!t);                                  // v214: resta visibile anche fermo (con ▶ per ripartire), non sparisce allo Stop
+    d.querySelector('[data-m="toggle"]').textContent = cur.playing ? '❚❚' : '▶';
+    const apb = d.querySelector('[data-m="ap"]'); if(apb){ apb.classList.toggle('on', apHome()); apb.setAttribute('aria-pressed', apHome() ? 'true' : 'false'); }
+    d.querySelector('.rm-t b').textContent = t ? t[1] : '';
+    const g = GAMES.find(x=> x.id === cur.id); d.querySelector('.rm-t small').textContent = g ? g.name + ' · ' + (cur.i + 1) + '/' + cur.list.length : '';
+    paintBar();
+  }
+  function paintBar(){ const mb = document.getElementById('mzBar'); if(mb && typeof currentModalGame !== 'undefined' && currentModalGame){ const l0 = mb.querySelector('.mz2-list'), open = !!(l0 && !l0.hidden), m0 = mb.querySelector('.mz2-more'), mopen = !!(m0 && !m0.hidden); mb.outerHTML = barHtml(currentModalGame); wireBar(currentModalGame); if(open){ const l = document.querySelector('#mzBar .mz2-list'); if(l) l.hidden = false; } if(mopen){ const m = document.querySelector('#mzBar .mz2-more'); if(m){ m.hidden = false; const mb2 = document.querySelector('#mzBar [data-mz="more"]'); if(mb2) mb2.setAttribute('aria-expanded', 'true'); } } } }
+  // ---- ricerca su YouTube: tre tentativi in ordine («triade») e, a mano, con le parole che vuoi ----
+  const FIRST = 'atl_ost_first';        // v227: brano da cui partire sempre (per titolo), scelto da te
+  const USER = 'art_ost_user', MISS = 'art_ost_miss2', LIVE = 'art_ost_live2', STAT = {};      // v220: chiavi nuove: le ricerche vecchie potevano avere la versione sbagliata (es. Remake al posto dell'originale)
+  try{ ['art_ost_ia2', 'art_ost_live', 'art_ost_miss'].forEach(k=>{ if(localStorage.getItem(k) != null) localStorage.removeItem(k); }); }catch(e){}
+  const cleanN = n=> String(n).replace(/\s*\([^)]*\)/g, '').trim();
+  const baseN = n=> cleanN(n).replace(/\s*[:–—]\s.*$/, '').replace(/\s+-\s.*$/, '').trim();
+  const normT = t=> String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const STOPW = new Set(['the', 'of', 'and', 'a', 'an', 'in', 'to', 'for', 'edition', 'remastered', 'remake', 'definitive', 'complete', 'hd', 'game', 'collection']);
+  const tokensOf = n=> normT(n).split(' ').filter(w=> w.length >= 2 && !STOPW.has(w));
+  const namesGame0 = (title, name)=>{ const t = ' ' + normT(title) + ' ', w = tokensOf(name); if(!w.length) return true; return w.filter(x=> t.includes(' ' + x)).length >= Math.max(1, Math.ceil(w.length / 2)); };
+  // non deve essere un altro capitolo: «Final Fantasy X-2» non è «Final Fantasy X», «Kingdom Hearts II» non è «Kingdom Hearts»
+  // v220: deve essere proprio QUESTA versione del gioco. «Final Fantasy VII» (1997) non è «Final Fantasy VII Remake», «Rebirth», «Crisis Core», «Dirge of Cerberus», «Advent Children»…;
+  // e un Remake non deve prendere la colonna sonora dell'originale. Si guarda: il nome, altri titoli del tuo catalogo che iniziano con lo stesso nome, l'anno scritto nel titolo.
+  const OTHERVER = /\b(remake|rebirth|reunion|intergrade|reboot|reimagined|crisis core|dirge of cerberus|before crisis|advent children|ever crisis|first soldier|machinaria|ex ?soldier|world of final fantasy)\b/g;
+  const yearsOf = g=> String((g && g.year) || '').match(/(?:19|20)\d\d/g) || [];
+  const SIB = new Map();
+  const siblingsOf = g=>{                                              // nomi (normalizzati) di altri titoli del catalogo che iniziano col nome di questo, ma sono più lunghi
+    if(!g) return []; const k = g.id + '|' + g.name; if(SIB.has(k)) return SIB.get(k);
+    const n = normT(cleanN(g.name)), out = [];
+    try{ (typeof GAMES !== 'undefined' ? GAMES : []).forEach(x=>{ if(x.id === g.id) return; const m = normT(cleanN(x.name)); if(m.length > n.length + 2 && m.indexOf(n + ' ') === 0) out.push(m); }); }catch(e){}
+    if(SIB.size > 400) SIB.clear(); SIB.set(k, out); return out;
+  };
+  const namesGame = (title, name, g)=>{
+    if(!namesGame0(title, name)) return false;
+    const t = normT(title), n = normT(cleanN(name)); const i = t.indexOf(n);
+    const last = n.split(' ').pop();                                    // il numero del capitolo (VII, VIII, X, 5…) deve esserci: «VIII» non è «VII»
+    if(/^(ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii|xiii|xiv|xv|xvi|\d{1,2})$/.test(last) && !(' ' + t + ' ').includes(' ' + last + ' ')) return false;
+    const mine = new Set((n.match(OTHERVER) || []));
+    const theirs = (t.match(OTHERVER) || []);
+    if(theirs.some(w=> !mine.has(w))) return false;                    // il titolo parla di un'altra versione (Remake, Rebirth, Crisis Core…)
+    if([...mine].some(w=> !theirs.includes(w))) return false;           // io sono un Remake/Rebirth…: il titolo deve dirlo (non l'originale)
+    if(g){ const sib = siblingsOf(g); if(sib.some(m=> t.includes(m))) return false; }     // contiene il nome di un altro mio titolo più «lungo» (stessa serie)
+    const ys = yearsOf(g);
+    if(ys.length){ const ty = (t.match(/\b(?:19|20)\d\d\b/g) || []).map(Number).filter(y=> y >= 1985 && y <= 2035); if(ty.length && !ty.some(y=> ys.some(z=> Math.abs(y - +z) <= 3))) return false; }     // anno nel titolo lontano dal mio
+    if(i < 0) return true;
+    const after = t.slice(i + n.length);
+    return !/^\s?(2|3|4|ii|iii|iv|zero|origins|remix)\b/.test(after);
+  };
+  // le parole che usi tu (in quest'ordine): «soundtrack music», «soundtrack ost», «OST music», poi «playlist complete music»
+  const queriesFor = (name, g)=>{ const n = cleanN(name), b = baseN(name);
+    // v220: se non è un Remake/Rebirth… tolgo quelle versioni dalla ricerca (YouTube capisce «-remake»)
+    const neg = (/remake|rebirth|reunion|intergrade|reboot/i.test(n) ? '' : ' -remake -rebirth -reunion -intergrade -"crisis core" -"dirge of cerberus" -"advent children"');
+    const q = [n + ' soundtrack music' + neg, n + ' soundtrack ost' + neg, n + ' soundtrack music', n + ' soundtrack ost', n + ' OST music', n + ' playlist complete music']; if(b && b !== n) q.push(b + ' soundtrack music', b + ' soundtrack ost'); return [...new Set(q)]; };
+  const secsOf = t=> String(t || '').split(':').reduce((a, x)=> a * 60 + (+x || 0), 0);
+  // via tutto ciò che non è la musica ORIGINALE: lofi, relax, piano, cover, remix, mix di ore, ambienti, reazioni…
+  const BAD = /reaction|review|tutorial|live stream|gameplay|walkthrough|let'?s play|trailer|rap by|remix|cover|lo-?fi|relax|relaxing|sleep|study|chill|ambien|asmr|rain|beats|piano|guitar|violin|orchestra(l)? (version|arrangement)|arrange|8.?bit|chiptune|metal version|\b\d+ ?(hours?|ore)\b|mashup|medley|karaoke|nightcore|slowed|reverb|tribute|fan ?made|ai cover/i;
+  const parseYT = html=>{
+    const m = String(html).match(/var ytInitialData = (\{.*?\});<\/script>/s); if(!m) return [];
+    let data; try{ data = JSON.parse(m[1]); }catch(e){ return []; }
+    const out = [];
+    (function walk(o){ if(!o || typeof o !== 'object' || out.length >= 20) return; if(o.videoRenderer && o.videoRenderer.videoId){ const v = o.videoRenderer; out.push([v.videoId, ((v.title && v.title.runs && v.title.runs[0] && v.title.runs[0].text) || '').slice(0, 70), (v.lengthText && v.lengthText.simpleText) || '', +String((v.viewCountText && (v.viewCountText.simpleText || (v.viewCountText.runs || []).map(r=> r.text).join(''))) || '').replace(/[^0-9]/g, '') || 0]); return; } for(const k in o) walk(o[k]); })(data);
+    return out;
+  };
+  // tiene i brani veri: titolo giusto, nome del titolo, non reazioni/gameplay; prima le raccolte lunghe
+  const pickTracks = (list, name, g)=> list.filter(v=> /ost|soundtrack|music|theme|bgm|score|original|playlist|album/i.test(v[1]) && !BAD.test(v[1]) && secsOf(v[2]) >= 60 && namesGame(v[1], name, g))
+    .sort((a, b)=> (secsOf(b[2]) > 1800) - (secsOf(a[2]) > 1800)).slice(0, 5);
+  const searchYT = async q=> parseYT(await SearchHub.text('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), {timeout: 15000}));
+  window.rtYtSearch = q=> searchYT(q).catch(()=> []);      // usato anche per le foto del carosello (fotogrammi dei video di gameplay)
+  const setStat = (id, t)=>{ if(t) STAT[id] = t; else delete STAT[id]; paintBar(); };
+  // ---- Internet Archive: album interi caricati dagli utenti, file mp3 diretti (niente pubblicità). Cache 30 giorni (anche i «non trovato»). ----
+  const IA = 'art_ost_ia3', SRC = 'atl_music_src';                 // fonte preferita: 'ia' (senza pubblicità, predefinita) | 'yt'
+  const IA_BAD = /piano|cover|remix|arrang|orchestra|8.?bit|lo-?fi|tribute|guitar|acoustic|metal version|karaoke|ringtone|medley|chiptune/i;
+  const fmt = sec=>{ sec = Math.round(+sec || 0); return sec ? Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') : ''; };
+  async function iaAlbum(g){
+    const c = LS.get(IA, {}) || {}, e = c[g.id]; if(e && Date.now() - e.t < 30 * 864e5) return e.l ? e : null;
+    let res = null;
+    try{
+      const nm = cleanN(g.name).replace(/[()"]/g, ' ');
+      const q = 'title:(' + nm + ') AND (soundtrack OR ost OR "original sound" OR music) AND mediatype:audio';
+      const j = await SearchHub.json('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(q) + '&fl[]=identifier&fl[]=title&fl[]=downloads&rows=10&output=json', {timeout: 15000, relays: false});
+      const docs = ((j && j.response && j.response.docs) || []).filter(d=> d && d.title && namesGame(d.title, g.name, g) && /ost|soundtrack|sound track|music|score|original/i.test(d.title) && !IA_BAD.test(d.title)).sort((a, b)=> (b.downloads || 0) - (a.downloads || 0));
+      for(const d of docs.slice(0, 2)){
+        const m = await SearchHub.json('https://archive.org/metadata/' + encodeURIComponent(d.identifier), {timeout: 15000, relays: false});
+        const seen = new Set(), files = ((m && m.files) || []).filter(f=> /\.mp3$/i.test(f.name || '') && !/_64kb\.mp3$/i.test(f.name) && (+f.length || 0) >= 40)
+          .map(f=>{ const tt = String(f.title || f.name.replace(/\.mp3$/i, '').replace(/^[\d\s.\-_]+/, '')).trim(); return ['ia:https://archive.org/download/' + encodeURIComponent(d.identifier) + '/' + f.name.split('/').map(encodeURIComponent).join('/'), tt.slice(0, 70), fmt(f.length)]; })
+          .filter(x=>{ const k = x[1].toLowerCase(); if(seen.has(k)) return false; seen.add(k); return true; });
+        if(files.length >= 3){ res = {all: files, album: d.title, id: d.identifier}; break; }
+      }
+    }catch(err){ return null; }                                     // rete/blocco: non salvo, riprovo la prossima volta
+    // prima i brani PIÙ FAMOSI: confronto i titoli dell'album con i video più visti su YouTube («To Zanarkand», «Otherworld»…);
+    // se YouTube non risponde prendo 5 brani sparsi lungo l'album. Il resto resta come «alternative» per il tasto 🔁, in ordine di fama.
+    let l = null;
+    if(res){
+      try{
+        const yt = [].concat(await searchYT(cleanN(g.name) + ' soundtrack ost').catch(()=> []), await searchYT(cleanN(g.name) + ' soundtrack music').catch(()=> []));
+        const tl = yt.map(v=> [normT(v[1]), +v[3] || 1]);
+        res.all.forEach(x=>{ const k = normT(x[1]).replace(/^\d+\s*/, ''); x[3] = k.length >= 4 ? tl.filter(v=> (' ' + v[0] + ' ').includes(' ' + k + ' ')).reduce((a, v)=> a + v[1], 0) : 0; });
+      }catch(e){}
+      const famous = res.all.filter(x=> x[3] > 0).sort((a, b)=> b[3] - a[3]);
+      const n = res.all.length, spread = [...new Set([0, 1, 2, 3, 4].map(i=> Math.round(i * (n - 1) / 4)))].map(i=> res.all[i]);
+      l = famous.slice(0, 5); spread.forEach(x=>{ if(l.length < 5 && !l.includes(x)) l.push(x); });
+      res.all = famous.concat(res.all.filter(x=> !famous.includes(x)));
+    }
+    c[g.id] = {t: Date.now(), l, alt: res ? res.all.slice(0, 60) : null, album: res && res.album};
+    const ks = Object.keys(c); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k=> delete c[k]);
+    LS.set(IA, c); return l ? c[g.id] : null;
+  }
+  async function tracksFor(g){
+    const u = (LS.get(USER, {}) || {})[g.id]; if(u && u.length) return u;                      // scelto da te (🔎 o 🔁): bloccato, nessun aggiornamento lo cambia
+    if(LS.get(SRC, 'ia') === 'ia'){ setStat(g.id, 'Cerco l\'album senza pubblicità…'); const a = await iaAlbum(g); setStat(g.id, ''); if(a && a.l && a.l.length) return a.l; }
+    // v211: solo il pezzo del titolo (dati/notte-ost-K.js); il file intero ost.js solo se i pezzi non ci sono
+    if(window.rtNight) await rtNight.ensure('ost', g.id);
+    else { if(!ostP) ostP = load('ost.js').catch(()=>{}); await ostP; }
+    let t = (typeof OST !== 'undefined' && OST.games && OST.games[g.id]) || null;
+    if(t && t.length){ const ok = t.filter(v=> !v || !v[1] || namesGame(v[1], g.name, g)); if(ok.length) return ok; }       // v220: solo brani della versione giusta
+    const c = LS.get(LIVE, {}) || {}; if(c[g.id] && c[g.id].length) return c[g.id];
+    const miss = LS.get(MISS, {}) || {}; if(miss[g.id] && Date.now() - miss[g.id] < 864e5) return [];     // già provato oggi: non insisto
+    const qs = queriesFor(g.name, g).slice(0, 4);
+    for(let i = 0; i < qs.length; i++){
+      setStat(g.id, 'Cerco la colonna sonora… (' + (i + 1) + '/' + qs.length + ')');
+      try{ const l = pickTracks(await searchYT(qs[i]), g.name, g); if(l.length){ c[g.id] = l; const ks = Object.keys(c); if(ks.length > 250) ks.slice(0, ks.length - 250).forEach(k=> delete c[k]); LS.set(LIVE, c); setStat(g.id, ''); return l; } }catch(e){}
+    }
+    miss[g.id] = Date.now(); LS.set(MISS, miss); setStat(g.id, ''); return [];
+  }
+  // 🔎 ricerca a mano: scrivi tu le parole, scegli il brano giusto e resta salvato per quel titolo
+  function openFind(g){
+    const nm = cleanN(g.name);
+    const body = sheet('xOstFind', '🔎 Cerca la colonna sonora', `<div class="lp-sub">Cerca su YouTube con le parole che vuoi. Il brano che scegli resta salvato per questo gioco.</div>
+      <input id="ostQ" type="search" value="${esc(nm + ' OST music')}" autocomplete="off" enterkeyhint="search" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font-size:1rem">
+      <div class="tagchips" style="margin:8px 0">${['OST music', 'soundtrack', 'playlist complete music', 'full album', 'main theme'].map(x=> `<button type="button" class="tagchip" data-q="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+      <div class="lp-tools"><button class="btn primary" id="ostGo" type="button">🔎 Cerca</button></div><div id="ostRes" class="lp-sub"></div>`);
+    const res = body.querySelector('#ostRes'), inp = body.querySelector('#ostQ');
+    const go = async ()=>{
+      const q = inp.value.trim(); if(!q) return; res.textContent = 'Cerco…';
+      let l = []; try{ l = (await searchYT(q)).filter(v=> !BAD.test(v[1]) && secsOf(v[2]) >= 30).slice(0, 12); }catch(e){ res.textContent = 'YouTube non risponde ora: riprova tra poco.'; return; }
+      if(!l.length){ res.textContent = 'Nessun risultato: prova con altre parole.'; return; }
+      res.innerHTML = l.map((v, i)=> `<button type="button" class="btn" data-i="${i}" style="display:block;width:100%;text-align:left;margin:4px 0">▶ ${esc(v[1])}${v[2] ? ' <small>(' + esc(v[2]) + ')</small>' : ''}</button>`).join('');
+      res.querySelectorAll('[data-i]').forEach(b=> b.addEventListener('click', ()=>{
+        const v = l[+b.dataset.i], list = [v].concat(l.filter(x=> x !== v).slice(0, 4));
+        const u = LS.get(USER, {}) || {}; u[g.id] = list; LS.set(USER, u);
+        cur = {id: g.id, list, i: 0, playing: false}; playTrack();
+        const sh = document.getElementById('xOstFind'); if(sh) sh.classList.remove('show'); toast('Colonna sonora scelta: la ricordo per questo gioco', 2400);
+      }));
+    };
+    body.querySelector('#ostGo').addEventListener('click', go);
+    inp.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); go(); } });
+    body.querySelectorAll('[data-q]').forEach(b=> b.addEventListener('click', ()=>{ inp.value = nm + ' ' + b.dataset.q; go(); }));
+    setTimeout(go, 50);
+  }
+  // 🔁 cambia il brano che sta suonando con un'alternativa (dallo stesso album senza pubblicità o da YouTube); la scelta resta bloccata 🔒
+  async function openSwap(g){
+    if(!(cur.id === g.id && cur.list.length)){ toast('Fai partire la musica di questo titolo, poi cambia il brano', 2500); return; }
+    const body = sheet('xOstSwap', '🔁 Cambia questo brano', `<div class="lp-sub">Sta suonando: <b>${esc(cur.list[cur.i][1])}</b>. Scegli quello che preferisci: prende il suo posto e resta salvato 🔒 per questo titolo (nessun aggiornamento lo cambia).</div><div id="swRes" class="lp-sub">Cerco le alternative…</div>
+      <div class="lp-tools"><button class="btn" id="swAuto" type="button">↩️ Torna alla scelta automatica</button></div>`);
+    body.querySelector('#swAuto').addEventListener('click', ()=>{ const u = LS.get(USER, {}) || {}; delete u[g.id]; LS.set(USER, u); const sh = document.getElementById('xOstSwap'); if(sh) sh.classList.remove('show'); cur = {id: null, list: [], i: 0, playing: false}; playFor(g, true); toast('Brani di nuovo automatici', 2000); });
+    const inList = new Set(cur.list.map(x=> x[0])), alts = [];
+    try{ const a = await iaAlbum(g); if(a && a.alt) a.alt.filter(x=> !inList.has(x[0])).slice(0, 25).forEach(x=> alts.push(x)); }catch(e){}
+    try{
+      const seen = new Set(), yt = [];
+      for(const q of queriesFor(g.name, g).slice(0, 3)){ (await searchYT(q).catch(()=> [])).forEach(v=>{ if(!seen.has(v[0])){ seen.add(v[0]); yt.push(v); } }); }
+      yt.filter(v=> !BAD.test(v[1]) && secsOf(v[2]) >= 60 && secsOf(v[2]) <= 15 * 60 && namesGame(v[1], g.name, g) && !inList.has(v[0])).sort((a, b)=> (b[3] || 0) - (a[3] || 0)).slice(0, 12).forEach(v=> alts.push(v));
+    }catch(e){}
+    const res = body.querySelector('#swRes'); if(!res) return;
+    if(!alts.length){ res.textContent = 'Non trovo alternative ora: prova con 🔎 e parole tue.'; return; }
+    res.innerHTML = alts.map((v, i)=> `<button type="button" class="btn" data-i="${i}" style="display:block;width:100%;text-align:left;margin:4px 0">${isIA(v) ? '🚫📢' : '▶'} ${esc(v[1])}${v[2] ? ' <small>(' + esc(v[2]) + ')</small>' : ''}</button>`).join('');
+    res.querySelectorAll('[data-i]').forEach(b=> b.addEventListener('click', ()=>{
+      const v = alts[+b.dataset.i], list = cur.list.slice(); list[cur.i] = v;
+      const u = LS.get(USER, {}) || {}; u[g.id] = list; LS.set(USER, u);
+      cur.list = list; playTrack();
+      const sh = document.getElementById('xOstSwap'); if(sh) sh.classList.remove('show'); toast('🔒 Brano cambiato e bloccato per questo gioco', 2400);
+    }));
+  }
+  async function playTrack(){
+    const t = cur.list[cur.i]; if(!t) return;
+    if(isIA(t)){
+      try{ yt && yt.pauseVideo(); }catch(e){}
+      dock(); const a = audio(); a.src = t[0].slice(3); a.volume = curVol();
+      try{ await a.play(); cur.playing = true; }catch(e){ cur.playing = false; if(e && e.name === 'NotAllowedError'){ const once = ()=>{ document.removeEventListener('pointerdown', once, true); if(!cur.playing && cur.list[cur.i] === t) resume(); }; document.addEventListener('pointerdown', once, true); } }      // v232: il telefono ha bloccato l'avvio: riparte da sola al primo tocco
+      paint(); return;
+    }
+    try{ au && au.pause(); }catch(e){}
+    try{ await loadYT(); }catch(e){ toast('La musica non parte: YouTube non è raggiungibile ora', 3500); return; }
+    dock();
+    if(!yt){
+      yt = new YT.Player('rtYt', {host: 'https://www.youtube-nocookie.com', width: 200, height: 113, videoId: t[0], playerVars: {autoplay: 1, playsinline: 1, controls: 0, rel: 0, modestbranding: 1},
+        events: {onReady: e=>{ try{ e.target.setVolume(Math.round(curVol() * 100)); e.target.playVideo(); }catch(x){} }, onStateChange: e=>{ cur.playing = e.data === 1; if(e.data === 1) cur.fails = 0; if(e.data === 0) endTrack(); paint(); }, onError: ()=> failNext()}});
+    } else { try{ yt.loadVideoById(t[0]); }catch(e){} }
+    cur.playing = true; paint();
+  }
+  async function playFor(g, force){
+    if(!force && !apCard()) return;
+    if(cur.id === g.id && cur.list.length && (cur.playing || !force)){ paint(); return; }
+    const list = await tracksFor(g);
+    if(!list.length){ cur = {id: g.id, list: [], i: 0, playing: false, none: true}; paintBar(); if(force) toast('Non trovo la colonna sonora: prova col tasto 🔎', 3200); return; }
+    const fu = (LS.get(FIRST, {}) || {})[g.id], fi = fu ? list.findIndex(t=> t[0] === fu) : -1;
+    const pick = fi >= 0 ? fi : ((LS.get(PICK, {}) || {})[g.id] || 0);
+    cur = {id: g.id, list, i: Math.min(pick, list.length - 1), playing: false};
+    paintBar(); playTrack();
+  }
+  function pause(){ try{ yt && yt.pauseVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); }
+  function resume(){ const t = cur.list[cur.i]; if(isIA(t)){ if(au && au.src) au.play().catch(()=>{}); else playTrack(); } else { try{ yt && yt.playVideo(); }catch(e){} } cur.playing = true; paint(); }
+  function next(auto){ if(!cur.list.length) return; cur.i = (cur.i + 1) % cur.list.length; if(!auto){ const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); } playTrack(); }
+  function stopAll(){ try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Brano fermo: premi ▶ per farlo ripartire', 2200); }
+  function ensure(g){ try{ if(!g || !apCard()) return; if(cur.id === g.id && cur.list.length && cur.playing) return; playFor(g, true); }catch(e){} }
+  window.rtMusic = {duck, ensure, vol: baseVol, playFor, stop: stopAll, on: ON, dock, _test: {namesGame, queriesFor}};      // _test: per i controlli automatici
+  // barra nella scheda del titolo
+  // ---- lettore nella scheda (v198): titolo grande, album/fonte, barra di avanzamento toccabile, ⏮ ⏯ ⏭, elenco dei brani, 🔁 cambia, 🔎 cerca ----
+  const albumOf = g=>{ try{ const e = (LS.get(IA, {}) || {})[g.id]; return e && e.album ? e.album : ''; }catch(e){ return ''; } };
+  function barHtml(g){
+    const mine = cur.id === g.id && cur.list.length, t = mine ? cur.list[cur.i] : null, playing = mine && cur.playing;
+    const locked = !!(LS.get(USER, {}) || {})[g.id];
+    const src = t ? (isIA(t) ? '🚫📢 senza pubblicità · ' + (albumOf(g) || 'Internet Archive') : '▶ YouTube') : '';
+    const status = STAT[g.id] || (cur.id === g.id && cur.none ? 'Non trovata: prova col tasto 🔎' : (apCard() ? 'Cerco la colonna sonora…' : 'Premi ▶ per ascoltarla (o accendi «Auto» per farla partire da sola)'));
+    const first = (LS.get(FIRST, {}) || {})[g.id];
+    const list = mine ? `<div class="mz2-list" hidden><div class="mz2-lh">📌 = parte sempre da questo brano (e l'elenco resta bloccato 🔒)</div>${cur.list.map((x, i)=> `<div class="mz2-lr"><button type="button" class="mz2-li${i === cur.i ? ' cur' : ''}" data-mz="pick" data-i="${i}"><span>${i + 1}</span><b>${esc(x[1])}</b><small>${esc(x[2] || '')}</small></button><button type="button" class="mz2-pin${first === x[0] ? ' on' : ''}" data-mz="first" data-i="${i}" aria-label="Parti sempre da questo brano" title="Parti sempre da questo brano">📌</button></div>`).join('')}</div>` : '';
+    const vl = !!LS.get(VOLL, false), vv = Math.round(baseVol() * 100);
+    return `<div class="mz2 mz2c${playing ? ' on' : ''}" id="mzBar">
+      <div class="mz2-top"><div class="mz2-art${playing ? ' spin' : ''}">🎵</div><div class="mz2-info"><b class="mz2-title">${t ? esc(t[1]) : 'Colonna sonora'}</b><small>${t ? esc(src) + ' · ' + (cur.i + 1) + '/' + cur.list.length + (locked ? ' · 🔒 scelti da te' : '') : esc(status)}</small></div>
+        <div class="mz2-ctl mz2-main"><button type="button" data-mz="prev" title="Brano precedente" aria-label="Precedente">⏮</button><button type="button" class="mz2-play" data-mz="play" aria-label="Play o pausa">${playing ? '❚❚' : '▶'}</button><button type="button" data-mz="next" title="Brano successivo" aria-label="Successivo">⏭</button><button type="button" data-mz="more" title="Altri comandi" aria-label="Altri comandi" aria-expanded="false">⋯</button></div></div>
+      ${mine ? `<div class="mz2-prog"><span class="mz2-cur">0:00</span><div class="mz2-pb" data-mz="seek"><i></i></div><span class="mz2-dur">${esc(t[2] || '')}</span></div>` : ''}
+      <div class="mz2-more" hidden><div class="mz2-ctl mz2-sec"><button type="button" data-mz="list" title="Elenco dei brani" aria-label="Elenco">☰</button><button type="button" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato 🔒)" aria-label="Cambia brano">🔁</button><button type="button" data-mz="find" title="Cerca con parole tue" aria-label="Cerca">🔎</button><button type="button" class="mz2-ap${apCard() ? ' on' : ''}" data-mz="ap" title="Auto play: aprendo un titolo la sua musica parte da sola" aria-label="Auto play" aria-pressed="${apCard()}">Auto</button><button type="button" data-mz="stop" title="Ferma il brano" aria-label="Ferma">■</button><button type="button" class="mz2-ul${locked ? ' on' : ''}" data-mz="ulock" title="${locked ? 'Brani bloccati: tocca per sbloccarli (torneranno gli aggiornamenti automatici)' : 'Blocca questi brani: nessun aggiornamento automatico li cambierà'}" aria-label="${locked ? 'Sblocca i brani' : 'Blocca i brani'}">${locked ? '🔒' : '🔓'}</button></div>
+        <div class="mz2-volrow"><span aria-hidden="true">🔈</span><input type="range" class="mz2-vol" data-mz="vol" min="0" max="100" step="5" value="${vv}" ${vl ? 'disabled' : ''} aria-label="Volume della musica"><b class="mz2-vv">${vv}%</b><button type="button" class="mz2-vl${vl ? ' on' : ''}" data-mz="vlock" aria-label="${vl ? 'Sblocca il volume' : 'Blocca il volume'}" title="${vl ? 'Volume bloccato: tocca per modificarlo' : 'Blocca il volume scelto'}">${vl ? '🔒' : '🔓'}</button></div></div>
+      ${list}</div>`;
+  }
+  const mmss = x=>{ x = Math.max(0, Math.floor(+x || 0)); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); };
+  let progT = 0;
+  function progTick(){
+    const b = document.getElementById('mzBar'); if(!b){ clearInterval(progT); progT = 0; return; }
+    const t = cur.list[cur.i]; if(!t) return; let c = 0, d = 0;
+    try{ if(isIA(t) && au){ c = au.currentTime; d = au.duration; } else if(yt && yt.getCurrentTime){ c = yt.getCurrentTime(); d = yt.getDuration(); } }catch(e){}
+    const i = b.querySelector('.mz2-pb i'), ce = b.querySelector('.mz2-cur'), de = b.querySelector('.mz2-dur');
+    if(i && d) i.style.width = Math.min(100, 100 * c / d) + '%'; if(ce) ce.textContent = mmss(c); if(de && d) de.textContent = mmss(d);
+  }
+  function prev(){ if(!cur.list.length) return; cur.i = (cur.i - 1 + cur.list.length) % cur.list.length; const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); playTrack(); }
+  function wireBar(g){
+    const b = document.getElementById('mzBar'); if(!b) return;
+    if(!progT) progT = setInterval(progTick, 1000);
+    b.addEventListener('click', e=>{ const x = e.target.closest('[data-mz]'); if(!x) return; const m = x.dataset.mz;
+      const mine = cur.id === g.id && cur.list.length;
+      if(m === 'play'){ if(mine){ cur.playing ? pause() : resume(); } else { playFor(g, true); } }
+      else if(m === 'find') openFind(g);
+      else if(m === 'swap') openSwap(g);
+      else if(m === 'list'){ const l = b.querySelector('.mz2-list'); if(l) l.hidden = !l.hidden; else toast('Fai partire la musica per vedere i brani', 2000); }
+      else if(m === 'pick'){ cur.i = +x.dataset.i; const p = LS.get(PICK, {}) || {}; p[g.id] = cur.i; LS.set(PICK, p); playTrack(); }
+      else if(m === 'seek'){ const r = x.getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), t = cur.list[cur.i]; try{ if(isIA(t) && au && au.duration) au.currentTime = f * au.duration; else if(yt && yt.getDuration) yt.seekTo(f * yt.getDuration(), true); }catch(err){} progTick(); }
+      else if(m === 'first'){ const t = cur.list[+x.dataset.i]; if(!t) return; const f = LS.get(FIRST, {}) || {}, u = LS.get(USER, {}) || {};
+        if(f[g.id] === t[0]){ delete f[g.id]; LS.set(FIRST, f); toast('Brano di partenza tolto', 1800); }
+        else { f[g.id] = t[0]; LS.set(FIRST, f); u[g.id] = cur.list.slice(); LS.set(USER, u); const p = LS.get(PICK, {}) || {}; p[g.id] = +x.dataset.i; LS.set(PICK, p); toast('📌 Partirà sempre da «' + t[1] + '». Brani bloccati 🔒 (li sblocchi da ⋯)', 3200); }
+        paintBar(); }
+      else if(m === 'ulock'){ const u = LS.get(USER, {}) || {}, f = LS.get(FIRST, {}) || {};
+        if(u[g.id]){ delete u[g.id]; delete f[g.id]; LS.set(USER, u); LS.set(FIRST, f); toast('Brani sbloccati: possono aggiornarsi da soli', 2200); }
+        else if(cur.id === g.id && cur.list.length){ u[g.id] = cur.list.slice(); LS.set(USER, u); toast('Brani bloccati 🔒: nessun aggiornamento li cambierà', 2200); }
+        else toast('Fai partire la musica, poi bloccala', 2000);
+        paintBar(); }
+      else if(m === 'more'){ const mo = b.querySelector('.mz2-more'); if(mo){ mo.hidden = !mo.hidden; x.setAttribute('aria-expanded', mo.hidden ? 'false' : 'true'); x.classList.toggle('on', !mo.hidden); } }
+      else if(m === 'vlock'){ const on = !LS.get(VOLL, false); LS.set(VOLL, on); const r = b.querySelector('.mz2-vol'); if(r) r.disabled = on; x.classList.toggle('on', on); x.textContent = on ? '🔒' : '🔓'; x.setAttribute('aria-label', on ? 'Sblocca il volume' : 'Blocca il volume'); toast(on ? 'Volume bloccato 🔒: resta così anche riaprendo l\'app' : 'Volume sbloccato: puoi modificarlo', 2200); }
+      else if(m === 'vol'){ }
+      else if(m === 'stop') stopAll();
+      else if(m === 'ap'){ LS.set('atl_ap_card', apCard() ? 'off' : 'on'); x.classList.toggle('on', apCard()); x.setAttribute('aria-pressed', apCard() ? 'true' : 'false'); toast(apCard() ? 'Auto play acceso: aprendo un titolo la sua musica parte da sola' : 'Auto play spento: la musica parte solo se premi ▶', 2600); const st = b.querySelector('.mz2-info small'); }
+      else if(m === 'prev'){ if(mine) prev(); }
+      else if(m === 'next'){ if(mine) next(); else { playFor(g, true); } } });
+    const vr = b.querySelector('.mz2-vol');
+    if(vr){
+      vr.addEventListener('input', ()=>{ LS.set(VOLK, +vr.value); const o = b.querySelector('.mz2-vv'); if(o) o.textContent = vr.value + '%'; applyVol(); });
+      vr.addEventListener('change', ()=>{ LS.set(VOLL, true); vr.disabled = true; const l = b.querySelector('.mz2-vl'); if(l){ l.classList.add('on'); l.textContent = '🔒'; } toast('Volume impostato e bloccato 🔒', 1800); });      // impostato: si blocca; il lucchetto lo sblocca
+    }
+    progTick();
+  }
+  const origOpen = window.openModal;
+  window.openModal = function(g){
+    const r = origOpen.apply(this, arguments);
+    try{
+      rtSfx('open');
+      const cover = document.getElementById('coverBlock'), card = document.getElementById('modalCard');
+      if(card && g){ (cover || card.querySelector('.modal-head')).insertAdjacentHTML('afterend', barHtml(g)); wireBar(g); }
+      if(apCard()) playFor(g);
+      else if(g && !(window.rtCalm && rtCalm())){        // v225: Auto spento: preparo in silenzio l'elenco dei brani (e YouTube se serve), così premendo ▶ parte subito
+        const id = g.id;
+        (window.rtSettle ? rtSettle(2200) : new Promise(res=> setTimeout(res, 2200))).then(()=>{
+          if(typeof currentModalGame === 'undefined' || !currentModalGame || currentModalGame.id !== id || (cur.id === id && cur.list.length)) return;
+          tracksFor(g).then(l=>{ if(l && l[0] && !isIA(l[0])) loadYT().catch(()=>{}); }).catch(()=>{});
+        });
+      }
+    }catch(e){}
+    return r;
+  };
+  try{ openModal = window.openModal; }catch(e){}
+  let wasShow = false;
+  new MutationObserver(()=>{ const sh = document.getElementById('modalBackdrop').classList.contains('show'), closing = wasShow && !sh; wasShow = sh; if(closing){ rtSfx('close');
+    if(duckK !== 1) duck(false);                                                  // v227: mai musica rimasta bassa in home
+    if(!apHome() && cur.playing){ try{ yt && yt.pauseVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; try{ paint(); }catch(e){} }      // Auto home spento: in home niente musica
+  } }).observe(document.getElementById('modalBackdrop'), {attributes: true, attributeFilter: ['class']});
+
+  // impostazioni: suoni e musica
+  function openSound(){
+    const cur0 = theme(), vol = sfxVol();
+    const body = sheet('xSound', gi('pad') + ' Suoni e musica', `<div class="lp-sub">Suoni dei pulsanti creati nel telefono (nessun download). Scegli un tema: toccalo per sentirlo.</div>
+      <label class="ask-toggle"><input type="checkbox" id="muOn" ${apCard() ? 'checked' : ''}> ${gi('play')} Auto play della scheda: aprendo un titolo parte la sua colonna sonora</label>
+      <label class="ask-toggle"><input type="checkbox" id="muHome" ${apHome() ? 'checked' : ''}> Auto play del player in home: finito un brano parte il successivo</label>
+      <label class="ask-toggle"><input type="checkbox" id="muIA" ${LS.get(SRC, 'ia') === 'ia' ? 'checked' : ''}> 🚫📢 Prima le colonne sonore SENZA pubblicità (album completi su Internet Archive); YouTube solo se l'album non c'è</label>
+      <label class="gs-row">Volume dei suoni <input type="range" min="0" max="1" step="0.05" value="${vol}" id="sfxVol"></label>
+      <label class="ask-toggle"><input type="checkbox" id="muFloat" ${LS.get(MODE, 'dock') === 'float' ? 'checked' : ''}> Player mobile (lo sposti tu) invece che fisso sotto la ricerca <small>(si applica al riavvio)</small></label>
+      <button class="btn" type="button" id="muReset">Rimetti il player al suo posto</button>
+      <div class="snd-grid"><button type="button" class="btn${cur0 === 'off' ? ' primary' : ''}" data-snd="off">Nessun suono</button>${Object.entries(THEMES).map(([k, t])=> `<button type="button" class="btn${cur0 === k ? ' primary' : ''}" data-snd="${k}">${esc(t.name)}</button>`).join('')}</div>`);
+    body.querySelectorAll('[data-snd]').forEach(b=> b.addEventListener('click', ()=>{ LS.set('atl_sfx', b.dataset.snd); body.querySelectorAll('[data-snd]').forEach(x=> x.classList.toggle('primary', x === b)); if(b.dataset.snd !== 'off'){ rtSfx('success', b.dataset.snd); } }));
+    body.querySelector('#sfxVol').addEventListener('input', e=>{ LS.set('atl_sfx_vol', +e.target.value); if(master) master.gain.value = +e.target.value; });
+    body.querySelector('#sfxVol').addEventListener('change', ()=> rtSfx('fav'));
+    body.querySelector('#muReset').addEventListener('click', ()=>{ LS.set(POS, null); const d = document.getElementById('rtMusic'); if(d){ d.style.left = ''; d.style.top = ''; d.style.bottom = ''; } toast('Player rimesso al suo posto', 1800); });
+    body.querySelector('#muFloat').addEventListener('change', e=>{ LS.set(MODE, e.target.checked ? 'float' : 'dock'); toast('Fatto: si applica al prossimo avvio del programma', 2600); });
+    body.querySelector('#muIA').addEventListener('change', e=>{ LS.set(SRC, e.target.checked ? 'ia' : 'yt'); toast(e.target.checked ? 'Prima gli album senza pubblicità' : 'Prima YouTube', 2000); });
+    body.querySelector('#muOn').addEventListener('change', e=>{ LS.set('atl_ap_card', e.target.checked ? 'on' : 'off'); });
+    body.querySelector('#muHome').addEventListener('change', e=>{ LS.set('atl_ap_home', e.target.checked ? 'on' : 'off'); paint(); });
+  }
+  menu(gi('pad') + ' Suoni e musica (15 temi)', openSound);
+})();

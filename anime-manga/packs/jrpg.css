@@ -1,0 +1,40 @@
+/* ===== Finestre JRPG: i menu blu dei classici — finestre sfumate col bordo bianco, testo con l'ombra, cursore a mano sul selezionato ===== */
+@font-face{font-family:"DotGothic16";src:url(../fonts/dotgothic16-400.woff2) format("woff2");font-weight:400;font-display:swap}
+
+html[data-pack="jrpg"]{
+  --pk-ff:"DotGothic16","MS Gothic",ui-monospace,monospace; --pk-fh:var(--pk-ff); --pk-fc:var(--pk-ff);
+  --pk-hfw:400; --pk-bfs:15px; --pk-hls:.02em; --pk-cls:.02em;
+  --pk-r:10px; --pk-r2:8px; --pk-rp:8px; --pk-rb:10px; --pk-bw:2px; --pk-bwc:2px; --pk-bc:#f3f5ff;
+  --win:linear-gradient(180deg,#3047dc 0%,#1a2aa8 52%,#0d1780 100%);
+  --pk-block:var(--win); --pk-chip:linear-gradient(180deg,#2a3fcb,#14238f); --pk-input:#0a1260; --pk-ib:linear-gradient(180deg,#2a3fcb,#14238f);
+  --pk-sh:inset 0 0 0 2px #0a1260, inset 0 0 0 3px #7d92ff, 0 0 0 2px #0a1260, 0 7px 0 2px rgba(0,0,0,.4);
+  --pk-shs:inset 0 0 0 1px #0a1260, inset 0 0 0 2px #6e84ff, 0 3px 0 0 rgba(0,0,0,.4); --pk-shc:var(--pk-shs);
+  --pk-top:linear-gradient(180deg,#0a1470,#060d4a); --pk-nav:linear-gradient(180deg,#0a1470,#060d4a);
+  --pk-th:linear-gradient(180deg,#4a63ff,#2338c8); --pk-th-c:#fff; --pk-alt:rgba(255,255,255,.05); --pk-hov:rgba(255,227,110,.22); --pk-row-bd:1px solid rgba(160,176,255,.28);
+  --pk-act:linear-gradient(180deg,#fff4b8,#ffd84a); --pk-act-c:#1a1a5a; --pk-act-sh:inset 0 0 0 2px #fff, 0 0 12px rgba(255,227,110,.7); --pk-ib-act:linear-gradient(180deg,#fff4b8,#ffd84a);
+  --pk-badge-r:8px; --pk-badge-bd:2px solid #f3f5ff; --pk-badge-sh:inset 0 -5px 0 rgba(0,0,0,.25), 0 2px 0 rgba(0,0,0,.45); --pk-badge-c:#fff;
+  --t-splus:linear-gradient(180deg,#fff0a0,#f2b705); --t-s:linear-gradient(180deg,#d28bff,#7a2fd6); --t-a:linear-gradient(180deg,#7fc2ff,#2a73e6); --t-b:linear-gradient(180deg,#7ff0b0,#1f9e5c); --t-c:linear-gradient(180deg,#ffe98a,#e0b020); --t-d:linear-gradient(180deg,#ffb27a,#e0661c); --t-e:linear-gradient(180deg,#ff8a8a,#c42b2b); --t-f:linear-gradient(180deg,#c9cfe8,#7f88b8); --t-nd:linear-gradient(180deg,#4a4f86,#252a60);
+  --t-splus-c:#4a2e00; --t-c-c:#3a2a00; --pk-bar:linear-gradient(90deg,#ffe36e,#ff9d3a); --pk-bar-r:2px; --pk-gi:drop-shadow(1px 1px 0 rgba(0,0,0,.55)); --pk-scrim:rgba(2,4,24,.72); --pk-tt-c:#ffe36e;
+}
+html[data-pack="jrpg"] body{text-shadow:1px 1px 0 rgba(0,0,0,.7)}
+html[data-pack="jrpg"] :is(input,select,textarea){text-shadow:none}
+html[data-pack="jrpg"] :is(.list-chip.active,.qf-chip.active,.btn.primary,.view-tab.active .vt-ic,.x-toolbar button.active,.toast,.stat-chip.active){text-shadow:none}
+/* cielo notturno con stelle che scorrono lentissime */
+html[data-pack="jrpg"] body::before{background:radial-gradient(60% 40% at 80% 6%,rgba(120,150,255,.28),transparent 70%),radial-gradient(70% 45% at 10% 100%,rgba(60,90,220,.35),transparent 70%),linear-gradient(180deg,#02051a 0%,#061041 55%,#0b2476 100%)}
+html[data-pack="jrpg"] body::after{inset:auto; top:0; left:0; right:0; height:calc(100% + 240px); opacity:.9;
+  background:radial-gradient(1.2px 1.2px at 24px 38px,#fff,transparent),radial-gradient(1px 1px at 90px 120px,#cfe0ff,transparent),radial-gradient(1.4px 1.4px at 160px 60px,#fff,transparent),radial-gradient(1px 1px at 200px 190px,#ffe9a8,transparent),radial-gradient(1.2px 1.2px at 60px 210px,#fff,transparent);
+  background-size:240px 240px}
+html[data-pack="jrpg"]:not(.pk-still) body::after{animation:jrStars 90s linear infinite}
+@keyframes jrStars{to{transform:translateY(-240px)}}
+/* cursore a mano sul selezionato */
+html[data-pack="jrpg"] .list-chip.active::before, html[data-pack="jrpg"] .qf-chip.active::before{content:"☛"; margin-right:4px}
+html[data-pack="jrpg"] tbody tr:hover td:first-child::before{content:none}
+html[data-pack="jrpg"] .iconbtn.lbl .ib-lb{font-size:.62rem}
+html[data-pack="jrpg"] .vt-tx{font-size:.62rem !important}
+html[data-pack="jrpg"] .badge:not(.outline){font-size:.9rem; min-width:2em; text-align:center}
+html[data-pack="jrpg"] td.score{color:#ffe36e; font-size:1.05rem}
+html[data-pack="jrpg"] .view-tab.active .vt-ic{transform:translateY(-3px)}
+/* le finestre si «aprono» a scatti, come nei giochi */
+@media (min-width:761px){ html[data-pack="jrpg"]:not(.pk-still) .modal-backdrop.show .modal-card{animation:jrOpen .24s steps(6) both} }
+@keyframes jrOpen{from{transform:scaleY(.08)}to{transform:none}}
+html[data-pack="jrpg"] .modal-title{font-size:1.2rem; color:#ffe36e}

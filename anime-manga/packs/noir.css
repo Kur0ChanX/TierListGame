@@ -1,0 +1,54 @@
+/* ===== Noir: pellicola in bianco e nero — veneziane di luce, grana, vignetta, tier come timbri (di giorno: carta di giornale) ===== */
+@font-face{font-family:"Bebas Neue";src:url(../fonts/bebas-neue-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Courier Prime";src:url(../fonts/courier-prime-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Courier Prime";src:url(../fonts/courier-prime-700.woff2) format("woff2");font-weight:700;font-display:swap}
+
+html[data-pack="noir"]{
+  --pk-ff:"Courier Prime","Courier New",monospace; --pk-fh:"Bebas Neue",Impact,sans-serif; --pk-fc:"Courier Prime","Courier New",monospace;
+  --pk-hfw:400; --pk-bfs:13.5px; --pk-hls:.08em; --pk-htt:uppercase; --pk-cls:0;
+  --pk-r:0px; --pk-r2:0px; --pk-rp:0px; --pk-rb:0px; --pk-bw:1px; --pk-bwc:1px; --pk-bc:#141414;
+  --pk-block:#f1ecdd; --pk-chip:#f1ecdd; --pk-input:#faf6ea; --pk-ib:#f1ecdd; --pk-top:rgba(230,224,207,.6); --pk-nav:#e6e0cf;
+  --pk-sh:4px 4px 0 rgba(20,20,20,.9); --pk-shs:2px 2px 0 rgba(20,20,20,.9); --pk-shc:none; --pk-nav-sh:0 -2px 0 #141414;
+  --pk-th:#141414; --pk-th-c:#f1ecdd; --pk-alt:rgba(20,20,20,.04); --pk-hov:rgba(179,18,27,.12); --pk-row-bd:1px solid rgba(20,20,20,.5);
+  --pk-act:#b3121b; --pk-act-c:#fff6e8; --pk-act-sh:2px 2px 0 #141414; --pk-ib-act:#b3121b; --pk-act-bc:#141414;
+  --pk-badge-r:0; --pk-badge-bd:2px solid currentColor; --pk-badge-sh:none; --pk-badge-c:#141414;
+  --t-splus:#b3121b; --t-s:transparent; --t-a:transparent; --t-b:transparent; --t-c:transparent; --t-d:transparent; --t-e:transparent; --t-f:transparent; --t-nd:transparent;
+  --t-splus-c:#fff6e8; --t-c-c:#5a5850; --t-nd-c:#8a877d; --pk-bar:#141414; --pk-bar-r:0; --pk-gi:grayscale(1) contrast(1.1); --pk-scrim:rgba(20,20,20,.6); --pk-tt-c:#b3121b;
+}
+html[data-pack="noir"].pk-dark{
+  --pk-bc:#3a3a3a; --pk-block:rgba(18,18,18,.9); --pk-chip:#151515; --pk-input:#0d0d0d; --pk-ib:#151515; --pk-top:rgba(11,11,11,.5); --pk-nav:#0b0b0b;
+  --pk-sh:0 0 0 1px #000, 6px 6px 0 rgba(0,0,0,.55); --pk-shs:0 0 0 1px #000; --pk-nav-sh:0 -1px 0 #3a3a3a;
+  --pk-th:#d62828; --pk-th-c:#fff; --pk-alt:rgba(255,255,255,.025); --pk-hov:rgba(214,40,40,.18); --pk-row-bd:1px solid rgba(255,255,255,.1);
+  --pk-act:#d62828; --pk-act-c:#fff; --pk-act-sh:3px 3px 0 #000; --pk-ib-act:#d62828; --pk-badge-c:#ece9e2; --t-splus:#d62828; --t-splus-c:#fff; --t-c-c:#9a978e; --t-nd-c:#6c6a64; --pk-bar:#ece9e2; --pk-scrim:rgba(0,0,0,.72); --pk-tt-c:#d62828;
+}
+html[data-pack="noir"] img{filter:grayscale(1) contrast(1.08)}
+/* sfondo chiaro: carta di giornale con la trama del retino */
+html[data-pack="noir"] body::before{background:radial-gradient(rgba(20,20,20,.1) 1px,transparent 1.4px) 0 0/5px 5px,radial-gradient(130% 90% at 50% 40%,transparent 55%,rgba(70,55,30,.28))}
+/* sfondo scuro: le veneziane tagliano la luce */
+html[data-pack="noir"].pk-dark body::before{background:repeating-linear-gradient(112deg,rgba(255,255,255,.085) 0 26px,transparent 26px 64px); -webkit-mask-image:radial-gradient(75% 60% at 30% 15%,#000 0,transparent 78%); mask-image:radial-gradient(75% 60% at 30% 15%,#000 0,transparent 78%)}
+html[data-pack="noir"].pk-dark:not(.pk-still) body::before{animation:nrBlinds 40s ease-in-out infinite alternate}
+@keyframes nrBlinds{from{transform:translateX(-24px)}to{transform:translateX(24px)}}
+/* grana di pellicola + vignetta sopra a tutto */
+html[data-pack="noir"] body::after{z-index:99970; inset:-60px; background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.6 -.55'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>") 0 0/180px 180px; opacity:.07; filter:invert(1)}
+html[data-pack="noir"].pk-dark body::after{filter:none; opacity:.09}
+html[data-pack="noir"]:not(.pk-still) body::after{animation:nrGrain .9s steps(6) infinite}
+@keyframes nrGrain{0%{transform:translate(0,0)}17%{transform:translate(-30px,18px)}33%{transform:translate(22px,-26px)}50%{transform:translate(-14px,-34px)}67%{transform:translate(34px,12px)}83%{transform:translate(-26px,30px)}100%{transform:translate(0,0)}}
+html[data-pack="noir"].pk-dark::after{content:""; position:fixed; z-index:99960; pointer-events:none; inset:0; background:radial-gradient(120% 100% at 50% 40%,transparent 55%,rgba(0,0,0,.6))}
+html[data-pack="noir"] .brand-logo{filter:grayscale(1) contrast(1.1) drop-shadow(2px 2px 0 rgba(0,0,0,.4))}
+html[data-pack="noir"] .topbar{border-bottom:3px double #141414 !important} html[data-pack="noir"].pk-dark .topbar{border-bottom:1px solid #3a3a3a !important}
+html[data-pack="noir"] thead th{font-size:.86rem; letter-spacing:.1em}
+/* timbri */
+html[data-pack="noir"] .badge:not(.outline){background:transparent !important; font-size:1.25rem; line-height:1; padding:1px 7px 0; min-width:1.7em; text-align:center; letter-spacing:.06em; transform:rotate(-5deg)}
+html[data-pack="noir"] tbody tr:nth-child(even) .badge:not(.outline){transform:rotate(4deg)}
+html[data-pack="noir"] .badge.Splus{background:#b3121b !important; border-color:#b3121b; color:#fff6e8} html[data-pack="noir"].pk-dark .badge.Splus{background:#d62828 !important; border-color:#d62828}
+html[data-pack="noir"] .badge.S{color:#b3121b} html[data-pack="noir"].pk-dark .badge.S{color:#ff4b4b}
+html[data-pack="noir"] .badge.A{color:#141414} html[data-pack="noir"].pk-dark .badge.A{color:#f5f2ea}
+html[data-pack="noir"] .badge.B{color:#3a3a3a} html[data-pack="noir"].pk-dark .badge.B{color:#c9c6bd}
+html[data-pack="noir"] .badge.C{color:#5a5850} html[data-pack="noir"].pk-dark .badge.C{color:#9a978e}
+html[data-pack="noir"] .badge.D{color:#77746b} html[data-pack="noir"].pk-dark .badge.D{color:#7a776f}
+html[data-pack="noir"] .badge.E{color:#908d82} html[data-pack="noir"].pk-dark .badge.E{color:#5e5c56}
+html[data-pack="noir"] .badge.F{color:#9a978c; border-style:dashed} html[data-pack="noir"].pk-dark .badge.F{color:#4a4843}
+html[data-pack="noir"] .badge.ND{color:#77746a; border-style:dotted}
+html[data-pack="noir"] td.score{font-family:var(--pk-fh); font-size:1.3rem; line-height:1}
+html[data-pack="noir"] .modal-title{font-size:1.9rem; line-height:1; letter-spacing:.06em}
+html[data-pack="noir"] .vt-tx{font-size:.56rem !important; text-transform:uppercase} html[data-pack="noir"] .iconbtn.lbl .ib-lb{font-size:.56rem; text-transform:uppercase}

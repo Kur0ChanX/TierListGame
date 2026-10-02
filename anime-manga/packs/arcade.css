@@ -1,0 +1,37 @@
+/* ===== Sala giochi: moquette neon, lampadine che girano, gettoni d'oro ===== */
+@font-face{font-family:"Bungee";src:url(../fonts/bungee-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Rubik";src:url(../fonts/rubik.woff2) format("woff2");font-weight:300 900;font-display:swap}
+
+html[data-pack="arcade"]{
+  --pk-ff:"Rubik",system-ui,sans-serif; --pk-fh:"Bungee","Rubik",system-ui,sans-serif; --pk-fc:"Rubik",system-ui,sans-serif;
+  --pk-hfw:400; --pk-bfs:14px; --pk-hls:.02em; --pk-cls:0;
+  --pk-r:16px; --pk-r2:12px; --pk-rp:999px; --pk-rb:50%; --pk-bw:2px; --pk-bwc:2px; --pk-bc:#2de2e6;
+  --pk-block:linear-gradient(180deg,rgba(24,24,92,.96),rgba(14,14,60,.96)); --pk-chip:rgba(22,22,84,.95); --pk-input:#0c0c3a; --pk-ib:#16165a;
+  --pk-sh:0 0 0 1px rgba(45,226,230,.35), 0 0 18px rgba(45,226,230,.35), inset 0 0 18px rgba(45,226,230,.12); --pk-shs:0 0 10px rgba(45,226,230,.35); --pk-shc:0 0 8px rgba(45,226,230,.3);
+  --pk-top:radial-gradient(circle at 8px 100%,#ffe66b 0 3px,transparent 3.5px) 0 100%/16px 9px repeat-x,linear-gradient(180deg,#14143f,#0d0d33);
+  --pk-nav:radial-gradient(circle at 8px 0,#ffe66b 0 3px,transparent 3.5px) 0 0/16px 9px repeat-x,linear-gradient(180deg,#14143f,#0d0d33);
+  --pk-th:linear-gradient(180deg,#ff2e88,#c3135e); --pk-th-c:#fff6e0; --pk-alt:rgba(45,226,230,.05); --pk-hov:rgba(255,46,136,.2); --pk-row-bd:1px solid rgba(45,226,230,.18);
+  --pk-act:linear-gradient(180deg,#ffe66b,#ffb703); --pk-act-c:#2a1500; --pk-act-sh:0 0 16px rgba(255,211,25,.6), inset 0 -4px 0 rgba(0,0,0,.18); --pk-ib-act:linear-gradient(180deg,#ffe66b,#ffb703); --pk-act-bc:#fff3b0;
+  --pk-badge-r:50%; --pk-badge-bd:2px solid #fff3b0; --pk-badge-sh:inset 0 0 0 2px rgba(120,70,0,.5), 0 0 10px rgba(255,211,25,.5); --pk-badge-c:#2a1500;
+  --t-splus:conic-gradient(from 20deg,#fff7c2,#ffc933,#fff7c2,#ffc933,#fff7c2); --t-s:conic-gradient(from 20deg,#ffd0f0,#ff2e88,#ffd0f0,#ff2e88,#ffd0f0); --t-a:conic-gradient(from 20deg,#c9f6ff,#2de2e6,#c9f6ff,#2de2e6,#c9f6ff); --t-b:conic-gradient(from 20deg,#d2ffd8,#3be37a,#d2ffd8,#3be37a,#d2ffd8); --t-c:conic-gradient(from 20deg,#fff3c0,#ffd319,#fff3c0,#ffd319,#fff3c0); --t-d:conic-gradient(from 20deg,#ffe0c0,#ff8a2e,#ffe0c0,#ff8a2e,#ffe0c0); --t-e:conic-gradient(from 20deg,#ffd0d0,#ff4a4a,#ffd0d0,#ff4a4a,#ffd0d0); --t-f:conic-gradient(from 20deg,#eee,#9a9ab8,#eee,#9a9ab8,#eee); --t-nd:conic-gradient(from 20deg,#6b6bb0,#2a2a6a,#6b6bb0,#2a2a6a,#6b6bb0);
+  --t-splus-c:#3a2400; --t-c-c:#3a2a00; --t-nd-c:#fff; --pk-bar:linear-gradient(90deg,#2de2e6,#ff2e88); --pk-bar-sh:0 0 8px rgba(255,46,136,.7); --pk-gi:drop-shadow(0 0 4px rgba(45,226,230,.5)); --pk-scrim:rgba(4,4,28,.74); --pk-tt-c:#ffd319;
+}
+/* moquette da sala giochi: scarabocchi, triangoli, cerchi e croci su blu notte */
+html[data-pack="arcade"] body::before{
+  background:radial-gradient(70% 40% at 50% 0%,rgba(255,46,136,.28),transparent 70%),radial-gradient(60% 40% at 50% 100%,rgba(45,226,230,.2),transparent 70%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' fill='none' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 36q8-14 16 0t16 0t16 0' stroke='%232de2e6' opacity='.55'/%3E%3Cpath d='M112 14l16 28h-32z' stroke='%23ff2e88' opacity='.6'/%3E%3Ccircle cx='128' cy='116' r='10' stroke='%23ffd319' opacity='.6'/%3E%3Cpath d='M30 110l14 14M44 110l-14 14' stroke='%23ffffff' opacity='.35'/%3E%3Cpath d='M70 80l10 -10l10 10l-10 10z' stroke='%238b5cf6' opacity='.7'/%3E%3Cpath d='M18 140h30' stroke='%23ff2e88' opacity='.45'/%3E%3Ccircle cx='84' cy='140' r='4' fill='%232de2e6' stroke='none' opacity='.5'/%3E%3C/svg%3E") 0 0/160px 160px,#0a0a2c}
+html[data-pack="arcade"]:not(.pk-still) .topbar{animation:arBulbs .9s steps(1) infinite}
+html[data-pack="arcade"]:not(.pk-still) .view-tabs{animation:arBulbs .9s steps(1) infinite}
+@keyframes arBulbs{0%{background-position:0 100%,0 0}50%{background-position:8px 100%,0 0}}
+html[data-pack="arcade"] .view-tabs{--pk-bf:none}
+html[data-pack="arcade"] .topbar{border-bottom-color:#14143f !important}
+html[data-pack="arcade"] .table-wrap{border-color:#2de2e6 !important}
+html[data-pack="arcade"] :is(.glabel,.cover-block){border-color:#ff2e88 !important; box-shadow:0 0 0 1px rgba(255,46,136,.35), 0 0 18px rgba(255,46,136,.35), inset 0 0 18px rgba(255,46,136,.1) !important}
+html[data-pack="arcade"] .metric, html[data-pack="arcade"] .stat-chip{border-color:#ffd319 !important}
+html[data-pack="arcade"] thead th{font-size:.58rem; letter-spacing:.02em}
+html[data-pack="arcade"] .badge:not(.outline){font-size:.82rem; width:2.1em; height:2.1em; display:inline-grid; place-items:center; padding:0}
+html[data-pack="arcade"] td.score{font-family:var(--pk-fh); color:#ffd319; font-size:.95rem; text-shadow:0 0 8px rgba(255,211,25,.55)}
+html[data-pack="arcade"] .modal-title{font-size:1.1rem; color:#ffd319; text-shadow:0 0 10px rgba(255,211,25,.5)}
+html[data-pack="arcade"] .vt-tx{font-size:.52rem !important; letter-spacing:.02em}
+html[data-pack="arcade"] .iconbtn.lbl .ib-lb{font-size:.5rem; letter-spacing:.02em}
+html[data-pack="arcade"] .brand-logo{filter:drop-shadow(0 0 8px rgba(255,46,136,.7))}

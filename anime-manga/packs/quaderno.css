@@ -1,0 +1,47 @@
+/* ===== Quaderno: righe e margine rosso, tratto a mano, evidenziatore sui selezionati, tier cerchiati a penna (di sera: lavagna col gesso) ===== */
+@font-face{font-family:"Caveat";src:url(../fonts/caveat.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:"Patrick Hand";src:url(../fonts/patrick-hand-400.woff2) format("woff2");font-weight:400;font-display:swap}
+
+html[data-pack="quaderno"]{
+  --pk-ff:"Patrick Hand","Comic Sans MS",cursive; --pk-fh:"Caveat","Patrick Hand",cursive; --pk-fc:"Patrick Hand","Comic Sans MS",cursive;
+  --pk-hfw:700; --pk-bfs:16px; --pk-hls:.01em; --pk-cls:0;
+  --pk-r:14px 6px 16px 5px / 6px 16px 5px 14px; --pk-r2:10px 5px 12px 4px / 5px 12px 4px 10px; --pk-rp:18px 9px 20px 8px / 9px 18px 8px 20px; --pk-rb:46% 54% 50% 50% / 52% 46% 54% 48%;
+  --pk-bw:2px; --pk-bwc:2px; --pk-bc:#1d2b53;
+  --pk-block:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='p' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='2'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .3  0 0 0 0 .35  0 0 0 .14 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),#fffdf6; --pk-chip:#fffdf6; --pk-input:#fffdf6; --pk-ib:#fffdf6;
+  --pk-sh:3px 4px 0 rgba(29,43,83,.18); --pk-shs:2px 2px 0 rgba(29,43,83,.2); --pk-shc:2px 2px 0 rgba(29,43,83,.18);
+  --pk-top:transparent; --pk-nav:#fffdf6; --pk-nav-sh:0 -2px 0 rgba(29,43,83,.14);
+  --pk-th:transparent; --pk-th-c:#1d2b53; --pk-alt:rgba(47,107,255,.05); --pk-hov:rgba(255,217,61,.38); --pk-row-bd:1.5px dashed rgba(29,43,83,.28);
+  --pk-act:linear-gradient(transparent 36%,#ffd93d 36% 94%,transparent 94%); --pk-act-c:#1d2b53; --pk-act-sh:none; --pk-ib-act:radial-gradient(circle,#ffd93d 0 64%,transparent 66%); --pk-act-bc:transparent;
+  --pk-badge-r:50% 46% 54% 48% / 48% 54% 46% 50%; --pk-badge-bd:2.5px solid currentColor; --pk-badge-sh:none; --pk-badge-c:#1d2b53;
+  --t-splus:transparent; --t-s:transparent; --t-a:transparent; --t-b:transparent; --t-c:transparent; --t-d:transparent; --t-e:transparent; --t-f:transparent; --t-nd:transparent;
+  --t-splus-c:#e07a00; --t-c-c:#c98a00; --t-nd-c:#8a90a8; --pk-bar:#e8505b; --pk-bar-r:4px; --pk-gi:none; --pk-scrim:rgba(29,43,83,.45); --pk-tt-c:#e8505b;
+}
+html[data-pack="quaderno"].pk-dark{
+  --pk-bc:#e9e6da; --pk-block:#2b3b37; --pk-chip:#2b3b37; --pk-input:#22302d; --pk-ib:#2b3b37; --pk-sh:none; --pk-shs:none; --pk-shc:none; --pk-nav:#26332f; --pk-nav-sh:0 -2px 0 rgba(233,230,218,.25);
+  --pk-th-c:#ffd166; --pk-alt:rgba(255,255,255,.035); --pk-hov:rgba(255,209,102,.18); --pk-row-bd:1.5px dashed rgba(233,230,218,.3);
+  --pk-act:linear-gradient(transparent 36%,rgba(255,209,102,.55) 36% 94%,transparent 94%); --pk-act-c:#fff; --pk-ib-act:radial-gradient(circle,rgba(255,209,102,.7) 0 64%,transparent 66%);
+  --pk-badge-c:#f4f1e6; --t-splus-c:#ffd166; --t-c-c:#ffd166; --t-nd-c:#9aa59c; --pk-bar:#ffd166; --pk-scrim:rgba(8,14,12,.6); --pk-tt-c:#ffd166;
+}
+/* foglio a righe con il margine rosso e i buchi della spirale */
+html[data-pack="quaderno"] body::before{background:linear-gradient(90deg,transparent 0 35px,rgba(232,80,91,.55) 35px 37px,transparent 37px),repeating-linear-gradient(180deg,transparent 0 29px,rgba(47,107,255,.22) 29px 30px),url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='p' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='2'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .3  0 0 0 0 .35  0 0 0 .14 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>")}
+html[data-pack="quaderno"] body::after{z-index:-1; inset:0 auto 0 0; width:28px; background:radial-gradient(circle at 14px 16px,#d9d3bf 0 5px,#a39c84 5.5px 6.5px,transparent 7.5px) 0 0/28px 64px repeat-y}
+/* lavagna: gesso sbiadito, cornice di legno */
+html[data-pack="quaderno"].pk-dark body::before{background:radial-gradient(60% 30% at 20% 8%,rgba(255,255,255,.07),transparent 70%),radial-gradient(70% 40% at 80% 70%,rgba(255,255,255,.05),transparent 70%),url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='d' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.012 .02' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .5 -.17'/></filter><rect width='100%' height='100%' filter='url(%23d)'/></svg>")}
+html[data-pack="quaderno"].pk-dark body::after{inset:0; width:auto; z-index:99970; background:none; box-shadow:inset 0 0 0 7px #7a5230, inset 0 0 0 9px #4a3018, inset 0 0 22px 9px rgba(0,0,0,.35)}
+html[data-pack="quaderno"] .brand-logo{filter:drop-shadow(2px 3px 0 rgba(29,43,83,.22))}
+html[data-pack="quaderno"].pk-dark .brand-logo{filter:drop-shadow(0 0 6px rgba(255,255,255,.2))}
+html[data-pack="quaderno"] .topbar{border-bottom:2px dashed rgba(29,43,83,.45) !important}
+html[data-pack="quaderno"].pk-dark .topbar{border-bottom-color:rgba(233,230,218,.4) !important}
+html[data-pack="quaderno"] thead th{font-size:1.05rem; font-weight:700; border-bottom:2px solid #e8505b !important}
+html[data-pack="quaderno"] .badge:not(.outline){background:transparent !important; width:1.85em; height:1.85em; display:inline-grid; place-items:center; padding:0; font-size:1.2rem; line-height:1; transform:rotate(-7deg)}
+html[data-pack="quaderno"] table{font-size:1.02rem} html[data-pack="quaderno"] td.year{font-size:.86rem !important}
+html[data-pack="quaderno"] tbody tr:nth-child(even) .badge:not(.outline){transform:rotate(5deg)}
+html[data-pack="quaderno"] .badge.Splus{color:#c96a00} html[data-pack="quaderno"] .badge.S{color:#e8505b} html[data-pack="quaderno"] .badge.A{color:#2f6bff} html[data-pack="quaderno"] .badge.B{color:#1f9d6b} html[data-pack="quaderno"] .badge.C{color:#c98a00} html[data-pack="quaderno"] .badge.D{color:#d4682a} html[data-pack="quaderno"] .badge.E{color:#a8324a}
+html[data-pack="quaderno"] .badge.F{color:#7d84a0; border-style:dashed} html[data-pack="quaderno"] .badge.ND{color:#8a90a8; border-style:dotted}
+html[data-pack="quaderno"].pk-dark .badge.S{color:#ff8fab} html[data-pack="quaderno"].pk-dark .badge.A{color:#8ecae6} html[data-pack="quaderno"].pk-dark .badge.B{color:#95d5b2} html[data-pack="quaderno"].pk-dark .badge.D{color:#ffb47a} html[data-pack="quaderno"].pk-dark .badge.E{color:#ff7b8a} html[data-pack="quaderno"].pk-dark .badge.F{color:#b8c0c8} html[data-pack="quaderno"].pk-dark .badge.Splus{color:#ffd166}
+html[data-pack="quaderno"] td.score{font-family:var(--pk-fh); font-size:1.35rem; line-height:1; color:#e8505b} html[data-pack="quaderno"].pk-dark td.score{color:#ffd166}
+html[data-pack="quaderno"] .modal-title{font-size:2rem; line-height:1; color:#e8505b} html[data-pack="quaderno"].pk-dark .modal-title{color:#ffd166}
+html[data-pack="quaderno"] .toast{background:#ffe58a !important; color:#1d2b53 !important; border-color:#1d2b53}
+html[data-pack="quaderno"] .list-chip, html[data-pack="quaderno"] .qf-chip{font-size:1.02rem}
+html[data-pack="quaderno"] .list-chip:nth-child(odd){transform:rotate(-.9deg)} html[data-pack="quaderno"] .list-chip:nth-child(even){transform:rotate(.8deg)}
+html[data-pack="quaderno"] .vt-tx{font-size:.66rem !important} html[data-pack="quaderno"] .iconbtn.lbl .ib-lb{font-size:.7rem}
