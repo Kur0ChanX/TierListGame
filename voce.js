@@ -68,7 +68,8 @@
     if(kind === 'ix') j = await post('https://generativelanguage.googleapis.com/v1beta/interactions', {model, input: [{type: 'user_input', content: [{type: 'text', text, annotations: [{type: 'speech_metadata', style: STYLE}]}]}], response_format: {type: 'audio', mime_type: 'audio/wav', sample_rate: 24000}, generation_config: {speech_config: [{voice}]}});
     else j = await post('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {contents: [{parts: [{text: 'Leggi questo testo in italiano come un ' + STYLE + ':\n\n' + text}]}], generationConfig: {responseModalities: ['AUDIO'], speechConfig: {voiceConfig: {prebuiltVoiceConfig: {voiceName: voice}}}}});
     const a = findAudio(j, 0); if(!a) throw Object.assign(new Error('risposta senza audio'), {status: 0});
-    const u = b64(a.data);
+    // v227: decodifica dell'audio fuori dal filo principale (prima un ciclo su milioni di caratteri: scatti mentre scorrevi)
+    const raw = await (await fetch('data:application/octet-stream;base64,' + a.data)).arrayBuffer(), u = new Uint8Array(raw);
     if(/wav/i.test(a.mime) || (u[0] === 0x52 && u[1] === 0x49 && u[2] === 0x46 && u[3] === 0x46)) return new Blob([u], {type: 'audio/wav'});
     if(/mpeg|mp3|ogg|opus/i.test(a.mime)) return new Blob([u], {type: a.mime});
     return wav(u, +((/rate=(\d+)/.exec(a.mime) || [])[1]) || 24000);          // audio grezzo (PCM 24 kHz): gli aggiungo l'intestazione WAV

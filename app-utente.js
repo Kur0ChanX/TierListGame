@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v227', date:'2026-10-02', time:'11:30', items:[
+    'Musica della scheda: nell\'elenco dei brani (☰) ogni brano ha 📌 «parti sempre da qui». Il brano scelto resta per sempre e l\'elenco si blocca 🔒 (nessun aggiornamento automatico lo cambia). Dietro «⋯» il lucchetto sblocca o blocca i brani.',
+    'Player in home: nuovo tasto 🔊 con il volume e il lucchetto (lo stesso volume della scheda: impostato, resta bloccato anche riaprendo l\'app). Chiudendo la scheda la musica non resta più abbassata.',
+    'Auto in home: acceso = chiudendo la scheda la canzone continua e poi passa alla successiva; spento = chiudendo la scheda la musica si ferma e in home non parte mai da sola.',
+    'Animazioni a scatti «a volte»: la prima volta che apri un gioco l\'app calcola i colori della copertina e li applicava a metà animazione, facendo ricalcolare tutta la scheda. Ora li applica solo a scheda ferma; in chiusura li toglie a scheda chiusa.',
+    'Velocità animazioni: a 0,7× e 0,5× ora anche la dissolvenza iniziale rallenta (prima durava pochissimo e copriva il movimento, per questo sembrava sempre veloce).',
+    'Voce: la decodifica dell\'audio non blocca più l\'app mentre scorri.',
+  ]},
   {version:'v226', date:'2026-10-02', time:'11:18', items:[
     'Scheda del gioco: toccando «Per te», «Il gioco» o «Altro» dopo aver scorso la scheda, ora la vista torna all\'inizio della parte scelta (prima restava giù e sembrava che il tasto non facesse nulla).',
     'Voce Gemini: niente più falsi «quota finita». Prima partivano più richieste insieme e Google rispondeva «troppe richieste»: ora ne parte una alla volta, la storia è divisa in meno pezzi e, se Google dice di aspettare, il tasto mostra «Gemini occupato, riprovo tra N s» e riprova da solo.',

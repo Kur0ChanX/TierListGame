@@ -461,9 +461,15 @@
     const url = (typeof effectiveCover === 'function') ? effectiveCover(g) : null; if(!url || !/^https?:/.test(url)) return;
     const my = g.id, cols = await coverColors(url);
     if(!cols || typeof currentModalGame === 'undefined' || !currentModalGame || currentModalGame.id !== my || !document.getElementById('modalBackdrop').classList.contains('show')) return;
-    tintPut(my, cols); tintSet(cols);
+    tintPut(my, cols);
+    // v227: i colori nuovi cambiano lo stile di TUTTA la scheda: mai durante l'apertura o mentre scorri (era lo scatto «a volte», la prima volta di ogni gioco)
+    const still = ()=> currentModalGame && currentModalGame.id === my && document.getElementById('modalBackdrop').classList.contains('show');
+    const go = ()=>{ if(!still()) return; if((window.__rtOpenUntil && performance.now() < window.__rtOpenUntil + 150) || window.__rtCardScrolling){ setTimeout(go, 250); return; } tintSet(cols); };
+    go();
   }
-  new MutationObserver(()=>{ if(!document.getElementById('modalBackdrop').classList.contains('show')) tintClear(); }).observe(document.getElementById('modalBackdrop'), {attributes: true, attributeFilter: ['class']});
+  // v227: tolgo i colori solo a scheda chiusa del tutto (prima cambiavano durante l'animazione di chiusura)
+  let tcT = 0;
+  new MutationObserver(()=>{ if(!document.getElementById('modalBackdrop').classList.contains('show')){ clearTimeout(tcT); tcT = setTimeout(()=>{ if(!document.getElementById('modalBackdrop').classList.contains('show')) tintClear(); }, 650); } }).observe(document.getElementById('modalBackdrop'), {attributes: true, attributeFilter: ['class']});
 
   // =====================================================================
   // aggancio alla scheda del gioco

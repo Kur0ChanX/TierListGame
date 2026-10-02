@@ -1735,13 +1735,13 @@ html[data-theme="light"] #modalBackdrop.rt-tinted .modal-card{background:
     var(--card) !important}
 
 /* v218: STILI DI ANIMAZIONE (scelta in ✨ → Movimento e vibrazione; html[data-anim]). Solo transform/opacity: niente lavoro in più per il telefono. */
-html[data-anim="lampo"]{--an-fadein:calc(.05s * var(--spd,1)); --an-fade:calc(.08s * var(--spd,1)); --an-tdur:calc(.08s * var(--spd,1)); --an-close:none; --an-press:1; --an-sheet:none}
-html[data-anim="morbida"]{--an-fadein:calc(.16s * var(--spd,1)); --an-fade:calc(.2s * var(--spd,1)); --an-tdur:calc(.22s * var(--spd,1)); --an-close:translateY(16px); --an-press:.97; --an-sheet:anShM calc(.22s * var(--spd2,1)) cubic-bezier(.22,1,.36,1) both}
-html[data-anim="zoom"]{--an-fadein:calc(.07s * var(--spd,1)); --an-fade:calc(.2s * var(--spd,1)); --an-tdur:calc(.24s * var(--spd,1)); --an-close:translateY(22px) scale(.985); --an-press:.95; --an-sheet:anShZ calc(.18s * var(--spd2,1)) cubic-bezier(.2,.9,.25,1) both}
-html[data-anim="rimbalzo"]{--an-fadein:calc(.07s * var(--spd,1)); --an-fade:calc(.2s * var(--spd,1)); --an-tdur:calc(.24s * var(--spd,1)); --an-close:scale(.92); --an-press:.9; --an-sheet:anShR calc(.34s * var(--spd2,1)) linear both}
-html[data-anim="scivola"]{--an-fadein:calc(.12s * var(--spd,1)); --an-fade:calc(.22s * var(--spd,1)); --an-tdur:calc(.26s * var(--spd,1)); --an-close:translateY(7%); --an-press:.97; --an-sheet:anShS calc(.26s * var(--spd2,1)) cubic-bezier(.32,.72,0,1) both}
-html[data-anim="cinema"]{--an-fadein:calc(.24s * var(--spd,1)); --an-fade:calc(.3s * var(--spd,1)); --an-tdur:calc(.3s * var(--spd,1)); --an-close:scale(1.04); --an-press:.98; --an-sheet:anShC calc(.3s * var(--spd2,1)) ease-out both}
-html[data-anim="telefono"]{--an-fadein:calc(.06s * var(--spd,1)); --an-fade:calc(.18s * var(--spd,1)); --an-tdur:calc(.2s * var(--spd,1)); --an-close:scale(.8); --an-press:.95; --an-sheet:anShT calc(.22s * var(--spd2,1)) cubic-bezier(.2,.85,.25,1) both}
+html[data-anim="lampo"]{--an-fadein:calc(.05s * var(--spd,1) * var(--spd,1)); --an-fade:calc(.08s * var(--spd,1)); --an-tdur:calc(.08s * var(--spd,1)); --an-close:none; --an-press:1; --an-sheet:none}
+html[data-anim="morbida"]{--an-fadein:calc(.16s * var(--spd,1) * var(--spd,1)); --an-fade:calc(.2s * var(--spd,1)); --an-tdur:calc(.22s * var(--spd,1)); --an-close:translateY(16px); --an-press:.97; --an-sheet:anShM calc(.22s * var(--spd2,1)) cubic-bezier(.22,1,.36,1) both}
+html[data-anim="zoom"]{--an-fadein:calc(.07s * var(--spd,1) * var(--spd,1)); --an-fade:calc(.2s * var(--spd,1)); --an-tdur:calc(.24s * var(--spd,1)); --an-close:translateY(22px) scale(.985); --an-press:.95; --an-sheet:anShZ calc(.18s * var(--spd2,1)) cubic-bezier(.2,.9,.25,1) both}
+html[data-anim="rimbalzo"]{--an-fadein:calc(.07s * var(--spd,1) * var(--spd,1)); --an-fade:calc(.2s * var(--spd,1)); --an-tdur:calc(.24s * var(--spd,1)); --an-close:scale(.92); --an-press:.9; --an-sheet:anShR calc(.34s * var(--spd2,1)) linear both}
+html[data-anim="scivola"]{--an-fadein:calc(.12s * var(--spd,1) * var(--spd,1)); --an-fade:calc(.22s * var(--spd,1)); --an-tdur:calc(.26s * var(--spd,1)); --an-close:translateY(7%); --an-press:.97; --an-sheet:anShS calc(.26s * var(--spd2,1)) cubic-bezier(.32,.72,0,1) both}
+html[data-anim="cinema"]{--an-fadein:calc(.24s * var(--spd,1) * var(--spd,1)); --an-fade:calc(.3s * var(--spd,1)); --an-tdur:calc(.3s * var(--spd,1)); --an-close:scale(1.04); --an-press:.98; --an-sheet:anShC calc(.3s * var(--spd2,1)) ease-out both}
+html[data-anim="telefono"]{--an-fadein:calc(.06s * var(--spd,1) * var(--spd,1)); --an-fade:calc(.18s * var(--spd,1)); --an-tdur:calc(.2s * var(--spd,1)); --an-close:scale(.8); --an-press:.95; --an-sheet:anShT calc(.22s * var(--spd2,1)) cubic-bezier(.2,.85,.25,1) both}
 html:not(.mo-off) .modal-backdrop{transition:opacity var(--an-fade,.22s) ease !important}
 /* aprendo: il movimento lo fa solo lo stile scelto (WAAPI in motion.js), il CSS cambia soltanto la trasparenza; chiudendo: il CSS porta la scheda verso lo stato «chiuso» dello stile */
 html:not(.mo-off) .modal-backdrop.show .modal-card, html:not(.mo-off) .modal-backdrop.show .modal-card.wide{transition:opacity var(--an-fadein,.07s) ease !important}
@@ -1851,3 +1851,15 @@ html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1
 .vs-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:6px; margin:4px 0 10px}
 .vs-chip.vs-load{animation:vcPulse 1s ease-in-out infinite}
 .vs-ai[hidden],.vs-ph[hidden]{display:none}
+
+/* v227: musica — brano di partenza 📌, blocco brani, volume nel player in home */
+.mz2-lr{display:flex; gap:4px; align-items:stretch}
+.mz2-lr .mz2-li{flex:1; min-width:0}
+.mz2-pin{flex:none; width:36px; border:0; border-radius:12px; background:rgba(127,127,127,.10); opacity:.45; cursor:pointer}
+.mz2-pin.on{opacity:1; background:color-mix(in srgb,var(--pk-accent,#6366f1) 30%,transparent)}
+.mz2-lh{font-size:.7rem; color:var(--sub); padding:0 2px 2px}
+.mz2-ctl .mz2-ul.on{box-shadow:inset 0 0 0 1.5px var(--pk-accent,#a5b4fc)}
+.rt-music{flex-wrap:wrap}
+.rt-music .rm-vol{flex:1 0 100%}
+.rt-music .rm-vol[hidden]{display:none}
+.rt-music .rm-vol .mz2-volrow{margin-top:4px}
