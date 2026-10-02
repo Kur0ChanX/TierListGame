@@ -1129,6 +1129,7 @@ function applyFilters(){
   // v233: «Nel cuore» (procione con gli occhi a cuore) prima di tutto, poi i preferiti, poi gli altri (a parità: ordine della classifica)
   const heartSort = state.sortKey==='heart' ? (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return new Set(Array.isArray(t) ? t : []); }catch(e){ return new Set(); } })() : null;
   list = list.slice().sort((a,b)=>{
+    if(EXTRA_SORT[state.sortKey]){ const f = EXTRA_SORT[state.sortKey], d = (f(a) - f(b)) * state.sortDir; return d || (a.id - b.id); }
     if(heartSort){ const ha = (heartSort.has(a.id) ? 2 : 0) + (FAVS.has(a.id) ? 1 : 0), hb = (heartSort.has(b.id) ? 2 : 0) + (FAVS.has(b.id) ? 1 : 0); if(ha !== hb) return (ha - hb) * state.sortDir; return (a.id - b.id); }
     let va=a[state.sortKey], vb=b[state.sortKey];
     if(state.sortKey==='tier'){ va=TIER_ORDER[a.tier]; vb=TIER_ORDER[b.tier]; }
@@ -1195,13 +1196,13 @@ function render(){
     // v212: i tuoi top in assoluto (👑 «Nei miei top») hanno lo stemma del procione con gli occhi a cuore (disegnato da Mario) a sinistra della stella e la riga bordata d'oro
     const isTop = topSet.has(g.id);
     if(isTop) tr.className = 'is-top';
-    const topBadge = isTop ? '<img class="row-badge" src="icons/top-procione-64.webp" srcset="icons/top-procione-64.webp 1x, icons/top-procione-128.webp 2x" alt="Nei tuoi top" title="Nei tuoi top: uno dei giochi che ami di più in assoluto" width="24" height="24" decoding="async">' : '';
+    const topBadge = isTop ? '<img class="row-badge" src="icons/top-procione-64.webp" srcset="icons/top-procione-64.webp 1x, icons/top-procione-128.webp 2x" alt="Gioco che amo" title="Gioco che amo" width="24" height="24" decoding="async">' : '';
     const heartBadge = '';
     const dnaBadge = (()=>{ if(!dnaProfileForRow) return ''; const d = dnaForGame(g, dnaProfileForRow); return d ? `<span class="dna-chip${d.approved ? ' appr' : ''}" style="color:${dnaColor(d.pct)}; border-color:${dnaColor(d.pct)};"${d.approved ? ' title="Approvato dal procione: sintonia altissima con i tuoi gusti"' : ''}>${d.approved ? '<img src="icons/approved.webp" alt="" width="16" height="17">' : ''}${d.pct}%</span>` : ''; })();
     tr.innerHTML = `
       <td class="fav" data-role="fav">${topBadge}<svg class="gi ${isFav ? '' : 'fav-off'}" viewBox="0 0 32 32" aria-label="${isFav ? 'Preferito' : 'Non preferito'}"><use href="#g-${isFav ? 'favon' : 'favoff'}"/></svg></td>
       <td class="rank mobhide">${g.id}</td>
-      <td>${STATUSES[g.id] ? `<span class="status-dot ${STATUS_INFO[STATUSES[g.id]].dot}" title="${STATUS_INFO[STATUSES[g.id]].label}"></span>` : ''}${miniIcons(g)}${g.name}${heartBadge}${dnaBadge}</td>
+      <td>${miniIcons(g)}${g.name}${heartBadge}${dnaBadge}</td>
       <td class="plat mobhide">${g.plat}</td>
       <td class="year">${g.year || g.ysort || ''}</td>
       <td><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span></td>
@@ -1209,7 +1210,7 @@ function render(){
       <td class="method" title="${methodLabel(g.m)}${g.m==='V' && freshInfo(g) && !freshInfo(g).m ? ' · aggiornato con Update+' : ''}">${srcIcon(g)}</td>
       <td class="storyicon">${itBadge(g)}</td>
     `;
-    { const rb = tr.querySelector('.row-badge'); if(rb) rb.addEventListener('click', ev=>{ ev.stopPropagation(); try{ showToast('😍 È nei tuoi top in assoluto (lo togli dalla scheda: «Nei miei top»)', 2600); }catch(x){} }); }
+    { const rb = tr.querySelector('.row-badge'); if(rb) rb.addEventListener('click', ev=>{ ev.stopPropagation(); try{ showToast('😍 È un gioco che ami (lo togli dalla scheda: «Gioco che amo»)', 2600); }catch(x){} }); }
     tr.querySelector('[data-role="fav"]').addEventListener('click', (ev)=>{
       ev.stopPropagation();
       if(FAVS.has(g.id)){ FAVS.delete(g.id); showToast('Rimosso dai preferiti'); }
@@ -1246,23 +1247,45 @@ function render(){
   updateArrows();
 }
 
+// v234: ordinamenti in più (menu della ★ in tabella e riga «Ordina»): storia romantica, legame, sorprendente, dopamina, stato
+const ST_ORDER = {playing: 4, played: 3, backlog: 2, dropped: 1};
+const EXTRA_SORT = {
+  st_romance: g=> g.enrich && g.enrich.storyTag === 'romance' ? 1 : 0,
+  st_affinity: g=> g.enrich && g.enrich.storyTag === 'affinity' ? 1 : 0,
+  st_wow: g=> g.enrich && g.enrich.storyTag === 'wow' ? 1 : 0,
+  dopa: g=> g.enrich && g.enrich.dopamine ? 1 : 0,
+  status: g=> ST_ORDER[STATUSES[g.id]] || 0
+};
+const SORT_MENU = [['heart', '😍', 'Giochi che amo'], ['fav', '⭐', 'Preferiti'], ['st_romance', '💕', 'Storia romantica'], ['st_affinity', '🤝', 'Legame speciale'], ['st_wow', '🤯', 'Storia sorprendente'], ['dopa', '💉', 'Effetto dopamina'], ['status', '✅', 'Stato (in corso, giocato…)'], ['id', '🏆', 'Classifica normale']];
+function openSortMenu(anchor){
+  let m = document.getElementById('sortMenu');
+  if(m){ m.remove(); return; }
+  m = document.createElement('div'); m.id = 'sortMenu'; m.className = 'sort-menu'; m.setAttribute('role', 'menu');
+  m.innerHTML = '<div class="sm-h">Metti in cima</div>' + SORT_MENU.map(([k, ic, n])=> `<button type="button" role="menuitem" class="sm-i${state.sortKey === k ? ' on' : ''}" data-sm="${k}"><span>${ic}</span>${n}${state.sortKey === k && k !== 'id' ? '<small>' + (state.sortDir === -1 ? 'in cima' : 'in fondo') + ' · tocca per invertire</small>' : ''}</button>`).join('');
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, r.left)) + 'px'; m.style.top = (r.bottom + 6) + 'px';
+  const close = ev=>{ if(ev && m.contains(ev.target)) return; m.remove(); document.removeEventListener('pointerdown', close, true); window.removeEventListener('scroll', close, true); };
+  setTimeout(()=>{ document.addEventListener('pointerdown', close, true); window.addEventListener('scroll', close, true); }, 0);
+  m.addEventListener('click', ev=>{ const b = ev.target.closest('[data-sm]'); if(!b) return; const k = b.dataset.sm;
+    if(state.sortKey === k && k !== 'id') state.sortDir *= -1; else { state.sortKey = k; state.sortDir = k === 'id' ? 1 : -1; }
+    try{ localStorage.setItem('jrpg_alt_sort', JSON.stringify({k: state.sortKey, d: state.sortDir})); }catch(e){}
+    close(); render(); });
+}
 function updateArrows(){
   document.querySelectorAll('thead th').forEach(th=>{
     const arrow = th.querySelector('.arrow');
     if(!arrow) return;
     // per il Tier la direzione 1 = dal migliore (S+) al peggiore, cioè valori decrescenti → ▼
     const desc = th.dataset.key==='tier' ? state.sortDir===1 : state.sortDir===-1;
-    arrow.textContent = (th.dataset.key===state.sortKey) ? (desc ? '▼' : '▲') : '';
+    const mine = th.dataset.key===state.sortKey || (th.dataset.key==='fav' && (state.sortKey==='heart' || EXTRA_SORT[state.sortKey]));
+    arrow.textContent = mine ? (desc ? '▼' : '▲') : '';
   });
 }
 
 document.querySelectorAll('thead th[data-key]').forEach(th=>{
   th.addEventListener('click', ()=>{
     const key = th.dataset.key;
-    if(key==='fav'){
-      if(state.sortKey==='fav'){ state.sortDir *= -1; } else { state.sortKey='fav'; state.sortDir=-1; }
-      render(); return;
-    }
+    if(key==='fav'){ openSortMenu(th); return; }      // v234: la ★ apre il menu «Metti in cima»
     if(state.sortKey===key){ state.sortDir *= -1; }
     else { state.sortKey = key; state.sortDir = (key==='score'||key==='ysort') ? -1 : 1; }
     render();
@@ -1576,7 +1599,7 @@ function faUpdate(){
 const STORY_TAG_INFO = {
   romance:{icon:'💕', label:'Storia romantica'},
   affinity:{icon:'🤝', label:'Legame speciale'},
-  wow:{icon:'✨', label:'Storia sorprendente'}
+  wow:{icon:'🤯', label:'Storia sorprendente'}
 };
 // ---- Update+ : simbolo «super aggiornato» (dorato = tutte le fonti in automatico, viola = controllato a mano da te) ----
 // ---- Aggiornamenti in background senza bloccare lo scorrimento ----

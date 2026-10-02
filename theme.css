@@ -1887,3 +1887,14 @@ html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1
 .as-c{flex:none; height:30px; padding:0 11px; border-radius:999px; border:1px solid color-mix(in srgb, var(--text) 14%, transparent); background:color-mix(in srgb, var(--text) 4%, transparent); color:var(--text); font:600 .76rem/1 inherit; cursor:pointer; white-space:nowrap}
 .as-c.on{background:var(--accent); border-color:var(--accent); color:#fff}
 .x-name .row-top-i{margin:0 6px 0 2px}
+
+/* v234: menu della ★ in tabella («Metti in cima») */
+th[data-key="fav"]{cursor:pointer; white-space:nowrap}
+.th-dd{font-size:.6rem; opacity:.7; margin-left:1px}
+.sort-menu{position:fixed; z-index:9500; min-width:230px; max-width:calc(100vw - 16px); padding:6px; border-radius:16px; background:var(--card,#201a33); border:1px solid color-mix(in srgb, var(--text) 14%, transparent); box-shadow:0 14px 40px rgba(0,0,0,.45); animation:smIn .14s ease-out both}
+@keyframes smIn{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+.sm-h{font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--sub); padding:4px 10px 6px}
+.sm-i{display:flex; flex-wrap:wrap; align-items:center; gap:8px; width:100%; padding:10px; border:0; border-radius:11px; background:none; color:var(--text); font:600 .86rem/1.2 inherit; text-align:left; cursor:pointer}
+.sm-i span{width:22px; text-align:center}
+.sm-i small{flex-basis:100%; padding-left:30px; font-weight:500; font-size:.7rem; color:var(--sub)}
+.sm-i.on{background:color-mix(in srgb, var(--accent) 22%, transparent)}
