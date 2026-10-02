@@ -117,7 +117,16 @@
       fr.insertBefore(im, big); fr.classList.add('has-seed'); fr.style.setProperty('--cov', "url('" + src.replace(/'/g, '%27') + "')");
       const off = ()=>{ setTimeout(()=>{ try{ im.remove(); fr.classList.remove('has-seed'); }catch(e){} }, 320); };
       big.addEventListener('load', off, {once: true}); big.addEventListener('error', off, {once: true}); setTimeout(()=>{ try{ im.remove(); }catch(e){} }, 6000);
+      return im.decode ? im.decode().catch(()=>{}) : null;                // pronta quando il telefono ha decodificato la miniatura
     }catch(e){}
+    return null;
+  }
+  // la scheda compare insieme alla sua locandina: se c'è la miniatura, aspetto che sia decodificata (al massimo 110 ms) e solo allora parte l'animazione
+  function openWithSeed(card, T, box, seed){
+    if(!seed || !card){ playOpen(card, T, box); return; }
+    const bd = document.getElementById('modalBackdrop') || card; bd.style.visibility = 'hidden'; let done = false;      // nasconde sfondo + scheda: sullo schermo non cambia nulla finché è tutto pronto
+    const go = ()=>{ if(done) return; done = true; bd.style.visibility = ''; playOpen(card, T, box); };
+    seed.then(go, go); setTimeout(go, 110);
   }
   function playOpen(card, T, box){
     if(!card || !card.animate) return;
@@ -242,18 +251,17 @@
     const origOpen = window.openModal;
     window.openModal = function(){
       const bd = document.getElementById('modalBackdrop'), was = bd && bd.classList.contains('show');
-      const R = tap && performance.now() - tap.t < 900 && tap.r && tap.r.width > 60 ? tap : null;
+      const R = tap && performance.now() - tap.t < 2500 && tap.r && tap.r.width > 60 ? tap : null;
       // v216: apertura SEMPLICE e leggera — niente più «prima la locandina e poi il resto»: la scheda si costruisce subito e compare tutta insieme,
       // avvicinandosi dal punto toccato (solo transform/opacity: lo fa la scheda grafica, non pesa sul telefono). Il cartoncino resta solo come riserva (RT_GHOST).
       if(!was && moOn() && VW <= 760 && !window.RT_GHOST){
-        const T = tap && performance.now() - tap.t < 900 ? tap : null; tap = null; haptic('soft');
+        const T = tap && performance.now() - tap.t < 2500 ? tap : null; tap = null; haptic('soft');
       window.__rtOpenAt = performance.now(); window.__rtOpenUntil = performance.now() + 420;                     // v218: per questa frazione di secondo i lavori di sottofondo aspettano (l'animazione ha tutta la forza)
         const r = origOpen.apply(this, arguments);
         try{
           const card = document.getElementById('modalCard');
           if(card && card.animate){
-            seedCover(card, T);
-            playOpen(card, T, {left: 0, top: 0, width: VW, height: VH});
+            openWithSeed(card, T, {left: 0, top: 0, width: VW, height: VH}, seedCover(card, T));
             countUp(card);
           }
           if(T && T.el && T.el.classList) T.el.classList.remove('rt-press');
@@ -306,7 +314,7 @@
         return;
       }
       const r = origOpen.apply(this, arguments);
-      try{ if(!was){ if(animId() === 'zoom') reveal(); else { const T2 = tap && performance.now() - tap.t < 900 ? tap : null; tap = null; seedCover(document.getElementById('modalCard'), T2); playOpen(document.getElementById('modalCard'), T2); } } }catch(e){}
+      try{ if(!was){ if(animId() === 'zoom') reveal(); else { const T2 = tap && performance.now() - tap.t < 2500 ? tap : null; tap = null; const c2 = document.getElementById('modalCard'); openWithSeed(c2, T2, null, seedCover(c2, T2)); } } }catch(e){}
       return r;
     };
     try{ openModal = window.openModal; }catch(e){}

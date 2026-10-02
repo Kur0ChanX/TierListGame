@@ -174,7 +174,8 @@
   }
   function paintBar(){ const mb = document.getElementById('mzBar'); if(mb && typeof currentModalGame !== 'undefined' && currentModalGame){ const l0 = mb.querySelector('.mz2-list'), open = !!(l0 && !l0.hidden); mb.outerHTML = barHtml(currentModalGame); wireBar(currentModalGame); if(open){ const l = document.querySelector('#mzBar .mz2-list'); if(l) l.hidden = false; } } }
   // ---- ricerca su YouTube: tre tentativi in ordine («triade») e, a mano, con le parole che vuoi ----
-  const USER = 'rt_ost_user', MISS = 'rt_ost_miss', LIVE = 'rt_ost_live', STAT = {};
+  const USER = 'rt_ost_user', MISS = 'rt_ost_miss2', LIVE = 'rt_ost_live2', STAT = {};      // v220: chiavi nuove: le ricerche vecchie potevano avere la versione sbagliata (es. Remake al posto dell'originale)
+  try{ ['rt_ost_ia2', 'rt_ost_live', 'rt_ost_miss'].forEach(k=>{ if(localStorage.getItem(k) != null) localStorage.removeItem(k); }); }catch(e){}
   const cleanN = n=> String(n).replace(/\s*\([^)]*\)/g, '').trim();
   const baseN = n=> cleanN(n).replace(/\s*[:–—]\s.*$/, '').replace(/\s+-\s.*$/, '').trim();
   const normT = t=> String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -182,14 +183,38 @@
   const tokensOf = n=> normT(n).split(' ').filter(w=> w.length >= 2 && !STOPW.has(w));
   const namesGame0 = (title, name)=>{ const t = ' ' + normT(title) + ' ', w = tokensOf(name); if(!w.length) return true; return w.filter(x=> t.includes(' ' + x)).length >= Math.max(1, Math.ceil(w.length / 2)); };
   // non deve essere un altro capitolo: «Final Fantasy X-2» non è «Final Fantasy X», «Kingdom Hearts II» non è «Kingdom Hearts»
-  const namesGame = (title, name)=>{
+  // v220: deve essere proprio QUESTA versione del gioco. «Final Fantasy VII» (1997) non è «Final Fantasy VII Remake», «Rebirth», «Crisis Core», «Dirge of Cerberus», «Advent Children»…;
+  // e un Remake non deve prendere la colonna sonora dell'originale. Si guarda: il nome, altri giochi del tuo catalogo che iniziano con lo stesso nome, l'anno scritto nel titolo.
+  const OTHERVER = /\b(remake|rebirth|reunion|intergrade|reboot|reimagined|crisis core|dirge of cerberus|before crisis|advent children|ever crisis|first soldier|machinaria|ex ?soldier|world of final fantasy)\b/g;
+  const yearsOf = g=> String((g && g.year) || '').match(/(?:19|20)\d\d/g) || [];
+  const SIB = new Map();
+  const siblingsOf = g=>{                                              // nomi (normalizzati) di altri giochi del catalogo che iniziano col nome di questo, ma sono più lunghi
+    if(!g) return []; const k = g.id + '|' + g.name; if(SIB.has(k)) return SIB.get(k);
+    const n = normT(cleanN(g.name)), out = [];
+    try{ (typeof GAMES !== 'undefined' ? GAMES : []).forEach(x=>{ if(x.id === g.id) return; const m = normT(cleanN(x.name)); if(m.length > n.length + 2 && m.indexOf(n + ' ') === 0) out.push(m); }); }catch(e){}
+    if(SIB.size > 400) SIB.clear(); SIB.set(k, out); return out;
+  };
+  const namesGame = (title, name, g)=>{
     if(!namesGame0(title, name)) return false;
-    const t = normT(title), n = normT(cleanN(name)); const i = t.indexOf(n); if(i < 0) return true;
+    const t = normT(title), n = normT(cleanN(name)); const i = t.indexOf(n);
+    const last = n.split(' ').pop();                                    // il numero del capitolo (VII, VIII, X, 5…) deve esserci: «VIII» non è «VII»
+    if(/^(ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii|xiii|xiv|xv|xvi|\d{1,2})$/.test(last) && !(' ' + t + ' ').includes(' ' + last + ' ')) return false;
+    const mine = new Set((n.match(OTHERVER) || []));
+    const theirs = (t.match(OTHERVER) || []);
+    if(theirs.some(w=> !mine.has(w))) return false;                    // il titolo parla di un'altra versione (Remake, Rebirth, Crisis Core…)
+    if([...mine].some(w=> !theirs.includes(w))) return false;           // io sono un Remake/Rebirth…: il titolo deve dirlo (non l'originale)
+    if(g){ const sib = siblingsOf(g); if(sib.some(m=> t.includes(m))) return false; }     // contiene il nome di un altro mio gioco più «lungo» (stessa serie)
+    const ys = yearsOf(g);
+    if(ys.length){ const ty = (t.match(/\b(?:19|20)\d\d\b/g) || []).map(Number).filter(y=> y >= 1985 && y <= 2035); if(ty.length && !ty.some(y=> ys.some(z=> Math.abs(y - +z) <= 3))) return false; }     // anno nel titolo lontano dal mio
+    if(i < 0) return true;
     const after = t.slice(i + n.length);
     return !/^\s?(2|3|4|ii|iii|iv|zero|origins|remix)\b/.test(after);
   };
   // le parole che usi tu (in quest'ordine): «soundtrack music», «soundtrack ost», «OST music», poi «playlist complete music»
-  const queriesFor = name=>{ const n = cleanN(name), b = baseN(name), q = [n + ' soundtrack music', n + ' soundtrack ost', n + ' OST music', n + ' playlist complete music']; if(b && b !== n) q.push(b + ' soundtrack music', b + ' soundtrack ost'); return [...new Set(q)]; };
+  const queriesFor = (name, g)=>{ const n = cleanN(name), b = baseN(name);
+    // v220: se non è un Remake/Rebirth… tolgo quelle versioni dalla ricerca (YouTube capisce «-remake»)
+    const neg = (/remake|rebirth|reunion|intergrade|reboot/i.test(n) ? '' : ' -remake -rebirth -reunion -intergrade -"crisis core" -"dirge of cerberus" -"advent children"');
+    const q = [n + ' soundtrack music' + neg, n + ' soundtrack ost' + neg, n + ' soundtrack music', n + ' soundtrack ost', n + ' OST music', n + ' playlist complete music']; if(b && b !== n) q.push(b + ' soundtrack music', b + ' soundtrack ost'); return [...new Set(q)]; };
   const secsOf = t=> String(t || '').split(':').reduce((a, x)=> a * 60 + (+x || 0), 0);
   // via tutto ciò che non è la musica ORIGINALE: lofi, relax, piano, cover, remix, mix di ore, ambienti, reazioni…
   const BAD = /reaction|review|tutorial|live stream|gameplay|walkthrough|let'?s play|trailer|rap by|remix|cover|lo-?fi|relax|relaxing|sleep|study|chill|ambien|asmr|rain|beats|piano|guitar|violin|orchestra(l)? (version|arrangement)|arrange|8.?bit|chiptune|metal version|\b\d+ ?(hours?|ore)\b|mashup|medley|karaoke|nightcore|slowed|reverb|tribute|fan ?made|ai cover/i;
@@ -201,13 +226,13 @@
     return out;
   };
   // tiene i brani veri: titolo giusto, nome del gioco, non reazioni/gameplay; prima le raccolte lunghe
-  const pickTracks = (list, name)=> list.filter(v=> /ost|soundtrack|music|theme|bgm|score|original|playlist|album/i.test(v[1]) && !BAD.test(v[1]) && secsOf(v[2]) >= 60 && namesGame(v[1], name))
+  const pickTracks = (list, name, g)=> list.filter(v=> /ost|soundtrack|music|theme|bgm|score|original|playlist|album/i.test(v[1]) && !BAD.test(v[1]) && secsOf(v[2]) >= 60 && namesGame(v[1], name, g))
     .sort((a, b)=> (secsOf(b[2]) > 1800) - (secsOf(a[2]) > 1800)).slice(0, 5);
   const searchYT = async q=> parseYT(await SearchHub.text('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), {timeout: 15000}));
   window.rtYtSearch = q=> searchYT(q).catch(()=> []);      // usato anche per le foto del carosello (fotogrammi dei video di gameplay)
   const setStat = (id, t)=>{ if(t) STAT[id] = t; else delete STAT[id]; paintBar(); };
   // ---- Internet Archive: album interi caricati dagli utenti, file mp3 diretti (niente pubblicità). Cache 30 giorni (anche i «non trovato»). ----
-  const IA = 'rt_ost_ia2', SRC = 'jrpg_music_src';                 // fonte preferita: 'ia' (senza pubblicità, predefinita) | 'yt'
+  const IA = 'rt_ost_ia3', SRC = 'jrpg_music_src';                 // fonte preferita: 'ia' (senza pubblicità, predefinita) | 'yt'
   const IA_BAD = /piano|cover|remix|arrang|orchestra|8.?bit|lo-?fi|tribute|guitar|acoustic|metal version|karaoke|ringtone|medley|chiptune/i;
   const fmt = sec=>{ sec = Math.round(+sec || 0); return sec ? Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') : ''; };
   async function iaAlbum(g){
@@ -217,7 +242,7 @@
       const nm = cleanN(g.name).replace(/[()"]/g, ' ');
       const q = 'title:(' + nm + ') AND (soundtrack OR ost OR "original sound" OR music) AND mediatype:audio';
       const j = await SearchHub.json('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(q) + '&fl[]=identifier&fl[]=title&fl[]=downloads&rows=10&output=json', {timeout: 15000, relays: false});
-      const docs = ((j && j.response && j.response.docs) || []).filter(d=> d && d.title && namesGame(d.title, g.name) && /ost|soundtrack|sound track|music|score|original/i.test(d.title) && !IA_BAD.test(d.title)).sort((a, b)=> (b.downloads || 0) - (a.downloads || 0));
+      const docs = ((j && j.response && j.response.docs) || []).filter(d=> d && d.title && namesGame(d.title, g.name, g) && /ost|soundtrack|sound track|music|score|original/i.test(d.title) && !IA_BAD.test(d.title)).sort((a, b)=> (b.downloads || 0) - (a.downloads || 0));
       for(const d of docs.slice(0, 2)){
         const m = await SearchHub.json('https://archive.org/metadata/' + encodeURIComponent(d.identifier), {timeout: 15000, relays: false});
         const seen = new Set(), files = ((m && m.files) || []).filter(f=> /\.mp3$/i.test(f.name || '') && !/_64kb\.mp3$/i.test(f.name) && (+f.length || 0) >= 40)
@@ -250,14 +275,14 @@
     // v211: solo il pezzo del gioco (dati/notte-ost-K.js); il file intero ost.js solo se i pezzi non ci sono
     if(window.rtNight) await rtNight.ensure('ost', g.id);
     else { if(!ostP) ostP = load('ost.js').catch(()=>{}); await ostP; }
-    const t = (typeof OST !== 'undefined' && OST.games && OST.games[g.id]) || null;
-    if(t && t.length) return t;
+    let t = (typeof OST !== 'undefined' && OST.games && OST.games[g.id]) || null;
+    if(t && t.length){ const ok = t.filter(v=> !v || !v[1] || namesGame(v[1], g.name, g)); if(ok.length) return ok; }       // v220: solo brani della versione giusta
     const c = LS.get(LIVE, {}) || {}; if(c[g.id] && c[g.id].length) return c[g.id];
     const miss = LS.get(MISS, {}) || {}; if(miss[g.id] && Date.now() - miss[g.id] < 864e5) return [];     // già provato oggi: non insisto
-    const qs = queriesFor(g.name).slice(0, 3);
+    const qs = queriesFor(g.name, g).slice(0, 4);
     for(let i = 0; i < qs.length; i++){
       setStat(g.id, 'Cerco la colonna sonora… (' + (i + 1) + '/' + qs.length + ')');
-      try{ const l = pickTracks(await searchYT(qs[i]), g.name); if(l.length){ c[g.id] = l; const ks = Object.keys(c); if(ks.length > 250) ks.slice(0, ks.length - 250).forEach(k=> delete c[k]); LS.set(LIVE, c); setStat(g.id, ''); return l; } }catch(e){}
+      try{ const l = pickTracks(await searchYT(qs[i]), g.name, g); if(l.length){ c[g.id] = l; const ks = Object.keys(c); if(ks.length > 250) ks.slice(0, ks.length - 250).forEach(k=> delete c[k]); LS.set(LIVE, c); setStat(g.id, ''); return l; } }catch(e){}
     }
     miss[g.id] = Date.now(); LS.set(MISS, miss); setStat(g.id, ''); return [];
   }
@@ -296,8 +321,8 @@
     try{ const a = await iaAlbum(g); if(a && a.alt) a.alt.filter(x=> !inList.has(x[0])).slice(0, 25).forEach(x=> alts.push(x)); }catch(e){}
     try{
       const seen = new Set(), yt = [];
-      for(const q of queriesFor(g.name).slice(0, 2)){ (await searchYT(q).catch(()=> [])).forEach(v=>{ if(!seen.has(v[0])){ seen.add(v[0]); yt.push(v); } }); }
-      yt.filter(v=> !BAD.test(v[1]) && secsOf(v[2]) >= 60 && secsOf(v[2]) <= 15 * 60 && namesGame(v[1], g.name) && !inList.has(v[0])).sort((a, b)=> (b[3] || 0) - (a[3] || 0)).slice(0, 12).forEach(v=> alts.push(v));
+      for(const q of queriesFor(g.name, g).slice(0, 3)){ (await searchYT(q).catch(()=> [])).forEach(v=>{ if(!seen.has(v[0])){ seen.add(v[0]); yt.push(v); } }); }
+      yt.filter(v=> !BAD.test(v[1]) && secsOf(v[2]) >= 60 && secsOf(v[2]) <= 15 * 60 && namesGame(v[1], g.name, g) && !inList.has(v[0])).sort((a, b)=> (b[3] || 0) - (a[3] || 0)).slice(0, 12).forEach(v=> alts.push(v));
     }catch(e){}
     const res = body.querySelector('#swRes'); if(!res) return;
     if(!alts.length){ res.textContent = 'Non trovo alternative ora: prova con 🔎 e parole tue.'; return; }
@@ -339,7 +364,7 @@
   function resume(){ const t = cur.list[cur.i]; if(isIA(t)){ if(au && au.src) au.play().catch(()=>{}); else playTrack(); } else { try{ yt && yt.playVideo(); }catch(e){} } cur.playing = true; paint(); }
   function next(auto){ if(!cur.list.length) return; cur.i = (cur.i + 1) % cur.list.length; if(!auto){ const p = LS.get(PICK, {}) || {}; p[cur.id] = cur.i; LS.set(PICK, p); } playTrack(); }
   function stopAll(){ try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Brano fermo: premi ▶ per farlo ripartire', 2200); }
-  window.rtMusic = {playFor, stop: stopAll, on: ON, dock};
+  window.rtMusic = {playFor, stop: stopAll, on: ON, dock, _test: {namesGame, queriesFor}};      // _test: per i controlli automatici
   // barra nella scheda del gioco
   // ---- lettore nella scheda (v198): titolo grande, album/fonte, barra di avanzamento toccabile, ⏮ ⏯ ⏭, elenco dei brani, 🔁 cambia, 🔎 cerca ----
   const albumOf = g=>{ try{ const e = (LS.get(IA, {}) || {})[g.id]; return e && e.album ? e.album : ''; }catch(e){ return ''; } };

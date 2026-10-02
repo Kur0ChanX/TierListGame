@@ -15,7 +15,7 @@
     // v214: anche gli archivi d'appoggio più pesanti (si leggono quando servono, mai all'avvio: se non sono ancora pronti è solo un «non lo so ancora»).
     // Erano loro a riempire la memoria normale fino all'avviso del 70%.
     'jrpg_vote_diag', 'jrpg_audit', 'jrpg_audit_undo', 'jrpg_wd_cache2', 'jrpg_wd_labels2', 'jrpg_brain_hist', 'jrpg_vibes_results', 'jrpg_saga_scan',
-    'rt_ost_ia2', 'rt_ost_live', 'rt_ost_miss', 'rt_shots_rawg4', 'rt_en_name', 'rt_idee_cache', 'rt_tint_cache', 'rt_oc_cache', 'rt_price_cache', 'rt_debuglog'];
+    'rt_ost_ia2', 'rt_ost_live', 'rt_ost_miss', 'rt_ost_ia3', 'rt_ost_live2', 'rt_ost_miss2', 'rt_shots_rawg4', 'rt_en_name', 'rt_idee_cache', 'rt_tint_cache', 'rt_oc_cache', 'rt_price_cache', 'rt_debuglog'];
   const isBig = k=> BIG.indexOf(k) >= 0;
   let LSX = null; try{ LSX = window.localStorage; }catch(e){}
   const P = window.Storage && Storage.prototype;
