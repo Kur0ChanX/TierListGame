@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v219', date:'2026-10-02', time:'08:38', items:[
+    'Animazioni: 6 stili + il tuo (✨ → Movimento e vibrazione → «Stile delle animazioni»): Lampo, Morbida, Zoom (quello di sempre), Rimbalzo, Scorrimento, Cinema e «Come il mio telefono» (la finestra cresce dalla copertina toccata fino a tutto schermo, circa 0,24 s, come le app di Android). Lo stile vale per tutta l\'app: apertura e chiusura delle schede, cambio sezione, righe della lista, pannelli e tocco. Tutto solo con movimenti leggeri (li fa la scheda grafica): nessun lavoro in più e nessun ritardo al tocco.',
+    'Molto più leggera ogni apertura e ogni cambio sullo schermo: il calcolo degli stili è sceso da ~330 ms a ~75 ms (misura su telefono simulato lento). Erano regole «:has()» che a ogni cambio facevano controllare tutta la pagina. Anche la scheda ora disegna subito solo la prima schermata e il resto quando ti avvicini (l\'impaginazione più lunga: da ~58 a ~12 ms).',
+    'Corretto: dopo aver chiuso una scheda la lista si ridisegnava da sola 1,5 secondi dopo e le copertine lampeggiavano.',
+    'Sfondo della scheda: non più un colore piatto ma 4 bagliori morbidi con i colori della copertina (stile app moderna), che cambiano dolcemente da un gioco all\'altro.',
+    'Il gesto «scorri dal basso» riesce al primo colpo anche se parte dalla barra dei tasti (cambio di pagina con il dito fermo, annullato dallo scorrimento).'
+  ]},
   {version:'v218', date:'2026-10-02', time:'07:39', items:[
     'Gesto «scorri dal basso» di Android: nella striscia più bassa dello schermo i tasti non scattano più al tocco (il gesto cambiava pagina per sbaglio e dovevi riprovare). Il tocco normale funziona come prima.',
     'Apertura del gioco più leggera in verticale: durante l\'animazione i lavori di sottofondo aspettano, e la lista non si ridisegna sotto la scheda aperta.',

@@ -90,6 +90,7 @@
       // v216: nelle altre pagine la classifica resta «addormentata» al suo posto (vedi CSS body.rt-page #tableWrap): rimetto visibile quella che c'era
       if(v !== 'list' && LISTVIS){ if(twE && LISTVIS.tw) twE.style.display = ''; if(avE && LISTVIS.av) avE.style.display = ''; }
       paint(v);
+      try{ if(window.rtAnim && v !== from) rtAnim.section(); }catch(e){}                       // v218: entrata della sezione secondo lo stile scelto
       requestAnimationFrame(toTop);                                 // le sezioni nascoste ripartono già da 0 da sole; qui solo una verifica a disegno fatto (costa zero)                                 // se qualcosa nella pagina nuova prova a spostarla, la rimetto in cima
       if(v !== 'list' && v !== from) markPage();
       else if(v === 'list' && from !== 'list') unmarkPage();

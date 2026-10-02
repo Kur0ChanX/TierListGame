@@ -462,7 +462,7 @@
   const runMenu = rx=> { const it = (window.XMENU || []).find(x=> rx.test(x.html)); if(it) it.run(); else toast('Funzione non disponibile', 1800); };
   const openAskSettings = ()=>{ try{ openAsk(); setTimeout(()=>{ const d = document.getElementById('geminiSettings'); if(d){ d.open = true; d.scrollIntoView({block: 'start'}); } }, 300); }catch(e){ toast('Apri «Chiedi» e poi ⚙️', 2600); } };
   const SECTIONS = [
-    {n: '🎨 Aspetto', reset: ['jrpg_pack', 'jrpg_pack_anim', 'jrpg_icons', 'jrpg_palette', 'jrpg_motion', 'jrpg_haptics', 'jrpg_hero', 'jrpg_view_mode', 'jrpg_fx', 'jrpg_cover_tint'], rows: [
+    {n: '🎨 Aspetto', reset: ['jrpg_pack', 'jrpg_pack_anim', 'jrpg_icons', 'jrpg_palette', 'jrpg_motion', 'jrpg_anim', 'jrpg_haptics', 'jrpg_hero', 'jrpg_view_mode', 'jrpg_fx', 'jrpg_cover_tint'], rows: [
       ['Palette colori', 'I 34 colori di base dell\'app', ()=> window.openPalettePicker && openPalettePicker()],
       ['Temi grafici', '20 stili completi, chiari e scuri', ()=> window.openPackPicker && openPackPicker()],
       ['Set di icone', '20 stili per tutte le icone', ()=> window.openIconPicker && openIconPicker()],
