@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v235', date:'2026-10-02', time:'14:07', items:[
+    'Schermo intero su telefoni con gli angoli molto arrotondati (Xiaomi 17 Ultra): la barra in basso lascia un po\' di spazio ai lati, così «Classifica» e «Statistiche» non vengono più tagliate dagli angoli dello schermo.',
+    'Tabella: la ★ in alto è più lontana dal bordo arrotondato.',
+  ]},
   {version:'v234', date:'2026-10-02', time:'14:01', items:[
     'Tabella: toccando la ★ in alto si apre il menu «Metti in cima»: 😍 Giochi che amo, ⭐ Preferiti, 💕 Storia romantica, 🤝 Legame speciale, 🤯 Storia sorprendente, 💉 Effetto dopamina, ✅ Stato, 🏆 Classifica normale. Toccando di nuovo la stessa voce l\'ordine si inverte.',
     'Il procione con gli occhi a cuore ora si chiama ovunque «Gioco che amo» (prima «Nel cuore» / «Nei miei top»).',

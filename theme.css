@@ -1898,3 +1898,11 @@ th[data-key="fav"]{cursor:pointer; white-space:nowrap}
 .sm-i span{width:22px; text-align:center}
 .sm-i small{flex-basis:100%; padding-left:30px; font-weight:500; font-size:.7rem; color:var(--sub)}
 .sm-i.on{background:color-mix(in srgb, var(--accent) 22%, transparent)}
+
+/* v235: schermo intero su telefoni con gli angoli molto arrotondati (es. Xiaomi 17 Ultra): un po' di margine ai lati della barra in basso,
+   altrimenti l'angolo dello schermo taglia «Classifica» e «Statistiche»; e la ★ della tabella più lontana dal bordo arrotondato */
+@media (display-mode: fullscreen) and (max-width:760px){
+  .view-tabs{padding-left:18px !important; padding-right:18px !important; padding-bottom:6px !important}
+}
+html:fullscreen .view-tabs{padding-left:18px !important; padding-right:18px !important; padding-bottom:6px !important}
+#gameTable thead th[data-key="fav"]{padding-left:14px !important; text-align:left}
