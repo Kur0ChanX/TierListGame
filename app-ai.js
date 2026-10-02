@@ -688,8 +688,10 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets, ex
       const k = c.name.toLowerCase().trim(), k2 = nn(c.name);
       if(seen.has(k) || seen.has(k2) || found.length >= MAX) return;
       if(c.score != null && c.score < 50) return;                 // sotto il 5/10: spazzatura
-      if(/\b(hentai|nukige|nsfw|eroge|18\+|porn)\b/i.test(c.name)) return;   // v241: niente giochi per adulti da nessuna fonte
-      seen.add(k); seen.add(k2); c.viaSource = srcName || ''; found.push(c);
+      if(/\b(hentai|nukige|nsfw|eroge|18\+|porn)\b/i.test(c.name)){ c.sus = 'adulti'; }   // v241: niente giochi per adulti da nessuna fonte
+      seen.add(k); seen.add(k2); c.viaSource = srcName || '';
+      { const sus = window.rtSus && rtSus.check(c); if(sus){ rtSus.addFrugu(c, sus); return; } }   // v242: i sospetti vanno nella pila a parte (🧹 Sospetti)
+      found.push(c);
     });
     return found.length - before;
   };
@@ -805,6 +807,7 @@ function novitaCardHtml(c, ids){
     <div class="modal-tags">${c.tags.slice(0,3).map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${c.fitIf ? `<div class="novita-why novita-clamp"><b>Potrebbe piacerti perché</b> ${escHtml(c.fitIf)}</div>` : ''}
     <div class="novita-links">
+      <button class="novita-link-btn nv-peek" type="button" data-nv-peek>🔍 Guarda meglio</button>
       <a class="novita-link-btn" href="${novitaYoutubeUrl(c.name)}" target="_blank" rel="noopener">▶️ Gameplay ITA</a>
       <a class="novita-link-btn" href="${novitaReviewSearchUrl(c.name)}" target="_blank" rel="noopener">📰 Recensione ITA</a>
       <a class="novita-link-btn" href="${coverSearchUrl({name:c.name})}" target="_blank" rel="noopener">🖼️ Locandina</a>
@@ -835,8 +838,17 @@ function novitaDoneHtml(){
   </div>`;
 }
 function novitaSkippedTopbarHtml(count, btnId){
-  return `<div class="novita-topbar">${llmEngineSelectHtml()}${count ? `<button class="btn" id="${btnId}">📋 Scartati (${count})</button>` : ''}</div>`;
+  const sus = window.rtSus ? rtSus.fruguCount() + rtSus.parkCount() : 0;
+  return `<div class="novita-topbar">${llmEngineSelectHtml()}${count ? `<button class="btn" id="${btnId}">📋 Scartati (${count})</button>` : ''}${sus ? `<button class="btn" type="button" data-sus-open>🧹 Sospetti (${sus})</button>` : ''}</div>`;
 }
+// v242: «🔍 Guarda meglio» sulla proposta in vista + «🧹 Sospetti» nella barra in alto (valgono per Novità e Novità per genere)
+document.addEventListener('click', e=>{
+  const s = e.target.closest && e.target.closest('[data-sus-open]'); if(s){ if(window.rtSus) rtSus.open(rtSus.fruguCount() ? 'fru' : 'lib'); return; }
+  const b = e.target.closest && e.target.closest('[data-nv-peek]'); if(!b || !window.rtSus) return;
+  const genre = !!b.closest('#novitaGenrePanel');
+  const c = genre ? currentNovitaGenreGame() : currentNovitaGame(); if(!c) return;
+  rtSus.peek(c, genre ? {like: ()=> novitaGenreAdvanceLike(), nope: ()=> novitaGenreAdvanceSkip()} : {like: ()=> novitaAdvanceLike(), nope: ()=> novitaAdvanceSkip()});
+});
 function novitaSkippedListHtml(){
   const keys = Object.keys(NOVITA_SKIPPED_DETAILS);
   if(!keys.length) return `<div class="discover-empty"><div class="discover-empty-icon">📋</div><div>Non hai ancora scartato nessuna proposta.</div><button class="btn novita-back-btn">← Torna</button></div>`;
@@ -1081,7 +1093,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-02';
-const DATA_BUILD_VERSION = 'v241';
+const DATA_BUILD_VERSION = 'v242';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

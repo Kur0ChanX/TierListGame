@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v242', date:'2026-10-02', time:'21:52', items:[
+    '🧹 Sospetti messi da parte: i giochi aggiunti per adulti, spazzatura o scherzi, demo e prologhi, soundtrack e titoli asiatici sconosciuti non compaiono più nella lista. Non sono cancellati: li trovi nel menu ✨ → «🧹 Sospetti messi da parte» (stanza «Dati e manutenzione») e in Novità col pulsante «🧹 Sospetti». Per ognuno: 🔍 guardalo, ♻️ rimettilo nella lista, 🗑️ eliminalo.',
+    'Frugu Frugu: le proposte sospette non finiscono più tra quelle da accettare ma nella pila «🦝 Da Frugu» dei Sospetti, dove puoi guardarle e aggiungerle lo stesso.',
+    '🔍 Guarda meglio: su ogni proposta di Novità (e su quelle messe da parte) apri una scheda con locandina vera, foto e trailer da Steam, descrizione, italiano sì/no, voto, numero di recensioni, avviso per adulti e i link a gameplay ITA, recensioni ITA, foto, trailer e pagina Steam. Da lì puoi aggiungere o scartare.',
+  ]},
   {version:'v241', date:'2026-10-02', time:'21:30', items:[
     'OpenCritic funziona anche senza chiave: quando la chiave RapidAPI risponde «troppe richieste» (o manca), il voto arriva dalla pagina pubblica di OpenCritic, trovata con Wikidata e letta passando dal tuo ponte. La chiave si riprova da sola dopo 12 ore.',
     'Controllo dati: le caselle «Update+ all\'avvio» e «Controlla da solo in background» erano grigie perché è accesa la Modalità calma. Ora si possono toccare: ti chiedo se spegnerla e la casella si attiva.',
