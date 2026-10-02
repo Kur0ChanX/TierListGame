@@ -14,7 +14,7 @@
   const cardOrderOn = ()=> LS.get(ON, 'on') !== 'off';
   // v204: la scheda è divisa in 3 parti (linguette in alto): «Per te», «Il gioco», «Altro». Le parti nascoste non si disegnano: apertura più leggera.
   const LAYERS = [
-    {id: 'perme', tab: 'perme', n: '💜 Per te', keys: ['verdetto', 'valuta', 'radar', 'dna', 'recensione', 'nota', 'stato']},
+    {id: 'perme', tab: 'perme', n: '💜 Per te', keys: ['previsione', 'verdetto', 'valuta', 'radar', 'dna', 'recensione', 'nota', 'stato']},
     {id: 'comprare', tab: 'perme', n: '🛒 Comprare', keys: ['comprare', 'versioni']},
     {id: 'simili', tab: 'perme', n: '🔁 Altri giochi', keys: ['simili']},
     {id: 'scheda', tab: 'gioco', n: '⭐ Voti e musica', keys: ['punteggi', 'musica']},
@@ -24,7 +24,7 @@
   ];
   const TABS = [['perme', '💜 Per te'], ['gioco', '🎮 Il gioco'], ['altro', '📚 Altro']];
   const tabNow = ()=>{ const t = LS.get('jrpg_card_tab', 'perme'); return TABS.some(x=> x[0] === t) ? t : 'perme'; };
-  const KEY_NAMES = {valuta: 'Le tue valutazioni', punteggi: 'Voti e piattaforme', musica: 'Colonna sonora (lettore)', verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'A colpo d\'occhio', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
+  const KEY_NAMES = {previsione: 'Previsione e il tuo voto', valuta: 'Le tue valutazioni', punteggi: 'Voti e piattaforme', musica: 'Colonna sonora (lettore)', verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'A colpo d\'occhio', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
   const titleKey = t=>{
     t = norm(t);
     if(/etichetta|colpo d.?occhio/.test(t)) return 'etichetta'; if(/prima di comprarlo/.test(t)) return 'comprare'; if(/quale versione/.test(t)) return 'versioni'; if(/il tuo stato/.test(t)) return 'stato';
@@ -37,7 +37,7 @@
   function startKey(el){
     if(el.classList.contains('cd-layer')) return null;
     if(el.classList.contains('modal-section-title')) return titleKey(el.textContent);
-    if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'rtRate') return 'valuta'; if(el.id === 'mzBar') return null;      /* v214: il lettore musicale sta sempre in alto, visibile in tutte e tre le parti */ if(el.classList.contains('modal-plat') || el.classList.contains('modal-badges')) return 'punteggi'; if(el.id === 'voteSrc') return 'affidabilita'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
+    if(el.classList.contains('pv-box')) return 'previsione'; if(el.classList.contains('sim-lazy')) return 'simili'; if(el.id === 'rtRate') return 'valuta'; if(el.id === 'mzBar') return null;      /* v214: il lettore musicale sta sempre in alto, visibile in tutte e tre le parti */ if(el.classList.contains('modal-plat') || el.classList.contains('modal-badges')) return 'punteggi'; if(el.id === 'voteSrc') return 'affidabilita'; if(el.id === 'vdCard') return 'verdetto'; if(el.id === 'gsCard') return 'radar'; if(el.id === 'dnaWhy') return 'dna'; if(el.id === 'gdCard') return 'guida'; if(el.id === 'cpCard') return 'compagno';
     if(el.classList.contains('modal-tags')) return 'generi'; if(el.classList.contains('enrich-highlights')) return 'simboli'; if(el.classList.contains('ds-chip')) return 'affidabilita';
     if(el.classList.contains('saga-note')) return 'saga'; if(el.matches('details.hist')) return 'cronologia';
     return null;
@@ -91,7 +91,8 @@
     out.forEach(el=> el.removeAttribute && el.removeAttribute('data-tab'));
     let bar = card.querySelector(':scope > .cd-tabs');
     if(!bar){ bar = document.createElement('div'); bar.className = 'cd-tabs'; bar.setAttribute('role', 'tablist'); bar.innerHTML = '<span class="cd-ind" aria-hidden="true"></span>' + TABS.map(([id, n])=> `<button type="button" role="tab" data-ctab="${id}">${n}</button>`).join('') + '<button type="button" class="cd-reorder" data-creorder title="Riordina la scheda come vuoi" aria-label="Riordina la scheda">↕️</button>'; }
-    out.push(bar);
+    // v249: la barra sta subito sotto il titolo: si vede appena apri la scheda e poi resta ferma in alto (prima stava sotto la locandina e compariva solo scendendo)
+    { const hi = out.findIndex(el=> el.classList && el.classList.contains('modal-head')); out.splice(hi >= 0 ? hi + 1 : out.length, 0, bar); }
     // 1) quali blocchi ci sono in ogni parte (nell'ordine di base); 2) il TUO ordine, se l'hai scelto
     const byTab = {perme: [], gioco: [], altro: []};
     layers.forEach(l=>{
@@ -104,7 +105,7 @@
       let items = byTab[tid]; if(!items.length) return; firstOfTab[tid] = true;
       const mine = co[tid];
       if(mine && mine.length){
-        items = items.map((x, i)=> [x, mine.indexOf(x.k) >= 0 ? mine.indexOf(x.k) : 1000 + i]).sort((a, b)=> a[1] - b[1]).map(x=> x[0]);       // il tuo ordine (i blocchi nuovi in fondo)
+        items = items.map((x, i)=> [x, mine.indexOf(x.k) >= 0 ? mine.indexOf(x.k) : x.k === 'previsione' ? -1 : 1000 + i])      /* v249: la Previsione, se non l'hai spostata tu, sta in cima a «Per te» */.sort((a, b)=> a[1] - b[1]).map(x=> x[0]);       // il tuo ordine (i blocchi nuovi in fondo)
         ordered[tid] = items.map(x=> x.k);
         items.forEach(({k})=> pushBlock(k, tid));
       } else {
@@ -144,8 +145,8 @@
     arranging = true;
     // spostando i blocchi il browser potrebbe far saltare la pagina: rimetto lo scorrimento dov'era.
     // v213: la posizione la so già (evento scroll) — leggerla qui costringeva il telefono a impaginare la scheda intera a metà apertura (~40 ms)
-    if(!card._syW){ card._syW = 1; card._sy = 0; card.addEventListener('scroll', ()=>{ card._sy = card.scrollTop; }, {passive: true}); }
-    const sy = card.closest('.show') ? card._sy || 0 : 0;
+    if(!card._syW){ card._syW = 1; card._sy = 0; card.addEventListener('scroll', ()=>{ if(card._keepUntil > performance.now() && card.scrollTop < card._keepY - 4) return; card._sy = card.scrollTop; }, {passive: true}); }
+    const sy = card.closest('.show') ? (card._keepUntil > performance.now() ? Math.max(card._keepY || 0, card._sy || 0) : card._sy || 0) : 0;
     out.forEach(el=> card.appendChild(el));
     if(sy > 0) card.scrollTop = sy;
     arranging = false;
@@ -170,7 +171,7 @@
       const t = tb.dataset.ctab, cr = card.getBoundingClientRect();
       const tops = [...card.children].filter(el=> el !== bar && el.dataset && el.dataset.tab === t && el.offsetHeight > 0).map(el=> el.getBoundingClientRect().top);
       const target = tops.length ? Math.max(0, Math.min(...tops) - cr.top + card.scrollTop - bar.offsetHeight - 10) : 0;
-      if(card.scrollTop > target + 4 || bar.getBoundingClientRect().top < cr.top){ card.scrollTop = target; card._sy = target; }
+      if(Math.abs(card.scrollTop - target) > 4){ card.scrollTop = target; card._sy = target; }      // v249: porto sempre la vista all'inizio della parte scelta (anche se è più in basso)
     }catch(x){} }); }
   });
   document.addEventListener('click', e=>{

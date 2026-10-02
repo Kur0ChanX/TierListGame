@@ -130,3 +130,10 @@ Guscio WebView che apre il sito online (`https://kur0chanx.github.io/TierListGam
 - Il guscio: schermo intero, autoplay della musica, scelta file + fotocamera, link esterni nel browser, tasto indietro = `history.back()`.
 - I dati (localStorage) dell'APK sono separati da quelli di Chrome: si passano con Salva backup → Ripristina da file.
 - Compilazione: Android SDK in `/opt/android-sdk` (sdkmanager `platforms;android-35` `build-tools;35.0.0`), `local.properties` con `sdk.dir`, poi `RT_KEYSTORE=… RT_KEYPASS=… gradle assembleRelease`. La firma (`.jks`) NON è nel repository: ce l'ha l'utente; con un'altra firma l'APK non si aggiorna sopra quello vecchio.
+
+## v249 (3/10/2026)
+- **`gioco-ora.js`** (nuovo, prima di `motion.js`): tasto «🎮 Sto giocando ora» sotto gli stati di `#rtBar` (`#poBtn`) e pannello `XUI.sheet('xPlayNow')`. API `window.rtPlayNow = {open, end, session}`; voce «🎮 Sto giocando ora» nel menu ✨. Chiavi: `jrpg_playnow` (sessione in corso {id,start}), `jrpg_playtime` ({id:{min,n,last}}), `jrpg_play_notes`, `jrpg_play_steps`, `jrpg_play_read`, `jrpg_play_lv`; usa anche `jrpg_companion` (punto raggiunto e diario delle risposte, come il Compagno di `guida.js`). AI con `askLLM(prompt, {images}, {search:true})`.
+- **`voce.js`**: `play(g, txt)` a catena di riserva (scelta → `gtr` → `phone`), `runChain`, `rtStory.say(testo)`. Google Traduttore: `noRefAudio()` mette per un attimo `<meta name="referrer" content="no-referrer">` (Google risponde 404 se arriva il Referer del sito).
+- **`music.js`**: `jrpg_music_hold` = musica tenuta ferma dall'utente (pausa/stop) finché non preme ▶ (`playFor` non forzato ed `ensure` non partono).
+- **Scheda**: `openModalBody` conserva lo scorrimento quando ridisegna lo stesso gioco (`modalCard._keepY/_keepUntil`, rispettati da `ordine.js`); barra `.cd-tabs` subito dopo `.modal-head`; blocco `previsione` (`.pv-box.pv2`) primo in «Per te».
+- **Novità** (`app-ai.js`): `novitaPatchCard`, `novitaSwap`, `novitaHoldHeight`, `NOVITA_CHIP_ORDER`. `showToast` mette in fila gli avvisi (min 1,3 s ciascuno); su telefono `showAddedBanner` usa `showToast`.

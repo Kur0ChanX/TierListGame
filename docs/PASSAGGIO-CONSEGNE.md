@@ -7,7 +7,8 @@ Ultimo aggiornamento: v243 (2 ottobre 2026). Sito: https://kur0chanx.github.io/T
 
 ---------------------------------------------------------------------
 
-## 0. Stato attuale (v248, 3/10/2026) — leggi prima questo
+## 0. Stato attuale (v249, 3/10/2026) — leggi prima questo
+- v249: tasto «🎮 Sto giocando ora» (`gioco-ora.js`), voce a catena di riserva + Google Traduttore riparato, Previsione grande in cima a «Per te», scheda che non torna su dopo un voto, barra delle linguette sotto il titolo, musica che resta ferma, pagina Novità senza salti/tremolii, avvisi in fila. Da provare sul telefono vero: foto dello schermo e dettatura.
 - v237–v243 fatti: «🧪 Prova tutto» nelle impostazioni; OpenCritic senza chiave (Wikidata + pagina pubblica via ponte); Frugu anti-spazzatura; `sospetti.js` (sospetti messi da parte + «🔍 Guarda meglio»); avvisi nuovi (scheda di vetro); voce con 4 motori (Gemini, Google Cloud, Google Traduttore, telefono) e lettore a catena; prompt delle trame ZERO spoiler + pulizia una tantum `jrpg_ovstory243`.
 - v244–v248: **riscritte TUTTE le 765 trame dei giochi di base** (campo `story`, 79–115 parole, con accenti, senza spoiler: ambientazione, protagonisti, premessa e domande finali). Corretti anche errori delle trame vecchie (nomi sbagliati, anni, rivelazioni di fine gioco). Il punto 7.0 è chiuso. Se l'utente segnala uno spoiler o un errore su un gioco, correggi solo quel gioco (load()/save()).
 - Da qui NON si leggono i gist dell'utente (API GitHub limitata al repo): i giochi aggiunti stanno solo sul suo telefono.

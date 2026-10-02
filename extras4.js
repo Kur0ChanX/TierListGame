@@ -183,9 +183,15 @@
     const my = (LS.get(MV, {}) || {})[g.id], pr = (LS.get(PR, {}) || {})[g.id], st = STATUSES[g.id];
     let now = SHOWN.get(g.id); if(now == null || my != null){ now = predict(g); if(my == null) SHOWN.set(g.id, now); }
     const words = n=> n >= 9 ? 'lo adorerai' : n >= 7 ? 'ti piacerà' : n >= 5 ? 'potrebbe piacerti' : 'probabilmente non fa per te';
-    let h = `<div class="pv-box"><div class="pv-top">${gi('orb')} <b>Previsione:</b> ${my != null ? (pr != null ? pr : now) : now}/10 · <small>${esc(words(my != null && pr != null ? pr : now))}</small></div>`;
-    if(my != null){ const p = pr != null ? pr : now, d = my - p; h += `<div class="pv-res">Il tuo voto: <b>${my}/10</b> · ${Math.abs(d) <= 1 ? '🎯 previsione azzeccata' : d > 0 ? 'ti è piaciuto più del previsto (+' + d + ')' : 'ti è piaciuto meno del previsto (' + d + ')'}</div>`; }
-    h += `<div class="pv-votes">${my != null ? '<small>Cambia voto:</small>' : '<small>' + (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : 'L\'hai giocato? Il tuo voto:') + '</small>'} ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}" data-vote="${n}">${n}</button>`).join('')}</div>`;
+    // v249: riquadro grande e colorato (prima era una riga piccola e si perdeva nella scheda): cerchio con la previsione, 10 tasti grandi in due file
+    const shownN = my != null && pr != null ? pr : now, d = my != null ? my - shownN : 0;
+    const hue = n=> Math.round((n - 1) / 9 * 130);            // 1 rosso → 10 verde
+    let h = `<div class="pv-box pv2" style="--pvh:${hue(shownN)}">
+      <div class="pv2-head"><div class="pv2-ring" style="--p:${shownN * 10}"><b>${shownN}</b><small>/10</small></div>
+        <div class="pv2-txt"><div class="pv-top">🔮 <b>Previsione:</b> ${shownN}/10 · <small>${esc(words(shownN))}</small></div>
+        ${my != null ? `<div class="pv-res">Il tuo voto: <b>${my}/10</b> · ${Math.abs(d) <= 1 ? '🎯 previsione azzeccata' : d > 0 ? 'ti è piaciuto più del previsto (+' + d + ')' : 'ti è piaciuto meno del previsto (' + d + ')'}</div>` : '<div class="pv2-sub">Calcolata dai tuoi gusti: il tuo voto insegna al cervello</div>'}</div></div>
+      <div class="pv2-q">${my != null ? 'Cambia voto' : (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : 'L\'hai giocato? Il tuo voto')}</div>
+      <div class="pv-votes pv2-grid">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}" style="--vh:${hue(n)}" data-vote="${n}" aria-pressed="${my === n ? 'true' : 'false'}">${n}</button>`).join('')}</div>`;
     return h + '</div>';
   }
   function reviewHtml(g){
@@ -225,6 +231,7 @@
         const v = +b.dataset.vote, mv = LS.get(MV, {}) || {}, pr = LS.get(PR, {}) || {};
         if(pr[g.id] == null) pr[g.id] = SHOWN.has(g.id) ? SHOWN.get(g.id) : predict(g);          // la previsione si «congela» al primo voto, così il confronto è onesto
         mv[g.id] = v; LS.set(MV, mv); LS.set(PR, pr); try{ window.rtSfx && rtSfx('fav'); }catch(e){} openModal(g);
+        try{ const nb = document.querySelector('#modalCard .pv2 [data-vote="' + v + '"]'); if(nb) nb.animate([{transform: 'scale(1)'}, {transform: 'scale(1.25)'}, {transform: 'scale(1)'}], {duration: 320, easing: 'cubic-bezier(.32,.72,0,1)'}); window.rtHaptic && rtHaptic('soft'); }catch(e){}
       }));
       const box = card.querySelector('.rv-edit');
       const w = document.getElementById('rvWrite'); if(w) w.addEventListener('click', ()=> editReview(g, box, ((LS.get(RV, {}) || {})[g.id] || {}).text || ''));
