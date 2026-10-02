@@ -1906,3 +1906,11 @@ th[data-key="fav"]{cursor:pointer; white-space:nowrap}
 }
 html:fullscreen .view-tabs{padding-left:18px !important; padding-right:18px !important; padding-bottom:6px !important}
 #gameTable thead th[data-key="fav"]{padding-left:14px !important; text-align:left}
+
+/* v236: avvio senza scatti. Dopo la schermata di Android (icona + sfondo dello stesso colore) la locandina compare subito, senza dissolvenza:
+   la dissolvenza girava mentre l'app caricava i suoi file e si vedeva a scatti. */
+.intro-frame{animation:none !important}
+.intro-bg{display:none}
+/* v236: a destra serve un po' più di spazio (l'angolo tagliava «Statistiche») */
+@media (display-mode: fullscreen) and (max-width:760px){ .view-tabs{padding-left:20px !important; padding-right:28px !important} }
+html:fullscreen .view-tabs{padding-left:20px !important; padding-right:28px !important}

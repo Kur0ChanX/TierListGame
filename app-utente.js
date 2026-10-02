@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v236', date:'2026-10-02', time:'14:13', items:[
+    'Avvio dell\'app: dopo la schermata di Android (quella con l\'icona: la mostra il telefono e non si può togliere) la locandina «Inizia a frugare» compare subito, senza dissolvenza (la dissolvenza girava mentre l\'app caricava e scattava). La locandina viene scaricata per prima e lo sfondo è dello stesso colore della schermata di Android, così il passaggio è pulito.',
+    'Barra in basso a schermo intero: più spazio a destra, «Statistiche» non viene più tagliata dall\'angolo dello schermo.',
+  ]},
   {version:'v235', date:'2026-10-02', time:'14:07', items:[
     'Schermo intero su telefoni con gli angoli molto arrotondati (Xiaomi 17 Ultra): la barra in basso lascia un po\' di spazio ai lati, così «Classifica» e «Statistiche» non vengono più tagliate dagli angoli dello schermo.',
     'Tabella: la ★ in alto è più lontana dal bordo arrotondato.',
