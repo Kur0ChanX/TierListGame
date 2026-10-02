@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v238', date:'2026-10-02', time:'18:01', items:[
+    'Nel menu ✨, in cima: «🌸 Prova l\'app Anime, Film e Manga». Apre Raccoon Anime, un\'app separata con la classifica di anime, film d\'animazione e manga (non appesantisce questa)'
+  ]},
   {version:'v237', date:'2026-10-02', time:'17:57', items:[
     'Preparazione per l\'app Anime & Manga sullo stesso sito (indirizzo …/TierListGame/anime-manga/): le due app non si cancellano più a vicenda le copie salvate per l\'uso senza rete'
   ]},
