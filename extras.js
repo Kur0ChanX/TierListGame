@@ -48,7 +48,7 @@
     }
     const tags = (g.tags || []).slice(0, 2).map(t=> TAG_INFO[t] ? `<span class="x-tag">${TAG_INFO[t].icon} ${esc(TAG_INFO[t].label)}</span>` : '').join('');
     const stl = st && STATUS_INFO[st] ? `<span class="x-st">${esc(STATUS_INFO[st].label)}</span>` : '';
-    return `<div class="x-row${heart ? ' is-top' : ''}" data-id="${g.id}"><div class="x-thumb">${ph}${img}</div><div class="x-info"><div class="x-name">${fav}${esc(g.name)}${heart ? heart.replace('x-top', 'row-top-i') : ''}</div><div class="x-meta">${esc(g.plat)} · ${esc(g.year || '')}${hoursOf(g) ? ' · ' + hoursOf(g) + 'h' : ''}</div><div class="x-tags">${tags}${stl}</div></div><div class="x-score">${badge}<b>${g.score}</b></div></div>`;
+    return `<div class="x-row${heart ? ' is-top' : ''}" data-id="${g.id}"><div class="x-thumb">${ph}${img}</div><div class="x-info"><div class="x-name">${fav}${heart ? heart.replace('x-top', 'row-top-i') : ''}${esc(g.name)}</div><div class="x-meta">${esc(g.plat)} · ${esc(g.year || '')}${hoursOf(g) ? ' · ' + hoursOf(g) + 'h' : ''}</div><div class="x-tags">${tags}${stl}</div></div><div class="x-score">${badge}<b>${g.score}</b></div></div>`;
   }
   // Disegno «a pezzi» e SENZA rifare le schede già giuste: prima ogni aggiornamento in background (Update+, voti…) ricreava tutta la griglia,
   // le copertine ripartivano da capo e si vedeva lo sfarfallio (icona rotta → sfondo → icona rotta). Ora si cambiano solo le schede diverse.
@@ -97,7 +97,21 @@
   window.setView = function(v){ const r = origSetView.apply(this, arguments); try{ syncMode(); }catch(e){} return r; };
   const stb = document.getElementById('scrollTopBtn');
   if(stb) stb.addEventListener('click', ()=> alt.scrollTo({top:0, behavior:'smooth'}));
-  window.rtAltMode = ()=> state.view === 'list' && MODE !== 'table';       // v219: la tabella è nascosta (vedi render in app.js)
+  window.rtAltMode = ()=> state.view === 'list' && MODE !== 'table';
+  // v233: nelle viste a copertine e a schede (dove non ci sono le intestazioni della tabella) una riga discreta per ordinare
+  const SORTS = [['id', '🏆 Classifica', 1], ['heart', '😍 Nel cuore', -1], ['fav', '⭐ Preferiti', -1], ['tier', 'Tier', 1], ['score', 'Voto', -1], ['ysort', 'Anno', -1], ['name', 'A-Z', 1]];
+  try{ const sv = LS.get('jrpg_alt_sort', null); if(sv && SORTS.some(x=> x[0] === sv.k)){ state.sortKey = sv.k; state.sortDir = sv.d === -1 ? -1 : 1; } }catch(e){}
+  const sortBar = document.createElement('div'); sortBar.id = 'altSort'; sortBar.className = 'alt-sort'; sortBar.style.display = 'none';
+  alt.parentNode.insertBefore(sortBar, alt);
+  function paintSort(){
+    sortBar.innerHTML = '<small>Ordina</small>' + SORTS.map(([k, n, d])=>{ const on = state.sortKey === k; return `<button type="button" class="as-c${on ? ' on' : ''}" data-sk="${k}">${n}${on && state.sortDir !== d ? ' ↑' : ''}</button>`; }).join('');
+  }
+  sortBar.addEventListener('click', e=>{ const b = e.target.closest('[data-sk]'); if(!b) return; const k = b.dataset.sk, def = (SORTS.find(x=> x[0] === k) || [])[2] || 1;
+    if(state.sortKey === k) state.sortDir *= -1; else { state.sortKey = k; state.sortDir = def; }
+    LS.set('jrpg_alt_sort', {k: state.sortKey, d: state.sortDir}); paintSort(); try{ render(); }catch(err){} try{ alt.scrollTop = 0; }catch(err){} });
+  const syncSort = ()=>{ const on = rtAltMode(); sortBar.style.display = on ? '' : 'none'; if(on) paintSort(); };
+  const rs2 = window.render; window.render = function(){ const r = rs2.apply(this, arguments); try{ syncSort(); }catch(e){} return r; };
+  syncSort();       // v219: la tabella è nascosta (vedi render in app.js)
   function setMode(m){ MODE = m; LS.set('jrpg_view_mode', m); if(m === 'table'){ try{ render(); }catch(e){} } syncMode(); }
 
   // barra strumenti accanto al conteggio (non aggiunge altezza)

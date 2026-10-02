@@ -1126,7 +1126,10 @@ function applyFilters(){
     lastSearchFuzzy = !exact.length && list.length > 0;
   } else lastSearchFuzzy = false;
   const dnaProfileForSort = state.sortKey==='dna' ? buildTasteProfile() : null;
+  // v233: «Nel cuore» (procione con gli occhi a cuore) prima di tutto, poi i preferiti, poi gli altri (a parità: ordine della classifica)
+  const heartSort = state.sortKey==='heart' ? (()=>{ try{ const t = window.rtLSro ? rtLSro('jrpg_top', []) : JSON.parse(localStorage.getItem('jrpg_top') || '[]'); return new Set(Array.isArray(t) ? t : []); }catch(e){ return new Set(); } })() : null;
   list = list.slice().sort((a,b)=>{
+    if(heartSort){ const ha = (heartSort.has(a.id) ? 2 : 0) + (FAVS.has(a.id) ? 1 : 0), hb = (heartSort.has(b.id) ? 2 : 0) + (FAVS.has(b.id) ? 1 : 0); if(ha !== hb) return (ha - hb) * state.sortDir; return (a.id - b.id); }
     let va=a[state.sortKey], vb=b[state.sortKey];
     if(state.sortKey==='tier'){ va=TIER_ORDER[a.tier]; vb=TIER_ORDER[b.tier]; }
     if(state.sortKey==='fav'){ va = FAVS.has(a.id)?1:0; vb = FAVS.has(b.id)?1:0; }
