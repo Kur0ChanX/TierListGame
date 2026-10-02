@@ -32,20 +32,15 @@
     {id:'autumn', g:'Natura', n:'Autunno', c:['#b45309','#d97706','#dc2626'], t:.07},
     {id:'desert', g:'Natura', n:'Deserto', c:['#c2410c','#f59e0b','#fcd34d'], t:.06},
     {id:'aurora_bor', g:'Natura', n:'Aurora boreale', c:['#10b981','#06b6d4','#8b5cf6'], t:.08},
-    // Anime e manga
-    {id:'shonen', g:'Anime e manga', n:'Shonen Jump', c:['#ff7a00','#ffd23f','#1e6fff'], t:.07},
-    {id:'evangelion', g:'Anime e manga', n:'Evangelion (Unit-01)', c:['#7b3fbf','#5dd36a','#ff8a1f'], t:.08, dk:{bg:'#0d0a16', card:'#171226', border:'#2f2450', row:'#1d1731'}},
-    {id:'ghibli', g:'Anime e manga', n:'Studio Ghibli', c:['#4f9dc9','#86c17a','#f2d488'], t:.08},
-    {id:'demonslayer', g:'Anime e manga', n:'Demon Slayer', c:['#1f9d6b','#26b47f','#e11d48'], t:.05, dk:{bg:'#06100c', card:'#0f1c16', border:'#1d3a2d', row:'#132419'}},
-    {id:'akira', g:'Anime e manga', n:'Neo-Tokyo (Akira)', c:['#e10600','#ff5a4f','#ffb703'], t:.05, dk:{bg:'#0b0708', card:'#1a1112', border:'#3a1c1c', row:'#211516'}},
-    {id:'bebop', g:'Anime e manga', n:'Cowboy Bebop', c:['#f2b705','#2a6fdb','#d62828'], t:.06, dk:{bg:'#0a0d14', card:'#131a28', border:'#26344f', row:'#182136'}},
-    {id:'konoha', g:'Anime e manga', n:'Konoha (Naruto)', c:['#ff8c1a','#2f5fd0','#ffe066'], t:.07},
-    {id:'grandline', g:'Anime e manga', n:'Grand Line (One Piece)', c:['#e63946','#f4a300','#1d9bd7'], t:.07},
-    {id:'dragonball', g:'Anime e manga', n:'Dragon Ball', c:['#ff9800','#1976d2','#ffee58'], t:.06},
-    {id:'ghostshell', g:'Anime e manga', n:'Ghost in the Shell', c:['#00e5a8','#22b8f0','#8b5cf6'], t:.04, dk:{bg:'#050b0c', card:'#0d1a1c', border:'#173a3a', row:'#112326'}},
-    {id:'berserk', g:'Anime e manga', n:'Berserk', c:['#b91c1c','#7f1d1d','#d6d3d1'], t:.03, dk:{bg:'#080808', card:'#141414', border:'#2e2424', row:'#1b1717'}},
-    {id:'yourname', g:'Anime e manga', n:'Your Name (cometa)', c:['#ff7eb3','#7a5cff','#ffd479'], t:.08},
-    {id:'deathnote', g:'Anime e manga', n:'Death Note', c:['#dc2626','#a3a3a3','#f5f5f5'], t:0, dk:{bg:'#060606', card:'#121212', border:'#2a2a2a', row:'#181818'}, lt:{bg:'#f4f4f4', border:'#d4d4d4'}}
+    // Gaming
+    {id:'gameboy', g:'Gaming', n:'Game Boy', c:['#8bac0f','#9bbc0f','#306230'], t:0, dk:{bg:'#0f1f0b', card:'#172b11', border:'#2c4a20', row:'#1c3315'}, lt:{bg:'#e7f0c9'}},
+    {id:'playstation', g:'Gaming', n:'PlayStation', c:['#0070d1','#00439c','#35a7ff'], t:.1},
+    {id:'xbox', g:'Gaming', n:'Xbox', c:['#107c10','#52b043','#9bf00b'], t:.07},
+    {id:'nintendo', g:'Gaming', n:'Nintendo', c:['#e60012','#ff4757','#ff9f9f'], t:.05},
+    {id:'snes', g:'Gaming', n:'Super Nintendo', c:['#5b4fcf','#a8a2e0','#e4000f'], t:.06},
+    {id:'dracula', g:'Gaming', n:'Dracula', c:['#bd93f9','#ff79c6','#8be9fd'], t:0, dk:{bg:'#1e1f29', card:'#282a36', border:'#44475a', row:'#303241'}},
+    {id:'crystal', g:'Gaming', n:'Cristallo (Final Fantasy)', c:['#38bdf8','#818cf8','#c4b5fd'], t:.08},
+    {id:'hyrule', g:'Gaming', n:'Hyrule', c:['#2f855a','#d4af37','#63b3ed'], t:.06}
   ];
   const hex = h=>{ h = h.replace('#',''); return [0,2,4].map(i=> parseInt(h.slice(i, i+2), 16)); };
   const toHex = a=> '#' + a.map(v=> Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,'0')).join('');
@@ -78,7 +73,7 @@
     return `:root{${L}}\n@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){${D}}}\n:root[data-theme="dark"]{${D}}`;
   }
   const KEY = 'atl_palette';
-  let cur = 'neontokyo'; try{ cur = JSON.parse(localStorage.getItem(KEY) || '"neontokyo"') || 'neontokyo'; }catch(e){}
+  let cur = 'apple'; try{ cur = JSON.parse(localStorage.getItem(KEY) || '"apple"') || 'apple'; }catch(e){}
   const style = document.createElement('style'); style.id = 'paletteStyle';
   // subito dopo l'ultimo foglio di stile già presente (vince su theme.css anche se la pagina viene "impacchettata", es. dentro Claude)
   const links = document.querySelectorAll('link[rel="stylesheet"], style'); const last = links[links.length - 1];
@@ -105,10 +100,13 @@
     let el = document.getElementById('xPalette');
     if(!el){ el = document.createElement('div'); el.id = 'xPalette'; el.className = 'dup-backdrop x-sheet'; document.body.appendChild(el);
       el.addEventListener('click', e=>{ if(e.target === el || e.target.closest('[data-x-close]')) el.classList.remove('show');
+        if(e.target.closest('[data-pk-open]')){ el.classList.remove('show'); if(window.openPackPicker) window.openPackPicker(); return; }
         const b = e.target.closest('[data-pal]'); if(b){ apply(b.dataset.pal); el.querySelectorAll('[data-pal]').forEach(x=> x.classList.toggle('on', x.dataset.pal === cur)); } }); }
     const groups = [...new Set(P.map(p=> p.g))];
     el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🎨 Palette colori</b><button class="btn" data-x-close>Fatto</button></div>
       <div class="lp-sub">Tocca una palette: la vedi subito su tutta l'app, con sfumature, trasparenze e bagliori. Funziona sia col tema chiaro che scuro (pulsante Tema).</div>
+      <button type="button" class="btn" data-pk-open style="width:100%;margin:2px 0 8px">🎭 Temi grafici completi <small>(20 stili con font, sfondi animati e tier diversi)</small></button>
+      ${window.currentPack && window.currentPack() ? '<div class="lp-sub">🎭 Adesso è attivo un tema grafico con i suoi colori: le palette tornano a valere scegliendo «Originale» nei temi grafici.</div>' : ''}
       ${groups.map(g=> `<div class="pal-group">${g}</div><div class="pal-grid">${P.filter(p=> p.g === g).map(p=> `<button type="button" class="pal${p.id === cur ? ' on' : ''}" data-pal="${p.id}">
         ${preview(p)}<span class="pal-n">${p.n}</span></button>`).join('')}</div>`).join('')}</div>`;
     el.classList.add('show');

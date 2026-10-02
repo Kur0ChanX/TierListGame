@@ -267,6 +267,8 @@ write('logo.svg', logoSvg());
 write('logo-compact.svg', logoCompactSvg());
 write('intro.svg', introSvg());
 write('icon-any.svg', iconSvg('any'));
+// testa con corona senza sfondo (distintivo «titolo che amo» nella lista)
+write('top-procione.svg', (()=>{ const m = mascotParts({id: 't', pose: 'none', tail: false, sparks: false}); return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="52 66 408 344" width="408" height="344">${m.defs}${head('t', {eyes: 'happy', mouth: 'open'})}${crown('t')}</svg>`; })());
 write('icon-full.svg', iconSvg('full'));
 
 if (process.argv.includes('--png')){
