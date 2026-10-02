@@ -1,7 +1,7 @@
 {
-  "name": "Raccoon Tier — Tier List RPG & JRPG",
-  "short_name": "Raccoon Tier",
-  "description": "La tua classifica personale di RPG e JRPG",
+  "name": "Raccoon Anime — Tier List di anime e manga",
+  "short_name": "Raccoon Anime",
+  "description": "La tua classifica personale di anime, film e manga",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

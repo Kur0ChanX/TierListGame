@@ -28,7 +28,7 @@ self.addEventListener('install', e=>{
   e.waitUntil(caches.open(CACHE).then(c=> Promise.all(PRE.map(async u=>{ if(await c.match(u)) return; try{ await c.add(new Request(u, {cache: 'no-cache'})); }catch(x){} }))).then(()=> self.skipWaiting()));
 });
 self.addEventListener('activate', e=>{
-  e.waitUntil(caches.keys().then(ks=> Promise.all(ks.filter(k=> k !== CACHE && k !== COVERS).map(k=> caches.delete(k)))).then(()=> self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks=> Promise.all(ks.filter(k=> k !== CACHE && k !== COVERS && /^raccoon-anime/.test(k))      /* stesso sito dell'app giochi: cancello solo le mie copie vecchie */.map(k=> caches.delete(k)))).then(()=> self.clients.claim()));
 });
 const STATIC = /\/(icons|packs|fonts)\/|\.(png|jpe?g|webp|gif|svg|woff2?|ttf|otf|mp3|ogg)(\?|$)/i;      // v229: il manifest NON in cache: Chrome deve vedere subito «schermo intero»
 const DATA = /\/(voti|facts|ost|shots|radar|quality|discoveries)\.js$|\/dati\/notte-/;      // v211: anche i pezzi notturni (cambiano ogni notte, non con la versione)
