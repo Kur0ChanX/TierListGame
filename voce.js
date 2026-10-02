@@ -27,7 +27,7 @@
   const hash = s=>{ let h = 5381; for(let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
   // ---- v225: motore e voce scelti dall'utente. Google a settembre 2026 ha cambiato i modelli della voce (Gemini 3.8 TTS) e il modo di chiamarli
   // (/v1beta/interactions): la vecchia chiamata falliva e partiva la voce del telefono. Ora provo i modelli nuovi e poi i vecchi; quello che funziona lo ricordo.
-  const ENG_K = 'jrpg_tts_engine', PV_K = 'jrpg_tts_phone_voice', OK_K = 'rt_tts_ok', ERR_K = 'rt_tts_err';
+  const ENG_K = 'jrpg_tts_engine', PV_K = 'jrpg_tts_phone_voice', OK_K = 'rt_tts_ok', ERR_K = 'rt_tts_err', DAY_K = 'rt_tts_dayout';
   const VOICES = [
     {id: 'Charon', g: 'u', d: 'narratore, chiaro'}, {id: 'Orus', g: 'u', d: 'profonda, decisa'}, {id: 'Algieba', g: 'u', d: 'vellutata'}, {id: 'Iapetus', g: 'u', d: 'limpida'},
     {id: 'Sadaltager', g: 'u', d: 'esperto, calmo'}, {id: 'Puck', g: 'u', d: 'allegra'}, {id: 'Algenib', g: 'u', d: 'ruvida'}, {id: 'Fenrir', g: 'u', d: 'energica'},
@@ -59,7 +59,7 @@
       if(r.status === 429){       // Google dice quanto aspettare («23s») e se è finita la quota del minuto o del giorno
         const rd = det.map(d=> d && d.retryDelay).filter(Boolean)[0], hm = /retry in ([\d.]+)\s*s/i.exec(m); e.retryMs = rd ? parseFloat(rd) * 1000 : hm ? parseFloat(hm[1]) * 1000 : 0;
         const ids = []; det.forEach(d=> ((d && d.violations) || []).forEach(v=> ids.push(String(v.quotaId || v.quotaMetric || '')))); const txt = ids.join(' ') + ' ' + m;
-        e.perDay = /PerDay|per day|daily/i.test(txt) && !/PerMinute|per minute/i.test(txt) && !(e.retryMs && e.retryMs <= 90000);
+        e.perDay = /PerDay|per day|daily/i.test(txt) && !/PerMinute|per minute/i.test(txt);      // v252: Google mette «riprova tra 60 s» anche quando è finita la quota del GIORNO: conta il tipo di quota, non l'attesa
       }
       throw e;
     }
@@ -89,30 +89,45 @@
     const key = 'https://rt.local/voce2/' + voice + '/' + hash(text);
     let c = null; try{ c = window.caches ? await caches.open(CACHE) : null; if(c){ const hit = await c.match(key); if(hit) return await hit.blob(); } }catch(e){}
     return serial(async ()=>{
+      // v252: ogni modello ha la sua quota. Se uno è «occupato» (attesa lunga) o ha finito la quota del giorno provo SUBITO gli altri;
+      // aspetto (massimo 60 s, conto alla rovescia sul tasto) solo se sono occupati tutti. La quota del giorno finita resta segnata fino a domani.
       const ok = ls.get(OK_K), today = new Date().toDateString();
-      const order = MODELS.filter(([m])=> !badModels.has(m) && dayOut[m] !== today && !(coolUntil[m] > Date.now())).sort((x, y)=> (y[0] === ok) - (x[0] === ok));
-      if(!order.length && MODELS.some(([m])=> coolUntil[m] > Date.now())){ ls.set(ERR_K, 'Gemini è occupato in questo momento'); throw Object.assign(new Error('occupato'), {status: 429}); }
+      try{ const d = JSON.parse(ls.get(DAY_K) || '{}'); if(d.day === today) (d.m || []).forEach(m=> dayOut[m] = today); }catch(e){}
+      const markDay = m=>{ dayOut[m] = today; ls.set(DAY_K, JSON.stringify({day: today, m: MODELS.map(([x])=> x).filter(x=> dayOut[x] === today)})); };
+      const stopped = ()=> tk != null && tk !== token;
       let last = null;
-      for(const [m, kind] of order){
-        for(let tries = 0; tries < 4; tries++){
-          if(tk != null && tk !== token) throw Object.assign(new Error('fermato'), {stopped: true});
-          try{
-            const blob = await callModel(m, kind, text, voice);
-            ls.set(OK_K, m); ls.set(ERR_K, '');
-            try{ if(c) await c.put(key, new Response(blob, {headers: {'content-type': blob.type}})); }catch(e){}
-            return blob;
-          }catch(e){
-            last = e;
-            if(e.status === 401 || e.status === 403 || (e.status === 400 && /api key/i.test(e.message))){ ls.set(ERR_K, 'la chiave Gemini non è valida'); e.fatal = true; throw e; }
-            if(e.status === 404 || (e.status === 400 && /model|not found|not supported|unknown/i.test(e.message))){ badModels.add(m); break; }      // modello che non c'è: il prossimo
-            if(e.status === 429 && !e.perDay && tries < 3){ const w = Math.min(60000, Math.max(1500, e.retryMs || 4000 * (tries + 1))); if(onWait) onWait(Math.ceil(w / 1000)); await sleep(w + 300); continue; }      // v251: «aspetta N secondi» = aspetto (massimo 60 s, conto alla rovescia sul tasto) e riprovo Gemini. In v250 passavo subito alla voce di riserva e Gemini risultava «non disponibile»
-            if(e.status === 429){ dayOut[m] = today; break; }                        // quota del giorno di questo modello: il prossimo
-            if((e.status === -1 || e.status >= 500 || e.status === 0) && tries < 2){ if(onWait) onWait(2); await sleep(1500 * (tries + 1)); continue; }   // rete o Google occupato: riprovo
-            break;
+      for(let round = 0; round < 3; round++){
+        const order = MODELS.filter(([m])=> !badModels.has(m) && dayOut[m] !== today).sort((x, y)=> (y[0] === ok) - (x[0] === ok));
+        if(!order.length) break;
+        const now = Date.now(), ready = order.filter(([m])=> !(coolUntil[m] > now));
+        if(!ready.length){
+          const w = Math.min(60000, Math.max(1000, Math.min(...order.map(([m])=> coolUntil[m])) - now));
+          if(onWait) onWait(Math.ceil(w / 1000)); await sleep(w + 300);
+          if(stopped()) throw Object.assign(new Error('fermato'), {stopped: true});
+          continue;
+        }
+        for(const [m, kind] of ready){
+          for(let tries = 0; tries < 3; tries++){
+            if(stopped()) throw Object.assign(new Error('fermato'), {stopped: true});
+            try{
+              const blob = await callModel(m, kind, text, voice);
+              ls.set(OK_K, m); ls.set(ERR_K, ''); delete coolUntil[m];
+              try{ if(c) await c.put(key, new Response(blob, {headers: {'content-type': blob.type}})); }catch(e){}
+              return blob;
+            }catch(e){
+              last = e;
+              if(e.status === 401 || e.status === 403 || (e.status === 400 && /api key/i.test(e.message))){ ls.set(ERR_K, 'la chiave Gemini non è valida'); e.fatal = true; throw e; }
+              if(e.status === 404 || (e.status === 400 && /model|not found|not supported|unknown/i.test(e.message))){ badModels.add(m); break; }      // modello che non c'è: il prossimo
+              if(e.status === 429 && e.perDay){ markDay(m); break; }                    // quota del giorno di questo modello: il prossimo
+              if(e.status === 429){ const w = Math.max(1500, e.retryMs || 4000 * (tries + 1)); if(w <= 6000 && tries < 2){ if(onWait) onWait(Math.ceil(w / 1000)); await sleep(w + 300); continue; } coolUntil[m] = Date.now() + w; break; }      // attesa lunga: provo subito un altro modello
+              if((e.status === -1 || e.status >= 500 || e.status === 0) && tries < 2){ if(onWait) onWait(2); await sleep(1500 * (tries + 1)); continue; }   // rete o Google occupato: riprovo
+              break;
+            }
           }
         }
       }
-      ls.set(ERR_K, last && last.status === 429 ? (last.perDay ? 'oggi la quota gratuita della voce Gemini è finita su tutti i modelli (torna domani)' : 'Gemini è occupato in questo momento') : 'Gemini non risponde (' + (last && last.message || 'errore') + ')');
+      const allDay = MODELS.every(([m])=> badModels.has(m) || dayOut[m] === today);
+      ls.set(ERR_K, allDay && MODELS.some(([m])=> dayOut[m] === today) ? 'oggi la quota gratuita della voce Gemini è finita su tutti i modelli (torna domani)' : last && last.status === 429 ? 'Gemini è occupato in questo momento' : 'Gemini non risponde (' + (last && last.message || 'errore') + ')');
       throw last || new Error('tts');
     });
   }
