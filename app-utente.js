@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v231', date:'2026-10-02', time:'13:15', items:[
+    'Il «flash» di icone e locandina appena aperto un gioco: nel video si vede che, finito il movimento, per 2 fotogrammi la scheda diventava vuota (locandina a metà). Il telefono la ridisegnava da zero perché a fine animazione il programma toglieva lo «strato pronto per muoversi». Ora quello strato resta sempre: niente più ridisegno né fotogrammi vuoti (aiuta anche la chiusura).',
+  ]},
   {version:'v230', date:'2026-10-02', time:'13:03', items:[
     'Apertura dei giochi: nel nuovo video (85 fotogrammi al secondo) l\'apertura scattava ancora mentre la chiusura era fluida. Causa: la copia sfocata della copertina dietro la locandina e l\'ombra sulle foto del carosello venivano ricalcolate a ogni fotogramma mentre la scheda si ingrandiva. Ora durante il movimento la sfocatura non c\'è (compare in dissolvenza subito dopo) e le foto del carosello non hanno più quell\'ombra pesante.',
   ]},

@@ -143,8 +143,8 @@
     const id = animId(); if(!box) box = card.getBoundingClientRect();
     const fx = openFx(id, T, box); if(!fx){ card.classList.remove('rt-opening'); return; }
     if(fx.origin) card.style.transformOrigin = (T ? Math.round(T.x - box.left) : box.width / 2) + 'px ' + (T ? Math.round(T.y - box.top) : box.height * .6) + 'px';
-    card.style.willChange = 'transform, opacity'; card.classList.add('rt-opening'); if(fx.round) card.classList.add('rt-an-round');
-    const done = ()=>{ card.style.transformOrigin = ''; card.style.willChange = ''; card.classList.remove('rt-an-round', 'rt-opening'); };
+    card.classList.add('rt-opening');      // v231: will-change resta fisso nel CSS (toglierlo a fine animazione faceva ridisegnare la scheda da zero: 2 fotogrammi vuoti) if(fx.round) card.classList.add('rt-an-round');
+    const done = ()=>{ card.style.transformOrigin = ''; card.classList.remove('rt-an-round', 'rt-opening'); };
     try{ card.animate(fx.kf, {duration: fx.dur / cardSpd(), easing: fx.ease}).finished.then(done, done); }catch(e){ done(); }
   }
   // cambio sezione (Classifica, Novità…): il pannello nuovo compare già visibile (parte da metà opacità: nessun ritardo percepito)
