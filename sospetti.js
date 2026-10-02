@@ -103,7 +103,7 @@
           ${c.score != null ? `<div class="gm-score"><span class="badge ${typeof TIER_LABEL !== 'undefined' ? (TIER_LABEL[c.tier] || '') : ''}">${esc(c.tier || '')}</span> <b>${c.score}</b>/100 ${c.m === 'V' ? '✔ verificato' + (c.vs ? ' (' + esc(c.vs) + ')' : '') : '<small>stima, non verificato</small>'}</div>` : ''}
           ${s ? `<div class="gm-warn">${KIND[s.k]}: ${esc(s.r)}</div>` : ''}
           <div class="gm-chips" id="gmChips"><span class="gm-chip">⏳ chiedo a Steam…</span></div></div></div>
-      <div class="gm-shots" id="gmShots"></div>
+      <div class="gm-shots" id="gmShots"><div class="gm-shot gm-sk"></div><div class="gm-shot gm-sk"></div></div>
       <div class="gm-desc" id="gmDesc">${c.fitIf ? '<b>Potrebbe piacerti perché</b> ' + esc(c.fitIf) : ''}</div>
       <div class="gm-links">${links.map(l=> `<a class="novita-link-btn" href="${l[1]}" target="_blank" rel="noopener">${l[0]}</a>`).join('')}<span id="gmSteam"></span></div>
       ${acts.like || acts.nope || acts.restore ? `<div class="gm-acts">${acts.nope ? '<button class="btn" data-gm="nope">✕ Non fa per me</button>' : ''}${acts.restore ? '<button class="btn" data-gm="restore">♻️ Rimetti tra le proposte</button>' : ''}${acts.like ? '<button class="btn primary" data-gm="like">♥ Aggiungi alla libreria</button>' : ''}</div>` : ''}

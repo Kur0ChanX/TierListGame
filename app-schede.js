@@ -785,7 +785,12 @@ function openModal(g){
   finally{ if(lite && g.enrich && g.enrich._lite) g.enrich = lite; }
 }
 function openModalBody(g){
+  // v249: ridisegno della stessa scheda (voto, stato, preferito…): la scheda resta dov'era invece di tornare in cima
+  const keepY = (modalBackdrop.classList.contains('show') && currentModalGame && g && currentModalGame.id === g.id) ? modalCard.scrollTop : 0;
   currentModalGame = g;
+  if(keepY > 0){ modalCard._keepY = keepY; modalCard._keepUntil = performance.now() + 900; modalCard._sy = keepY;
+    const back = ()=>{ if(currentModalGame === g && modalCard.scrollTop < keepY - 4) modalCard.scrollTop = keepY; };
+    Promise.resolve().then(back); requestAnimationFrame(back); setTimeout(back, 140); }
   // v209: testi lunghi non ancora arrivati (catalogo a pezzi)? apro subito con l'indice e, appena arrivano, aggiorno la scheda
   try{ if(window.rtTexts && !rtTexts.has(g)){ const id = g.id; rtTexts.ensure(g).then(()=> new Promise(r=> setTimeout(r, Math.max(0, (window.__rtOpenUntil || 0) - performance.now()) + 30))).then(()=>{ if(currentModalGame && currentModalGame.id === id && modalBackdrop.classList.contains('show') && rtTexts.has(currentModalGame)){ const y = modalCard.scrollTop; openModal(GAMES.find(x=> x.id === id) || currentModalGame); modalCard.scrollTop = y; } }); } }catch(e){}
   modalCard.classList.remove('wide');

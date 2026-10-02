@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v249', date:'2026-10-03', time:'00:19', items:[
+    'Nuovo tasto grande «🎮 Sto giocando ora» in ogni scheda: apre la Modalità gioco con tutti gli aiuti in un posto solo. Domanda a voce, foto dello schermo («capisco dove sei»), indizio/strategia/soluzione, passo passo da spuntare, «Dove eravamo?» per riprendere, equipaggiamento consigliato, cose da non perdere, appunti, tempo di gioco e link rapidi (video guida, soluzione, mappa, wiki, trofei). Le risposte si possono ascoltare.',
+    'Voce: se una voce non funziona la lettura non si ferma più, continua con la successiva (Google Traduttore, poi il telefono). Google Traduttore ora funziona di nuovo. Messaggio chiaro quando la chiave Gemini non vale per Google Cloud.',
+    'Previsione del voto più grande e colorata, in cima a «Per te». Toccando un voto (o un preferito, uno stato…) la scheda resta dov\'era invece di tornare su.',
+    'La barra «Per te / Il gioco / Altro» sta subito sotto il titolo: si vede appena apri la scheda e poi resta ferma in alto.',
+    'Musica: se la fermi resta ferma (anche aprendo altri giochi o tornando in home) finché non premi ▶.',
+    'Novità: passaggio morbido tra un gioco e l\'altro, niente più tremolio quando arriva il voto vero, la pagina sotto non salta più, i generi restano al loro posto; gli avvisi arrivano uno dopo l\'altro invece di sovrapporsi; «Guarda meglio» si apre già in alto senza saltare.'
+  ]},
   {version:'v248', date:'2026-10-02', time:'23:04', items:[
     'Trame riscritte (parte 5, fine): anche gli ultimi 165 giochi, compresi i grandi classici (Final Fantasy, Chrono Trigger, Persona, Xenoblade, Dragon Quest), hanno la presentazione nuova senza spoiler. Ora tutte le 765 trame dei giochi di base sono riscritte.'
   ]},
