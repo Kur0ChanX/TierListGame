@@ -1,7 +1,7 @@
 // ---- Musica e suoni (v135) ----
-// 21) Colonne sonore: entrando in un gioco parte la sua colonna sonora (YouTube). Play/Stop valgono OVUNQUE e restano in memoria:
-//     se è su Play, ogni gioco che apri suona da solo; se la fermi, non parte più finché non premi Play. Puoi scegliere un altro brano.
-//     I brani vengono da ost.js (preparato ogni settimana su GitHub, anche per i giochi aggiunti); se mancano li cerco al volo con tre tentativi
+// 21) Colonne sonore: entrando in un titolo parte la sua colonna sonora (YouTube). Play/Stop valgono OVUNQUE e restano in memoria:
+//     se è su Play, ogni titolo che apri suona da solo; se la fermi, non parte più finché non premi Play. Puoi scegliere un altro brano.
+//     I brani vengono da ost.js (preparato ogni settimana su GitHub, anche per i titoli aggiunti); se mancano li cerco al volo con tre tentativi
 //     («nome OST music» → «nome soundtrack» → «nome playlist complete music») e col tasto 🔎 puoi cercare tu con altre parole.
 //     Il player sta in un punto fisso della pagina (sotto la barra di ricerca): non ti segue, non copre nulla e sparisce quando è aperta una scheda.
 // 22) Suoni dell'interfaccia: 15 temi sintetizzati nel telefono (nessun file da scaricare), spenti di default, scegli tu tema e volume.
@@ -70,7 +70,7 @@
     if(th.noise && ['tap', 'nav', 'open', 'close'].includes(ev)){ noise(ev === 'open' ? .05 : .025, 0, .12, ev === 'close' ? 800 : 2500); return; }
     (th[ev] || th.tap || []).forEach(n=> tone(n, th.w));
   };
-  // agganci: tocchi sui pulsanti, cambio vista, apertura/chiusura scheda, preferiti, giochi aggiunti, traguardi
+  // agganci: tocchi sui pulsanti, cambio vista, apertura/chiusura scheda, preferiti, titoli aggiunti, traguardi
   document.addEventListener('pointerdown', e=>{ if(theme() === 'off') return; const b = e.target.closest && e.target.closest('button, .btn, a.btn, .view-tab, .list-chip, .qf-chip, .tagchip, .genre-chip, td.fav, summary'); if(!b) return; rtSfx(b.classList.contains('view-tab') ? 'nav' : 'tap'); }, true);
   if(typeof window.showToast === 'function'){ const o = window.showToast; window.showToast = function(m){ try{ const t = String(m || ''); if(/aggiunto ai preferiti/i.test(t)) rtSfx('fav'); else if(/traguardo|completato|aggiunt[io] alla/i.test(t)) rtSfx('success'); else if(/non (sono riuscito|riesco)|errore/i.test(t)) rtSfx('error'); }catch(e){} return o.apply(this, arguments); }; try{ showToast = window.showToast; }catch(e){} }
   if(typeof window.showAddedBanner === 'function'){ const o = window.showAddedBanner; window.showAddedBanner = function(){ rtSfx('success'); return o.apply(this, arguments); }; try{ showAddedBanner = window.showAddedBanner; }catch(e){} }
@@ -79,7 +79,7 @@
   // 21) COLONNE SONORE
   // =====================================================================
   const ON = ()=> LS.get('atl_music', 'off') === 'on';
-  // v218: DUE interruttori «Auto play» separati. Scheda: apro un gioco → parte da sola la sua colonna sonora. Player in home: finito un brano → parte il successivo.
+  // v218: DUE interruttori «Auto play» separati. Scheda: apro un titolo → parte da sola la sua colonna sonora. Player in home: finito un brano → parte il successivo.
   // (chi aveva già la musica accesa mantiene l'Auto play della scheda acceso)
   const apCard = ()=>{ const v = LS.get('atl_ap_card', null); return v == null ? ON() : v === 'on'; };
   const apHome = ()=> LS.get('atl_ap_home', 'on') !== 'off';
@@ -192,7 +192,7 @@
   }
   function paintBar(){ const mb = document.getElementById('mzBar'); if(mb && typeof currentModalGame !== 'undefined' && currentModalGame){ const l0 = mb.querySelector('.mz2-list'), open = !!(l0 && !l0.hidden), m0 = mb.querySelector('.mz2-more'), mopen = !!(m0 && !m0.hidden); mb.outerHTML = barHtml(currentModalGame); wireBar(currentModalGame); if(open){ const l = document.querySelector('#mzBar .mz2-list'); if(l) l.hidden = false; } if(mopen){ const m = document.querySelector('#mzBar .mz2-more'); if(m){ m.hidden = false; const mb2 = document.querySelector('#mzBar [data-mz="more"]'); if(mb2) mb2.setAttribute('aria-expanded', 'true'); } } } }
   // ---- ricerca su YouTube: tre tentativi in ordine («triade») e, a mano, con le parole che vuoi ----
-  const FIRST = 'atl_ost_first';        // v227: brano da cui partire sempre (per gioco), scelto da te
+  const FIRST = 'atl_ost_first';        // v227: brano da cui partire sempre (per titolo), scelto da te
   const USER = 'art_ost_user', MISS = 'art_ost_miss2', LIVE = 'art_ost_live2', STAT = {};      // v220: chiavi nuove: le ricerche vecchie potevano avere la versione sbagliata (es. Remake al posto dell'originale)
   try{ ['art_ost_ia2', 'art_ost_live', 'art_ost_miss'].forEach(k=>{ if(localStorage.getItem(k) != null) localStorage.removeItem(k); }); }catch(e){}
   const cleanN = n=> String(n).replace(/\s*\([^)]*\)/g, '').trim();
@@ -203,11 +203,11 @@
   const namesGame0 = (title, name)=>{ const t = ' ' + normT(title) + ' ', w = tokensOf(name); if(!w.length) return true; return w.filter(x=> t.includes(' ' + x)).length >= Math.max(1, Math.ceil(w.length / 2)); };
   // non deve essere un altro capitolo: «Final Fantasy X-2» non è «Final Fantasy X», «Kingdom Hearts II» non è «Kingdom Hearts»
   // v220: deve essere proprio QUESTA versione del gioco. «Final Fantasy VII» (1997) non è «Final Fantasy VII Remake», «Rebirth», «Crisis Core», «Dirge of Cerberus», «Advent Children»…;
-  // e un Remake non deve prendere la colonna sonora dell'originale. Si guarda: il nome, altri giochi del tuo catalogo che iniziano con lo stesso nome, l'anno scritto nel titolo.
+  // e un Remake non deve prendere la colonna sonora dell'originale. Si guarda: il nome, altri titoli del tuo catalogo che iniziano con lo stesso nome, l'anno scritto nel titolo.
   const OTHERVER = /\b(remake|rebirth|reunion|intergrade|reboot|reimagined|crisis core|dirge of cerberus|before crisis|advent children|ever crisis|first soldier|machinaria|ex ?soldier|world of final fantasy)\b/g;
   const yearsOf = g=> String((g && g.year) || '').match(/(?:19|20)\d\d/g) || [];
   const SIB = new Map();
-  const siblingsOf = g=>{                                              // nomi (normalizzati) di altri giochi del catalogo che iniziano col nome di questo, ma sono più lunghi
+  const siblingsOf = g=>{                                              // nomi (normalizzati) di altri titoli del catalogo che iniziano col nome di questo, ma sono più lunghi
     if(!g) return []; const k = g.id + '|' + g.name; if(SIB.has(k)) return SIB.get(k);
     const n = normT(cleanN(g.name)), out = [];
     try{ (typeof GAMES !== 'undefined' ? GAMES : []).forEach(x=>{ if(x.id === g.id) return; const m = normT(cleanN(x.name)); if(m.length > n.length + 2 && m.indexOf(n + ' ') === 0) out.push(m); }); }catch(e){}
@@ -222,7 +222,7 @@
     const theirs = (t.match(OTHERVER) || []);
     if(theirs.some(w=> !mine.has(w))) return false;                    // il titolo parla di un'altra versione (Remake, Rebirth, Crisis Core…)
     if([...mine].some(w=> !theirs.includes(w))) return false;           // io sono un Remake/Rebirth…: il titolo deve dirlo (non l'originale)
-    if(g){ const sib = siblingsOf(g); if(sib.some(m=> t.includes(m))) return false; }     // contiene il nome di un altro mio gioco più «lungo» (stessa serie)
+    if(g){ const sib = siblingsOf(g); if(sib.some(m=> t.includes(m))) return false; }     // contiene il nome di un altro mio titolo più «lungo» (stessa serie)
     const ys = yearsOf(g);
     if(ys.length){ const ty = (t.match(/\b(?:19|20)\d\d\b/g) || []).map(Number).filter(y=> y >= 1985 && y <= 2035); if(ty.length && !ty.some(y=> ys.some(z=> Math.abs(y - +z) <= 3))) return false; }     // anno nel titolo lontano dal mio
     if(i < 0) return true;
@@ -244,7 +244,7 @@
     (function walk(o){ if(!o || typeof o !== 'object' || out.length >= 20) return; if(o.videoRenderer && o.videoRenderer.videoId){ const v = o.videoRenderer; out.push([v.videoId, ((v.title && v.title.runs && v.title.runs[0] && v.title.runs[0].text) || '').slice(0, 70), (v.lengthText && v.lengthText.simpleText) || '', +String((v.viewCountText && (v.viewCountText.simpleText || (v.viewCountText.runs || []).map(r=> r.text).join(''))) || '').replace(/[^0-9]/g, '') || 0]); return; } for(const k in o) walk(o[k]); })(data);
     return out;
   };
-  // tiene i brani veri: titolo giusto, nome del gioco, non reazioni/gameplay; prima le raccolte lunghe
+  // tiene i brani veri: titolo giusto, nome del titolo, non reazioni/gameplay; prima le raccolte lunghe
   const pickTracks = (list, name, g)=> list.filter(v=> /ost|soundtrack|music|theme|bgm|score|original|playlist|album/i.test(v[1]) && !BAD.test(v[1]) && secsOf(v[2]) >= 60 && namesGame(v[1], name, g))
     .sort((a, b)=> (secsOf(b[2]) > 1800) - (secsOf(a[2]) > 1800)).slice(0, 5);
   const searchYT = async q=> parseYT(await SearchHub.text('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), {timeout: 15000}));
@@ -291,7 +291,7 @@
   async function tracksFor(g){
     const u = (LS.get(USER, {}) || {})[g.id]; if(u && u.length) return u;                      // scelto da te (🔎 o 🔁): bloccato, nessun aggiornamento lo cambia
     if(LS.get(SRC, 'ia') === 'ia'){ setStat(g.id, 'Cerco l\'album senza pubblicità…'); const a = await iaAlbum(g); setStat(g.id, ''); if(a && a.l && a.l.length) return a.l; }
-    // v211: solo il pezzo del gioco (dati/notte-ost-K.js); il file intero ost.js solo se i pezzi non ci sono
+    // v211: solo il pezzo del titolo (dati/notte-ost-K.js); il file intero ost.js solo se i pezzi non ci sono
     if(window.rtNight) await rtNight.ensure('ost', g.id);
     else { if(!ostP) ostP = load('ost.js').catch(()=>{}); await ostP; }
     let t = (typeof OST !== 'undefined' && OST.games && OST.games[g.id]) || null;
@@ -305,7 +305,7 @@
     }
     miss[g.id] = Date.now(); LS.set(MISS, miss); setStat(g.id, ''); return [];
   }
-  // 🔎 ricerca a mano: scrivi tu le parole, scegli il brano giusto e resta salvato per quel gioco
+  // 🔎 ricerca a mano: scrivi tu le parole, scegli il brano giusto e resta salvato per quel titolo
   function openFind(g){
     const nm = cleanN(g.name);
     const body = sheet('xOstFind', '🔎 Cerca la colonna sonora', `<div class="lp-sub">Cerca su YouTube con le parole che vuoi. Il brano che scegli resta salvato per questo gioco.</div>
@@ -332,8 +332,8 @@
   }
   // 🔁 cambia il brano che sta suonando con un'alternativa (dallo stesso album senza pubblicità o da YouTube); la scelta resta bloccata 🔒
   async function openSwap(g){
-    if(!(cur.id === g.id && cur.list.length)){ toast('Fai partire la musica di questo gioco, poi cambia il brano', 2500); return; }
-    const body = sheet('xOstSwap', '🔁 Cambia questo brano', `<div class="lp-sub">Sta suonando: <b>${esc(cur.list[cur.i][1])}</b>. Scegli quello che preferisci: prende il suo posto e resta salvato 🔒 per questo gioco (nessun aggiornamento lo cambia).</div><div id="swRes" class="lp-sub">Cerco le alternative…</div>
+    if(!(cur.id === g.id && cur.list.length)){ toast('Fai partire la musica di questo titolo, poi cambia il brano', 2500); return; }
+    const body = sheet('xOstSwap', '🔁 Cambia questo brano', `<div class="lp-sub">Sta suonando: <b>${esc(cur.list[cur.i][1])}</b>. Scegli quello che preferisci: prende il suo posto e resta salvato 🔒 per questo titolo (nessun aggiornamento lo cambia).</div><div id="swRes" class="lp-sub">Cerco le alternative…</div>
       <div class="lp-tools"><button class="btn" id="swAuto" type="button">↩️ Torna alla scelta automatica</button></div>`);
     body.querySelector('#swAuto').addEventListener('click', ()=>{ const u = LS.get(USER, {}) || {}; delete u[g.id]; LS.set(USER, u); const sh = document.getElementById('xOstSwap'); if(sh) sh.classList.remove('show'); cur = {id: null, list: [], i: 0, playing: false}; playFor(g, true); toast('Brani di nuovo automatici', 2000); });
     const inList = new Set(cur.list.map(x=> x[0])), alts = [];
@@ -386,7 +386,7 @@
   function stopAll(){ try{ yt && yt.stopVideo(); }catch(e){} try{ au && au.pause(); }catch(e){} cur.playing = false; paint(); toast('Brano fermo: premi ▶ per farlo ripartire', 2200); }
   function ensure(g){ try{ if(!g || !apCard()) return; if(cur.id === g.id && cur.list.length && cur.playing) return; playFor(g, true); }catch(e){} }
   window.rtMusic = {duck, ensure, vol: baseVol, playFor, stop: stopAll, on: ON, dock, _test: {namesGame, queriesFor}};      // _test: per i controlli automatici
-  // barra nella scheda del gioco
+  // barra nella scheda del titolo
   // ---- lettore nella scheda (v198): titolo grande, album/fonte, barra di avanzamento toccabile, ⏮ ⏯ ⏭, elenco dei brani, 🔁 cambia, 🔎 cerca ----
   const albumOf = g=>{ try{ const e = (LS.get(IA, {}) || {})[g.id]; return e && e.album ? e.album : ''; }catch(e){ return ''; } };
   function barHtml(g){
@@ -401,7 +401,7 @@
       <div class="mz2-top"><div class="mz2-art${playing ? ' spin' : ''}">🎵</div><div class="mz2-info"><b class="mz2-title">${t ? esc(t[1]) : 'Colonna sonora'}</b><small>${t ? esc(src) + ' · ' + (cur.i + 1) + '/' + cur.list.length + (locked ? ' · 🔒 scelti da te' : '') : esc(status)}</small></div>
         <div class="mz2-ctl mz2-main"><button type="button" data-mz="prev" title="Brano precedente" aria-label="Precedente">⏮</button><button type="button" class="mz2-play" data-mz="play" aria-label="Play o pausa">${playing ? '❚❚' : '▶'}</button><button type="button" data-mz="next" title="Brano successivo" aria-label="Successivo">⏭</button><button type="button" data-mz="more" title="Altri comandi" aria-label="Altri comandi" aria-expanded="false">⋯</button></div></div>
       ${mine ? `<div class="mz2-prog"><span class="mz2-cur">0:00</span><div class="mz2-pb" data-mz="seek"><i></i></div><span class="mz2-dur">${esc(t[2] || '')}</span></div>` : ''}
-      <div class="mz2-more" hidden><div class="mz2-ctl mz2-sec"><button type="button" data-mz="list" title="Elenco dei brani" aria-label="Elenco">☰</button><button type="button" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato 🔒)" aria-label="Cambia brano">🔁</button><button type="button" data-mz="find" title="Cerca con parole tue" aria-label="Cerca">🔎</button><button type="button" class="mz2-ap${apCard() ? ' on' : ''}" data-mz="ap" title="Auto play: aprendo un gioco la sua musica parte da sola" aria-label="Auto play" aria-pressed="${apCard()}">Auto</button><button type="button" data-mz="stop" title="Ferma il brano" aria-label="Ferma">■</button><button type="button" class="mz2-ul${locked ? ' on' : ''}" data-mz="ulock" title="${locked ? 'Brani bloccati: tocca per sbloccarli (torneranno gli aggiornamenti automatici)' : 'Blocca questi brani: nessun aggiornamento automatico li cambierà'}" aria-label="${locked ? 'Sblocca i brani' : 'Blocca i brani'}">${locked ? '🔒' : '🔓'}</button></div>
+      <div class="mz2-more" hidden><div class="mz2-ctl mz2-sec"><button type="button" data-mz="list" title="Elenco dei brani" aria-label="Elenco">☰</button><button type="button" data-mz="swap" title="Questo brano non mi piace: cambialo (poi resta bloccato 🔒)" aria-label="Cambia brano">🔁</button><button type="button" data-mz="find" title="Cerca con parole tue" aria-label="Cerca">🔎</button><button type="button" class="mz2-ap${apCard() ? ' on' : ''}" data-mz="ap" title="Auto play: aprendo un titolo la sua musica parte da sola" aria-label="Auto play" aria-pressed="${apCard()}">Auto</button><button type="button" data-mz="stop" title="Ferma il brano" aria-label="Ferma">■</button><button type="button" class="mz2-ul${locked ? ' on' : ''}" data-mz="ulock" title="${locked ? 'Brani bloccati: tocca per sbloccarli (torneranno gli aggiornamenti automatici)' : 'Blocca questi brani: nessun aggiornamento automatico li cambierà'}" aria-label="${locked ? 'Sblocca i brani' : 'Blocca i brani'}">${locked ? '🔒' : '🔓'}</button></div>
         <div class="mz2-volrow"><span aria-hidden="true">🔈</span><input type="range" class="mz2-vol" data-mz="vol" min="0" max="100" step="5" value="${vv}" ${vl ? 'disabled' : ''} aria-label="Volume della musica"><b class="mz2-vv">${vv}%</b><button type="button" class="mz2-vl${vl ? ' on' : ''}" data-mz="vlock" aria-label="${vl ? 'Sblocca il volume' : 'Blocca il volume'}" title="${vl ? 'Volume bloccato: tocca per modificarlo' : 'Blocca il volume scelto'}">${vl ? '🔒' : '🔓'}</button></div></div>
       ${list}</div>`;
   }
@@ -439,7 +439,7 @@
       else if(m === 'vlock'){ const on = !LS.get(VOLL, false); LS.set(VOLL, on); const r = b.querySelector('.mz2-vol'); if(r) r.disabled = on; x.classList.toggle('on', on); x.textContent = on ? '🔒' : '🔓'; x.setAttribute('aria-label', on ? 'Sblocca il volume' : 'Blocca il volume'); toast(on ? 'Volume bloccato 🔒: resta così anche riaprendo l\'app' : 'Volume sbloccato: puoi modificarlo', 2200); }
       else if(m === 'vol'){ }
       else if(m === 'stop') stopAll();
-      else if(m === 'ap'){ LS.set('atl_ap_card', apCard() ? 'off' : 'on'); x.classList.toggle('on', apCard()); x.setAttribute('aria-pressed', apCard() ? 'true' : 'false'); toast(apCard() ? 'Auto play acceso: aprendo un gioco la sua musica parte da sola' : 'Auto play spento: la musica parte solo se premi ▶', 2600); const st = b.querySelector('.mz2-info small'); }
+      else if(m === 'ap'){ LS.set('atl_ap_card', apCard() ? 'off' : 'on'); x.classList.toggle('on', apCard()); x.setAttribute('aria-pressed', apCard() ? 'true' : 'false'); toast(apCard() ? 'Auto play acceso: aprendo un titolo la sua musica parte da sola' : 'Auto play spento: la musica parte solo se premi ▶', 2600); const st = b.querySelector('.mz2-info small'); }
       else if(m === 'prev'){ if(mine) prev(); }
       else if(m === 'next'){ if(mine) next(); else { playFor(g, true); } } });
     const vr = b.querySelector('.mz2-vol');
@@ -478,7 +478,7 @@
   function openSound(){
     const cur0 = theme(), vol = sfxVol();
     const body = sheet('xSound', gi('pad') + ' Suoni e musica', `<div class="lp-sub">Suoni dei pulsanti creati nel telefono (nessun download). Scegli un tema: toccalo per sentirlo.</div>
-      <label class="ask-toggle"><input type="checkbox" id="muOn" ${apCard() ? 'checked' : ''}> ${gi('play')} Auto play della scheda: aprendo un gioco parte la sua colonna sonora</label>
+      <label class="ask-toggle"><input type="checkbox" id="muOn" ${apCard() ? 'checked' : ''}> ${gi('play')} Auto play della scheda: aprendo un titolo parte la sua colonna sonora</label>
       <label class="ask-toggle"><input type="checkbox" id="muHome" ${apHome() ? 'checked' : ''}> Auto play del player in home: finito un brano parte il successivo</label>
       <label class="ask-toggle"><input type="checkbox" id="muIA" ${LS.get(SRC, 'ia') === 'ia' ? 'checked' : ''}> 🚫📢 Prima le colonne sonore SENZA pubblicità (album completi su Internet Archive); YouTube solo se l'album non c'è</label>
       <label class="gs-row">Volume dei suoni <input type="range" min="0" max="1" step="0.05" value="${vol}" id="sfxVol"></label>

@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'a6', date:'2026-10-02', time:'18:23', items:[
+    'Scheda ripulita dai videogiochi: «Visto/Letto», «Da vedere/leggere», «Lo rivedrei», «Lo amo»; linguetta «L\'opera»; impegno e filler al posto di difficoltà e grinding',
+    'Al posto del verdetto d\'acquisto: «Vale la pena?» (da vedere subito, mettilo in lista, non urgente, lascia stare), senza prezzi',
+    'Al posto di «Prima di comprarlo»: «Dove guardarlo» (JustWatch e i tuoi servizi di streaming) o «Dove leggerlo» (volumi ed edizione italiana)',
+    'Guida «Come iniziare» con ordine di visione o lettura e cosa saltare; compagno di visione/lettura senza spoiler; «Quale versione guardare/leggere?»',
+    'Trailer ITA, immagini, dietro le quinte (regista, staff, autore) e link al voto su AniList o IMDb al posto di gameplay, sviluppatori e Metacritic'
+  ]},
   {version:'a5', date:'2026-10-02', time:'17:54', items:[
     'Chiedi e Novità parlano di anime, manga e film (non più di videogiochi): istruzioni, schede da compilare, esempi e recensioni da siti italiani di anime e manga',
     'Nuove fonti per trovare titoli: AniList, MyAnimeList e Reddit (discussioni su anime e manga); il voto verificato ora arriva da AniList',
@@ -166,7 +173,7 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && profileBackdr
 // ---- Export / import dati personali ----
 // Rete di sicurezza indipendente dal database cloud: un file scaricabile con tutto quello che
 // oggi vive solo su questo dispositivo/browser (preferiti, stati, la tua tier list, abbonamenti,
-// scartati di Novità). I giochi aggiunti tramite Novità/Chiedi a Claude sono già al sicuro nel
+// scartati di Novità). I titoli aggiunti tramite Novità/Chiedi a Claude sono già al sicuro nel
 // database cloud del tuo account: qui li includiamo solo come istantanea leggibile, non li
 // tocchiamo mai in fase di importazione, per non rischiare doppioni o conflitti.
 document.getElementById('exportDataBtn').addEventListener('click', async ()=>{
@@ -387,7 +394,7 @@ function askToolSearchGames(input){
 function askToolGetGameDetails(input){
   const id = parseInt(input && input.id, 10);
   const g = GAMES.find(x=>x.id===id);
-  if(!g) return {error: 'Nessun gioco con id ' + id + ' nel database.'};
+  if(!g) return {error: 'Nessun titolo con id ' + id + ' nel database.'};
   const profile = buildTasteProfile();
   const dna = dnaForGame(g, profile);
   return {
@@ -424,13 +431,13 @@ function askToolGetTasteProfile(){
     droppedGames: dropped.slice(0,10).map(g=>({id:g.id, name:g.name})),
     topTags,
     avgLikedScore: liked.length ? Math.round(profile.avgScore) : null,
-    note: profile.n < 2 ? 'Mario non ha ancora segnato abbastanza giochi come preferiti/giocati per calcolare un profilo affidabile.' : null
+    note: profile.n < 2 ? 'Mario non ha ancora segnato abbastanza titoli come preferiti/visti per calcolare un profilo affidabile.' : null
   };
 }
 function askToolSetFavorite(input){
   const id = parseInt(input && input.id, 10);
   const g = GAMES.find(x=>x.id===id);
-  if(!g) throw new Error('id gioco non trovato: ' + id);
+  if(!g) throw new Error('id titolo non trovato: ' + id);
   const value = (input.value===undefined || input.value===null) ? !FAVS.has(id) : !!input.value;
   if(value) FAVS.add(id); else FAVS.delete(id);
   saveFavs(); renderMetrics(); render();
@@ -441,7 +448,7 @@ function askToolSetFavorite(input){
 function askToolSetStatus(input){
   const id = parseInt(input && input.id, 10);
   const g = GAMES.find(x=>x.id===id);
-  if(!g) throw new Error('id gioco non trovato: ' + id);
+  if(!g) throw new Error('id titolo non trovato: ' + id);
   let status = input.status ? String(input.status).trim() : '';
   const valid = ['played','playing','backlog','dropped'];
   if(status && !valid.includes(status)) throw new Error('status non valido, usa uno tra: ' + valid.join(', ') + ' oppure stringa vuota per rimuovere lo stato');
@@ -456,7 +463,7 @@ let ASK_LOG_LOCAL = [];
 try{ const s = localStorage.getItem('atl_ask_requests'); if(s) ASK_LOG_LOCAL = JSON.parse(s); }catch(e){ ASK_LOG_LOCAL = []; }
 function askToolLogMissingGame(input){
   const name = String((input && input.name) || '').trim();
-  if(!name) throw new Error('serve il nome del gioco da registrare');
+  if(!name) throw new Error('serve il nome del titolo da registrare');
   const entry = {
     name,
     plat: input.plat ? String(input.plat) : null,

@@ -1,12 +1,12 @@
 // ---- Il CERVELLO dei tuoi gusti (v203) ----
-// Un solo posto che raccoglie TUTTO quello che dici di un gioco e impara nel tempo, come un cervello che cresce:
+// Un solo posto che raccoglie TUTTO quello che dici di un titolo e impara nel tempo, come un cervello che cresce:
 //  · la barra di icone sotto la locandina: ⭐ preferito · 😍 nel cuore · 👍 mi piace · 👎 non mi piace · 🚫 non è il mio genere
-//    · 💔 mi ha deluso · 🔁 lo rigiocherei · e lo stato (in corso, giocato, da giocare, mollato) — un solo posto, niente doppioni;
-//  · le tue valutazioni a 6 voci (da 1 a 10, a mezzi punti), diverse per ogni famiglia di giochi;
-//  · tutto entra nel modello dei gusti (extras3.js → Sintonia, giochi simili, consigli) con questi principi:
+//    · 💔 mi ha deluso · 🔁 lo rigiocherei · e lo stato (in corso, visto, da vedere, mollato) — un solo posto, niente doppioni;
+//  · le tue valutazioni a 6 voci (da 1 a 10, a mezzi punti), diverse per ogni famiglia di titoli;
+//  · tutto entra nel modello dei gusti (extras3.js → Sintonia, titoli simili, consigli) con questi principi:
 //    - le cose recenti pesano un po' di più (i gusti cambiano);
 //    - dalle valutazioni capisce QUALI voci contano davvero per te (es. «quando la storia è alta, il tuo voto sale sempre»);
-//    - «non è il mio genere» abbassa tutto il genere, «mi ha deluso» abbassa quel gioco senza punire il genere;
+//    - «non è il mio genere» abbassa tutto il genere, «mi ha deluso» abbassa quel titolo senza punire il genere;
 //    - ogni giorno salva una «fotografia» dei gusti, così può dirti cosa è cambiato.
 // Chiavi (si sincronizzano come le altre): atl_react {id:{k:1, t}}, atl_rate {id:{f, v:{voce: 1..10}, t}}, atl_brain_hist [{t, w}].
 (function(){
@@ -26,11 +26,11 @@
     {k: 'dislike',  ic: '👎', n: 'Non mi piace',        w: -1.6, off: ['like', 'replay']},
     {k: 'notgenre', ic: '🚫', n: 'Non è il mio genere', w: -1.1, off: []},
     {k: 'letdown',  ic: '💔', n: 'Mi ha deluso',        w: -1.0, off: ['replay']},
-    {k: 'replay',   ic: '🔁', n: 'Lo rigiocherei',      w: 1.5, off: ['dislike', 'letdown']}
+    {k: 'replay',   ic: '🔁', n: 'Lo rivedrei',      w: 1.5, off: ['dislike', 'letdown']}
   ];
   const RMAP = Object.fromEntries(REACT.map(r=> [r.k, r]));
   const reacts = ()=> LSG(RK, {}) || {};
-  // v208: lettura «solo per guardare» (niente JSON.parse se il testo non è cambiato): il modello la chiede per ogni gioco
+  // v208: lettura «solo per guardare» (niente JSON.parse se il testo non è cambiato): il modello la chiede per ogni titolo
   const RO = (k, d)=> window.rtLSro ? (rtLSro(k, d) || d) : (LSG(k, d) || d);
   const reactOf = g=> (g && reacts()[g.id]) || {};
   function setReact(g, k){
@@ -44,7 +44,7 @@
   // ---------------------------------------------------------------- valutazioni a 6 voci per famiglia
   // dim = cosa misura davvero la voce (uguale tra famiglie diverse), così il cervello impara anche da generi diversi
   const FAM = {
-    rpg:    {n: 'Giochi di ruolo', ic: '🗡️', v: [
+    rpg:    {n: 'Titoli di ruolo', ic: '🗡️', v: [
       ['combat', 'Combattimento e crescita', 'COMBAT', 'sistema di lotta, build, abilità, quanto è bello far crescere il party'],
       ['story', 'Storia e personaggi', 'STORY', 'trama, dialoghi, personaggi, quanto ti ha coinvolto'],
       ['music', 'Musica e sonoro', 'MUSIC', 'colonna sonora, temi dei boss, doppiaggio'],
@@ -101,7 +101,7 @@
       ['pace', 'Curva di difficoltà', 'PACE', 'impari piano piano, niente muri'],
       ['content', 'Varietà', 'CONTENT', 'quante idee diverse, quanto dura']]}
   };
-  // genere principale → famiglia (il catalogo è soprattutto di giochi di ruolo: nel dubbio «rpg»)
+  // genere principale → famiglia (il catalogo è soprattutto di titoli di ruolo: nel dubbio «rpg»)
   const TAGF = {FIGHT: 'action', BEAT: 'action', SPORTFIGHT: 'action', SHMUP: 'action', HNS: 'action',
     ADV: 'adv', ACTADV: 'adv', HOR: 'adv', STEALTH: 'adv', OPENW: 'adv', WALK: 'adv', SURV: 'adv',
     FPS: 'shooter', TPS: 'shooter', BR: 'shooter',
@@ -117,7 +117,7 @@
     for(const t of tg) if(TAGF[t]) return TAGF[t];
     return 'rpg';
   }
-  // dimensione → tratti del gioco collegati (per far contare le voci nella Sintonia)
+  // dimensione → tratti del titolo collegati (per far contare le voci nella Sintonia)
   const DIMF = {STORY: ['mech:STORY', 'mech:CHAR', 'mech:TWIST', 'storia:forte'], COMBAT: ['mech:COMBAT', 'mech:POWER', 'mech:HYPE'], MUSIC: ['mech:MUSIC'], EXPLORE: ['mech:JOURNEY', 'mech:WORLD'],
     ART: ['mech:ANIM', 'mech:ART', 'mech:ATMO'], ATMO: ['mech:ATMO'], CHALLENGE: ['mech:STRAT', 'mech:MIND'], CONTROL: [], LEVEL: [], CONTENT: ['mech:LONG'],
     DEPTH: ['mech:MIND', 'mech:WORLD'], PROG: ['mech:GROWTH', 'mech:POWER'], IDEAS: ['mech:TWIST', 'mech:MYST'], PACE: [], TECH: ['mech:ANIM']};
@@ -133,11 +133,11 @@
     if(Object.keys(r.v).length) all[g.id] = r; else delete all[g.id];
     LSS(RTK, all); changed();
   }
-  // il voto complessivo di un gioco per te: il tuo voto personale se c'è, altrimenti la media delle voci
+  // il voto complessivo di un titolo per te: il tuo voto personale se c'è, altrimenti la media delle voci
   const myVote = id=>{ const mv = (LSG('atl_myvote', {}) || {})[id]; return mv != null ? +mv : null; };
 
   // ---------------------------------------------------------------- quanto conta ogni voce per te
-  // correlazione tra la voce e il tuo voto complessivo, su tutti i giochi valutati (servono almeno 3 giochi con quella voce)
+  // correlazione tra la voce e il tuo voto complessivo, su tutti i titoli valutati (servono almeno 3 titoli con quella voce)
   let IMPc = null, IMPkey = '';
   function importance(){
     let key = ''; try{ key = (localStorage.getItem(RTK) || '').length + ':' + (localStorage.getItem('atl_myvote') || '').length; }catch(e){}
@@ -145,7 +145,7 @@
     const all = RO(RTK, {});
     if(IMPc && IMPkey === key) return IMPc;
     const pairs = {};                     // dim -> [[voce, voto]]
-    const level = {};                     // dim -> scarti dalla media del gioco (cosa valuti più alto)
+    const level = {};                     // dim -> scarti dalla media del titolo (cosa valuti più alto)
     Object.keys(all).forEach(id=>{
       const r = all[id], fam = FAM[r.f] || FAM.rpg, avg = avgOf(r); if(avg == null) return;
       const O = myVote(+id) != null ? myVote(+id) : avg;
@@ -157,7 +157,7 @@
       const mx = p.reduce((a, x)=> a + x[0], 0) / n, my = p.reduce((a, x)=> a + x[1], 0) / n;
       let sxy = 0, sxx = 0, syy = 0; p.forEach(([x, y])=>{ sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; });
       const corr = sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0;
-      out[d] = {n, imp: corr * Math.min(1, n / 8), lvl: level[d].reduce((a, b)=> a + b, 0) / n};     // con pochi giochi la fiducia è più bassa
+      out[d] = {n, imp: corr * Math.min(1, n / 8), lvl: level[d].reduce((a, b)=> a + b, 0) / n};     // con pochi titoli la fiducia è più bassa
     });
     IMPc = out; IMPkey = key; return out;
   }
@@ -166,7 +166,7 @@
   // le cose recenti pesano di più: oggi ×1, dopo un anno ×0.8, dopo due anni ×0.65 (mai sotto 0.6)
   const recency = t=> t ? Math.max(.6, 1 - (Date.now() - t) / DAY / 1100) : 1;
   window.rtBrain = {
-    // peso in più di un gioco (si somma a preferiti, voto, stato, tier…)
+    // peso in più di un titolo (si somma a preferiti, voto, stato, tier…)
     sigFor(g, hasMyVote){
       let w = 0;
       const r = RO(RK, {})[g.id];
@@ -175,7 +175,7 @@
       if(rt && !hasMyVote){ const a = avgOf(rt); if(a != null) w += (a - 6) * .5 * recency(rt.t); }
       return w;
     },
-    // ritocchi al modello: generi che non sono per te, voci che contano, voci alte o basse su un gioco
+    // ritocchi al modello: generi che non sono per te, voci che contano, voci alte o basse su un titolo
     adjust(wts, cnt){
       const R = RO(RK, {});
       const ng = {}; Object.keys(R).forEach(id=>{ if(!R[id].notgenre) return; const g = GAMES.find(x=> x.id === +id); const t = g && (g.tags || [])[0]; if(t) ng[t] = (ng[t] || 0) + 1; });
@@ -220,17 +220,18 @@
   const isFav = g=>{ try{ return FAVS.has(g.id); }catch(e){ return false; } };
   const inHeart = g=>{ try{ return (window.rtTopList ? rtTopList() : []).includes(g.id); }catch(e){ return false; } };
   const stOf = g=>{ try{ return STATUSES[g.id] || ''; }catch(e){ return ''; } };
-  const ST = [['playing', '▶️', 'In corso'], ['played', '✅', 'Giocato'], ['backlog', '📌', 'Da giocare'], ['dropped', '⛔', 'Mollato']];
+  const ST = [['playing', '▶️', 'In corso'], ['played', '✅', 'Visto'], ['backlog', '📌', 'Da vedere'], ['dropped', '⛔', 'Mollato']];
+  const stName = (k, n, g)=> k === 'played' ? kw(g).done : k === 'backlog' ? kw(g).todo : n;      // versione Anime: visto/letto
   function barHtml(g){
     const r = reactOf(g), st = stOf(g);
     const b = (k, ic, n, on)=> `<button type="button" class="rb-i${on ? ' on' : ''}" data-rb="${k}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(n)}"><span class="rb-ic">${ic}</span><small>${esc(n)}</small></button>`;
     return `<div class="rb" id="rtBar">
       <div class="rb-row">
         ${b('fav', '⭐', 'Preferito', isFav(g))}
-        ${b('heart', '<img src="icons/top-procione.svg" alt="" width="28" height="28" style="border-radius:50%">', 'Gioco che amo', inHeart(g))}
-        ${REACT.map(x=> b(x.k, x.ic, x.n, !!r[x.k])).join('')}
+        ${b('heart', '<img src="icons/top-procione.svg" alt="" width="28" height="28" style="border-radius:50%">', 'Lo amo', inHeart(g))}
+        ${REACT.map(x=> b(x.k, x.ic, x.k === 'replay' ? kw(g).again : x.n, !!r[x.k])).join('')}
       </div>
-      <div class="rb-st">${ST.map(([k, ic, n])=> `<button type="button" class="rb-s${st === k ? ' on' : ''}" data-rs="${k}"><span>${ic}</span>${n}</button>`).join('')}</div>
+      <div class="rb-st">${ST.map(([k, ic, n])=> `<button type="button" class="rb-s${st === k ? ' on' : ''}" data-rs="${k}"><span>${ic}</span>${stName(k, n, g)}</button>`).join('')}</div>
     </div>`;
   }
   function pop(el){ try{ el.animate([{transform: 'scale(1)'}, {transform: 'scale(1.28)'}, {transform: 'scale(1)'}], {duration: 320, easing: 'cubic-bezier(.32,.72,0,1)'}); }catch(e){} try{ window.rtHaptic && rtHaptic('soft'); }catch(e){} }
@@ -263,7 +264,7 @@
       if(k === 'fav' || k === 'heart') changed();
       refreshBar(g);
       const nb = document.querySelector('#rtBar [data-rb="' + k + '"]'); if(nb && on) pop(nb);
-      const names = {fav: 'Preferito', heart: 'Gioco che amo 😍', like: 'Mi piace', dislike: 'Non mi piace', notgenre: 'Non è il mio genere: lo terrò a mente per tutto il genere', letdown: 'Ti ha deluso', replay: 'Lo rigiocheresti'};
+      const names = {fav: 'Preferito', heart: 'Lo ami 😍', like: 'Mi piace', dislike: 'Non mi piace', notgenre: 'Non è il mio genere: lo terrò a mente per tutto il genere', letdown: 'Ti ha deluso', replay: kw(g).againTu};
       toast(on ? '✓ ' + names[k] + ' — il cervello ha imparato' : 'Tolto: ' + names[k].split(' —')[0].split(':')[0], 1800);
     }
   }, true);
@@ -301,7 +302,7 @@
     const imp = importance(), top = Object.entries(imp).filter(([, x])=> x.imp != null && x.imp > .25).sort((a, b)=> b[1].imp - a[1].imp).slice(0, 2);
     if(top.length) return `🧠 Ho capito che per te conta di più <b>${top.map(([d])=> DIMN[d] || d).join('</b> e <b>')}</b>: è lì che si decide il tuo voto.`;
     const nRated = Object.keys(rates()).length;
-    return nRated < 3 ? `🧠 Valuta almeno 3 giochi e capirò quali voci contano di più per te (ora: ${nRated}).` : '🧠 Sto ancora capendo quali voci contano di più per te: continua a valutare.';
+    return nRated < 3 ? `🧠 Valuta almeno 3 titoli e capirò quali voci contano di più per te (ora: ${nRated}).` : '🧠 Sto ancora capendo quali voci contano di più per te: continua a valutare.';
   }
   function paintDraft(){
     const box = document.getElementById('rtRate'); if(!box || !DRAFT) return;
@@ -377,12 +378,12 @@
       chg = `<div class="br-h">📈 Cosa è cambiato dal ${esc(new Date(old.t).toLocaleDateString('it-IT', {day: 'numeric', month: 'long'}))}</div><div class="br-chgs">${chg}</div>`;
     }
     const imp = importance(), impL = Object.entries(imp).filter(([, x])=> x.imp != null).sort((a, b)=> b[1].imp - a[1].imp);
-    const impHtml = impL.length ? `<div class="br-h">🎚️ Cosa conta di più quando dai un voto</div>${impL.slice(0, 6).map(([d, x])=> `<div class="br-row"><span>${esc(capF(DIMN[d] || d))} <small>(${x.n} giochi)</small></span><i style="--p:${Math.round(Math.max(0, x.imp) * 100)}%"></i></div>`).join('')}` : `<div class="br-h">🎚️ Cosa conta di più quando dai un voto</div><small>Valuta almeno 3 giochi con le 6 voci (nella scheda, sotto la locandina) e te lo dico.</small>`;
-    // giochi da valutare per aiutarmi: quelli che hai giocato/amato ma non hai ancora valutato
+    const impHtml = impL.length ? `<div class="br-h">🎚️ Cosa conta di più quando dai un voto</div>${impL.slice(0, 6).map(([d, x])=> `<div class="br-row"><span>${esc(capF(DIMN[d] || d))} <small>(${x.n} titoli)</small></span><i style="--p:${Math.round(Math.max(0, x.imp) * 100)}%"></i></div>`).join('')}` : `<div class="br-h">🎚️ Cosa conta di più quando dai un voto</div><small>Valuta almeno 3 titoli con le 6 voci (nella scheda, sotto la locandina) e te lo dico.</small>`;
+    // titoli da valutare per aiutarmi: quelli che hai visto/amato ma non hai ancora valutato
     let todo = [];
     try{ todo = GAMES.filter(g=> !RT[g.id] && (FAVS.has(g.id) || STATUSES[g.id] === 'played' || (window.rtTopList && rtTopList().includes(g.id)))).slice(0, 6); }catch(e){}
     const body = U.sheet('xBrain', '🧠 Cosa ho imparato di te', `
-      <div class="br-top"><div class="br-ring" style="--p:${know}"><b>${know}%</b></div><div><b>${stage[0]} ${stage[1]}</b><br><small>${stage[2]}. Imparo da ${tm.n} giochi e da ogni tuo tocco: più mi dici, più divento preciso.</small></div></div>
+      <div class="br-top"><div class="br-ring" style="--p:${know}"><b>${know}%</b></div><div><b>${stage[0]} ${stage[1]}</b><br><small>${stage[2]}. Imparo da ${tm.n} titoli e da ogni tuo tocco: più mi dici, più divento preciso.</small></div></div>
       <div class="br-src"><span>⭐ ${nFav}</span><span>😍 ${nTop}</span><span>🗳️ ${nMV} voti</span><span>🎚️ ${nRt} valutati</span><span>👍👎 ${nR}</span><span>📋 ${nSt} stati</span><span>🧬 ${nDna}</span></div>
       <div class="br-h">💜 Cosa ami</div>${pos.length ? pos.map(bar).join('') : '<small>Ancora poco: segna preferiti, cuori e valutazioni.</small>'}
       ${neg.length ? `<div class="br-h">🚫 Cosa di solito eviti</div>${neg.map(bar).join('')}` : ''}
@@ -399,7 +400,7 @@
   // ---------------------------------------------------------------- aggancio alla scheda
   function mount(g){
     const card = document.getElementById('modalCard'); if(!card || !g) return;
-    if(DRAFT && DRAFT.id !== g.id) commitDraft(true);          // passo a un altro gioco senza chiudere: salvo le valutazioni in sospeso
+    if(DRAFT && DRAFT.id !== g.id) commitDraft(true);          // passo a un altro titolo senza chiudere: salvo le valutazioni in sospeso
     card.querySelectorAll('#rtBar, #rtRate').forEach(n=> n.remove());
     const anchor = card.querySelector('#coverBlock') || card.querySelector('.modal-head');
     if(anchor) anchor.insertAdjacentHTML('afterend', barHtml(g) + rateHtml(g, false));

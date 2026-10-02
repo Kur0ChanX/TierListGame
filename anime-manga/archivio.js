@@ -1,5 +1,5 @@
-// ---- v211: ARCHIVIO GRANDE (IndexedDB) per i giochi aggiunti, le copertine e le foto ----
-// La memoria normale del browser (localStorage) tiene circa 5 MB in tutto: con migliaia di giochi aggiunti si riempirebbe.
+// ---- v211: ARCHIVIO GRANDE (IndexedDB) per i titoli aggiunti, le copertine e le foto ----
+// La memoria normale del browser (localStorage) tiene circa 5 MB in tutto: con migliaia di titoli aggiunti si riempirebbe.
 // Le tre voci più pesanti (atl_db_customGames, atl_db_covers, atl_db_blobs) ora stanno in IndexedDB (centinaia di MB).
 // Il resto del programma NON cambia: continua a usare localStorage.getItem/setItem con gli stessi nomi; qui quelle tre voci
 // vengono servite dalla memoria (copia in RAM) e salvate nell'archivio grande poco dopo (e subito quando l'app va in sottofondo).
@@ -132,7 +132,7 @@
   };
 })();
 
-// ---- v211: pezzi dei file notturni (colonne sonore e schermate): l'app scarica solo il pezzo del gioco che apri ----
+// ---- v211: pezzi dei file notturni (colonne sonore e schermate): l'app scarica solo il pezzo del titolo che apri ----
 // dati/notte-F-K.js con K = id % 64 (tools/shard-night.js). I pezzi arrivati riempiono gli stessi oggetti di prima (OST, GAME_SHOTS),
 // così music.js e cinema.js leggono come sempre: basta chiamare prima rtNight.ensure('ost'|'shots', id).
 (function(){
@@ -168,7 +168,7 @@
     has: (f, id)=> have.has(f + ((+id) % NB)),
     NB
   };
-  // al tocco su un gioco preparo già il suo pezzo di schermate e di musiche (prima ancora che la scheda si apra)
+  // al tocco su un titolo preparo già il suo pezzo di schermate e di musiche (prima ancora che la scheda si apra)
   document.addEventListener('pointerdown', e=>{
     const el = e.target && e.target.closest && e.target.closest('[data-gid], [data-id]'); if(!el) return;
     const id = +(el.dataset.gid || el.dataset.id); if(!id) return;

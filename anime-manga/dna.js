@@ -1,7 +1,7 @@
-// ---- DNA del giocatore (v195): cosa ti ha preso di un gioco + giochi simili «intelligenti» ----
-// 1) Nella scheda, sotto la sintonia: «🧬 Cosa ti ha preso di questo gioco?». Tocchi i tratti (lore, build, esplorazione, crafting…):
+// ---- DNA del spettatore (v195): cosa ti ha preso di un titolo + titoli simili «intelligenti» ----
+// 1) Nella scheda, sotto la sintonia: «🧬 Cosa ti ha preso di questo titolo?». Tocchi i tratti (lore, build, esplorazione, crafting…):
 //    👍 mi ha preso → 👎 non mi piace → niente. Si salva in atl_dna_why {id: {TRATTO: 1|-1}} e pesa forte nel modello dei gusti (extras3.js):
-//    così capisco PERCHÉ ti piace un gioco che sembra «fuori genere» (una meccanica, una parte del gameplay, il mondo…).
+//    così capisco PERCHÉ ti piace un titolo che sembra «fuori genere» (una meccanica, una parte del gameplay, il mondo…).
 // 2) «Se ti è piaciuto questo, prova anche»: non più solo saga e generi, ma tratti in comune (pesati con i TUOI gusti), struttura
 //    (difficoltà, grinding, peso storia, ritmo), qualità e simboli. La saga va in una riga a parte. Meglio pochi consigli giusti che tanti banali.
 (function(){
@@ -18,7 +18,7 @@
   const isFav = g=>{ try{ return typeof FAVS !== 'undefined' && FAVS.has(g.id); }catch(e){ return false; } };
 
   // ---------- 1) cosa ti ha preso (v198: categorie, spiegazioni, parole tue) ----------
-  // i tratti raggruppati per tema: così trovi subito quello che cerchi, qualunque sia il genere del gioco
+  // i tratti raggruppati per tema: così trovi subito quello che cerchi, qualunque sia il genere del titolo
   const CATS = [
     ['📖', 'Storia', ['STORY', 'TWIST', 'MYST', 'STRAT', 'MIND', 'DARK']],
     ['🫂', 'Personaggi e sentimenti', ['CHAR', 'GROWTH', 'FRIEND', 'VILLAIN', 'ROMANCE', 'EMO']],
@@ -27,7 +27,7 @@
     ['☕', 'Toni leggeri', ['HUMOR', 'COZY', 'SCHOOL']],
     ['🎞️', 'Arte, musica e durata', ['ANIM', 'ART', 'MUSIC', 'LONG', 'SHORT']]
   ];
-  // cosa significano i termini (anche quelli in inglese dei giocatori): compare toccando un tratto
+  // cosa significano i termini (anche quelli in inglese dei appassionati): compare toccando un tratto
   const XPL = {
     ANIM: 'Sakuga = scene animate con cura speciale (spesso i combattimenti), dove si vede la mano dei migliori animatori.',
     ISEKAI: 'Isekai = «altro mondo»: il protagonista viene reincarnato o trasportato in un mondo diverso, spesso fantasy.',
@@ -41,7 +41,7 @@
   };
   const CUST = 'atl_dna_custom';
   // ---------- v207: «Cosa ti ha preso» rifatto ----------
-  // Un riquadro pulito: il tuo «filamento di DNA» con questo gioco (una striscia colorata), i motivi principali 💖, cosa ti è piaciuto 👍
+  // Un riquadro pulito: il tuo «filamento di DNA» con questo titolo (una striscia colorata), i motivi principali 💖, cosa ti è piaciuto 👍
   // e cosa no 👎. Per decidere in fretta c'è il GIOCO VELOCE: una carta alla volta da scorrere (destra 👍, sinistra 👎, su 💖, o i tasti).
   // Valori in atl_dna_why {id: {TRATTO: 2 💖 motivo principale | 1 👍 | 0.5 🫤 Mah, ex «Ni» (c'è, ma così così: neutro per i gusti) | -1 👎}}: il 💖 pesa il doppio.
   const MAXMAIN = 3;
@@ -58,7 +58,7 @@
   const explain = k=>{ const M = MECH(); return XPL[k] || (M[k] ? M[k].d.charAt(0).toUpperCase() + M[k].d.slice(1) + '.' : ''); };
   const nameOf = k=>{ const M = MECH(); return M[k] ? M[k].n : k; };
   const icOf = k=>{ const M = MECH(); return M[k] ? M[k].ic : '•'; };
-  // i tratti da proporre nel gioco veloce: prima quelli riconosciuti nel gioco, poi quelli che di solito ami, poi gli altri
+  // i tratti da proporre nel titolo veloce: prima quelli riconosciuti nel titolo, poi quelli che di solito ami, poi gli altri
   function deckFor(g){
     const M = MECH(), dw = getDw(g), det = mechOf(g).filter(k=> M[k]);
     let tm = null; try{ tm = window.rtTasteModel && rtTasteModel(); }catch(e){}
@@ -79,11 +79,11 @@
     const strip = ks.length ? `<div class="d2-strip" aria-hidden="true">${[...main, ...like, ...ni, ...no].map(k=> `<i class="s${vcls(dw[k])}"></i>`).join('')}</div>` : '<div class="d2-strip empty" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
     const say = ks.length
       ? `${main.length ? `Ti ha preso soprattutto per <b>${main.map(k=> esc(nameOf(k).toLowerCase())).join('</b>, <b>')}</b>` : (like.length === 1 ? 'Ti è piaciuto per una cosa' : `Ti è piaciuto per ${like.length} cose`)}${main.length && like.length ? (like.length === 1 ? ' e un\'altra cosa' : ` e altre ${like.length} cose`) : ''}${no.length ? (no.length === 1 ? ' · una non ti è piaciuta' : ` · ${no.length} non ti sono piaciute`) : ''}.`
-      : (known ? 'Dimmi cosa ti ha preso: in 30 secondi il cervello impara il <b>perché</b> dei tuoi gusti.' : 'Dimmi cosa ti attira: capirò meglio cosa cerchi nei giochi.');
-    const go = todo.length ? (ks.length ? `▶ Continua il gioco veloce <small>${det ? det + ' riconosciuti qui · ' : ''}${todo.length} da decidere</small>` : `▶ Scopri cosa ti ha preso <small>gioco veloce · 30 secondi</small>`) : '';
+      : (known ? 'Dimmi cosa ti ha preso: in 30 secondi il cervello impara il <b>perché</b> dei tuoi gusti.' : 'Dimmi cosa ti attira: capirò meglio cosa cerchi in un anime, un film o un manga.');
+    const go = todo.length ? (ks.length ? `▶ Continua le carte veloci <small>${det ? det + ' riconosciuti qui · ' : ''}${todo.length} da decidere</small>` : `▶ Scopri cosa ti ha preso <small>carte veloci · 30 secondi</small>`) : '';
     const sec = (t, list)=> list.length ? `<div class="d2-sec"><div class="d2-st">${t}</div><div class="d2-chips">${list.map(k=> chip2(k, dw[k])).join('')}</div></div>` : '';
     return `<div class="dna-card dna2" id="dnaWhy">
-      <div class="d2-head"><span class="d2-logo" aria-hidden="true">🧬</span><div class="d2-ht"><b>${known ? 'Cosa ti ha preso di questo gioco?' : 'Cosa ti attira di questo gioco?'}</b><small>${ks.length ? ks.length + (ks.length === 1 ? ' tratto deciso' : ' tratti decisi') : 'Il tuo DNA di giocatore con ' + esc(g.name)}</small></div></div>
+      <div class="d2-head"><span class="d2-logo" aria-hidden="true">🧬</span><div class="d2-ht"><b>${known ? 'Cosa ti ha preso di questo titolo?' : 'Cosa ti attira di questo titolo?'}</b><small>${ks.length ? ks.length + (ks.length === 1 ? ' tratto deciso' : ' tratti decisi') : 'Il tuo DNA dei gusti con ' + esc(g.name)}</small></div></div>
       ${strip}
       <div class="d2-say">${say}</div>
       ${go ? `<button type="button" class="d2-go" data-dna-deck>${go}</button>` : ''}
@@ -97,13 +97,13 @@
   // ---------- il GIOCO VELOCE: una carta alla volta ----------
   function openDeck(card, g){
     if(!U.sheet) return;
-    const deck = deckFor(g).slice(0, 14); if(!deck.length){ U.toast && U.toast('Hai già deciso tutti i tratti di questo gioco 👏'); return; }
+    const deck = deckFor(g).slice(0, 14); if(!deck.length){ U.toast && U.toast('Hai già deciso tutti i tratti di questo titolo 👏'); return; }
     let i = 0; const done = {like: 0, main: 0, no: 0};
-    const body = U.sheet('xDnaDeck', '🧬 Gioco veloce', `<div class="dk"><div class="dk-top"><span id="dkN"></span><div class="dk-prog"><i id="dkP"></i></div></div><div class="dk-stage" id="dkStage"></div>
+    const body = U.sheet('xDnaDeck', '🧬 Titolo veloce', `<div class="dk"><div class="dk-top"><span id="dkN"></span><div class="dk-prog"><i id="dkP"></i></div></div><div class="dk-stage" id="dkStage"></div>
       <div class="dk-btns"><button type="button" class="dk-b no" data-dk="-1" aria-label="Non mi è piaciuto">👎<small>No</small></button><button type="button" class="dk-b skip" data-dk="0" aria-label="Non c'è o salta">⏭️<small>Non c'è</small></button><button type="button" class="dk-b ni" data-dk="0.5" aria-label="Mah, così così">🫤<small>Mah</small></button><button type="button" class="dk-b yes" data-dk="1" aria-label="Mi è piaciuto">👍<small>Sì</small></button><button type="button" class="dk-b main" data-dk="2" aria-label="È il motivo principale">💖<small>Il motivo!</small></button></div>
       <div class="dk-help">Scorri la carta: <b>→</b> mi piace · <b>←</b> no · <b>↑</b> è il motivo principale</div></div>`);
     const stage = body.querySelector('#dkStage');
-    const tag = w=> w === 'det' ? '<span class="dk-tag det">🔎 Riconosciuto in questo gioco</span>' : w === 'love' ? '<span class="dk-tag love">💜 Di solito ti piace: c\'è anche qui?</span>' : '<span class="dk-tag">❓ C\'è in questo gioco?</span>';
+    const tag = w=> w === 'det' ? '<span class="dk-tag det">🔎 Riconosciuto in questo titolo</span>' : w === 'love' ? '<span class="dk-tag love">💜 Di solito ti piace: c\'è anche qui?</span>' : '<span class="dk-tag">❓ C\'è in questo titolo?</span>';
     function show(){
       body.querySelector('#dkN').textContent = Math.min(i + 1, deck.length) + ' / ' + deck.length;
       body.querySelector('#dkP').style.width = Math.round(i / deck.length * 100) + '%';
@@ -139,7 +139,7 @@
     }
     function finish(){
       const tot = done.like + done.main + done.no + (done.ni || 0);
-      stage.innerHTML = `<div class="dk-end"><div class="dk-end-ic">🧬</div><b>${tot ? 'Il tuo DNA è cresciuto!' : 'Fatto!'}</b><p>${tot ? `${done.main ? `💖 ${done.main} ${done.main === 1 ? 'motivo principale' : 'motivi principali'} · ` : ''}👍 ${done.like} · ${done.ni ? '🫤 ' + done.ni + ' · ' : ''}👎 ${done.no}<br>Il cervello ora sa meglio <b>perché</b> ti piace un gioco come questo.` : 'Nessun tratto segnato questa volta.'}</p><button type="button" class="btn primary" id="dkClose">Chiudi</button></div>`;
+      stage.innerHTML = `<div class="dk-end"><div class="dk-end-ic">🧬</div><b>${tot ? 'Il tuo DNA è cresciuto!' : 'Fatto!'}</b><p>${tot ? `${done.main ? `💖 ${done.main} ${done.main === 1 ? 'motivo principale' : 'motivi principali'} · ` : ''}👍 ${done.like} · ${done.ni ? '🫤 ' + done.ni + ' · ' : ''}👎 ${done.no}<br>Il cervello ora sa meglio <b>perché</b> ti piace un titolo come questo.` : 'Nessun tratto segnato questa volta.'}</p><button type="button" class="btn primary" id="dkClose">Chiudi</button></div>`;
       body.querySelector('.dk-btns').hidden = true; body.querySelector('.dk-help').hidden = true;
       try{ window.rtHaptic && rtHaptic('success'); }catch(e){}
       body.querySelector('#dkClose').addEventListener('click', ()=>{ const sh = document.getElementById('xDnaDeck'); if(sh) sh.classList.remove('show'); });
@@ -186,16 +186,16 @@
     setTimeout(()=>{ try{ body.querySelector('#dfT').focus(); }catch(e){} }, 200);
   }
   // v200: i tratti nuovi non finiscono in «altro»: l'AI crea il tratto preciso (es. «Attacchi a tempo» di Legend of Dragoon)
-  // e poi cerca nel TUO catalogo quali giochi ce l'hanno. Così il tratto funziona davvero per sintonia e giochi simili.
+  // e poi cerca nel TUO catalogo quali titoli ce l'hanno. Così il tratto funziona davvero per sintonia e titoli simili.
   const slugOf = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30);
   async function gamesWith(c){
     const list = GAMES.map(x=> x.id + '|' + x.name).join('\n');
-    const pr = `Tratto di gioco: «${c.n}»${(c.kw || []).length ? ' (parole chiave: ' + c.kw.join(', ') + ')' : ''}${c.d ? ' — ' + c.d : ''}.
-Qui sotto c'è un catalogo di videogiochi, una riga per gioco nel formato id|nome. Indica SOLO i giochi in cui questo tratto è presente in modo chiaro e riconoscibile (non vago). Se non sei sicuro, escludilo.
+    const pr = `Tratto: «${c.n}»${(c.kw || []).length ? ' (parole chiave: ' + c.kw.join(', ') + ')' : ''}${c.d ? ' — ' + c.d : ''}.
+Qui sotto c'è un catalogo di videogiochi, una riga per titolo nel formato id|nome. Indica SOLO i titoli in cui questo tratto è presente in modo chiaro e riconoscibile (non vago). Se non sei sicuro, escludilo.
 Rispondi SOLO con JSON: {"ids":[numeri id]}.
 CATALOGO:
 ${list}`;
-    try{ const r = await askLLM(pr, {}, {fast: true, label: 'Cerco «' + c.n + '» nei tuoi giochi…'}); const m = String(r && r.text || '').match(/\{[\s\S]*\}/); const j = m ? JSON.parse(m[0]) : null;
+    try{ const r = await askLLM(pr, {}, {fast: true, label: 'Cerco «' + c.n + '» nei tuoi titoli…'}); const m = String(r && r.text || '').match(/\{[\s\S]*\}/); const j = m ? JSON.parse(m[0]) : null;
       const ok = new Set(GAMES.map(x=> x.id)); return ((j && j.ids) || []).map(Number).filter(id=> ok.has(id)).slice(0, 150);
     }catch(e){ return null; }
   }
@@ -204,12 +204,12 @@ ${list}`;
     if(typeof askLLM !== 'function'){ U.toast && U.toast('Serve la chiave Gemini (⚙️ in Chiedi a Claude)'); return; }
     const M = MECH(), cat = Object.keys(M).map(k=> k + ' = ' + M[k].n + ' (' + M[k].d + ')').join('\n');
     const cu0 = LSG(CUST, {}) || {}, mineList = Object.keys(cu0).map(k=> k + ' = ' + cu0[k].n).join('\n');
-    const pr = `Un giocatore descrive cosa gli è piaciuto o no del videogioco "${g.name}". Trasforma le sue parole in tratti del suo DNA di giocatore.
+    const pr = `Uno spettatore/lettore descrive cosa gli è piaciuto o no di "${g.name}" (${(KIND_BY_ID[g.kind] || {}).full || 'anime o manga'}). Trasforma le sue parole in tratti del suo DNA di gusti.
 TRATTI GENERALI (sigle):\n${cat}\n${mineList ? `\nTRATTI GIÀ CREATI DA LUI (sigle):\n${mineList}\n` : ''}
 Regole:
 - "si"/"no": sigle dei tratti generali che corrispondono DAVVERO a quello che dice.
 - "suoi_si"/"suoi_no": sigle dei tratti già creati da lui che corrispondono.
-- "nuovi": se cita qualcosa di SPECIFICO che nessun tratto descrive con precisione (una meccanica particolare, es. «combattimento con attacchi a tempo da premere al momento giusto», un tipo di minigioco, uno stile di musica, un tipo di personaggio), crea un tratto nuovo preciso. Meglio un tratto nuovo preciso che forzarlo in uno generico. Massimo 4.
+- "nuovi": se cita qualcosa di SPECIFICO che nessun tratto descrive con precisione (un elemento particolare, es. «combattimenti con strategie e poteri a regole precise», un tipo di umorismo, uno stile di disegno o di animazione, uno stile di musica, un tipo di personaggio), crea un tratto nuovo preciso. Meglio un tratto nuovo preciso che forzarlo in uno generico. Massimo 4.
 Rispondi SOLO con JSON: {"si":[], "no":[], "suoi_si":[], "suoi_no":[], "nuovi":[{"nome":"nome breve e chiaro in italiano","descrizione":"cosa significa, in una frase semplice","parole":["4-8 parole chiave in italiano e inglese, anche nomi tecnici (es. timed hits, QTE, additions)"],"piace":true}]}
 TESTO: «${txt.trim().slice(0, 1200)}»`;
     let j = null;
@@ -231,8 +231,8 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
       cu[k] = c; made.push(c.n); if(!c.games) todo.push(k);
     });
     LSS(CUST, cu); try{ SIMC.clear(); }catch(x){}
-    redraw(card, g, `✅ Capito: ${n} tratti segnati${made.length ? ' · nuovi tratti tuoi: ' + made.map(esc).join(', ') + ' — ora cerco quali tuoi giochi li hanno…' : ''}.`);
-    // per ogni tratto nuovo: quali giochi del catalogo ce l'hanno
+    redraw(card, g, `✅ Capito: ${n} tratti segnati${made.length ? ' · nuovi tratti tuoi: ' + made.map(esc).join(', ') + ' — ora cerco quali tuoi titoli li hanno…' : ''}.`);
+    // per ogni tratto nuovo: quali titoli del catalogo ce l'hanno
     const found = [];
     for(const k of todo){
       const c = (LSG(CUST, {}) || {})[k]; if(!c) continue;
@@ -241,9 +241,9 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
       if(!ids.includes(g.id) && (cu2[k].by || []).includes(g.id)) ids.push(g.id);
       cu2[k].games = ids; LSS(CUST, cu2); try{ SIMC.clear(); }catch(x){}
       const names = ids.filter(id=> id !== g.id).slice(0, 5).map(id=> (GAMES.find(x=> x.id === id) || {}).name).filter(Boolean);
-      found.push(`<b>${esc(c.n)}</b>: in ${ids.length} tuoi giochi${names.length ? ' (' + names.map(esc).join(', ') + (ids.length > 6 ? '…' : '') + ')' : ''}`);
+      found.push(`<b>${esc(c.n)}</b>: in ${ids.length} tuoi titoli${names.length ? ' (' + names.map(esc).join(', ') + (ids.length > 6 ? '…' : '') + ')' : ''}`);
     }
-    if(found.length && card.isConnected) redraw(card, g, '✅ ' + found.join('<br>✅ ') + '<br><small>Ora contano nella Sintonia e nei giochi simili.</small>');
+    if(found.length && card.isConnected) redraw(card, g, '✅ ' + found.join('<br>✅ ') + '<br><small>Ora contano nella Sintonia e nei titoli simili.</small>');
   }
   function redraw(card, g, info){
     const box = card.querySelector('#dnaWhy'); if(!box) return;
@@ -277,7 +277,7 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
     });
   }
 
-  // ---------- 2) giochi simili ----------
+  // ---------- 2) titoli simili ----------
   const EXCL = [['HOR', 'GOR'], ['SPO'], ['MEC'], ['KID'], ['ECC', 'HAR'], ['IDO'], ['MAH'], ['DOC']];      // versione Anime
   const yearOf = x=> x.ysort || (parseInt(String(x.year || '').slice(0, 4), 10) || null);
   const sagaK = x=>{ try{ return typeof sagaKeyOf === 'function' ? sagaKeyOf(x) : ''; }catch(e){ return ''; } };
@@ -322,7 +322,7 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
       // qualità: niente consigli mediocri
       const s0 = +x.score || 0; sc += s0 >= 88 ? 1.2 : s0 >= 80 ? .6 : s0 < 60 ? -3 : s0 < 70 ? -1.6 : s0 < 77 ? -.6 : 0;
       if(hint.has(keyN(x.name))) sc += 3;
-      if(isFav(x) || stOf(x) === 'played') sc -= .6;                                     // già giocati: dopo quelli nuovi
+      if(isFav(x) || stOf(x) === 'played') sc -= .6;                                     // già visti: dopo quelli nuovi
       if(sc >= 8) other.push({x, sc, shm: shm.sort((a, b)=> wt(b) - wt(a)), primary, pers});
     });
     other.sort((a, b)=> b.sc - a.sc);
@@ -330,9 +330,9 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
     return {other: other.slice(0, 6), same: same.slice(0, 4)};
   }
   window.rtSimilar = similar;
-  // somiglianza 0..1 tra due giochi (per la Sintonia): tratti del DNA pesati per rarità, generi, struttura e simboli. Calcolata una volta per coppia.
+  // somiglianza 0..1 tra due titoli (per la Sintonia): tratti del DNA pesati per rarità, generi, struttura e simboli. Calcolata una volta per coppia.
   const SIMC = new Map();
-  // v208: per ogni gioco preparo UNA volta i suoi insiemi (tratti, generi, saga, tratti tuoi) e li riuso: prima si ricalcolavano
+  // v208: per ogni titolo preparo UNA volta i suoi insiemi (tratti, generi, saga, tratti tuoi) e li riuso: prima si ricalcolavano
   // a ogni confronto (con l'ordine «Più adatti a te» erano decine di migliaia di confronti → 10+ secondi di blocco)
   const PREP = new Map();
   const prep = g=>{
@@ -372,10 +372,10 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
       const why = isSaga ? 'stessa saga' : (o.shm.slice(0, 3).map(k=> M[k] ? M[k].ic : '').join('') + (o.shm.length ? ' ' + o.shm.slice(0, 2).map(k=> M[k] ? M[k].n.toLowerCase() : '').join(', ') : (o.primary ? 'stesso genere e struttura' : 'struttura simile')));
       return `<button class="similar-chip sim2" data-id="${x.id}">${tierB(x)}<span class="sim2-t"><b>${esc(x.name)}</b><small>${esc(why)}${sy ? ` · <span class="sim2-p${sy.approved ? ' a' : ''}">${sy.approved ? '😍 ' : ''}${sy.pct}% per te</span>` : ''}</small></span></button>`; };
     return `<div class="modal-section-title">🔁 Se ti è piaciuto questo, prova anche</div>
-      ${r.other.length ? `<div class="similar-games sim2-list">${r.other.map(o=> chip(o)).join('')}</div>` : '<div class="dna-sub">Nessun gioco abbastanza simile nel tuo database: meglio niente che un consiglio sbagliato.</div>'}
+      ${r.other.length ? `<div class="similar-games sim2-list">${r.other.map(o=> chip(o)).join('')}</div>` : '<div class="dna-sub">Nessun titolo abbastanza simile nel tuo database: meglio niente che un consiglio sbagliato.</div>'}
       ${r.same.length ? `<div class="sim2-saga">📚 <b>Della stessa saga</b></div><div class="similar-games sim2-list">${r.same.map(x=> chip(x, true)).join('')}</div>` : ''}`;
   }
-  // v200: la sezione dei simili costa (confronta tutti i giochi): la scheda si apre subito con uno spazio riservato,
+  // v200: la sezione dei simili costa (confronta tutti i titoli): la scheda si apre subito con uno spazio riservato,
   // e la riempio a animazione finita, quando il telefono è libero. Così l'apertura non scatta.
   const idleDo = (fn, t)=> (window.requestIdleCallback ? requestIdleCallback(fn, {timeout: t || 900}) : setTimeout(fn, 60));
   function similarLazy(g){
@@ -392,8 +392,8 @@ TESTO: «${txt.trim().slice(0, 1200)}»`;
     return `<div class="sim-lazy" data-sim="${id}" style="min-height:180px"><div class="modal-section-title">🔁 Se ti è piaciuto questo, prova anche</div><div class="sim-skel"><i></i><i></i><i></i></div></div>`;
   }
   try{ if(typeof similarGamesHtml === 'function'){ window.similarGamesHtml = similarLazy; similarGamesHtml = similarLazy; window.rtSimilarHtmlNow = similarHtml; } }catch(e){}
-  // preparo in anticipo, a pezzetti e quando il telefono è libero, i tratti di tutti i giochi: la prima scheda aperta non deve calcolarli
-  // v214: lo stesso lavoro, ma riavviabile: quando arrivano i testi completi dei giochi (circa 7 s dopo l'avvio) i tratti si ricalcolano
+  // preparo in anticipo, a pezzetti e quando il telefono è libero, i tratti di tutti i titoli: la prima scheda aperta non deve calcolarli
+  // v214: lo stesso lavoro, ma riavviabile: quando arrivano i testi completi dei titoli (circa 7 s dopo l'avvio) i tratti si ricalcolano
   // qui, a pezzetti da pochi millesimi nei momenti liberi. Prima li ricalcolava tutti insieme il riquadro «Se ti è piaciuto…»
   // alla prima scheda aperta: un blocco unico di ~0,2 s proprio mentre la scheda si apriva.
   const WARM = {i: 0, run: false, wait: []};

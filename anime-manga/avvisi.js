@@ -50,7 +50,7 @@
   function next(){ const id = queue.shift(); if(id == null){ hide(); return; } show(id); }
   function markRead(id){ const n = list.find(x=> x.id === id); if(n && !n.read){ n.read = true; save(); paintBadge(); } }
   // v228: dopo aver riaperto l'app le azioni degli avvisi vecchi non c'erano più (erano solo in memoria) e il tocco non portava da nessuna parte.
-  // Ora, se manca, l'azione si ricava dal testo: «novità per te» → Oggi per te; un gioco nominato (offerta, immagine copiata, uscita…) → la sua scheda.
+  // Ora, se manca, l'azione si ricava dal testo: «novità per te» → Oggi per te; un titolo nominato (offerta, immagine copiata, uscita…) → la sua scheda.
   let names = null;
   function smart(msg){
     const m = String(msg || '');

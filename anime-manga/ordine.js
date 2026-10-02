@@ -12,24 +12,24 @@
   // =====================================================================
   const PINS = 'atl_card_pins', ON = 'atl_card_order';
   const cardOrderOn = ()=> LS.get(ON, 'on') !== 'off';
-  // v204: la scheda è divisa in 3 parti (linguette in alto): «Per te», «Il gioco», «Altro». Le parti nascoste non si disegnano: apertura più leggera.
+  // v204: la scheda è divisa in 3 parti (linguette in alto): «Per te», «Il titolo», «Altro». Le parti nascoste non si disegnano: apertura più leggera.
   const LAYERS = [
     {id: 'perme', tab: 'perme', n: '💜 Per te', keys: ['verdetto', 'valuta', 'radar', 'dna', 'recensione', 'nota', 'stato']},
-    {id: 'comprare', tab: 'perme', n: '🛒 Comprare', keys: ['comprare', 'versioni']},
-    {id: 'simili', tab: 'perme', n: '🔁 Altri giochi', keys: ['simili']},
+    {id: 'comprare', tab: 'perme', n: '📺 Dove trovarlo', keys: ['comprare', 'versioni']},
+    {id: 'simili', tab: 'perme', n: '🔁 Altri titoli', keys: ['simili']},
     {id: 'scheda', tab: 'gioco', n: '⭐ Voti e musica', keys: ['punteggi', 'musica']},
-    {id: 'capire', tab: 'gioco', n: '🔎 Capire il gioco', keys: ['storia', 'etichetta', 'piace', 'gameplay', 'proscons', 'generi', 'longevita', 'tempo', 'colonna', 'cast', 'approfondimento', 'dettagli', 'simboli']},
-    {id: 'giocare', tab: 'gioco', n: '🎮 Giocarlo bene', keys: ['guida', 'compagno', 'saga']},
+    {id: 'capire', tab: 'gioco', n: '🔎 Capire l\'opera', keys: ['storia', 'etichetta', 'piace', 'gameplay', 'proscons', 'generi', 'longevita', 'tempo', 'colonna', 'cast', 'approfondimento', 'dettagli', 'simboli']},
+    {id: 'giocare', tab: 'gioco', n: '🧭 Da dove iniziare', keys: ['guida', 'compagno', 'saga']},
     {id: 'altro', tab: 'altro', n: '📚 Per approfondire', keys: ['affidabilita', 'eredi', 'quinte', 'uscita', 'album', 'cronologia']}
   ];
-  const TABS = [['perme', '💜 Per te'], ['gioco', '🎮 Il gioco'], ['altro', '📚 Altro']];
+  const TABS = [['perme', '💜 Per te'], ['gioco', '🎬 L\'opera'], ['altro', '📚 Altro']];
   const tabNow = ()=>{ const t = LS.get('atl_card_tab', 'perme'); return TABS.some(x=> x[0] === t) ? t : 'perme'; };
-  const KEY_NAMES = {valuta: 'Le tue valutazioni', punteggi: 'Voti e piattaforme', musica: 'Colonna sonora (lettore)', verdetto: 'Verdetto d\'acquisto', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'A colpo d\'occhio', affidabilita: 'Affidabilità dei dati', gameplay: 'Gameplay', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Longevità', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di gioco', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Prima di comprarlo', versioni: 'Quale versione conviene?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
+  const KEY_NAMES = {valuta: 'Le tue valutazioni', punteggi: 'Voti e formato', musica: 'Colonna sonora (lettore)', verdetto: 'Vale la pena?', radar: 'Sintonia con i tuoi gusti', dna: 'Cosa ti ha preso (DNA)', generi: 'Generi', simboli: 'Simboli', storia: 'La storia', etichetta: 'A colpo d\'occhio', affidabilita: 'Affidabilità dei dati', gameplay: 'Realizzazione', piace: 'Perché potrebbe piacerti', proscons: 'Pro e contro', tempo: 'Voto nel tempo', longevita: 'Durata', colonna: 'Colonna sonora', cast: 'Cast', approfondimento: 'Approfondimento', dettagli: 'Dettagli', guida: 'Come iniziare al meglio', compagno: 'Compagno di visione', saga: 'Saga', stato: 'Il tuo stato', recensione: 'La tua recensione', nota: 'Nota', comprare: 'Dove guardarlo o leggerlo', versioni: 'Quale versione?', simili: 'Se ti è piaciuto…', eredi: 'Eredi spirituali', quinte: 'Dietro le quinte', uscita: 'Punto d\'uscita', album: 'Il mio album', cronologia: 'Cronologia delle modifiche'};
   const titleKey = t=>{
     t = norm(t);
-    if(/etichetta|colpo d.?occhio/.test(t)) return 'etichetta'; if(/prima di comprarlo/.test(t)) return 'comprare'; if(/quale versione/.test(t)) return 'versioni'; if(/il tuo stato/.test(t)) return 'stato';
-    if(/recensione/.test(t)) return 'recensione'; if(/voto nel tempo/.test(t)) return 'tempo'; if(/storia/.test(t)) return 'storia'; if(/gameplay/.test(t)) return 'gameplay'; if(/perche potrebbe/.test(t)) return 'piace';
-    if(/pro contro|pro e contro/.test(t)) return 'proscons'; if(/longevit/.test(t)) return 'longevita'; if(/dettagli/.test(t)) return 'dettagli'; if(/se ti e piaciuto/.test(t)) return 'simili';
+    if(/etichetta|colpo d.?occhio/.test(t)) return 'etichetta'; if(/prima di comprarlo|dove guardarlo|dove leggerlo/.test(t)) return 'comprare'; if(/quale versione/.test(t)) return 'versioni'; if(/il tuo stato/.test(t)) return 'stato';
+    if(/recensione/.test(t)) return 'recensione'; if(/voto nel tempo/.test(t)) return 'tempo'; if(/storia/.test(t)) return 'storia'; if(/gameplay|realizzazione/.test(t)) return 'gameplay'; if(/perche potrebbe/.test(t)) return 'piace';
+    if(/pro contro|pro e contro/.test(t)) return 'proscons'; if(/longevit|^durata/.test(t)) return 'longevita'; if(/dettagli/.test(t)) return 'dettagli'; if(/se ti e piaciuto/.test(t)) return 'simili';
     if(/colonna sonora/.test(t)) return 'colonna'; if(/cast/.test(t)) return 'cast'; if(/approfondimento/.test(t)) return 'approfondimento'; if(/eredi/.test(t)) return 'eredi'; if(/dietro le quinte/.test(t)) return 'quinte';
     if(/punto d uscita/.test(t)) return 'uscita'; if(/il mio album/.test(t)) return 'album'; if(/^nota/.test(t)) return 'nota';
     return 'x-' + t.slice(0, 24);
@@ -42,7 +42,7 @@
     if(el.classList.contains('saga-note')) return 'saga'; if(el.matches('details.hist')) return 'cronologia';
     return null;
   }
-  // v205: il tuo ordine dei blocchi, per ogni parte (sostituisce il vecchio «fissa in alto»): atl_card_order2 = {perme: [chiavi…], gioco: […], altro: […]}
+  // v205: il tuo ordine dei blocchi, per ogni parte (sostituisce il vecchio «fissa in alto»): atl_card_order2 = {perme: [chiavi…], titolo: […], altro: […]}
   const OK2 = 'atl_card_order2';
   const customOrder = ()=>{ const o = LS.get(OK2, {}) || {}; return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; };
   const pins = ()=> (LS.get(PINS, []) || []).filter(k=> typeof k === 'string');
@@ -186,7 +186,7 @@
     try{ title.animate([{background: 'rgba(124,92,255,.28)'}, {background: 'transparent'}], {duration: 700, easing: 'ease-out'}); }catch(x){}
     try{ window.rtHaptic && rtHaptic('tick'); }catch(x){}
   }, true);
-  // ---------- «↕️ Riordina la scheda»: scegli tu cosa va al 1°, 2°, 3° posto… e cosa in fondo (vale per tutti i giochi) ----------
+  // ---------- «↕️ Riordina la scheda»: scegli tu cosa va al 1°, 2°, 3° posto… e cosa in fondo (vale per tutti i titoli) ----------
   document.addEventListener('click', e=>{
     const rb = e.target.closest && e.target.closest('[data-creorder]'); if(!rb) return;
     e.preventDefault(); openReorder();
@@ -313,7 +313,7 @@
   const offMap = ()=> LS.get(OFFK, {}) || {};
   const MODS = [
     {id: 'music', n: '🎵 Musica e suoni', d: 'Colonne sonore, player e suoni dei pulsanti'},
-    {id: 'cinema', n: '🎬 Anteprima cinematografica', d: 'Copertina e poi schermate di gioco in cima alla scheda'},
+    {id: 'cinema', n: '🎬 Anteprima cinematografica', d: 'Copertina e poi schermate di titolo in cima alla scheda'},
     {id: 'guida', n: '🚀 Guida e Compagno di gioco', d: '«Come iniziare al meglio» e l\'aiuto senza spoiler'},
     {id: 'gusto', n: '🕸️ Radar di gusto', d: 'La ragnatela dei tuoi gusti nella scheda'},
     {id: 'idee', n: '🧬 Blocchi extra della scheda', d: 'Eredi spirituali, dietro le quinte, punto d\'uscita, album'},
@@ -321,8 +321,8 @@
     {id: 'motion', n: '🎛️ Animazioni e vibrazione', d: 'Righe a cascata, scintille, tic al tocco'}
   ];
   const SOFT = [
-    {k: 'calm', n: '🧘 Modalità calma (tutto a mano)', d: 'Niente lavori automatici da internet: Update+ all\'avvio, controllo con Gemini, copertine e foto cercate da sole. Per un gioco premi tu ⚡ Update+ nella scheda: scarica tutto (voto, info, copertina, foto). Il backup resta acceso.', get: ()=> !!(window.rtCalm && rtCalm()), set: v=>{ try{ localStorage.setItem('art_calm', v ? 'on' : 'off'); }catch(e){} }},
-    {k: 'cardorder', n: '📑 Scheda in 3 parti', d: 'Divide la scheda in Per te / Il gioco / Altro (con ↕️ scegli tu l\'ordine dei riquadri)', get: ()=> cardOrderOn(), set: v=> window.rtCardOrder.setOn(v)},
+    {k: 'calm', n: '🧘 Modalità calma (tutto a mano)', d: 'Niente lavori automatici da internet: Update+ all\'avvio, controllo con Gemini, copertine e foto cercate da sole. Per un titolo premi tu ⚡ Update+ nella scheda: scarica tutto (voto, info, copertina, foto). Il backup resta acceso.', get: ()=> !!(window.rtCalm && rtCalm()), set: v=>{ try{ localStorage.setItem('art_calm', v ? 'on' : 'off'); }catch(e){} }},
+    {k: 'cardorder', n: '📑 Scheda in 3 parti', d: 'Divide la scheda in Per te / Il titolo / Altro (con ↕️ scegli tu l\'ordine dei riquadri)', get: ()=> cardOrderOn(), set: v=> window.rtCardOrder.setOn(v)},
     {k: 'menurooms', n: '🗂️ Menu ✨ in stanze', d: 'Raggruppa le voci per argomento, con ricerca', get: ()=> roomsOn(), set: v=> window.rtMenuRooms.setOn(v)},
     {k: 'oggi', n: '🌅 Riquadro «Oggi» e avviso unico', d: 'Un solo avviso all\'avvio e il riquadro con le novità', get: ()=> todayOn(), set: v=>{ LS.set(TON, v ? 'on' : 'off'); renderToday(); }}
   ];
@@ -351,7 +351,7 @@
   const todayOn = ()=> LS.get(TON, 'on') !== 'off';
   const T0 = performance.now(), queue = [], LAST = +LS.get('art_last_visit', 0) || 0, VER = LS.get('art_last_ver', '') || '';
   const WIDGETS = [
-    {id: 'avvisi', n: '🔔 Avvisi di oggi'}, {id: 'novita', n: '🆕 Cosa è cambiato mentre non c\'eri'}, {id: 'incorso', n: '▶️ Stai giocando'},
+    {id: 'avvisi', n: '🔔 Avvisi di oggi'}, {id: 'novita', n: '🆕 Cosa è cambiato mentre non c\'eri'}, {id: 'incorso', n: '▶️ Stai guardando'},
     {id: 'wish', n: '🎁 Wishlist'}, {id: 'consiglio', n: '💡 Più adatto a te ora'}
   ];
   const wcfg = ()=>{ const c = LS.get(TW, {}) || {}; const order = (c.order || []).filter(id=> WIDGETS.some(w=> w.id === id)); WIDGETS.forEach(w=>{ if(!order.includes(w.id)) order.push(w.id); }); return {order, hidden: c.hidden || []}; };
@@ -391,7 +391,7 @@
       const ch = changesSince(), cl = (typeof CHANGELOG !== 'undefined' && CHANGELOG[0]) || null, newVer = cl && VER && cl.version !== VER;
       if(!ch.length && !newVer) return '';
       return (newVer ? `<div class="td-line">🆕 App aggiornata alla <b>${esc(cl.version)}</b>: ${esc(String((cl.items || [])[0] || '').slice(0, 150))}…</div>` : '')
-        + (ch.length ? `<div class="td-line"><b>${ch.length}</b> ${ch.length === 1 ? 'modifica automatica' : 'modifiche automatiche'} ai tuoi giochi:</div><ul class="td-list">${ch.slice(0, 5).map(x=>{ const g = byId(x.id); return g ? `<li><button type="button" class="btn td-g" data-open="${g.id}">${esc(g.name)}</button> <small>${esc(x.f)}: ${esc(x.a)} → ${esc(x.b)}</small></li>` : ''; }).join('')}</ul><div class="lp-sub">Ogni modifica si può annullare dalla «Cronologia delle modifiche» nella scheda del gioco.</div>` : '');
+        + (ch.length ? `<div class="td-line"><b>${ch.length}</b> ${ch.length === 1 ? 'modifica automatica' : 'modifiche automatiche'} ai tuoi titoli:</div><ul class="td-list">${ch.slice(0, 5).map(x=>{ const g = byId(x.id); return g ? `<li><button type="button" class="btn td-g" data-open="${g.id}">${esc(g.name)}</button> <small>${esc(x.f)}: ${esc(x.a)} → ${esc(x.b)}</small></li>` : ''; }).join('')}</ul><div class="lp-sub">Ogni modifica si può annullare dalla «Cronologia delle modifiche» nella scheda del gioco.</div>` : '');
     }
     if(id === 'incorso'){ const l = GAMES.filter(g=> STATUSES[g.id] === 'playing').slice(0, 6); return l.length ? `<div class="td-chips">${l.map(chip).join('')}</div>` : ''; }
     if(id === 'wish'){

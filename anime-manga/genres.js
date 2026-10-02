@@ -1,6 +1,6 @@
 // ---- Verifica dei generi su Wikidata (fonte pubblica e consultabile dal browser) ----
-// Non cambia nulla da solo sui giochi già presenti: propone le aggiunte e l'utente conferma.
-// Sui giochi NUOVI aggiunti da Novità/Chiedi aggiunge in automatico i generi che Wikidata conferma.
+// Non cambia nulla da solo sui titoli già presenti: propone le aggiunte e l'utente conferma.
+// Sui titoli NUOVI aggiunti da Novità/Chiedi aggiunge in automatico i generi che Wikidata conferma.
 (function(){
   const WD = 'https://www.wikidata.org/w/api.php';
   // etichette inglesi dei generi di Wikidata → codici dei tag anime (meta.tags nei dati)
@@ -41,7 +41,7 @@
   window.wikidataGenreCodes = genreCodes;
   window.wikidataCodesFrom = codesFrom;
 
-  // ----- giochi nuovi: unisce in automatico i generi confermati da Wikidata -----
+  // ----- titoli nuovi: unisce in automatico i generi confermati da Wikidata -----
   // verifyNewGameGenres è definita in verify.js (coda e fonti leggere)
 
   // ----- controllo completo, con conferma -----
@@ -109,7 +109,7 @@
   window.openGenreCheck = function(){
     const el = panel();
     el.innerHTML = `<div class="lp-card"><div class="lp-head"><b>🔎 Verifica generi online</b><button class="btn" data-gc-close>Chiudi</button></div>
-      <div class="lp-sub">Confronta i generi di tutti i tuoi giochi con <b>Wikidata</b> (database pubblico). Non cambia nulla senza il tuo ok. Al primo giro può richiedere qualche minuto; i risultati restano salvati.</div>
+      <div class="lp-sub">Confronta i generi di tutti i tuoi titoli con <b>Wikidata</b> (database pubblico). Non cambia nulla senza il tuo ok. Al primo giro può richiedere qualche minuto; i risultati restano salvati.</div>
       <div class="lp-tools"><button class="btn primary" id="gcStart">Avvia il controllo</button></div><div class="lp-sub" id="gcStatus"></div><div id="gcBody"></div></div>`;
     el.querySelector('#gcStart').addEventListener('click', ()=>{ el.querySelector('#gcStatus').textContent = 'Controllo…'; runCheck(el); });
     el.classList.add('show');

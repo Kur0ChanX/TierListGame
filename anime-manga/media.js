@@ -12,7 +12,7 @@
   const setLock = (g, patch)=>{ const all = LSG(K, {}) || {}, e = Object.assign({}, all[g.id] || {}, patch); Object.keys(e).forEach(k=>{ if(e[k] == null || e[k] === 0 || (Array.isArray(e[k]) && !e[k].length)) delete e[k]; }); if(Object.keys(e).length) all[g.id] = e; else delete all[g.id]; LSS(K, all); };
   window.rtMediaLock = lockOf;
 
-  // la locandina bloccata non si sostituisce in automatico (Update+, giochi nuovi, catalogo…): solo da qui, con «force»
+  // la locandina bloccata non si sostituisce in automatico (Update+, titoli nuovi, catalogo…): solo da qui, con «force»
   if(window.XCOVER && XCOVER.save){
     const orig = XCOVER.save;
     XCOVER.save = async function(g, url, opts){ if(g && (lockOf(g) || {}).cover && !(opts && opts.force)) return false; return orig.call(this, g, url, opts); };
@@ -22,7 +22,7 @@
   // ---------- 🔄 Cambia locandina ----------
   async function openCovers(g){
     const lk = lockOf(g) || {};
-    const body = sheet('xCovers', '🔄 Cambia locandina', `<div class="lp-sub">Tutte le locandine ufficiali che trovo (Steam, Libretro, Wikipedia, RAWG…). Tocca quella che ti piace: diventa la locandina del gioco e resta <b>bloccata 🔒</b>, nessun aggiornamento la cambia.</div>
+    const body = sheet('xCovers', '🔄 Cambia locandina', `<div class="lp-sub">Tutte le locandine ufficiali che trovo (Steam, Libretro, Wikipedia, RAWG…). Tocca quella che ti piace: diventa la locandina del titolo e resta <b>bloccata 🔒</b>, nessun aggiornamento la cambia.</div>
       ${lk.cover ? '<div class="lp-tools"><button class="btn" id="cvUnlock" type="button">🔓 Sblocca la locandina (torna automatica)</button></div>' : ''}<div id="cvRes" class="lp-sub">Cerco…</div>`);
     const un = body.querySelector('#cvUnlock'); if(un) un.addEventListener('click', ()=>{ setLock(g, {cover: null}); toast('Locandina sbloccata', 1800); un.remove(); });
     const res = body.querySelector('#cvRes');
@@ -86,7 +86,7 @@
     // v201: quando le foto finiscono, ne cerco altre senza fine: fotogrammi dei video di gameplay su YouTube (query sempre diverse)
     let en = g.name; try{ en = await SearchHub.enName(g); }catch(e){}
     const QS = ['gameplay', 'walkthrough part 1', 'boss fight', 'all cutscenes', 'walkthrough part 5', 'review', 'gameplay 4k', 'walkthrough part 10', 'combat', 'exploration', 'final boss', 'opening', 'walkthrough part 20', 'side quests', 'ending'];
-    // titolo del video valido se contiene il nome base del gioco (prima dei «:»), con i numeri romani = arabi (XI = 11)
+    // titolo del video valido se contiene il nome base del titolo (prima dei «:»), con i numeri romani = arabi (XI = 11)
     const ROM = {i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10, xi: 11, xii: 12, xiii: 13, xiv: 14, xv: 15, xvi: 16};
     const tk = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(w=> w.length >= 2 && !['the', 'of', 'and'].includes(w)).map(w=> ROM[w] ? String(ROM[w]) : w);
     const toks = tk(String(en).split(/:| - | – /)[0]);
@@ -115,7 +115,7 @@
       await poolReady; if(!alt.isConnected) return;
       let free = pool.filter(u=> !slots.includes(u));
       if(free.length <= (page + 1) * 12){ alt.innerHTML = '<div class="lp-sub">Cerco altre foto (anche dai video di gameplay)…</div>'; await more(); if(!alt.isConnected) return; free = pool.filter(u=> !slots.includes(u)); }
-      if(!free.length){ alt.innerHTML = '<div class="lp-sub">Non trovo altre foto di questo gioco (Steam e, con la chiave, RAWG).</div>'; return; }
+      if(!free.length){ alt.innerHTML = '<div class="lp-sub">Non trovo altre foto di questo titolo (Steam e, con la chiave, RAWG).</div>'; return; }
       const per = 12, pages = Math.ceil(free.length / per); if(page >= pages) page = 0;
       const show = free.slice(page * per, page * per + per);
       alt.innerHTML = `<div class="gs2-h">${sel === 'new' ? 'Scegli la foto da aggiungere' : 'Al posto della foto ' + (sel + 1) + ':'} <small>(gruppo ${page + 1}${qi < QS.length ? ' · ne cerco sempre altre' : ' di ' + pages})</small></div>
@@ -138,7 +138,7 @@
       drawCur(); drawAlt();
     });
     if(!slots.length){ await poolReady; if(!pool.length) await more(); slots = pool.slice(0, 6); }
-    if(!slots.length){ cur.textContent = 'Non trovo foto per questo gioco (servono Steam o la chiave RAWG).'; return; }
+    if(!slots.length){ cur.textContent = 'Non trovo foto per questo titolo (servono Steam o la chiave RAWG).'; return; }
     drawCur();
   }
   // quando chiudi il pannello, la scheda riparte con le foto nuove
@@ -163,9 +163,9 @@
   }
   // ---------- v217: la locandina presa da internet con un tocco ----------
   // 1) «Cerca su internet» apre Google Immagini; sulla foto scelta: tieni premuto → «Condividi immagine» → Raccoon Tier
-  //    (il service worker la riceve, l'app si apre e la mette come locandina del gioco da cui eri partito);
+  //    (il service worker la riceve, l'app si apre e la mette come locandina del titolo da cui eri partito);
   // 2) oppure «Copia immagine» e al ritorno l'avviso «Tocca per metterla come locandina» (legge gli appunti);
-  // 3) se l'immagine arriva senza un gioco di partenza resta da parte: «📥 Usa l'immagine ricevuta» nel menu della locandina.
+  // 3) se l'immagine arriva senza un titolo di partenza resta da parte: «📥 Usa l'immagine ricevuta» nel menu della locandina.
   const WAIT = 'art_cover_wait', SHARED = './__shared-cover', WCACHE = 'raccoon-anime-v1';
   const WEB = {pending: false};
   const byId = id=> (typeof GAMES !== 'undefined' ? GAMES : []).find(x=> String(x.id) === String(id));
@@ -224,7 +224,7 @@
     await wait();
     const g = w && Date.now() - w.t < 60 * 60e3 ? byId(w.id) : null;
     if(g){ try{ localStorage.removeItem(WAIT); }catch(e){} toast('📥 Immagine ricevuta: la metto come locandina di ' + g.name, 2600); await WEB.useShared(g); }
-    else if(window.showToast) showToast('📥 Immagine ricevuta. Apri il gioco giusto → 🖼️ Locandina e foto → «Usa l\'immagine ricevuta»', 9000);
+    else if(window.showToast) showToast('📥 Immagine ricevuta. Apri il titolo giusto → 🖼️ Locandina e foto → «Usa l\'immagine ricevuta»', 9000);
   })();
   // al ritorno da internet: se avevi copiato un'immagine te la propongo (un tocco, così il telefono mi lascia leggere gli appunti)
   document.addEventListener('visibilitychange', ()=>{

@@ -59,7 +59,7 @@
     if(altObs){ altObs.disconnect(); altObs = null; }
     const list = applyFilters();
     const cls = 'alt-view mode-' + MODE; if(alt.className !== cls){ alt.className = cls; alt.innerHTML = ''; }
-    if(!list.length){ alt.innerHTML = window.rtEmpty ? window.rtEmpty('list') : '<div class="empty" style="display:block">Nessun gioco trovato con questi filtri.</div>'; return; }
+    if(!list.length){ alt.innerHTML = window.rtEmpty ? window.rtEmpty('list') : '<div class="empty" style="display:block">Nessun titolo trovato con questi filtri.</div>'; return; }
     [...alt.children].forEach(n=>{ if(!n._sig) n.remove(); });                       // messaggi «vuoto» o resti di prima
     const target = Math.min(list.length, Math.max(alt.children.length, 60));
     for(let i = 0; i < target; i++){
@@ -75,7 +75,7 @@
       if(!first){ const end = Math.min(list.length, shown + 60); let h = ''; for(; shown < end; shown++) h += cardHtml(list[shown]); const t2 = document.createElement('template'); t2.innerHTML = h; [...t2.content.children].forEach((n, k)=>{ n._sig = cardHtml(list[shown - t2.content.children.length + k]); }); alt.appendChild(t2.content); }
       if(shown < list.length && 'IntersectionObserver' in window && alt.lastElementChild){
         // v220: con il pannello Filtri aperto la griglia NON scorre da sola (scorre la pagina): usare lei come «finestra» faceva credere che tutto fosse visibile
-        // e caricava a raffica un blocco dopo l'altro (fino a tutti i giochi, ognuno con una nuova impaginazione). Se non è un contenitore con scorrimento, uso lo schermo.
+        // e caricava a raffica un blocco dopo l'altro (fino a tutti i titoli, ognuno con una nuova impaginazione). Se non è un contenitore con scorrimento, uso lo schermo.
         const scr = alt.scrollHeight > alt.clientHeight + 4;                    // scorre davvero (ha più contenuto dello spazio che ha)
         altObs = new IntersectionObserver(es=>{ if(es.some(e=> e.isIntersecting)){ altObs.disconnect(); altObs = null; more(false); } }, scr ? {root: alt, rootMargin: '600px'} : {root: null, rootMargin: '600px 0px'});
         altObs.observe(alt.lastElementChild);
@@ -99,7 +99,7 @@
   if(stb) stb.addEventListener('click', ()=> alt.scrollTo({top:0, behavior:'smooth'}));
   window.rtAltMode = ()=> state.view === 'list' && MODE !== 'table';
   // v233: nelle viste a copertine e a schede (dove non ci sono le intestazioni della tabella) una riga discreta per ordinare
-  const SORTS = [['id', '🏆 Classifica', 1], ['heart', '😍 Giochi che amo', -1], ['fav', '⭐ Preferiti', -1], ['tier', 'Tier', 1], ['score', 'Voto', -1], ['ysort', 'Anno', -1], ['name', 'A-Z', 1]];
+  const SORTS = [['id', '🏆 Classifica', 1], ['heart', '😍 Titoli che amo', -1], ['fav', '⭐ Preferiti', -1], ['tier', 'Tier', 1], ['score', 'Voto', -1], ['ysort', 'Anno', -1], ['name', 'A-Z', 1]];
   try{ const sv = LS.get('atl_alt_sort', null); if(sv && SORTS.some(x=> x[0] === sv.k)){ state.sortKey = sv.k; state.sortDir = sv.d === -1 ? -1 : 1; } }catch(e){}
   const sortBar = document.createElement('div'); sortBar.id = 'altSort'; sortBar.className = 'alt-sort'; sortBar.style.display = 'none';
   alt.parentNode.insertBefore(sortBar, alt);
@@ -133,21 +133,21 @@
       <div class="lp-tools"><button class="btn${MODE==='table'?' primary':''}" data-m="table">${giIcon('table')} Tabella</button><button class="btn${MODE==='grid'?' primary':''}" data-m="grid">${giIcon('grid')} Copertine</button><button class="btn${MODE==='cards'?' primary':''}" data-m="cards">${giIcon('cards')} Schede</button></div>
       <div class="x-menu">
         <button class="btn" data-a="palette">${giIcon('orb')} Palette colori <small>(34 temi)</small></button>
-        <button class="btn" data-a="complete">${giIcon('wand')} Completa le schede dei giochi aggiunti <small>(💕🤝✨💉)</small></button>
+        <button class="btn" data-a="complete">${giIcon('wand')} Completa le schede dei titoli aggiunti <small>(💕🤝✨💉)</small></button>
         <button class="btn" data-a="covers">${giIcon('screen')} Copertine automatiche <small>(Wikipedia)</small></button>
         <button class="btn" data-a="audit">${giIcon('lens')} Controllo dati <small>(${window.auditStats ? auditStats().props : 0} da approvare · ${window.auditStats ? auditStats().done : 0}/765 controllati)</small></button>
         <button class="btn" data-a="wish">${giIcon('gift')} Wishlist e date di uscita</button>
         <button class="btn" data-a="share">${giIcon('up')} Condividi la tua tier list (immagine)</button>
         <button class="btn" data-a="badges">${giIcon('trophy')} Traguardi</button>
         <a class="btn" href="backup-aurora/" title="La versione di prima delle palette, sempre disponibile">${giIcon('layers')} Versione di sicurezza (Aurora)</a>
-        <label class="ask-toggle"><input type="checkbox" id="xAutoCov" ${LS.get('atl_autocover', true)?'checked':''}> ${giIcon('screen')} Cerca la copertina da sola quando apro un gioco che non ce l'ha</label>
+        <label class="ask-toggle"><input type="checkbox" id="xAutoCov" ${LS.get('atl_autocover', true)?'checked':''}> ${giIcon('screen')} Cerca la copertina da sola quando apro un titolo che non ce l'ha</label>
         <label class="ask-toggle"><input type="checkbox" id="xFx" ${document.documentElement.classList.contains('fx-on')?'checked':''}> ${giIcon('layers')} Vetro sfocato e sfondo animato <small>(più bello, ma può rallentare lo scorrimento)</small></label>
         <label class="ask-toggle"><input type="checkbox" id="xTint" ${tint?'checked':''}> ${giIcon('orb')} Colori della scheda presi dalla copertina</label>
       </div>`);
     body.querySelectorAll('[data-m]').forEach(b=> b.addEventListener('click', ()=>{ setMode(b.dataset.m); document.getElementById('xMenu').classList.remove('show'); }));
     body.querySelector('#xAutoCov').addEventListener('change', ev=>{ LS.set('atl_autocover', ev.target.checked); });
     body.querySelector('#xFx').addEventListener('change', ev=>{ LS.set('atl_fx', ev.target.checked ? 'on' : 'off'); document.documentElement.classList.toggle('fx-on', ev.target.checked); toast(ev.target.checked ? 'Effetti extra attivi' : 'Effetti extra spenti: scorrimento più fluido'); });
-    body.querySelector('#xTint').addEventListener('change', e=>{ LS.set('atl_cover_tint', e.target.checked); toast(e.target.checked ? 'Apri un gioco con copertina per vedere i colori' : 'Colori standard'); });
+    body.querySelector('#xTint').addEventListener('change', e=>{ LS.set('atl_cover_tint', e.target.checked); toast(e.target.checked ? 'Apri un titolo con copertina per vedere i colori' : 'Colori standard'); });
     { const xm = body.querySelector('.x-menu'); (window.XMENU || []).forEach(it=>{ const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.innerHTML = it.html; b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); it.run(); }); const first = xm.querySelector('a.btn, label.ask-toggle'); xm.insertBefore(b, first || null); }); }
     body.querySelectorAll('[data-a]').forEach(b=> b.addEventListener('click', ()=>{ document.getElementById('xMenu').classList.remove('show'); ({audit: ()=> window.openAuditPanel && window.openAuditPanel(), complete: ()=> window.completeCustomGames && window.completeCustomGames(), palette: ()=> window.openPalettePicker && window.openPalettePicker(), covers: openCovers, wish: openWishlist, share: shareTierImage, badges: openBadges})[b.dataset.a](); }));
   }
@@ -186,9 +186,9 @@
   }
 
   // ---- Ricerca copertina "a catena" (solo fonti ufficiali/aperte, niente pagine da "grattare", niente chiavi, niente CAPTCHA) ----
-  // 1) Wikidata: nome inglese ufficiale, ID Steam, voce Wikipedia   2) Steam: copertina verticale 600x900 (giochi PC moderni)
+  // 1) Wikidata: nome inglese ufficiale, ID Steam, voce Wikipedia   2) Steam: copertina verticale 600x900 (titoli PC moderni)
   // 3) Libretro Thumbnails (RetroArch): box art ufficiali di PS1/PS2/PSP/SNES/N64/GB/GBA/DS/GameCube/Wii/Sega/NEC/Xbox
-  // 4) Wikipedia: immagine principale della voce del gioco
+  // 4) Wikipedia: immagine principale della voce del titolo
   const LR = 'https://thumbnails.libretro.com/';
   const LR_SYS = [
     [/\bps1\b|playstation(?! ?[2-5]| portable| vita)|\bpsx\b/i, 'Sony - PlayStation'], [/\bps2\b|playstation 2/i, 'Sony - PlayStation 2'], [/\bpsp\b/i, 'Sony - PlayStation Portable'],
@@ -246,7 +246,7 @@
     return p && p.thumbnail ? p.thumbnail.source : null;
   }
   // trova la copertina migliore; restituisce {url, source} oppure null
-  // v201: per Wikidata, RAWG e Steam serve il nome inglese ufficiale (col nome italiano trovavano un altro gioco)
+  // v201: per Wikidata, RAWG e Steam serve il nome inglese ufficiale (col nome italiano trovavano un altro titolo)
   const enN = async g=>{ try{ return window.SearchHub && SearchHub.enName ? await SearchHub.enName(g) : g.name; }catch(e){ return g.name; } };
   async function findCover(g, opts){
     opts = opts || {}; const say = opts.onStep || (()=>{});
@@ -269,7 +269,7 @@
     }
     say('Wikipedia…');
     try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); if(u) return {url: u, source: 'Wikipedia'}; }catch(e){}
-    // ultima possibilità: immagine ufficiale del gioco su RAWG (non è una box art, ma è sempre del gioco giusto)
+    // ultima possibilità: immagine ufficiale del titolo su RAWG (non è una box art, ma è sempre del titolo giusto)
     try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(await enN(g)); if(i && i.cover) return {url: i.cover, source: 'RAWG'}; } }catch(e){}
     return null;
   }
@@ -289,8 +289,8 @@
     return out.filter((o, i)=> ok[i]);
   }
   window.findGameCover = findCover;
-  // v218: schermate di gioco dai vecchi sistemi (Libretro, gratis e senza chiave): la schermata in azione e quella del titolo.
-  // Servono al carosello dei giochi che non hanno foto su Steam (PS1, PS2, PSP, DS, 3DS, SNES…). Il risultato si ricorda: 60 giorni se trovate, 3 giorni se no.
+  // v218: schermate di titolo dai vecchi sistemi (Libretro, gratis e senza chiave): la schermata in azione e quella del titolo.
+  // Servono al carosello dei titoli che non hanno foto su Steam (PS1, PS2, PSP, DS, 3DS, SNES…). Il risultato si ricorda: 60 giorni se trovate, 3 giorni se no.
   async function lrShots(g, cacheOnly){
     const K = 'art_shots_lr', LSg = ()=>{ try{ return JSON.parse(localStorage.getItem(K) || '{}') || {}; }catch(e){ return {}; } };
     const c = LSg(), e = c[g.id];
@@ -325,8 +325,8 @@
     return good;
   }
   async function coverCandidates(g){
-    // tutte le immagini che rappresentano il gioco, dalla più adatta a fare da locandina alla meno: box art verticali, copertine
-    // di Wikipedia in più lingue, immagini ufficiali di Wikidata, grafiche di Steam (capsule, banner, hero), RAWG, schermate del titolo e di gioco
+    // tutte le immagini che rappresentano il titolo, dalla più adatta a fare da locandina alla meno: box art verticali, copertine
+    // di Wikipedia in più lingue, immagini ufficiali di Wikidata, grafiche di Steam (capsule, banner, hero), RAWG, schermate del titolo e di titolo
     const out = [], add = (u, src, rk)=>{ if(u && !out.some(x=> x.url === u)) out.push({url: u, source: src, rk}); };
     let wd = null; try{ wd = await wikidataInfo(await enN(g)); }catch(e){}
     const tasks = [];
@@ -343,7 +343,7 @@
       const mk = kind=>{ const urls = []; titles.forEach(t=> sys.forEach(s=> LR_REG.forEach(r=> urls.push(LR + encodeURIComponent(s) + '/' + kind + '/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png'))))); return urls; };
       tasks.push(okAll(mk('Named_Boxarts')).then(l=> l.forEach(u=> add(u, 'Libretro (box art)', 0))));
       tasks.push(okAll(mk('Named_Titles'), 8).then(l=> l.slice(0, 2).forEach(u=> add(u, 'Libretro (schermata del titolo)', 6))));
-      tasks.push(okAll(mk('Named_Snaps'), 8).then(l=> l.slice(0, 2).forEach(u=> add(u, 'Libretro (schermata di gioco)', 7))));
+      tasks.push(okAll(mk('Named_Snaps'), 8).then(l=> l.slice(0, 2).forEach(u=> add(u, 'Libretro (immagine)', 7))));
     }
     // Wikipedia: la voce inglese e le stesse voci in italiano, giapponese, francese, tedesco, spagnolo (spesso copertine diverse: europea, giapponese…)
     tasks.push((async()=>{ try{
@@ -359,7 +359,7 @@
     await Promise.all(tasks);
     return out.sort((a, b)=> a.rk - b.rk);
   }
-  const ALT = {};        // id gioco -> {list, idx}
+  const ALT = {};        // id titolo -> {list, idx}
   document.addEventListener('click', async ev=>{
     const fitBtn = ev.target.closest && ev.target.closest('[data-cover-fit]'), altBtn = ev.target.closest && ev.target.closest('[data-cover-alt]');
     if(!fitBtn && !altBtn) return;
@@ -386,7 +386,7 @@
     }
     const st = ALT[g.id];
     const others = st.list.filter(x=> x.url !== cur0);
-    if(!others.length){ toast('Non ho trovato altre immagini di questo gioco oltre a quella attuale'); return; }
+    if(!others.length){ toast('Non ho trovato altre immagini di questo titolo oltre a quella attuale'); return; }
     let pick = null;
     for(let k = 0; k < st.list.length; k++){ st.idx = (st.idx + 1) % st.list.length; if(st.list[st.idx].url !== cur0){ pick = st.list[st.idx]; break; } }
     await saveAutoCover(g, pick.url);
@@ -398,7 +398,7 @@
   let coversRunning = false;
   function openCovers(){
     const missing = GAMES.filter(g=> !coverOf(g));
-    const body = sheet('xCovers', giIcon('screen') + ' Copertine automatiche', `<div class="lp-sub">Cerco la copertina ufficiale dei <b>${missing.length}</b> giochi che non ce l'hanno, da fonti aperte: Wikipedia, Steam (copertine verticali), Libretro/RetroArch (box art originali delle console) e Wikidata. Le copertine che hai già messo tu non vengono toccate. Si salvano e si sincronizzano come le altre.</div>
+    const body = sheet('xCovers', giIcon('screen') + ' Copertine automatiche', `<div class="lp-sub">Cerco la copertina ufficiale dei <b>${missing.length}</b> titoli che non ce l'hanno, da fonti aperte: Wikipedia, Steam (copertine verticali), Libretro/RetroArch (box art originali delle console) e Wikidata. Le copertine che hai già messo tu non vengono toccate. Si salvano e si sincronizzano come le altre.</div>
       <div class="lp-tools"><button class="btn primary" id="xCovGo" ${coversRunning || !missing.length ? 'disabled' : ''}>${missing.length ? 'Avvia' : 'Tutte le copertine ci sono già'}</button></div><div class="lp-sub" id="xCovSt"></div><div class="x-bar"><i id="xCovBar"></i></div>`);
     const st = body.querySelector('#xCovSt'), bar = body.querySelector('#xCovBar');
     body.querySelector('#xCovGo').addEventListener('click', async e=>{
@@ -533,7 +533,7 @@
       }
     });
     if(changed) LS.set(WK, w);
-    // ricontrolla in silenzio al massimo 2 giochi non usciti ogni 3 giorni (pochissime richieste)
+    // ricontrolla in silenzio al massimo 2 titoli non usciti ogni 3 giorni (pochissime richieste)
     Object.keys(w).filter(id=> !w[id].released && (!w[id].checked || daysTo(w[id].checked) <= -3)).slice(0, 2).forEach((id, i)=> setTimeout(()=> checkRelease(id, false), 4000 + i * 3000));
   }
   function openWishlist(){
@@ -548,7 +548,7 @@
       return `<div class="x-wrow"><div><b>${esc(it.name)}</b><br><small>${when}${it.note ? ' · ' + esc(it.note) : ''}${it.price ? ' · 💶 ' + (it.price.cur === 'USD' ? '$' + it.price.f.toFixed(2) : it.price.f.toLocaleString('it-IT', {style:'currency', currency:'EUR'})) + (it.price.d > 0 ? ' (−' + it.price.d + '%)' : '') : ''}${it.checked ? ' · controllato il ' + fmtD(it.checked) : ''}</small><br><small class="x-wth">${thLine(id, it)}</small></div><div class="x-wbtn"><button class="btn" data-w-open="${id}">Apri</button><button class="btn" data-w-check="${id}">↻</button><button class="btn" data-w-del="${id}">✕</button></div></div>`;
     }).join('');
     const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
-    const body = sheet('xWish', giIcon('gift') + ' Wishlist e uscite', `<div class="lp-sub">Aggiungi un gioco dalla sua scheda con il pulsante «Wishlist». Controllo la data di uscita (con Gemini e ricerca web) e ti avviso quando esce, <b>quando apri l'app</b> (un sito web non può avvisarti a app chiusa).</div>
+    const body = sheet('xWish', giIcon('gift') + ' Wishlist e uscite', `<div class="lp-sub">Aggiungi un titolo dalla sua scheda con il pulsante «Wishlist». Controllo la data di uscita (con Gemini e ricerca web) e ti avviso quando esce, <b>quando apri l'app</b> (un sito web non può avvisarti a app chiusa).</div>
       ${perm === 'default' ? '<div class="lp-tools"><button class="btn" id="xNotif">🔔 Attiva notifiche del telefono</button></div>' : ''}
       ${rows || (window.rtEmpty ? window.rtEmpty('wish') : '<div class="lp-sub">La wishlist è vuota.</div>')}`);
     const n = body.querySelector('#xNotif'); if(n) n.addEventListener('click', ()=> Notification.requestPermission().then(p=> toast(p === 'granted' ? '🔔 Notifiche attive' : 'Notifiche non attivate')));
@@ -579,7 +579,7 @@
     return w[g.id];
   };
 
-  // pulsante Wishlist nella scheda del gioco + colori dalla copertina
+  // pulsante Wishlist nella scheda del titolo + colori dalla copertina
   const origOpen = window.openModal;
   window.openModal = function(g){
     const r = origOpen.apply(this, arguments);
@@ -597,9 +597,9 @@
     }catch(e){}
     return r;
   };
-  // scheda del gioco senza copertina: pulsante "Trova copertina" e (se attivo) ricerca automatica all'apertura
+  // scheda del titolo senza copertina: pulsante "Trova copertina" e (se attivo) ricerca automatica all'apertura
   let assistToken = 0;
-  // v205: locandine «deboli» già salvate (da RAWG, che può scambiare i giochi con lo stesso nome): ricontrollate una volta ogni 3 giorni
+  // v205: locandine «deboli» già salvate (da RAWG, che può scambiare i titoli con lo stesso nome): ricontrollate una volta ogni 3 giorni
   // con le fonti migliori (Steam col numero del server, Libretro, Wikipedia). Cambio solo se trovo di meglio; mai se hai bloccato o caricato tu.
   const CCHK = 'atl_cover_chk2';
   function recheckWeakCover(g){
@@ -685,7 +685,7 @@
     c.width = W; c.height = H;
     const bg = x.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#1a1033'); bg.addColorStop(1, '#2b1450'); x.fillStyle = bg; x.fillRect(0, 0, W, H);
     x.fillStyle = '#fff'; x.font = '800 60px system-ui, sans-serif'; x.fillText('🦝 La mia Tier List', P, 100);
-    x.font = '500 28px system-ui, sans-serif'; x.fillStyle = '#c9b8ff'; x.fillText(mine.length >= 5 ? 'I giochi che ho giocato e amato' : 'I migliori della mia collezione', P, 150);
+    x.font = '500 28px system-ui, sans-serif'; x.fillStyle = '#c9b8ff'; x.fillText(mine.length >= 5 ? 'I titoli che ho visto e amato' : 'I migliori della mia collezione', P, 150);
     let y = 200;
     layout.forEach(l=>{
       const h = Math.max(96, l.lines.length * (chipH + 10) + rowPad * 2);
@@ -712,18 +712,18 @@
   // 7) TRAGUARDI (calcolati dai tuoi dati, nessuna rete)
   // =====================================================================
   const BADGES = [
-    ['first', '🎮', 'Si comincia', 'Segna il primo gioco come giocato', s=> s.played >= 1],
-    ['p10', '🥉', 'Giocatore', '10 giochi giocati', s=> s.played >= 10],
-    ['p25', '🥈', 'Veterano', '25 giochi giocati', s=> s.played >= 25],
-    ['p50', '🥇', 'Leggenda', '50 giochi giocati', s=> s.played >= 50],
-    ['splus', '👑', 'Solo il meglio', '5 giochi S+ giocati', s=> s.splus >= 5],
-    ['retro', '📼', 'Anima retrò', 'Un gioco degli anni \'80 o \'90 giocato', s=> s.retro >= 1],
-    ['decades', '⏳', 'Viaggiatore del tempo', 'Giochi giocati di 4 decenni diversi', s=> s.decades >= 4],
-    ['genres', '🧭', 'Esploratore', 'Giochi giocati di 6 generi diversi', s=> s.genres >= 6],
+    ['first', '🎮', 'Si comincia', 'Segna il primo titolo come visto', s=> s.played >= 1],
+    ['p10', '🥉', 'Giocatore', '10 titoli visti', s=> s.played >= 10],
+    ['p25', '🥈', 'Veterano', '25 titoli visti', s=> s.played >= 25],
+    ['p50', '🥇', 'Leggenda', '50 titoli visti', s=> s.played >= 50],
+    ['splus', '👑', 'Solo il meglio', '5 titoli S+ visti', s=> s.splus >= 5],
+    ['retro', '📼', 'Anima retrò', 'Un titolo degli anni \'80 o \'90 visto', s=> s.retro >= 1],
+    ['decades', '⏳', 'Viaggiatore del tempo', 'Titoli visti di 4 decenni diversi', s=> s.decades >= 4],
+    ['genres', '🧭', 'Esploratore', 'Titoli visti di 6 generi diversi', s=> s.genres >= 6],
     ['fav10', '💖', 'Cuore d\'oro', '10 preferiti', s=> s.favs >= 10],
-    ['long', '🏔️', 'Maratoneta', 'Un gioco da 60+ ore giocato', s=> s.long >= 1],
+    ['long', '🏔️', 'Maratoneta', 'Un titolo da 60+ ore visto', s=> s.long >= 1],
     ['covers', '🖼️', 'Collezionista', '100 copertine nella collezione', s=> s.covers >= 100],
-    ['wish', '🎁', 'Sognatore', '3 giochi in wishlist', s=> s.wish >= 3]
+    ['wish', '🎁', 'Sognatore', '3 titoli in wishlist', s=> s.wish >= 3]
   ];
   function badgeStats(){
     const S = (typeof STATUSES !== 'undefined') ? STATUSES : {};
@@ -790,23 +790,23 @@
     return GAMES.filter(g=> !FAVS.has(g.id) && !STATUSES[g.id]).map(g=>({g, ...similarity(g, favs)})).sort((a, b)=> b.sc - a.sc).slice(0, 8);
   }
   const VIBES_STRATEGIES = [
-    {key:'reddit', src:'Reddit', hint:"Cerca nelle discussioni di Reddit (r/patientgamers, r/JRPG, r/rpg_gamers, r/gamingsuggestions, r/truegaming): thread «se ti è piaciuto X prova Y», «giochi simili a X»."},
+    {key:'reddit', src:'Reddit', hint:"Cerca nelle discussioni di Reddit (r/patientgamers, r/JRPG, r/rpg_gamers, r/gamingsuggestions, r/truegaming): thread «se ti è piaciuto X prova Y», «titoli simili a X»."},
     {key:'reddit', src:'ResetEra e forum', hint:"Cerca su ResetEra, Steam Discussions, GameFAQs, forum di Multiplayer.it e altri forum: utenti che dicono «se ti è piaciuto X amerai Y perché dà le stesse sensazioni»."},
-    {key:'riviste', src:'liste «giochi simili a…»', hint:"Cerca liste e articoli «games like X» di riviste (IGN, Eurogamer, PC Gamer, RPGFan, Game Rant) e siti di raccomandazioni (Similar Games, GamePressure, Lutris)."},
+    {key:'riviste', src:'liste «titoli simili a…»', hint:"Cerca liste e articoli «games like X» di riviste (IGN, Eurogamer, PC Gamer, RPGFan, Game Rant) e siti di raccomandazioni (Similar Games, GamePressure, Lutris)."},
     {key:'igdb', src:'IGDB, RAWG e MobyGames', hint:"Cerca i «simili» di IGDB, RAWG e MobyGames per ciascun preferito."},
-    {key:'riviste', src:'YouTube e recensioni', hint:"Cerca video e recensioni «se ti è piaciuto X, gioca a…», e giochi che i recensori paragonano ai preferiti per atmosfera e meccaniche."},
+    {key:'riviste', src:'YouTube e recensioni', hint:"Cerca video e recensioni «se ti è piaciuto X, gioca a…», e titoli che i recensori paragonano ai preferiti per atmosfera e meccaniche."},
     {key:'retro', src:'nicchia e retro', hint:"Cerca perle di nicchia o retro che trasmettono le stesse sensazioni, anche di genere in parte diverso."}
   ];
   function buildPrompt(favs, count){
     const list = favs.slice(0, 14).map(f=> `- "${f.name}" (${f.year || 'n.d.'}, ${f.plat}; ${(f.tags || []).map(tn).join(', ') || 'n.d.'})${(f.enrich && f.enrich.whyLikeIt) ? ' — ' + f.enrich.whyLikeIt : ''}`).join('\n');
-    return todayLine() + `Mario ha questi giochi PREFERITI (la sua lista Top):\n${list}\n
-Trova ${count} videogiochi che gli darebbero le STESSE VIBES: atmosfera, mood, tono della storia, sensazioni, meccaniche chiave e affinità emotive. Non limitarti al genere tecnico: sono ben accetti giochi di genere in parte diverso se la sensazione è la stessa. Basati soprattutto su consigli REALI di giocatori (forum, Reddit, ResetEra, commenti e liste), e dì cosa dicono.
+    return todayLine() + `Mario ha questi titoli PREFERITI (la sua lista Top):\n${list}\n
+Trova ${count} videogiochi che gli darebbero le STESSE VIBES: atmosfera, mood, tono della storia, sensazioni, meccaniche chiave e affinità emotive. Non limitarti al genere tecnico: sono ben accetti titoli di genere in parte diverso se la sensazione è la stessa. Basati soprattutto su consigli REALI di appassionati (forum, Reddit, ResetEra, commenti e liste), e dì cosa dicono.
 NON proporre nessuno di questi (già nel suo database o già rifiutati): ${novitaExcludeListText(novitaKnownNames())}
-Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (titolo esatto), plat, year, tier (S+, S, A, B, C, D, E, F), score (0-100), tags (0-3 codici tra: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}), story (2-3 frasi di premessa), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), because (una frase: perché dà le stesse sensazioni, citando almeno un preferito), basedOn (array con 1-3 nomi esatti tra i preferiti elencati), sharedVibes (array di 2-4 parole chiave: es. "malinconia", "viaggio epico", "scelte morali", "esplorazione"), forum (una frase su cosa dicono i giocatori, con la fonte es. "Reddit r/JRPG"; null se non trovi un consiglio reale: NON inventare).`;
+Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (titolo esatto), plat, year, tier (S+, S, A, B, C, D, E, F), score (0-100), tags (0-3 codici tra: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}), story (2-3 frasi di premessa), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), because (una frase: perché dà le stesse sensazioni, citando almeno un preferito), basedOn (array con 1-3 nomi esatti tra i preferiti elencati), sharedVibes (array di 2-4 parole chiave: es. "malinconia", "viaggio epico", "scelte morali", "esplorazione"), forum (una frase su cosa dicono i appassionati, con la fonte es. "Reddit r/JRPG"; null se non trovi un consiglio reale: NON inventare).`;
   }
   async function findVibes(){
     if(busy) return; const favs = favGames();
-    if(favs.length < 1){ showToast('Aggiungi prima almeno un gioco preferito', 2500); return; }
+    if(favs.length < 1){ showToast('Aggiungi prima almeno un titolo preferito', 2500); return; }
     if(typeof llmAvailable !== 'function' || !llmAvailable()){ showToast('Serve una chiave Gemini (⚙️ Impostazioni in Chiedi) per cercare sul web', 3500); return; }
     busy = true; refresh();
     try{
@@ -815,7 +815,7 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
       const have = new Set(results.map(c=> c.name.toLowerCase()));
       const fresh = arr.filter(c=> !have.has(c.name.toLowerCase()));
       results = fresh.concat(results); sv(results);
-      showToast(fresh.length ? '🦝 ' + fresh.length + ' giochi con le tue vibes' : 'Nessun gioco nuovo trovato: riprova più tardi', 3000);
+      showToast(fresh.length ? '🦝 ' + fresh.length + ' titoli con le tue vibes' : 'Nessun titolo nuovo trovato: riprova più tardi', 3000);
     }catch(e){ showToast('Ricerca non riuscita: ' + ((typeof llmErrorText === 'function' && e && e.code) ? llmErrorText(e) : 'riprova tra poco'), 4000); }
     busy = false; refresh();
   }
@@ -823,17 +823,17 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
     const favs = favGames(), loc = showLocal ? localList() : [];
     return `<div class="vb-wrap" id="vibesBar">
       <div class="vb-title">❤️ I miei preferiti Top <small>(${favs.length})</small></div>
-      <div class="vb-chips">${favs.slice(0, 40).map(f=> `<span class="vb-chip" data-open="${f.id}">${escHtml(f.name)} <b data-unfav="${f.id}" title="Togli dai preferiti">×</b></span>`).join('') || '<span class="vb-empty">Ancora nessuno: aggiungi i giochi che ami di più.</span>'}</div>
-      <div class="vb-add"><input id="vbInput" list="vbList" placeholder="Aggiungi un gioco ai preferiti…" autocomplete="off"><datalist id="vbList"></datalist><button class="btn" id="vbAdd">＋</button></div>
+      <div class="vb-chips">${favs.slice(0, 40).map(f=> `<span class="vb-chip" data-open="${f.id}">${escHtml(f.name)} <b data-unfav="${f.id}" title="Togli dai preferiti">×</b></span>`).join('') || '<span class="vb-empty">Ancora nessuno: aggiungi i titoli che ami di più.</span>'}</div>
+      <div class="vb-add"><input id="vbInput" list="vbList" placeholder="Aggiungi un titolo ai preferiti…" autocomplete="off"><datalist id="vbList"></datalist><button class="btn" id="vbAdd">＋</button></div>
       <div class="lp-tools"><button class="btn primary" id="vbFind" ${busy ? 'disabled' : ''}>${giIcon('wand')} Consigliati per le mie vibes</button><button class="btn" id="vbLocal">${showLocal ? 'Nascondi' : 'Mostra'} quelli già nel database</button></div>
-      <div class="vb-hint">Atmosfera, sensazioni e meccaniche dei tuoi preferiti, confrontate con quello che dicono giocatori e forum. Le proposte da fuori si aggiungono con ♥ e diventano schede complete.</div>
+      <div class="vb-hint">Atmosfera, sensazioni e meccaniche dei tuoi preferiti, confrontate con quello che dicono appassionati e forum. Le proposte da fuori si aggiungono con ♥ e diventano schede complete.</div>
       ${loc.length ? `<div class="vb-sec">📚 Già nel tuo database, con le stesse vibes</div>${loc.map(o=> `<div class="vb-loc" data-open="${o.g.id}"><b>${escHtml(o.g.name)}</b> <span class="badge ${TIER_LABEL[o.g.tier]}">${o.g.tier}</span><br><small>Come «${escHtml(o.fav ? o.fav.name : '')}»${o.why.length ? ': ' + escHtml(o.why.join(' · ')) : ''}</small></div>`).join('')}` : ''}
       ${results.length ? `<div class="vb-sec">🌐 Nuovi da fuori (${results.length})</div>${results.map((c, i)=> `<div class="vb-card novita-compact">
         <div class="novita-head"><div class="discover-title">${escHtml(c.name)}</div><div class="novita-acts"><button class="discover-btn nope" data-vno="${i}" title="Non fa per me">✕</button><button class="discover-btn like" data-vyes="${i}" title="Aggiungi con scheda completa">♥</button></div></div>
         <div class="novita-meta"><span>${escHtml(c.year || '?')}</span> · <span>${escHtml(c.plat || '?')}</span><span class="badge ${TIER_LABEL[c.tier]}">${c.tier}</span>${c.score != null ? `<span class="badge outline">${c.score}/100</span>` : ''}</div>
         ${c.because ? `<div class="vb-because">${escHtml(c.because)}</div>` : ''}
         ${(c.sharedVibes || []).length ? `<div class="modal-tags">${c.sharedVibes.map(v=> `<span class="tagpill">${escHtml(v)}</span>`).join('')}</div>` : ''}
-        ${c.forum ? `<div class="novita-why"><b>Cosa dicono i giocatori</b> ${escHtml(c.forum)}</div>` : ''}
+        ${c.forum ? `<div class="novita-why"><b>Cosa dicono i appassionati</b> ${escHtml(c.forum)}</div>` : ''}
         <div class="novita-links"><a class="novita-link-btn" href="${novitaYoutubeUrl(c.name)}" target="_blank" rel="noopener">▶️ Gameplay ITA</a><a class="novita-link-btn" href="${novitaReviewSearchUrl(c.name)}" target="_blank" rel="noopener">📰 Recensione ITA</a><a class="novita-link-btn" href="${coverSearchUrl({name:c.name})}" target="_blank" rel="noopener">🖼️ Locandina</a><a class="novita-link-btn" href="${novitaGameplaySearchUrl(c.name)}" target="_blank" rel="noopener">📸 Foto gameplay</a></div>
       </div>`).join('')}` : ''}
     </div>`;
@@ -845,7 +845,7 @@ Rispondi SOLO con un array JSON valido con ${count} oggetti, ognuno con: name (t
     const add = ()=>{
       const v = (inp.value || '').trim().toLowerCase(); if(!v) return;
       const g = GAMES.find(x=> x.name.toLowerCase() === v) || GAMES.find(x=> x.name.toLowerCase().includes(v));
-      if(!g){ showToast('Non trovo questo gioco nel database', 2200); return; }
+      if(!g){ showToast('Non trovo questo titolo nel database', 2200); return; }
       FAVS.add(g.id); saveFavs(); try{ renderMetrics(); render(); }catch(e){} showToast('❤️ ' + g.name + ' tra i preferiti', 1600); refresh();
     };
     root.querySelector('#vbAdd').addEventListener('click', add);

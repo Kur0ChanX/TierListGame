@@ -108,7 +108,7 @@
     const s = Math.max(.12, Math.min(.6, r.width / box.width));
     return {kf: [{scale: String(s), translate: (r.left + r.width / 2 - (box.left + box.width / 2)) + 'px ' + (r.top + r.height / 2 - (box.top + box.height / 2)) + 'px'}, {scale: '1', translate: '0 0'}], dur: 240, ease: EASE_PH, round: true};
   }
-  // locandina IMMEDIATA: la miniatura del gioco toccato è già nella lista (caricata e decodificata): la metto subito nella scheda, sotto l'immagine nitida,
+  // locandina IMMEDIATA: la miniatura del titolo toccato è già nella lista (caricata e decodificata): la metto subito nella scheda, sotto l'immagine nitida,
   // che arriva dopo e si sovrappone in dissolvenza. Prima: riquadro viola vuoto (con un bordino chiaro) per circa 0,4 s, poi sfocata, poi nitida.
   function seedCover(card, T){
     try{
@@ -185,7 +185,7 @@
   document.addEventListener('pointerdown', e=>{
     const el = e.target.closest && e.target.closest('tr[data-gid], [data-gid], .x-card[data-id], .x-row[data-id]');
     tap = {x: e.clientX, y: e.clientY, t: performance.now(), r: el ? el.getBoundingClientRect() : null, el};
-    // v216: risposta immediata al tocco — il gioco toccato si «schiaccia» subito (prima ancora che la scheda sia pronta)
+    // v216: risposta immediata al tocco — il titolo toccato si «schiaccia» subito (prima ancora che la scheda sia pronta)
     try{ if(el && el.classList && moOn()){ el.classList.add('rt-press'); const off = ()=>{ el.classList.remove('rt-press'); }; setTimeout(off, 450); window.addEventListener('pointercancel', off, {once: true}); } }catch(x){}
   }, true);
   let VW = innerWidth, VH = innerHeight;
@@ -296,7 +296,7 @@
         const self = this, G = ghostOpen(R), T0 = performance.now(); let args = arguments;
         setTimeout(()=>{ try{ if(G.gh.isConnected) G.gh.remove(); const c = document.getElementById('modalCard'); if(c && c.style.opacity === '0') c.style.opacity = ''; }catch(x){} }, 2500);   // rete di sicurezza: il cartoncino non resta MAI sopra l'app
         // lascio partire il cartoncino (un fotogramma), poi costruisco la scheda vera sotto di lui
-        // v210: se i testi lunghi del gioco non sono ancora arrivati, li aspetto (al massimo 450 ms) MENTRE il cartoncino si allarga:
+        // v210: se i testi lunghi del titolo non sono ancora arrivati, li aspetto (al massimo 450 ms) MENTRE il cartoncino si allarga:
         // così la scheda si costruisce una volta sola, già completa (prima si disegnava vuota e poi di nuovo, con un salto)
         const g0 = args[0], needTx = !!(g0 && window.rtTexts && !rtTexts.has(g0));
         const wait = needTx ? Promise.race([rtTexts.ensure(g0).catch(()=>{}), new Promise(r=> setTimeout(r, 160))]) : Promise.resolve();      // v215: al massimo 160 ms (prima 450: locandina sola sul nero); i testi ora arrivano quasi sempre prima
@@ -342,8 +342,8 @@
     };
     try{ openModal = window.openModal; }catch(e){}
   }
-  // v218: la scheda di un gioco parte SEMPRE in alto (nome e locandina in vista): prima, aprendo un gioco dopo averne scorso un altro, restava a metà.
-  // Solo se è lo stesso gioco già aperto (ridisegno sul posto, es. dopo Update+) la posizione si mantiene.
+  // v218: la scheda di un titolo parte SEMPRE in alto (nome e locandina in vista): prima, aprendo un titolo dopo averne scorso un altro, restava a metà.
+  // Solo se è lo stesso titolo già aperto (ridisegno sul posto, es. dopo Update+) la posizione si mantiene.
   if(typeof window.openModal === 'function'){
     const inner = window.openModal;
     window.openModal = function(g){
@@ -426,9 +426,9 @@
   };
   const KINDS = {
     list: {t: 'Frugu ha frugato dappertutto', p: 'Con questi filtri non c\'è niente. Togline qualcuno o prova a cercare un altro nome.', a: ['reset', 'ask']},
-    search: {t: 'Nessun gioco con questo nome', p: 'Controlla come l\'hai scritto, oppure togli la ricerca per rivedere tutta la lista.', a: ['clearSearch']},
+    search: {t: 'Nessun titolo con questo nome', p: 'Controlla come l\'hai scritto, oppure togli la ricerca per rivedere tutta la lista.', a: ['clearSearch']},
     saga: {t: 'Nessuna saga qui', p: 'Nessuna saga corrisponde ai filtri attuali. Prova a toglierne qualcuno.', a: ['reset']},
-    wish: {t: 'La wishlist è vuota', p: 'Apri la scheda di un gioco e tocca «Wishlist»: ti avviso quando esce o scende di prezzo.', a: ['discover']}
+    wish: {t: 'La wishlist è vuota', p: 'Apri la scheda di un titolo e tocca «Wishlist»: ti avviso quando esce o scende di prezzo.', a: ['discover']}
   };
   window.rtEmpty = function(kind){
     const k = KINDS[kind] || KINDS.list;
@@ -509,7 +509,7 @@
     requestAnimationFrame(()=> placeOn(activeTab(), true));
   }
 
-  // ---------------------------------------------------------------- v211: «Per te / Il gioco / Altro»: i riquadri nuovi emergono morbidi
+  // ---------------------------------------------------------------- v211: «Per te / Il titolo / Altro»: i riquadri nuovi emergono morbidi
   document.addEventListener('click', e=>{
     const tb = e.target.closest && e.target.closest('.cd-tabs [data-ctab]'); if(!tb || !moOn()) return;
     requestAnimationFrame(()=>{

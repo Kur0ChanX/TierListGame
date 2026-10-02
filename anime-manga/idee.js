@@ -64,7 +64,7 @@
     return out;
   }
   async function heirsAI(g){
-    const r = await askLLM(todayLine() + `Del videogioco "${g.name}" elenca gli eredi spirituali (giochi presentati dalla stampa o dagli sviluppatori come «successore spirituale») e le sue radici spirituali (giochi di cui è erede). Includi SOLO relazioni dichiarate esplicitamente da fonti affidabili, non semplici somiglianze. Rispondi SOLO con JSON: {"heirs":[{"title":"","year":"","why":"una frase","source":"url"}],"roots":[{"title":"","year":"","why":"","source":"url"}]} (max 5 per elenco, vuoto se non ne sai).`, {}, {search: true, fast: true, label: 'Cerco gli eredi spirituali…'});
+    const r = await askLLM(todayLine() + `Del videogioco "${g.name}" elenca gli eredi spirituali (titoli presentati dalla stampa o dagli sviluppatori come «successore spirituale») e le sue radici spirituali (titoli di cui è erede). Includi SOLO relazioni dichiarate esplicitamente da fonti affidabili, non semplici somiglianze. Rispondi SOLO con JSON: {"heirs":[{"title":"","year":"","why":"una frase","source":"url"}],"roots":[{"title":"","year":"","why":"","source":"url"}]} (max 5 per elenco, vuoto se non ne sai).`, {}, {search: true, fast: true, label: 'Cerco gli eredi spirituali…'});
     const s = String(r && r.text || ''), j = JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1));
     const fix = a=> (Array.isArray(a) ? a : []).filter(x=> x && x.title).slice(0, 5).map(x=> ({title: String(x.title).slice(0, 80), url: /^https?:/.test(x.source || '') ? x.source : '', why: String(x.why || '').slice(0, 170), year: x.year || ''}));
     return {heirs: fix(j.heirs), roots: fix(j.roots), ai: true};
@@ -77,7 +77,7 @@
     }).join('')}</div>`;
   }
   function paintHeirs(host, g, d){
-    host.innerHTML = (d.heirs.length || d.roots.length ? heirChips(d.roots, '🌱 Radici: è l\'erede spirituale di') + heirChips(d.heirs, '🌳 Eredi: giochi che lo continuano nello spirito') + `<div class="lp-sub">${d.ai ? 'Trovati con la ricerca web (Gemini): controlla il link ↗.' : 'Trovati su Wikipedia: ogni ↗ porta alla pagina con la frase.'}</div>` : '<div class="lp-sub">Nessuna relazione «erede spirituale» dichiarata nelle fonti consultate.</div>')
+    host.innerHTML = (d.heirs.length || d.roots.length ? heirChips(d.roots, '🌱 Radici: è l\'erede spirituale di') + heirChips(d.heirs, '🌳 Eredi: titoli che lo continuano nello spirito') + `<div class="lp-sub">${d.ai ? 'Trovati con la ricerca web (Gemini): controlla il link ↗.' : 'Trovati su Wikipedia: ogni ↗ porta alla pagina con la frase.'}</div>` : '<div class="lp-sub">Nessuna relazione «erede spirituale» dichiarata nelle fonti consultate.</div>')
       + `<div class="lp-tools">${d.ai ? '' : '<button type="button" class="btn" data-ai="1">🔎 Cerca anche sul web (Gemini)</button>'}</div>`;
     host.querySelectorAll('[data-open]').forEach(b=> b.addEventListener('click', ()=>{ const x = GAMES.find(y=> String(y.id) === b.dataset.open); if(x) openModal(x); }));
     host.querySelectorAll('[data-add]').forEach(b=> b.addEventListener('click', ()=>{ try{ const c = {name: b.dataset.add, year: b.dataset.year}; if(typeof sagaQuietAdd === 'function' ? sagaQuietAdd(c) : (askToolAddCustomGame(c, 'Eredi spirituali'), true)){ b.textContent = '✓'; b.disabled = true; toast('Aggiunto: si completa da solo', 2200); } else toast('Già in lista', 1800); }catch(e){ toast('Non aggiunto', 2000); } }));
@@ -89,7 +89,8 @@
   // =====================================================================
   function backstageHtml(g){
     const n = clean(g.name);
-    const L = [['🎙️ Interviste agli sviluppatori', n + ' developer interview'], ['🎞️ Documentario / making of', n + ' making of documentary'], ['📓 Diario di sviluppo', n + ' development diary behind the scenes'], ['🧠 Retrospettiva / postmortem', n + ' postmortem retrospective']];
+    const L = isWatch(g) ? [['🎙️ Interviste a regista e staff', n + ' director staff interview'], ['🎞️ Making of', n + ' making of behind the scenes'], ['🎨 Come è stato animato', n + ' animation production sakuga breakdown'], ['🧠 Analisi e retrospettiva', n + ' analysis retrospective video essay']]
+      : [['🎙️ Interviste all\'autore', n + ' mangaka author interview'], ['✏️ Come nasce una tavola', n + ' mangaka drawing process'], ['📜 La storia della serializzazione', n + ' manga serialization history'], ['🧠 Analisi e retrospettiva', n + ' manga analysis retrospective video essay']];
     return `<div class="id-links">${L.map(([t, q])=> `<a class="btn" href="${esc(yt(q))}" target="_blank" rel="noopener">${t}</a>`).join('')}</div><div class="lp-tools"><button type="button" class="btn" data-dev="1">📖 Come è nato (Wikipedia)</button></div><div class="id-dev"></div>`;
   }
   function wireBackstage(host, g){
@@ -102,7 +103,7 @@
         const txt = await wpText(t, false), s = section(txt, 'Development|Production|Design|Conception|Creation|Development and release');
         const html = s ? `<div class="modal-note">${esc(firstChars(s, 900))} <a href="${esc(wpUrl(t))}" target="_blank" rel="noopener">Leggi tutto su Wikipedia ↗</a></div>` : `<div class="lp-sub">La pagina di Wikipedia non ha una sezione sullo sviluppo. <a href="${esc(wpUrl(t))}" target="_blank" rel="noopener">Aprila ↗</a></div>`;
         cset('dev:' + g.id, html); out.innerHTML = html;
-      }catch(e){ out.innerHTML = '<div class="lp-sub">Non trovo una pagina di Wikipedia per questo gioco ora.</div>'; }
+      }catch(e){ out.innerHTML = '<div class="lp-sub">Non trovo una pagina di Wikipedia per questo titolo ora.</div>'; }
       b.disabled = false; b.textContent = '📖 Come è nato (Wikipedia)';
     });
   }
@@ -116,9 +117,9 @@
     if(hm < 15) return null;
     const cons = (e.cons || (g.proscons && g.proscons.cons) || []).filter(c=> PACE.test(c));
     const lines = [];
-    lines.push(`Storia principale circa <b>${hm} h</b>${hc ? ` · completista circa <b>${hc} h</b>` : ''}.`);
-    if(hc && hc >= hm * 1.6) lines.push(`👉 Se ti interessa la storia, fermati intorno alle <b>${hm} h</b>: il resto (fino a ${hc} h) è contenuto opzionale.`);
-    else if(hm >= 40) lines.push('Gioco lungo: ritagliati una pausa a metà per non arrivare stanco al finale.');
+    lines.push(`${isWatch(g) ? 'Da vedere' : 'Da leggere'} in circa <b>${hm} h</b>${hc ? ` · con seguiti ed extra circa <b>${hc} h</b>` : ''}.`);
+    if(hc && hc >= hm * 1.6) lines.push(`👉 La storia principale finisce intorno alle <b>${hm} h</b>: il resto (fino a ${hc} h) sono seguiti, film ed extra facoltativi.`);
+    else if(hm >= 40) lines.push('Opera lunga: fai una pausa tra un arco narrativo e l\'altro per non arrivare stanco al finale.');
     if(e.lengthVerdict) lines.push('Giudizio sulla durata: ' + esc(e.lengthVerdict));
     if(cons.length) lines.push('⚠️ Dai difetti segnalati: ' + cons.slice(0, 2).map(esc).join(' · '));
     return lines;
@@ -137,7 +138,7 @@
         const t = await wpTitle(g.name); if(!t) throw new Error('nessuna pagina');
         const txt = await wpText(t, false), rec = section(txt, 'Reception|Critical reception|Critical response|Reviews');
         if(!rec) throw new Error('nessuna sezione');
-        const r = await askLLM(todayLine() + `Dal testo seguente (recensioni di «${g.name}» su Wikipedia) scrivi in italiano, in massimo 3 frasi, SOLO ciò che dice su ritmo, ripetitività, durata o parti deboli del gioco, e dove la storia o il gioco sono al meglio. Non inventare nulla: se il testo non ne parla scrivi esattamente NESSUNA INFO.\n\n${rec.slice(0, 5000)}`, {}, {fast: true, silent: true, label: 'Leggo le recensioni…'});
+        const r = await askLLM(todayLine() + `Dal testo seguente (recensioni di «${g.name}» su Wikipedia) scrivi in italiano, in massimo 3 frasi, SOLO ciò che dice su ritmo, ripetitività, durata o parti deboli del titolo, e dove la storia o il titolo sono al meglio. Non inventare nulla: se il testo non ne parla scrivi esattamente NESSUNA INFO.\n\n${rec.slice(0, 5000)}`, {}, {fast: true, silent: true, label: 'Leggo le recensioni…'});
         const a = String(r && r.text || '').trim();
         const msg = !a || /NESSUNA INFO/i.test(a) ? 'Le recensioni di Wikipedia non indicano un punto preciso in cui cala il ritmo.' : a;
         cset('exit:' + g.id, msg); out.innerHTML = `<div class="modal-note id-ai">${esc(msg)} <small><a href="${esc(wpUrl(t))}" target="_blank" rel="noopener">fonte ↗</a></small></div>`; b.remove();
@@ -146,7 +147,7 @@
   }
 
   // =====================================================================
-  // 16) IL MIO ALBUM (foto e screenshot tuoi, per gioco; restano su questo dispositivo)
+  // 16) IL MIO ALBUM (foto e screenshot tuoi, per titolo; restano su questo dispositivo)
   // =====================================================================
   const idb = ()=> new Promise((res, rej)=>{ try{ const r = indexedDB.open('art_album', 1); r.onupgradeneeded = ()=>{ r.result.createObjectStore('p', {keyPath: 'id', autoIncrement: true}).createIndex('g', 'g'); }; r.onsuccess = ()=> res(r.result); r.onerror = ()=> rej(r.error); }catch(e){ rej(e); } });
   const albumList = async gid=>{ const db = await idb(); return new Promise(res=>{ const out = [], q = db.transaction('p').objectStore('p').index('g').openCursor(IDBKeyRange.only(String(gid))); q.onsuccess = e=>{ const c = e.target.result; if(c){ out.push(c.value); c.continue(); } else res(out); }; q.onerror = ()=> res(out); }); };
@@ -182,7 +183,7 @@
     let list = []; try{ list = await albumList(g.id); }catch(e){ host.innerHTML = '<div class="lp-sub">L\'album non è disponibile in questo browser.</div>'; return; }
     freeUrls();
     const items = list.map(x=> { const u = URL.createObjectURL(x.b); urls.push(u); return {id: x.id, url: u}; });
-    host.innerHTML = `${items.length ? `<div class="id-thumbs">${items.map((x, i)=> `<button type="button" class="id-th" data-i="${i}"><img src="${x.url}" alt="" loading="lazy"></button>`).join('')}</div>` : '<div class="lp-sub">Nessuna foto: aggiungi i tuoi screenshot o scatta una foto allo schermo mentre giochi.</div>'}
+    host.innerHTML = `${items.length ? `<div class="id-thumbs">${items.map((x, i)=> `<button type="button" class="id-th" data-i="${i}"><img src="${x.url}" alt="" loading="lazy"></button>`).join('')}</div>` : '<div class="lp-sub">Nessuna foto: aggiungi i tuoi screenshot o scatta una foto alla tua scena o tavola preferita.</div>'}
       <div class="lp-tools"><label class="btn id-up">＋ Aggiungi foto<input type="file" accept="image/*" multiple hidden></label><label class="btn id-up">📷 Scatta<input type="file" accept="image/*" capture="environment" hidden></label></div><div class="lp-sub">Restano su questo dispositivo (non vengono sincronizzate).</div>`;
     host.querySelectorAll('.id-th').forEach(b=> b.addEventListener('click', ()=> viewer(items, +b.dataset.i, ()=> paintAlbum(host, g))));
     host.querySelectorAll('input[type=file]').forEach(inp=> inp.addEventListener('change', async ()=>{
@@ -192,7 +193,7 @@
     }));
   }
 
-  // ---- blocchi nella scheda del gioco ----
+  // ---- blocchi nella scheda del titolo ----
   function blocksHtml(g){
     return `<div class="modal-section-title">🧬 Eredi e radici spirituali</div><div class="id-body" id="idHeirs"><div class="lp-tools"><button type="button" class="btn" data-heir="1">🔎 Cerca nelle fonti (Wikipedia)</button></div></div>
       <div class="modal-section-title">🎬 Dietro le quinte</div><div class="id-body" id="idBack">${backstageHtml(g)}</div>
@@ -248,10 +249,10 @@
     const body = sheet('xLadder', '🪜 La scala d\'ingresso', '');
     const draw = ()=>{
       const rungs = ladder(cur, it), T = ['1 · Per iniziare', '2 · Per prendere confidenza', '3 · Per esperti'], S = ['I più accessibili: difficoltà bassa, durata contenuta.', 'Quando ti sei abituato: un po\' più di sistemi e di ore.', 'I più impegnativi del genere: difficoltà e profondità alte.'];
-      body.innerHTML = `<div class="lp-sub">Scegli un genere: ti metto i giochi in ordine, dal più accessibile al più impegnativo (solo giochi con voto 72 o più). Va bene anche per consigliarlo a un amico.</div>
+      body.innerHTML = `<div class="lp-sub">Scegli un genere: ti metto i titoli in ordine, dal più accessibile al più impegnativo (solo titoli con voto 72 o più). Va bene anche per consigliarlo a un amico.</div>
         <div class="tagchips" style="margin:8px 0"><button type="button" class="tagchip${cur === '*' ? ' active' : ''}" data-t="*">Tutti</button>${tags.map(t=> `<button type="button" class="tagchip${cur === t ? ' active' : ''}" data-t="${t}">${TAG_INFO[t].icon} ${esc(TAG_INFO[t].label)}</button>`).join('')}</div>
         <label class="ask-toggle"><input type="checkbox" id="ldIt" ${it ? 'checked' : ''}> Solo con italiano (testi o doppiaggio)</label>
-        ${rungs.map((r, i)=> `<div class="ld-rung"><b>${T[i]}</b><small>${S[i]}</small>${r.length ? r.map(g=>{ const l = g.label || {}, h = (g.enrich && g.enrich.hoursMain) || l.h; return `<button type="button" class="ld-g" data-id="${g.id}"><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span><span class="nm">${esc(g.name)}</span><small>${l.d ? 'difficoltà ' + l.d + '/5' : ''}${h ? ' · ' + h + ' h' : ''}${['D', 'S'].includes(l.it) ? ' · 🇮🇹' : ''}</small></button>`; }).join('') : '<small>nessun gioco con questi filtri</small>'}</div>`).join('')}`;
+        ${rungs.map((r, i)=> `<div class="ld-rung"><b>${T[i]}</b><small>${S[i]}</small>${r.length ? r.map(g=>{ const l = g.label || {}, h = (g.enrich && g.enrich.hoursMain) || l.h; return `<button type="button" class="ld-g" data-id="${g.id}"><span class="badge ${TIER_LABEL[g.tier]}">${g.tier}</span><span class="nm">${esc(g.name)}</span><small>${l.d ? 'difficoltà ' + l.d + '/5' : ''}${h ? ' · ' + h + ' h' : ''}${['D', 'S'].includes(l.it) ? ' · 🇮🇹' : ''}</small></button>`; }).join('') : '<small>nessun titolo con questi filtri</small>'}</div>`).join('')}`;
       body.querySelectorAll('[data-t]').forEach(b=> b.addEventListener('click', ()=>{ cur = b.dataset.t; LS.set('atl_ladder', cur); draw(); }));
       body.querySelector('#ldIt').addEventListener('change', e=>{ it = e.target.checked; LS.set('atl_ladder_it', it); draw(); });
       body.querySelectorAll('[data-id]').forEach(b=> b.addEventListener('click', ()=>{ const x = GAMES.find(y=> String(y.id) === b.dataset.id); document.getElementById('xLadder').classList.remove('show'); if(x) openModal(x); }));
@@ -291,7 +292,7 @@
   }
   function exportIcs(){
     const items = wishItems();
-    if(!items.length){ toast('Nessuna uscita con data nella wishlist: aggiungi un gioco 🎁 e aspetta il controllo della data', 4200); return; }
+    if(!items.length){ toast('Nessuna uscita con data nella wishlist: aggiungi un titolo 🎁 e aspetta il controllo della data', 4200); return; }
     const blob = new Blob([buildIcs(items)], {type: 'text/calendar;charset=utf-8'}), a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'uscite-raccoon-tier.ics'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
     toast('📅 ' + items.length + (items.length === 1 ? ' uscita pronta' : ' uscite pronte') + ': aprila per aggiungerle al calendario', 4500);
@@ -305,17 +306,17 @@
   })();
 
   // =====================================================================
-  // 16b) SCREENSHOT → ALBUM: riconosco il gioco dalla foto (Gemini) e la archivio
+  // 16b) SCREENSHOT → ALBUM: riconosco il titolo dalla foto (Gemini) e la archivio
   // =====================================================================
   function openShots(){
-    const body = sheet('xShots', '📷 Screenshot nell\'album', `<div class="lp-sub">Scegli uno o più screenshot dal telefono: riconosco il gioco${llmOk() ? ' (con Gemini)' : ' (serve la chiave Gemini: senza, scegli tu il gioco)'} e li metto nell\'album di quel gioco. Restano su questo dispositivo.</div>
+    const body = sheet('xShots', '📷 Screenshot nell\'album', `<div class="lp-sub">Scegli uno o più screenshot dal telefono: riconosco il titolo${llmOk() ? ' (con Gemini)' : ' (serve la chiave Gemini: senza, scegli tu il titolo)'} e li metto nell\'album di quel gioco. Restano su questo dispositivo.</div>
       <label class="btn primary id-up">Scegli le foto<input type="file" accept="image/*" multiple hidden id="shIn"></label><datalist id="shNames">${GAMES.map(g=> `<option value="${esc(g.name)}">`).join('')}</datalist><div id="shRows"></div>`);
     body.querySelector('#shIn').addEventListener('change', async e=>{
       const files = Array.from(e.target.files || []), rows = body.querySelector('#shRows'); rows.innerHTML = '';
       for(const f of files){
         const row = document.createElement('div'); row.className = 'sh-row'; rows.appendChild(row);
         const u = URL.createObjectURL(f); urls.push(u);
-        row.innerHTML = `<img src="${u}" alt=""><div class="sh-f"><input list="shNames" placeholder="Che gioco è?" autocomplete="off"><div class="sh-m lp-sub">${llmOk() ? 'Riconosco…' : ''}</div><button type="button" class="btn primary" disabled>Salva nell\'album</button></div>`;
+        row.innerHTML = `<img src="${u}" alt=""><div class="sh-f"><input list="shNames" placeholder="Che titolo è?" autocomplete="off"><div class="sh-m lp-sub">${llmOk() ? 'Riconosco…' : ''}</div><button type="button" class="btn primary" disabled>Salva nell\'album</button></div>`;
         const inp = row.querySelector('input'), btn = row.querySelector('button'), msg = row.querySelector('.sh-m');
         const upd = ()=>{ btn.disabled = !byName(inp.value); };
         inp.addEventListener('input', upd);
@@ -323,7 +324,7 @@
         if(llmOk()){
           (async()=>{ try{
             const small = await shrink(f, 1024, .8);
-            const r = await askLLM('Che videogioco è mostrato in questa immagine? Rispondi SOLO con il titolo esatto in inglese, senza altro testo. Se non lo riconosci con certezza rispondi SCONOSCIUTO.', {images: small}, {fast: true, silent: true, label: 'Riconosco il gioco…'});
+            const r = await askLLM('Che videogioco è mostrato in questa immagine? Rispondi SOLO con il titolo esatto in inglese, senza altro testo. Se non lo riconosci con certezza rispondi SCONOSCIUTO.', {images: small}, {fast: true, silent: true, label: 'Riconosco il titolo…'});
             const t = String(r && r.text || '').trim().replace(/^["'«]|["'»]$/g, '').split('\n')[0];
             const g = /SCONOSCIUTO/i.test(t) ? null : byName(t);
             if(g){ inp.value = g.name; msg.textContent = 'Riconosciuto: ' + g.name; } else msg.textContent = t && !/SCONOSCIUTO/i.test(t) ? 'Sembra «' + t.slice(0, 50) + '», ma non è in lista: scegli tu' : 'Non lo riconosco: scegli tu';
@@ -333,7 +334,7 @@
       }
     });
   }
-  menu('📷 Screenshot nell\'album (riconosco il gioco)', openShots);
+  menu('📷 Screenshot nell\'album (riconosco il titolo)', openShots);
 
   // =====================================================================
   // ⭐ IMPORTA I PREFERITI DA UN ELENCO (per «allenare» i gusti in un colpo solo)
@@ -349,14 +350,14 @@
     return {entry: entry.replace(/\*+\s*$/, '').trim(), hits};
   }
   function openFavImport(){
-    const body = sheet('xFavImp', '⭐ Importa i miei preferiti', `<div class="lp-sub">Scrivi i giochi che ami (uno per riga o separati da virgole): li cerco nel database e li segno tra i preferiti, così «I tuoi gusti» impara subito. Con un asterisco (es. «Tomb Raider*») segno tutta la saga. Questo è il tuo elenco: puoi cambiarlo.</div>
+    const body = sheet('xFavImp', '⭐ Importa i miei preferiti', `<div class="lp-sub">Scrivi i titoli che ami (uno per riga o separati da virgole): li cerco nel database e li segno tra i preferiti, così «I tuoi gusti» impara subito. Con un asterisco (es. «Tomb Raider*») segno tutta la saga. Questo è il tuo elenco: puoi cambiarlo.</div>
       <textarea id="fiTxt" rows="7" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border,#555);background:var(--card,#222);color:inherit;font-size:.95rem">${esc(DEFAULT_FAVS)}</textarea>
       <div class="lp-tools"><button type="button" class="btn primary" id="fiGo">🔎 Cerca nel database</button></div><div id="fiRes"></div>`);
     const res = body.querySelector('#fiRes');
     body.querySelector('#fiGo').addEventListener('click', ()=>{
       const list = body.querySelector('#fiTxt').value.split(/[\n,;]+/).map(x=> x.replace(/[♥️❤️]/g, '').trim()).filter(Boolean).map(matchFav);
       const found = list.filter(x=> x.hits.length), miss = list.filter(x=> !x.hits.length);
-      res.innerHTML = `<div class="lp-sub">Trovati <b>${found.reduce((n, x)=> n + x.hits.length, 0)}</b> giochi per ${found.length} voci${miss.length ? ` · ${miss.length} non sono nel database` : ''}. Togli la spunta a quelli che non vuoi.</div>
+      res.innerHTML = `<div class="lp-sub">Trovati <b>${found.reduce((n, x)=> n + x.hits.length, 0)}</b> titoli per ${found.length} voci${miss.length ? ` · ${miss.length} non sono nel database` : ''}. Togli la spunta a quelli che non vuoi.</div>
         ${found.map(x=> `<div class="fi-g"><b>${esc(x.entry)}</b>${x.hits.map(g=> `<label class="ask-toggle"><input type="checkbox" data-id="${g.id}" ${FAVS.has(g.id) ? '' : 'checked'}> ${esc(g.name)} <small>${esc(g.year || '')}${FAVS.has(g.id) ? ' · già preferito' : ''}</small></label>`).join('')}</div>`).join('')}
         ${miss.length ? `<div class="fi-g"><b>Non nel database</b>${miss.map((x, i)=> `<div class="fi-m"><span>${esc(x.entry)}</span><button type="button" class="btn" data-add="${i}">＋ Aggiungi</button></div>`).join('')}</div>` : ''}
         <div class="lp-tools"><button type="button" class="btn primary" id="fiSave">⭐ Segna come preferiti</button></div>`;
@@ -365,7 +366,7 @@
         const ids = [...res.querySelectorAll('input[data-id]:checked')].map(i=> +i.dataset.id); ids.forEach(id=> FAVS.add(id));
         try{ saveFavs(); renderMetrics(); renderStats(); render(); }catch(e){}
         const sh = document.getElementById('xFavImp'); if(sh) sh.classList.remove('show');
-        toast('⭐ ' + ids.length + ' giochi segnati tra i preferiti: «I tuoi gusti» sta imparando', 4200);
+        toast('⭐ ' + ids.length + ' titoli segnati tra i preferiti: «I tuoi gusti» sta imparando', 4200);
       });
     });
   }
