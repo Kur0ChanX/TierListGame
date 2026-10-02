@@ -203,49 +203,39 @@
     });
     return out;
   }
-  // ---- MECCANICHE: cosa ti tiene incollato a un gioco, oltre al genere (loot, build, crescita…). Si riconoscono da testi, pro, loop e dati di ogni scheda ----
+  // ---- TRATTI: cosa ti prende di un anime/manga, oltre al genere (storia, personaggi, combattimenti, atmosfera…). Vengono dai tag e dai testi di ogni scheda (tratti.js) ----
   const MECH = {
-    LOOT:   {ic: '🎁', n: 'Caccia al loot e drop rate', d: 'oggetti rari e drop casuali che ti tengono incollato'},
-    BUILD:  {ic: '🧩', n: 'Build e min-maxing', d: 'costruire la build perfetta, combinare sistemi, «rompere» il gioco'},
-    POWER:  {ic: '📈', n: 'Crescita e potenza visibile', d: 'il personaggio diventa sempre più forte e si vede'},
-    CHALL:  {ic: '🎯', n: 'Sfida che premia strategia e ottimizzazione', d: 'boss duri che si battono preparandosi e ottimizzando'},
-    DOPA:   {ic: '⚡', n: 'Effetto dopamina', d: 'un ciclo che ti premia di continuo: «ancora un turno»'},
-    EFFORT: {ic: '💪', n: 'Gratificazione dello sforzo', d: 'più ti impegni, più vieni ricompensato'},
-    FARM:   {ic: '🌾', n: 'Farming con beneficio tangibile', d: 'ripetere un\'attività se porta vantaggi concreti'},
-    COLL:   {ic: '🏆', n: 'Collezionabili', d: 'raccogliere, completare, catturare tutto'},
-    // v195 — il DNA si allarga: non solo «cosa ti tiene incollato», ma anche mondo, storia, sistemi e sensazioni
-    LORE:   {ic: '📜', n: 'Lore profonda', d: 'mitologia, segreti del mondo, storia da scoprire in documenti e dettagli'},
-    WORLD:  {ic: '🗺️', n: 'World building', d: 'un mondo coerente e vivo, con culture, luoghi e regole propri'},
-    EXPLO:  {ic: '🧭', n: 'Esplorazione e segreti', d: 'esplorare ogni angolo, aree nascoste, scorciatoie e scoperte'},
-    CRAFT:  {ic: '🔨', n: 'Crafting', d: 'creare e migliorare oggetti, armi, ricette'},
-    RES:    {ic: '🎒', n: 'Gestione delle risorse', d: 'risorse limitate da amministrare: munizioni, cure, soldi, inventario'},
-    SAND:   {ic: '🏖️', n: 'Libertà sandbox', d: 'fai quello che vuoi, come vuoi: sistemi liberi e approcci diversi'},
-    BASE:   {ic: '🏰', n: 'Costruzione e gestione', d: 'costruire una base, una città, gestire un\'economia o una squadra'},
-    TACT:   {ic: '♟️', n: 'Tattica e pianificazione', d: 'pensare prima di agire: posizionamento, turni, strategia'},
-    COMBAT: {ic: '⚔️', n: 'Combattimento appagante', d: 'un sistema di combattimento con ritmo, combo, parate e tempismo'},
-    STORY:  {ic: '📖', n: 'Storia che coinvolge', d: 'trama forte, colpi di scena, emozioni'},
-    CHAR:   {ic: '🫂', n: 'Personaggi e legami', d: 'un cast che ti resta nel cuore, rapporti tra i personaggi'},
-    CHOICE: {ic: '🔀', n: 'Scelte e conseguenze', d: 'le tue decisioni cambiano la storia o il finale'},
-    ATMO:   {ic: '🌫️', n: 'Atmosfera e stile', d: 'ambientazione, direzione artistica, sensazione unica'},
-    MUSIC:  {ic: '🎼', n: 'Colonna sonora che resta', d: 'musiche memorabili che fanno il gioco'},
-    SOCIAL: {ic: '👥', n: 'Gioco con gli altri', d: 'cooperativa, multiplayer, comunità, MMO'},
-    PUZZ:   {ic: '🧠', n: 'Enigmi e ingegno', d: 'rompicapi, meccanismi da capire, soluzioni intelligenti'},
-    HUMOR:  {ic: '😄', n: 'Umorismo e leggerezza', d: 'ironia, situazioni assurde, toni scanzonati'},
-    LIFE:   {ic: '📅', n: 'Vita quotidiana e legami', d: 'calendario, routine, tempo libero, rapporti da coltivare giorno per giorno'},
-    // v197 — i termini dei giocatori (lista di Mario): così si distingue meglio anche ciò che NON piace
-    PROC:   {ic: '🎲', n: 'Rigiocabilità procedurale («ancora una run»)', d: 'mappe e partite generate a caso, run diverse ogni volta, permadeath'},
-    GACHA:  {ic: '🎰', n: 'Gacha, wish e pity', d: 'evocazioni casuali, banner, sistema pity, personaggi da «pescare»'},
-    FEEL:   {ic: '💥', n: 'Game feel (colpi pesanti, juiciness)', d: 'ogni colpo si sente: impatto, feedback, controlli reattivi'},
-    DAILY:  {ic: '🗓️', n: 'Routine giornaliere e time sink', d: 'daily e weekly reset, missioni giornaliere, endgame infinito che chiede tempo'},
-    // v198 — tratti in più (per giochi come FFX: boss segreti, evocazioni, minigiochi…)
-    SUPERBOSS: {ic: '👹', n: 'Superboss e sfide segrete', d: 'boss opzionali durissimi, nemici segreti da preparare con cura'},
-    SUMMON: {ic: '🐉', n: 'Evocazioni', d: 'creature potenti da chiamare in battaglia (eoni, esper, G.F.)'},
-    PARTY:  {ic: '🧑‍🤝‍🧑', n: 'Gestione della squadra', d: 'scegliere e alternare i personaggi, comporre il gruppo giusto'},
-    JOURNEY: {ic: '🧳', n: 'Viaggio epico', d: 'un lungo viaggio attraverso un mondo, tappa dopo tappa'},
-    ROMANCE: {ic: '💞', n: 'Storia d\'amore', d: 'una relazione romantica che conta nella storia'},
+    STORY:   {ic: '📖', n: 'Storia che coinvolge', d: 'trama forte, ritmo, voglia di vedere/leggere il seguito'},
+    TWIST:   {ic: '🌀', n: 'Colpi di scena', d: 'rivelazioni, ribaltamenti, niente è come sembra'},
+    CHAR:    {ic: '🫂', n: 'Personaggi memorabili', d: 'un cast che ti resta nel cuore, ben scritto e caratterizzato'},
+    GROWTH:  {ic: '🌱', n: 'Crescita del protagonista', d: 'un percorso di formazione: da zero a qualcuno'},
+    FRIEND:  {ic: '🤝', n: 'Amicizia e legami', d: 'compagni inseparabili, nakama, famiglia scelta'},
+    WORLD:   {ic: '🗺️', n: 'World building', d: 'un mondo coerente e originale, con regole e sistemi di poteri propri'},
+    LORE:    {ic: '📜', n: 'Mitologia e soprannaturale', d: 'leggende, folklore, misteri del passato'},
+    ATMO:    {ic: '🌫️', n: 'Atmosfera', d: 'sensazione unica: malinconica, onirica, inquietante'},
+    ANIM:    {ic: '🎞️', n: 'Animazione spettacolare', d: 'regia e animazione di alto livello, sakuga'},
+    ART:     {ic: '🖋️', n: 'Disegni splendidi', d: 'tratto curato e tavole che restano impresse'},
+    MUSIC:   {ic: '🎼', n: 'Musica che resta', d: 'colonna sonora, opening e canzoni memorabili'},
+    EMO:     {ic: '😢', n: 'Emozioni forti', d: 'storie toccanti, che commuovono'},
+    DARK:    {ic: '🩸', n: 'Toni cupi e maturi', d: 'violenza, tragedia, temi adulti'},
+    MIND:    {ic: '🧠', n: 'Psicologico e riflessivo', d: 'introspezione, filosofia, domande sulla natura umana'},
+    MYST:    {ic: '🔍', n: 'Mistero e suspense', d: 'indagini, enigmi, tensione da thriller'},
+    STRAT:   {ic: '♟️', n: 'Strategia e giochi mentali', d: 'piani geniali, battaglie di cervelli, tattica'},
+    COMBAT:  {ic: '⚔️', n: 'Combattimenti', d: 'scontri spettacolari, duelli, arti marziali'},
+    POWER:   {ic: '📈', n: 'Poteri e crescita di forza', d: 'poteri speciali, tornei, power-up sempre più grandi'},
+    HYPE:    {ic: '⚡', n: 'Momenti hype', d: 'scene esaltanti che fanno venire la pelle d\'oca'},
     VILLAIN: {ic: '🦹', n: 'Antagonista memorabile', d: 'un cattivo carismatico che resta impresso'},
-    MINI:   {ic: '🃏', n: 'Minigiochi', d: 'giochi nel gioco: carte, sport, corse, pesca, casinò'},
-    ENDGAME: {ic: '🏁', n: 'Endgame ricco', d: 'tanto da fare dopo la fine o fuori dalla storia: post-game, NG+, sfide opzionali'}
+    ROMANCE: {ic: '💞', n: 'Storia d\'amore', d: 'una relazione romantica che conta nella storia'},
+    HUMOR:   {ic: '😄', n: 'Comicità', d: 'gag, ironia, situazioni assurde'},
+    COZY:    {ic: '☕', n: 'Rilassante e dolce', d: 'vita quotidiana, toni leggeri che scaldano il cuore'},
+    JOURNEY: {ic: '🧳', n: 'Viaggio e avventura', d: 'un lungo viaggio, tappa dopo tappa'},
+    SCHOOL:  {ic: '🏫', n: 'Vita scolastica', d: 'liceo, club, compagni di classe'},
+    SPORT:   {ic: '🏐', n: 'Sport e agonismo', d: 'squadre, allenamenti, partite da cardiopalma'},
+    ISEKAI:  {ic: '🌀', n: 'Isekai', d: 'reincarnato o trasportato in un altro mondo'},
+    MECHA:   {ic: '🤖', n: 'Mecha', d: 'robot giganti e piloti'},
+    SOCIETY: {ic: '🏛️', n: 'Società, guerra e potere', d: 'politica, guerra, distopie, critica sociale'},
+    LONG:    {ic: '📚', n: 'Saga lunga', d: 'tanti episodi o volumi da seguire a lungo'},
+    SHORT:   {ic: '⏱️', n: 'Breve e compatto', d: 'si finisce in poco: film, pochi episodi o volumi'}
   };
   // v209: le parole-chiave dei tratti stanno in tratti.js (le usa anche il server per preparare l'indice)
   const TR = ()=> window.RT_TRATTI;
@@ -257,30 +247,13 @@
     // tratti dai testi: se i testi lunghi del gioco non sono ancora caricati uso quelli calcolati dal server (e.mx), identici
     const tt = e._lite ? {mx: e.mx || [], cbt: e.cbt || 0} : (TR() ? TR().textTraits(g) : {mx: [], cbt: 0});
     const out = new Set(tt.mx), tg = g.tags || [], l = g.label || {};
-    // indizi dai dati della scheda (generi, etichette, simboli)
+    // indizi dai dati della scheda (etichette, simboli); i tratti dei tag li dà già tratti.js
     if(l.s >= 4 || e.storyTag === 'wow') out.add('STORY');
-    if(e.storyTag === 'affinity' || e.storyTag === 'romance') out.add('CHAR');
-    if(tg.includes('TAC') || tg.includes('WAR')) out.add('TACT');
-    if(tg.includes('METR')) out.add('EXPLO');
-    if(tg.includes('SOUL') || tg.includes('ACT')){ if(tt.cbt) out.add('COMBAT'); }
-    if(tg.includes('VN')){ out.add('STORY'); }
-    if(tg.includes('HOR')) out.add('ATMO');
-    if(tg.includes('LIFE')) out.add('BASE');
-    if(tg.includes('ROG')) out.add('PROC');
+    if(e.storyTag === 'affinity') out.add('CHAR');
     if(e.storyTag === 'romance') out.add('ROMANCE');
-    if(out.has('SUPERBOSS')) out.add('CHALL');
-    if(tg.includes('GACHA')){ out.add('GACHA'); out.add('DAILY'); }
-    if(tg.includes('MUD') || tg.includes('MMO')) out.add('DAILY');
-    try{ const dw = (LSro('atl_dna_why', {}) || {})[g.id] || {}; Object.keys(dw).forEach(k=>{ if(dw[k] > 0) out.add(k); else if(dw[k] < 0) out.delete(k); }); }catch(x){}   // quello che hai detto tu di questo gioco vale più dei testi
-    if(e.dopamine === true) out.add('DOPA');
-    if(tg.includes('MON')) out.add('COLL');
-    if(tg.includes('CARD')){ out.add('COLL'); out.add('BUILD'); }
-    if(tg.includes('ROG')){ out.add('LOOT'); out.add('BUILD'); }
-    if(tg.includes('SOUL')) out.add('CHALL');
-    if(tg.includes('LIFE')){ out.add('FARM'); out.add('COLL'); }
-    if(l.d >= 4) out.add('CHALL');
-    if(e.hoursCompletionist && e.hoursMain && e.hoursCompletionist >= e.hoursMain * 3) out.add('COLL');
-    if(l.g >= 4 && (out.has('LOOT') || out.has('BUILD') || out.has('POWER'))) out.add('FARM');
+    if(tt.cbt && (tg.includes('ACT') || tg.includes('MAR'))) out.add('COMBAT');
+    if(e._lite && !e.mx && TR()) TR().tagTraits(g).forEach(k=> out.add(k));      // indice vecchio senza «mx»: almeno i tratti dai tag
+    try{ const dw = (LSro('atl_dna_why', {}) || {})[g.id] || {}; Object.keys(dw).forEach(k=>{ if(dw[k] > 0) out.add(k); else if(dw[k] < 0) out.delete(k); }); }catch(x){}   // quello che hai detto tu di questo titolo vale più dei testi
     const list = [...out]; MC.set(g.id, {sig, list}); return list;
   }
   window.rtMech = MECH; window.rtMechOf = mechOf;

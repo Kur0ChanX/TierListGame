@@ -118,9 +118,9 @@
     return 'rpg';
   }
   // dimensione → tratti del gioco collegati (per far contare le voci nella Sintonia)
-  const DIMF = {STORY: ['mech:STORY', 'mech:CHAR', 'storia:forte'], COMBAT: ['mech:COMBAT', 'mech:BUILD', 'mech:TACT'], MUSIC: ['mech:MUSIC'], EXPLORE: ['mech:EXPLO', 'mech:WORLD'],
-    ART: ['mech:ATMO', 'mech:WORLD'], ATMO: ['mech:ATMO'], CHALLENGE: ['mech:CHALL', 'diff:alta'], CONTROL: ['mech:FEEL'], LEVEL: ['mech:EXPLO'], CONTENT: ['mech:ENDGAME', 'mech:COLL'],
-    DEPTH: ['mech:BUILD', 'mech:TACT'], PROG: ['mech:POWER'], IDEAS: ['mech:PUZZ'], PACE: [], TECH: []};
+  const DIMF = {STORY: ['mech:STORY', 'mech:CHAR', 'mech:TWIST', 'storia:forte'], COMBAT: ['mech:COMBAT', 'mech:POWER', 'mech:HYPE'], MUSIC: ['mech:MUSIC'], EXPLORE: ['mech:JOURNEY', 'mech:WORLD'],
+    ART: ['mech:ANIM', 'mech:ART', 'mech:ATMO'], ATMO: ['mech:ATMO'], CHALLENGE: ['mech:STRAT', 'mech:MIND'], CONTROL: [], LEVEL: [], CONTENT: ['mech:LONG'],
+    DEPTH: ['mech:MIND', 'mech:WORLD'], PROG: ['mech:GROWTH', 'mech:POWER'], IDEAS: ['mech:TWIST', 'mech:MYST'], PACE: [], TECH: ['mech:ANIM']};
   const DIMN = {STORY: 'la storia', COMBAT: 'il combattimento', MUSIC: 'la musica', EXPLORE: 'l\'esplorazione', ART: 'lo stile visivo', ATMO: 'l\'atmosfera', CHALLENGE: 'la sfida',
     CONTROL: 'i controlli', LEVEL: 'i livelli', CONTENT: 'i contenuti', DEPTH: 'la profondità', PROG: 'la progressione', IDEAS: 'le idee', PACE: 'il ritmo', TECH: 'la tecnica'};
   const rates = ()=> LSG(RTK, {}) || {};

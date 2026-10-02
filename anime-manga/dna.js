@@ -20,36 +20,24 @@
   // ---------- 1) cosa ti ha preso (v198: categorie, spiegazioni, parole tue) ----------
   // i tratti raggruppati per tema: così trovi subito quello che cerchi, qualunque sia il genere del gioco
   const CATS = [
-    ['⚔️', 'Combattimento', ['COMBAT', 'FEEL', 'TACT', 'CHALL', 'SUPERBOSS', 'SUMMON']],
-    ['📈', 'Crescita, build e ricompense', ['POWER', 'BUILD', 'PARTY', 'LOOT', 'DOPA', 'EFFORT', 'FARM', 'GACHA']],
-    ['🗺️', 'Mondo ed esplorazione', ['WORLD', 'LORE', 'EXPLO', 'JOURNEY', 'SAND', 'ATMO']],
-    ['📖', 'Storia e personaggi', ['STORY', 'CHAR', 'ROMANCE', 'VILLAIN', 'CHOICE', 'HUMOR', 'LIFE']],
-    ['🧩', 'Sistemi e attività', ['CRAFT', 'RES', 'BASE', 'PUZZ', 'MINI', 'PROC', 'DAILY']],
-    ['🏆', 'Completare e restare', ['COLL', 'ENDGAME', 'MUSIC', 'SOCIAL']]
+    ['📖', 'Storia', ['STORY', 'TWIST', 'MYST', 'STRAT', 'MIND', 'DARK']],
+    ['🫂', 'Personaggi e sentimenti', ['CHAR', 'GROWTH', 'FRIEND', 'VILLAIN', 'ROMANCE', 'EMO']],
+    ['⚔️', 'Azione e poteri', ['COMBAT', 'POWER', 'HYPE', 'MECHA', 'SPORT']],
+    ['🗺️', 'Mondo e atmosfera', ['WORLD', 'LORE', 'ATMO', 'JOURNEY', 'ISEKAI', 'SOCIETY']],
+    ['☕', 'Toni leggeri', ['HUMOR', 'COZY', 'SCHOOL']],
+    ['🎞️', 'Arte, musica e durata', ['ANIM', 'ART', 'MUSIC', 'LONG', 'SHORT']]
   ];
   // cosa significano i termini (anche quelli in inglese dei giocatori): compare toccando un tratto
   const XPL = {
-    BUILD: 'Build = la combinazione di abilità, equipaggiamento e statistiche del personaggio. Min-maxing = spingere al massimo ciò che serve e sacrificare il resto, per «rompere» il gioco. Job system / class tree / sphere grid = sistemi per costruirla.',
-    LOOT: 'Loot = oggetti che trovi o lasciano i nemici. Drop rate = probabilità che un oggetto cada. God roll = un oggetto uscito con le statistiche migliori possibili. Rarità a colori = grigio, verde, blu, viola, arancione…',
-    DOPA: 'La «scarica di dopamina»: ricompense frequenti e un po\' casuali (variable ratio reward) che ti fanno dire «ancora un turno» o «ancora una run».',
-    POWER: 'Vedere il personaggio diventare sempre più forte. Power trip = sentirsi onnipotenti; overleveled = più forte del necessario, a forza di livelli.',
-    CHALL: 'Sfide dure che si vincono preparandosi e ottimizzando, non solo con i riflessi.',
-    EFFORT: 'Più ti impegni e più vieni ricompensato: la fatica ripaga.',
-    FARM: 'Grinding / farming = ripetere un\'attività (battaglie, raccolta) per ottenere risorse o livelli. Qui solo quando porta un vantaggio concreto.',
-    GACHA: 'Gacha = estrazioni a caso di personaggi o oggetti (wish, banner, summon), spesso a pagamento. Pity = garanzia di un premio raro dopo tot tentativi.',
-    FEEL: 'Game feel / juiciness = quanto i comandi «si sentono»: colpi pesanti, impatti, vibrazioni, animazioni reattive.',
-    DAILY: 'Daily / weekly reset = attività che si rinnovano ogni giorno o settimana. Time sink = attività fatte per tenerti nel gioco a lungo.',
-    PROC: 'Procedurale = mappe e partite generate a caso: ogni run è diversa. Roguelite = si muore spesso ma si riparte più forti.',
-    SAND: 'Sandbox = libertà di fare le cose come vuoi, con sistemi che interagiscono tra loro.',
-    LORE: 'Lore = la storia profonda del mondo: miti, segreti, documenti, dettagli da scoprire.',
-    WORLD: 'World building = un mondo costruito con cura: culture, luoghi, regole proprie.',
-    TACT: 'Tattica = pensare prima di agire: posizioni, turni, ordine delle mosse.',
-    SUPERBOSS: 'Superboss = nemici opzionali molto più forti dei boss della storia (es. eoni oscuri e Penance in FFX, le Weapon in FFVII).',
-    SUMMON: 'Evocazioni = creature potenti chiamate in battaglia (eoni, esper, G.F.).',
-    ENDGAME: 'Endgame / post-game = tutto quello che c\'è da fare oltre la storia principale: sfide, armi finali, NG+ (rigiocare con i progressi).',
-    RES: 'Gestione delle risorse = amministrare cose limitate: cure, munizioni, soldi, spazio nell\'inventario.',
-    MINI: 'Minigiochi = giochi dentro il gioco (blitzball, carte, corse dei chocobo, pesca…).',
-    PARTY: 'Gestione della squadra = scegliere chi combatte, cambiare i personaggi, costruire un gruppo equilibrato.'
+    ANIM: 'Sakuga = scene animate con cura speciale (spesso i combattimenti), dove si vede la mano dei migliori animatori.',
+    ISEKAI: 'Isekai = «altro mondo»: il protagonista viene reincarnato o trasportato in un mondo diverso, spesso fantasy.',
+    FRIEND: 'Nakama = compagni legati come una famiglia (parola resa famosa da One Piece).',
+    COZY: 'Iyashikei = storie «che curano»: ritmi lenti, vita quotidiana, sensazione di calma.',
+    HYPE: 'Hype = momenti esaltanti, costruiti per farti saltare dalla sedia.',
+    MECHA: 'Mecha = storie con robot giganti guidati da piloti (Gundam, Evangelion).',
+    WORLD: 'World building = un mondo costruito con cura: culture, luoghi, regole e sistemi di poteri propri.',
+    LONG: 'Serie da almeno 100 episodi o manga da almeno 60 volumi.',
+    SHORT: 'Film, serie fino a 13 episodi o manga fino a 3 volumi.'
   };
   const CUST = 'atl_dna_custom';
   // ---------- v207: «Cosa ti ha preso» rifatto ----------

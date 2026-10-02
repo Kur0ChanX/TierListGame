@@ -1,61 +1,77 @@
-// ---- Riconoscitore dei TRATTI dai testi (v209) — condiviso tra app (browser) e strumenti del server (Node) ----
-// Da qui le parole-chiave (MRX) che riconoscono loot, build, lore, storia… nei testi di un gioco. Il server lo usa per calcolare
-// in anticipo i tratti di ogni gioco (campo «mx» nell'indice), così l'app conosce i tratti anche senza scaricare i testi lunghi.
-// Se cambi le parole-chiave qui, rigenera i dati: node tools/build-index.js (lo fa anche data-io.save).
+// ---- Riconoscitore dei TRATTI di anime, manga e film (versione Anime, dalla v209 dei giochi) — condiviso tra app (browser) e strumenti (Node) ----
+// Due fonti: 1) i GENERI/TAG del titolo (sempre presenti, vengono da AniList); 2) le parole-chiave (MRX) nei testi (trama, pro, «perché piace»),
+// quando ci sono. Il server calcola in anticipo i tratti di ogni titolo (campo «mx» nell'indice), così l'app li conosce anche senza i testi lunghi.
+// Se cambi le parole-chiave o la tabella dei tag qui, rigenera i dati: load() + save() di tools/data-io.js.
 (function(root){
   'use strict';
+  // parole-chiave nei testi (italiano + inglese, senza accenti: il testo passa da mnrm)
   const MRX = {
-    LOOT: /\b(loot\w*|drop|drop rate|randomi[sz]ed loot|loot casuale|god ?roll|affix\w*|affiss\w*|rarita (a colori|per colore|a gradi|a livelli)|oggetti (viola|arancioni|dorati|leggendari)|bottin\w*|oggetti rari|oggetti leggendari|equipaggiament\w* (raro|rari|unico|unici|leggendari\w*|casuali)|item world|tesori|casse|ricompense casuali|looter|rarita|reliquie|artefatti|armi (rare|uniche|leggendarie)|dungeon generat\w*|generazion\w* procedural\w*)/,
-    BUILD: /(\bbuild\b|min-?max\w*|job system|sistema (di )?(job|lavori|mestieri)|class tree|albero delle classi|cross[- ]?class|multiclass\w*|build diversity|varieta di build|sphere grid|griglia (delle )?sfere|license board|sinergi\w*|ottimizz\w* (le |la |il |l.)?(build|equipaggiament\w*|party|squadra|personagg\w*|abilita)|sperimentaz\w* (con|nelle|delle|di) (build|combinazion\w*|abilita|materia|classi|equipaggiament\w*)|premia la sperimentazione|albero (di )?(abilita|talent\w*)|sistema (materia|job|classi|licenze|sfera|di classi|di creazione|di fusione)|multiclasse|crafting|artigianato|fusione (di|dei|delle) (demoni|mostri|persona|armi|abilita|creature)|assemblaggio|personalizzazione (profonda|estrema|totale|quasi infinita|ampia|delle armi|dell.equipaggiamento|del party|dei personaggi|del personaggio|di build)|liberta di (personalizzare|costruire|creare))/,
-    POWER: /(power ?trip|overlevel\w*|sovralivell\w*|onnipotent\w*|potenziament\w*|progressione|crescita (del|dei|di)|diventare (sempre )?piu forte|piu forte|livellare|statistiche|numeri (di danno|enormi|esagerati|giganti)|potenza|upgrade|evoluzion\w*|sviluppo del personaggio|power fantasy)/,
-    CHALL: /(sfida (appagante|punitiva|estrema|impegnativa|dura|esigente|che premia)|boss (opzional\w*|segret\w*|superboss)|superboss|punitiv\w*|premia (la|i|il|lo|le|chi) (strateg\w*|prepar\w*|rifless\w*|ottimizz\w*|padronanza)|padronanza|preparazione|curva di difficolta|soulslike|roguelike|difficolta (elevata|estrema|alta))/,
-    DOPA: /(dopamin\w*|dopamine hit|variable ratio|ricompens\w* variabil\w*|one more (turn|run)|ancora (un turno|una run|una partita)|ricompens\w* (continu\w*|frequent\w*)|gratificazion\w*|loop (coinvolgent\w*|appagant\w*)|incollat\w*|assuefa\w*|dipendenza)/,
-    EFFORT: /(premia (l.?impegno|la dedizione|lo sforzo|la pazienza|la perseveranza|la padronanza|l.?ottimizzazione)|gratificant\w*|appagant\w*|soddisfazion\w*|dedizione|sforzo|perseveranz\w*|ricompensa chi)/,
-    FARM: /(\bfarm\w*|\bgrind\w*|ripetere|ripetizion\w*|raccolta (di )?risorse|coltivazion\w*|allevament\w*)/,
-    COLL: /(collezion\w*|completist\w*|catturare (mostri|creature|pokemon)|cattura di (mostri|creature)|bestiario|reclutare|tutti i (personaggi|mostri)|trofei|oggetti nascosti)/,
-    LORE: /(\blore\b|mitologi\w*|leggend\w* (del mondo|antich\w*)|storia del mondo|segreti del mondo|documenti|descrizioni degli oggetti|narrazione ambientale|criptic\w*|frammenti di storia|retroscena)/,
-    WORLD: /(world ?building|mondo (vivo|coerente|ricco|dettagliato|vasto|affascinante|credibile|unico|originale)|ambientazione (ricca|originale|unica|dettagliata)|culture|fazioni|nazioni|regni|cosmologi\w*|universo (narrativo|coerente|ricco))/,
-    EXPLO: /(esplorazion\w*|esplorare|segreti|aree (nascoste|segrete|opzionali)|scorciatoie|metroidvania|scoperta|scoprire|mappa (aperta|vasta)|open world|mondo aperto|dungeon (opzionali|segreti|nascosti))/,
-    CRAFT: /(crafting|craft\w*|creare (oggetti|armi|equipaggiament\w*)|forgiare|fabbricare|alchimia|sintesi|ricette|forgia|potenziare (le )?armi)/,
-    RES: /(gestione (delle )?risorse|risorse (limitate|scarse)|scarsita|munizioni (limitate|scarse)|inventario (limitato|ristretto)|economia (del gioco|interna)|survival|sopravvivenza|razion\w*)/,
-    SAND: /(sandbox|liberta (totale|di approccio|d.azione)|approcci (diversi|multipli|liberi)|sistemi(c\w*)? (emergent\w*|liber\w*)|emergent\w*|fai (quello|cio) che vuoi|immersive sim|mondo aperto sistemico)/,
-    BASE: /(costruzion\w* (della|di una|di) (base|citta|villaggio|accampamento|fortezza)|gestionale|gestire (la|il|un|una) (citta|base|villaggio|squadra|regno|economia)|base operativa|quartier generale|insediament\w*|colonia)/,
-    TACT: /(tattic\w*|posizionament\w*|pianific\w*|strategia profonda|profondita strategica|scacchi|formazion\w* (della|di) squadra|sinergie di squadra)/,
-    COMBAT: /(combattiment\w* (fluido|appagante|frenetico|profondo|tecnico|spettacolare|preciso|reattivo|stratificato)|parat\w*|parry|schivat\w*|combo|tempismo|sistema di combattimento (eccellente|profondo|appagante|tecnico)|action (fluido|frenetico|tecnico))/,
-    STORY: /(trama (avvincente|coinvolgente|memorabile|profonda|emozionante|epica|intricata|matura)|colpi di scena|narrativa (forte|eccellente|matura|coinvolgente|memorabile)|storia (coinvolgente|emozionante|memorabile|epica|toccante|profonda|matura)|finale (memorabile|emozionante|toccante))/,
-    CHAR: /(personaggi (carismatic\w*|memorabil\w*|ben scritt\w*|indimenticabil\w*|caratterizzat\w*|profond\w*)|cast (memorabile|carismatico|eccellente|ben scritto|indimenticabile)|legam\w* tra (i )?personaggi|compagni (di viaggio|memorabili)|rapporti tra (i )?personaggi)/,
-    CHOICE: /(scelte (morali|che contano|con conseguenze|importanti)|conseguenze|finali multipli|diversi finali|piu finali|bivi|decisioni (che contano|morali)|ramificat\w*)/,
-    ATMO: /(atmosfer\w*|direzione artistica|stile (artistico|visivo|unico|inconfondibile)|ambientazione (suggestiva|cupa|onirica|evocativa|gotica)|suggestiv\w*|evocativ\w*|onirico|malinconic\w*|inquietant\w*)/,
-    MUSIC: /(colonna sonora (memorabile|splendida|eccellente|indimenticabile|epica|iconica|straordinaria|bellissima|stupenda)|musiche (memorabili|splendide|iconiche|indimenticabili|epiche|bellissime|stupende)|soundtrack (memorabile|iconica)|compost\w* da|uematsu|shimomura|mitsuda|sakimoto|kondo)/,
-    SOCIAL: /(cooperativ\w*|\bco-?op\b|multigiocatore|multiplayer|online con|comunita|\bmmo\w*|giocare con (gli )?amici|raid|gilda|pvp)/,
-    PUZZ: /(enigm\w*|rompicap\w*|puzzle|indovinell\w*|meccanismi da (capire|risolvere)|logica|ingegno)/,
-    PROC: /(procedural\w*|generat\w* (casualmente|proceduralmente|a caso)|roguelit\w*|roguelike|one more run|ancora una run|run (diverse|sempre diverse)|rigiocabil\w*|permadeath|morte permanente)/,
-    GACHA: /(gacha|\bwish\b|\bpity\b|banner|evocazion\w* (casual\w*|a pagamento)|\bsummon\w*|estrazion\w* casual\w*|loot ?box)/,
-    FEEL: /(game ?feel|juic\w*|feedback (dei colpi|tattile|appagante|soddisfacente)|pesantezza (dei )?colpi|colpi (pesanti|che si sentono)|impatto (dei colpi|fisico)|hit ?stop|controlli (reattivi|precisi|fluidi)|fisicita)/,
-    DAILY: /(time ?sink|\bdaily\b|\bweekly\b|reset (giornalier\w*|settimanal\w*)|(missioni|attivita) giornalier\w*|login giornalier\w*|endgame (infinito|senza fine)|impegno quotidiano)/,
-    SUPERBOSS: /(superboss|boss (segret\w*|opzional\w*|nascost\w*|facoltativ\w*)|eoni oscuri|dark aeon|weapon (emerald|ruby|omega)|nemici (opzionali|leggendari)|boss piu (duri|difficili))/,
-    SUMMON: /(evocazion\w*|\bsummon\w*|\besper\b|\beoni\b|\baeon\w*|guardian force|\bg\.?f\.?\b|evocare)/,
-    PARTY: /(gestione (del|della) (party|squadra|gruppo)|cambiare (i )?personaggi|personaggi intercambiabili|composizione (del|della) (party|squadra)|party di \d|squadra di \d|scambiare (i )?membri)/,
-    JOURNEY: /(viaggio|pellegrinaggio|avventura epica|odissea|attraverso (il|un) mondo|di tappa in tappa)/,
-    ROMANCE: /(storia d.amore|romance|romantic\w*|relazione amorosa|innamorat\w*)/,
-    VILLAIN: /(antagonist\w* (memorabil\w*|carismatic\w*|iconic\w*|indimenticabil\w*)|cattivo (memorabile|carismatico|iconico)|villain)/,
-    MINI: /(minigioch\w*|mini-gioch\w*|blitzball|triple triad|gioco di carte|corse (dei|di) chocobo|chocobo|casino|gold saucer|pesca)/,
-    ENDGAME: /(endgame|post-?game|new game ?\+|ng\+|contenuti (opzionali|extra|post)|dopo la fine|sfide opzionali|attivita secondarie)/,
-    LIFE: /(calendari\w*|vita (scolastica|quotidiana|di tutti i giorni)|routine|tempo libero|gestione del tempo|legami social\w*|social link|confidant|confidenti|attivita (quotidiane|del giorno)|simulazione (di vita|sociale)|giorno dopo giorno)/,
-    HUMOR: /(umoris\w*|ironi\w*|divertente|comic\w*|scanzonat\w*|esilarant\w*|assurd\w*|parodi\w*|battute)/
+    STORY:   /(trama (avvincente|coinvolgente|memorabile|profonda|emozionante|epica|intricata|matura|solida)|storia (coinvolgente|emozionante|memorabile|epica|toccante|profonda|matura)|narrazione (solida|eccellente|matura)|gripping (plot|story)|compelling (plot|story|narrative))/,
+    TWIST:   /(colp\w* di scena|plot ?twist|twist\w*|rivelazion\w*|non e (quello|cio) che sembra|finale (sorprendente|inaspettato|scioccante)|ribaltament\w*)/,
+    CHAR:    /(personaggi (carismatic\w*|memorabil\w*|ben scritt\w*|indimenticabil\w*|caratterizzat\w*|profond\w*)|cast (memorabile|carismatico|eccellente|ben scritto|indimenticabile)|character development|well[- ]written characters|memorable (cast|characters))/,
+    GROWTH:  /(crescita (del|della|dei|personale)|percorso di crescita|romanzo di formazione|coming[- ]of[- ]age|maturazione|diventare (piu forte|adulto|un eroe)|da zero a)/,
+    FRIEND:  /(amicizi\w*|nakama|compagni (di avventura|di squadra|inseparabili)|legam\w* (tra|di amicizia|fraterno)|friendship|found family|famiglia (scelta|acquisita))/,
+    WORLD:   /(world ?building|mondo (vivo|coerente|ricco|dettagliato|vasto|affascinante|credibile|unico|originale)|ambientazione (ricca|originale|unica|dettagliata)|sistema (di magia|magico|di poteri)|magic system|universo (narrativo|coerente|ricco))/,
+    LORE:    /(\blore\b|mitologi\w*|leggend\w*|folklore|segreti del mondo|retroscena|misteri del passato)/,
+    ATMO:    /(atmosfer\w*|stile (visivo|unico|inconfondibile)|suggestiv\w*|evocativ\w*|onirico|malinconic\w*|inquietant\w*|atmospheric|melanchol\w*|dreamlike)/,
+    ANIM:    /(animazion\w* (spettacolare|fluida|eccezionale|curata|splendida|di altissimo livello)|sakuga|regia (visiva|spettacolare|curata)|combattimenti animati|visivamente (splendid\w*|stupend\w*|spettacolar\w*)|stunning animation|beautifully animated|gorgeous animation)/,
+    ART:     /(disegn\w* (splendid\w*|dettagliat\w*|curat\w*|meraviglios\w*|stupend\w*)|tratto (elegante|dettagliato|unico|inconfondibile)|tavole|artwork|chine|art style|gorgeous art|detailed art)/,
+    MUSIC:   /(colonna sonora|musiche (memorabili|splendide|iconiche|indimenticabili|epiche|bellissime)|soundtrack|opening (iconica|memorabile|indimenticabile)|sigla|ending (iconica|memorabile)|\bost\b|musica|canzon\w*|band|concert\w*)/,
+    EMO:     /(commovent\w*|strappalacrime|lacrime|piangere|toccante|emozionant\w*|struggent\w*|tear[- ]?jerker|heartbreaking|emotional|cuore spezzato)/,
+    DARK:    /(cup\w*|violent\w*|brutal\w*|crud\w*|disturbant\w*|tem\w* maturi|traum\w*|tragedi\w*|tragic\w*|dark|gore|sanguinos\w*|disperazion\w*|morte)/,
+    MIND:    /(psicologic\w*|introspe\w*|filosofic\w*|esistenzial\w*|riflessiv\w*|mind[- ]?bend\w*|cervellotic\w*|sulla natura (umana|della realta)|psychological|philosophical|existential)/,
+    MYST:    /(mister\w*|indagin\w*|investigazion\w*|detective|giall\w*|enigm\w*|deduzion\w*|whodunit|thriller|suspense|tension\w*)/,
+    STRAT:   /(strateg\w*|tattic\w*|giochi mentali|mind games|battaglia di (cervelli|ingegno)|piani (geniali|elaborati)|scacchi|duelli di intelligenza|mente brillante|genio)/,
+    COMBAT:  /(combattiment\w* (spettacolar\w*|epic\w*|coreografat\w*|adrenalinic\w*|memorabil\w*)|scontri (epici|spettacolari|memorabili)|battaglie (epiche|spettacolari)|fight scenes|epic battles|arti marziali|duell\w*)/,
+    POWER:   /(poteri|superpoter\w*|power ?up|livello di potere|power scaling|tornei|torneo|trasformazion\w*|diventare sempre piu forte|overpowered|\bop\b|power fantasy)/,
+    HYPE:    /(adrenalin\w*|hype|esaltant\w*|epic\w*|gasante|carica|pelle d.oca|hype moments|goosebumps|exhilarating)/,
+    VILLAIN: /(antagonist\w* (memorabil\w*|carismatic\w*|iconic\w*|indimenticabil\w*)|cattiv\w* (memorabil\w*|carismatic\w*|iconic\w*)|villain\w*)/,
+    ROMANCE: /(storia d.amore|romance|romantic\w*|relazione amorosa|innamorat\w*|triangolo amoroso|coppia|love story|slow ?burn)/,
+    HUMOR:   /(umoris\w*|ironi\w*|divertent\w*|comic\w*|scanzonat\w*|esilarant\w*|assurd\w*|parodi\w*|gag|battute|hilarious|funny|demenzial\w*)/,
+    COZY:    /(rilassant\w*|tranquill\w*|riscalda il cuore|leggero|leggerezza|delicat\w*|dolce|wholesome|heartwarming|cozy|comfort|iyashikei|slice of life|vita quotidiana|quotidianita)/,
+    JOURNEY: /(viaggio|pellegrinaggio|avventura epica|odissea|road movie|di tappa in tappa|journey|quest)/,
+    SCHOOL:  /(scuola|scolastic\w*|liceo|liceal\w*|club (scolastico|del liceo)|compagni di classe|high school|academy|accademia)/,
+    SPORT:   /(sport\w*|squadra (di|del) (calcio|basket|pallavolo|baseball)|partit\w*|campionat\w*|allenament\w*|torneo nazionale|agonism\w*)/,
+    ISEKAI:  /(isekai|reincarnat\w*|trasportat\w* in un altro mondo|un altro mondo|altro mondo|rinasce|reincarnazione|another world)/,
+    MECHA:   /(mecha|robot (gigant\w*|da combattimento)|mobile suit|gundam|pilot\w* (di|del) robot)/,
+    SOCIETY: /(critica (sociale|alla societa)|satira|politic\w*|guerra|militar\w*|distopi\w*|potere e corruzione|sistema sociale|discriminazion\w*|social commentary)/,
+    LONG:    /(lunghissim\w*|centinaia di episodi|serie lunga|saga (lunga|infinita|monumentale)|long[- ]running|lungo corso)/,
+    SHORT:   /(breve|corto|autoconclusiv\w*|in pochi episodi|si guarda in un (giorno|weekend)|binge|tutto d.un fiato|one[- ]shot|volume unico)/
   };
 
-  const mnrm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const STORYK = new Set(['LORE', 'WORLD', 'CHAR', 'CHOICE', 'ATMO', 'HUMOR']);
-  // tratti che vengono dai TESTI (pro, perché piace, gameplay, ciclo della dopamina, «fa per te se», trama): {mx: [...], cbt: 1 se il testo parla di combattimento}
+  // tratti dai TAG del titolo (codici in genres.js). Un tag può accendere più tratti.
+  const TAGT = {
+    ACT: ['COMBAT', 'HYPE'], ADV: ['JOURNEY'], FAN: ['WORLD'], DRA: ['EMO'], ROM: ['ROMANCE'], COM: ['HUMOR'],
+    SCI: ['WORLD'], SOL: ['COZY'], IYA: ['COZY'], SUP: ['LORE'], SCH: ['SCHOOL'], POW: ['POWER'], MAR: ['COMBAT', 'POWER'],
+    MYS: ['MYST'], PSY: ['MIND'], THR: ['MYST', 'DARK'], CRI: ['MYST', 'DARK'], HOR: ['ATMO', 'DARK'], GOR: ['DARK'],
+    SUR: ['DARK'], DYS: ['SOCIETY', 'DARK'], MIL: ['SOCIETY', 'STRAT'], HIS: ['LORE'], MUS: ['MUSIC'], IDO: ['MUSIC'],
+    SPO: ['SPORT', 'GROWTH'], ISE: ['ISEKAI', 'WORLD'], GAM: ['STRAT'], MEC: ['MECHA'], TIM: ['TWIST'], VAM: ['ATMO'],
+    FAM: ['COZY'], KID: ['COZY'], FOO: ['COZY'], SHO: ['FRIEND', 'GROWTH'], SHJ: ['ROMANCE'], JOS: ['ROMANCE'], SEI: ['MIND']
+  };
+
+  const mnrm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const STORYK = new Set(['STORY', 'TWIST', 'CHAR', 'WORLD', 'LORE', 'ATMO', 'EMO', 'DARK', 'MIND', 'MYST', 'ROMANCE', 'HUMOR', 'COZY', 'SOCIETY', 'ISEKAI', 'SCHOOL', 'SPORT', 'MECHA', 'JOURNEY', 'FRIEND', 'GROWTH', 'VILLAIN']);
+  // regole a soglia per non accendere tratti «di massa» (DARK, MUSIC…) da una parola sola: qui basta una volta, ma i testi sono brevi e mirati
+  function tagTraits(g){
+    const out = new Set();
+    (g.tags || []).forEach(t=> (TAGT[t] || []).forEach(k=> out.add(k)));
+    const n = +g.n || 0, kind = g.kind || '';
+    if(kind === 'anime' || kind === 'animazione'){ if(n >= 100) out.add('LONG'); else if(n && n <= 13) out.add('SHORT'); }
+    if(kind === 'manga' || kind === 'manhwa'){ if(n >= 60) out.add('LONG'); else if(n && n <= 3) out.add('SHORT'); }
+    if(kind === 'film') out.add('SHORT');
+    return out;
+  }
+  // tratti dai TESTI (pro, perché piace, trama…) + dai TAG: {mx: [...], cbt: 1 se si parla di combattimenti}
   function textTraits(g){
     const e = g.enrich || {}, dop = e.dopa || {};
     const txt = mnrm([e.whyLikeIt, e.gameplayNote, (e.pros || []).join(' . '), (dop.loop || []).join(' '), dop.hook, (g.label || {}).ok].join(' . '));
     const txtS = mnrm([g.story, e.agingNote].join(' . '));
-    const mx = Object.keys(MRX).filter(k=> MRX[k].test(txt) || (STORYK.has(k) && MRX[k].test(txtS)));
-    return {mx, cbt: /(combattiment|parat|schivat|combo)/.test(txt) ? 1 : 0};
+    const out = tagTraits(g);
+    Object.keys(MRX).forEach(k=>{ if(MRX[k].test(txt) || (STORYK.has(k) && MRX[k].test(txtS))) out.add(k); });
+    const mx = Object.keys(MRX).filter(k=> out.has(k));                        // ordine fisso, come MRX
+    return {mx, cbt: out.has('COMBAT') || /(combattiment|scontr|battagli|duell)/.test(txt) ? 1 : 0};
   }
-  const api = {MRX, mnrm, STORYK, textTraits};
+  const api = {MRX, TAGT, mnrm, STORYK, tagTraits, textTraits};
   root.RT_TRATTI = api;
   if(typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

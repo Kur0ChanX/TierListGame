@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'a3', date:'2026-10-02', time:'17:35', items:[
+    'Tratti nuovi pensati per anime e manga (storia, colpi di scena, personaggi, crescita, amicizia, combattimenti, poteri, atmosfera, animazione, musica, comicità, toni rilassanti, isekai, mecha, sport e altri): calcolati per 2272 titoli su 2273',
+    'Il tuo DNA dei gusti ora usa questi tratti al posto di quelli dei videogiochi'
+  ]},
   {version:'a2', date:'2026-10-02', time:'15:05', items:[
     'Nuova base: l\'app è stata rifatta partendo dalla Tier List dei videogiochi v236, con tutte le sue funzioni (cervello dei gusti, DNA, Sintonia, scheda in 3 parti, temi grafici, voce, Update+, profili, sincronizzazione) adattate ad anime, film, manga e animazione.',
     'Cinque classifiche sempre in vista: 📺 Anime, 🎞️ Film anime, 🏰 Animazione (Disney, Pixar, DreamWorks, Illumination, Sony, Warner, Blue Sky, Laika, Aardman…), 📚 Manga e 📱 Manhwa, più «Tutti». Da «Generi e studi» apri la classifica di un genere o di uno studio.',

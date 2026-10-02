@@ -104,7 +104,7 @@ exports.save = function(D, outRoot){                // outRoot: solo per le prov
     if(Object.keys(x).length) sh[id] = x;
     const lo = {};
     if(e) LITE_KEYS.forEach(f=>{ if(e[f] != null && e[f] !== '') lo[f] = e[f]; });
-    const tt = TR.textTraits({story: g.story, enrich: Object.assign({}, e || {}, dopa[id] ? {dopa: dopa[id]} : {}), label: l || {}});
+    const tt = TR.textTraits({story: g.story, tags: g.tags, n: g.n, kind: g.kind, enrich: Object.assign({}, e || {}, dopa[id] ? {dopa: dopa[id]} : {}), label: l || {}});
     if(tt.mx.length) lo.mx = tt.mx; if(tt.cbt) lo.cbt = 1;
     if(e || tt.mx.length) lite[id] = lo;
     return o;
