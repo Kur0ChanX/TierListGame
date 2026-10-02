@@ -605,7 +605,7 @@
       else { st.textContent = 'Non trovata nelle fonti aperte: usa "Cerca copertina" qui sopra.'; btn.disabled = false; }
     };
     btn.addEventListener('click', run);
-    if(LS.get('jrpg_autocover', true)) run();
+    if(LS.get('jrpg_autocover', true) && !(window.rtCalm && rtCalm())) run();      // v217: in modalità calma la cerca Update+ o il tasto
   }
   function tintModal(g){
     const card = document.getElementById('modalCard'); if(!card) return;

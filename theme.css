@@ -1696,3 +1696,8 @@ body:has(.rt-note.show) .scrolltop-fab, body:has(.rt-note.show) .au-badge{transf
 html:not(.mo-off) .x-card, html:not(.mo-off) .x-row, html:not(.mo-off) #tbody tr{transition:transform .12s ease-out, filter .12s}
 html:not(.mo-off) .x-card.rt-press, html:not(.mo-off) .x-row.rt-press{transform:scale(.95); filter:brightness(1.15)}
 html:not(.mo-off) #tbody tr.rt-press{filter:brightness(1.25)}
+/* v217: locandina da internet, i passi */
+.cvw-steps{margin:8px 0 12px 18px;padding:0;line-height:1.5}
+.cvw-steps li{margin:4px 0}
+/* v217: con la scheda di un gioco aperta, sotto non si muove niente (il luccichio dei badge S+ era l'unica animazione rimasta accesa) */
+body:has(> #modalBackdrop.show) .badge.Splus, body:has(> #modalBackdrop.show) .row-top::after{animation-play-state:paused !important}

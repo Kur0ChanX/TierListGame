@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v217', date:'2026-10-02', time:'03:40', items:[
+    'Sistemato: a volte il gioco appena aperto si richiudeva da solo e tornavi in Classifica. Era un «indietro» che arrivava in ritardo dopo un cambio di pagina.',
+    'Pagine ferme: ogni tasto di sotto parte sempre dall\'alto e la pagina non si muove da sola. Ritoccare «Classifica» quando ci sei già ti riporta in cima, di colpo. Tornando da un gioco resti dov\'eri.',
+    'Nuovo: 🧘 Modalità calma (✨ → Moduli). Spegne tutti i lavori automatici da internet: Update+ all\'avvio, controllo con Gemini, copertine e foto cercate da sole. Per ogni gioco premi tu ⚡ Update+ e scarica tutto. Il backup resta acceso.',
+    'Locandina da internet: «Cerca su internet» apre Google Immagini. Tieni premuto sulla foto → Condividi immagine → Raccoon Tier e diventa la locandina 🔒. Oppure «Copia immagine» e al ritorno tocchi l\'avviso o «📋 Incolla l\'immagine copiata».',
+    'Con la scheda di un gioco aperta, sotto non si muove più niente (risparmio per il telefono).'
+  ]},
   {version:'v216', date:'2026-10-02', time:'03:15', items:[
     'Apertura del gioco: niente più «prima la locandina e poi il resto». La scheda intera compare insieme con una piccola zoomata che parte dal punto che hai toccato, leggera per il telefono.',
     'Tocco più reattivo: la copertina o la riga che tocchi si «schiaccia» subito, così senti che il tocco è arrivato.',

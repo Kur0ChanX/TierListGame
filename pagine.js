@@ -53,9 +53,14 @@
 
 
   // il segno nella cronologia: «indietro» del telefono = torna alla classifica
-  const markPage = ()=>{ try{ if(!(history.state && history.state.rtpage)) history.pushState({rtpage: 1}, ''); }catch(e){} };
-  const unmarkPage = ()=>{ try{ if(history.state && history.state.rtpage) history.back(); }catch(e){} };
+  // v217: il segno non si toglie più con un «indietro» (arrivava in ritardo e poteva chiudere il gioco appena aperto): lo spengo sul posto e lo riuso
+  const markPage = ()=>{ try{ const st = history.state; if(st && st.rtpage) return; if(st && st.rtdead) history.replaceState({rtpage: 1}, ''); else history.pushState({rtpage: 1}, ''); }catch(e){} };
+  const unmarkPage = ()=>{ try{ if(history.state && history.state.rtpage) history.replaceState({rtdead: 1}, ''); }catch(e){} };
+  // v217: gli «indietro» lanciati dal programma (fx.js, per togliere i segni delle finestre) arrivano un attimo dopo: li riconosco e non chiudono niente.
+  // Il primo ascoltatore che vede l'evento decide, gli altri leggono la stessa risposta.
+  window.rtSelfPop = e=>{ if(e.__rtSelf === undefined){ e.__rtSelf = (window.__rtSelfPops || 0) > 0; if(e.__rtSelf) window.__rtSelfPops--; } return e.__rtSelf; };
   window.addEventListener('popstate', e=>{
+    if(window.rtSelfPop(e)) return;
     const v = (typeof state !== 'undefined' && state.view) || 'list';
     if(v === 'list') return;
     const st = e.state;
@@ -92,7 +97,7 @@
     return r;
   };
   try{ setView = window.setView; }catch(e){}
-  try{ if(typeof state !== 'undefined' && state.view && state.view !== 'list') paint(state.view); }catch(e){}
+  try{ if(typeof state !== 'undefined' && state.view && state.view !== 'list'){ paint(state.view); markPage(); } }catch(e){}
   document.addEventListener('change', ()=>{ if(body.classList.contains('rt-page')) refreshFilt(); });
 
   // scheda del gioco: quando la barra «Per te / Il gioco / Altro» resta ferma in alto, riempio lo spazio sopra di lei (classe .stuck)

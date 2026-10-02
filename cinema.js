@@ -28,9 +28,10 @@
       const d = GAME_SHOTS.games[g.id]; return d ? d.map(u=> GAME_SHOTS.base + u) : [];
     }catch(e){ return []; }
   }
-  async function rawgShots(g){
+  async function rawgShots(g, force){
     const c = LSG('rt_shots_rawg4', {}), e = c[g.id];      // v201: chiave nuova, le vecchie cercate col nome italiano potevano essere di un altro gioco
     if(e && Date.now() - e.t < 30 * 864e5) return e.u || [];
+    if(!force && window.rtCalm && rtCalm()) return e ? e.u || [] : [];          // v217: modalità calma: solo quelle già scaricate (le nuove le porta Update+)
     try{
       if(!(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has() && SearchHub.rawg.shots)) return [];
       let nm = g.name; try{ if(SearchHub.enName) nm = await SearchHub.enName(g); }catch(x){}

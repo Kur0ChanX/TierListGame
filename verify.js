@@ -835,7 +835,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   const today = ()=> new Date().toISOString().slice(0, 10);
   const dayLoad = ()=>{ try{ const d = JSON.parse(localStorage.getItem(AU_DAY) || '{}'); return d.d === today() ? d : {d: today(), n: 0}; }catch(e){ return {d: today(), n: 0}; } };
   const useAI = ()=>{ try{ return !!geminiKey(); }catch(e){ return false; } };
-  window.auditOn = ()=> localStorage.getItem(AU_ON) !== 'off';
+  window.auditOn = ()=> !(window.rtCalm && rtCalm()) && localStorage.getItem(AU_ON) !== 'off';
   window.auditSetOn = on=>{ try{ localStorage.setItem(AU_ON, on ? 'on' : 'off'); }catch(e){} if(on) auSchedule(3000); };
   window.auditStats = function(){
     const a = auLoad(), ids = GAMES.map(g=> g.id), done = ids.filter(id=> a[id]).length;
@@ -904,8 +904,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     let undo = {}; try{ undo = JSON.parse(localStorage.getItem(AU_UNDO) || '{}') || {}; }catch(e){}
     const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔎 Controllo dati</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
     const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · oggi ${st.today}/${st.cap}${useAI() ? '' : ' · <b>senza chiave Gemini controllo solo voto, anno, generi e lingua</b>'}. ${auPause ? '<br>⏸️ ' + escHtml(auPause) : ''}<br><b>Non cambia nulla senza il tuo ok.</b> Le proposte vengono da fonti aperte e da Gemini con ricerca web; controllale prima di applicarle.</div>
-      <label class="ask-toggle"><input type="checkbox" id="fpOn" ${updatePlusOn() ? 'checked' : ''}> ${giIcon('upplus')} Update+ all\'avvio: aggiorna tutte le info e la locandina di ogni gioco, una volta sola <small>(${updatePlusStats().done}/${updatePlusStats().total} fatti)</small></label>
-      <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>
+      <label class="ask-toggle"><input type="checkbox" id="fpOn" ${updatePlusOn() ? 'checked' : ''}${window.rtCalm && rtCalm() ? ' disabled' : ''}> ${giIcon('upplus')} Update+ all\'avvio: aggiorna tutte le info e la locandina di ogni gioco, una volta sola <small>(${updatePlusStats().done}/${updatePlusStats().total} fatti)</small></label>
+      <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}${window.rtCalm && rtCalm() ? ' disabled' : ''}> Controlla da solo in background</label>
       <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn${auTurbo()?' primary':''}" id="auTurbo" title="Un gioco ogni ~12 secondi, fino a 800 al giorno (usa più quota Gemini)">⚡ Turbo ${auTurbo()?'acceso':'spento'}</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
     let body;
     if(tab === 'todo') body = todo.length ? `<div class="lp-tools"><button class="btn primary" id="auStart">▶ Rivedi una per una</button></div><div class="gc-rows">${todo.map(g=> `<div class="gc-row"><span><b>${escHtml(g.name)}</b> <small>${a[g.id].ch.length} ${a[g.id].ch.length === 1 ? 'modifica' : 'modifiche'}: ${a[g.id].ch.map(c=> escHtml(c.label.replace(/ ⚠️.*$/, ''))).join(', ')}</small> <button class="btn" data-rv="${g.id}">Rivedi</button></span></div>`).join('')}</div>` : '<div class="lp-sub">Niente da approvare per ora ✅</div>';
@@ -989,7 +989,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   const FR = 'jrpg_fresh', FR_ON = 'jrpg_update_plus', FP_BUDGET = 40, FP_EPOCH = 3;      // FP_EPOCH: sale quando cambia la logica dei voti, così i giochi ancora «stima» si ricontrollano una volta
   const frLoad = ()=>{ try{ return JSON.parse(localStorage.getItem(FR) || '{}') || {}; }catch(e){ return {}; } };
   const frSave = o=>{ try{ localStorage.setItem(FR, JSON.stringify(o)); }catch(e){} };
-  window.updatePlusOn = ()=> localStorage.getItem(FR_ON) !== 'off';
+  window.updatePlusOn = ()=> !(window.rtCalm && rtCalm()) && localStorage.getItem(FR_ON) !== 'off';
   window.updatePlusSetOn = on=>{ try{ localStorage.setItem(FR_ON, on ? 'on' : 'off'); }catch(e){} if(on) fpKick(3000); };
   window.updatePlusStats = ()=>{ const f = frLoad(); const n = GAMES.filter(g=> f[g.id] && f[g.id].gold).length; return {done: n, total: GAMES.length}; };
   const FP_SRC = {wiki: 'Wikipedia', wd: 'Wikidata', itw: 'it.wikipedia', steam: 'Steam', pcgw: 'PCGamingWiki', rawg: 'RAWG', oc: 'OpenCritic', facts: 'Dati settimanali'};
@@ -1064,6 +1064,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const P = window.Progress; try{ P && P.begin && P.begin('Update V+ di ' + g.name + '…'); }catch(e){}
     let r = null;
     try{ r = await updatePlus(g, true); }catch(e){}
+    try{ if(window.rtRawgShots) await rtRawgShots(g, true); }catch(e){}          // v217: anche le foto del carosello (in modalità calma arrivano solo da qui)
     // scheda senza analisi («come regge oggi», gameplay): la completo adesso, così l'affidabilità non resta bloccata
     try{ if(g.custom && typeof runEnrich === 'function' && !(g.enrich && (g.enrich.eraScore != null || g.enrich.agingNote || g.enrich.gameplayNote))) await runEnrich([g.id], {force: true}); }catch(e){}
     try{ P && P.end && P.end(); }catch(e){}
@@ -1076,7 +1077,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   let fpTimer = 0, fpBusy = false, fpDone = 0;
   function fpKick(ms){ clearTimeout(fpTimer); fpTimer = setTimeout(fpStep, ms == null ? 4000 : ms); }
   async function fpStep(){
-    if(!updatePlusOn() || fpBusy) return;
+    if(fpBusy) return;
+    if(!updatePlusOn() && !fpQueue.length) return;                  // v217: i giochi appena aggiunti da te si completano anche con Update+ spento / modalità calma
     if(window.__catalogPending) return fpKick(2500);          // prima scarico il catalogo condiviso: Update+ non riparte da zero su un dispositivo nuovo
     if(typeof detailsReady === 'function' && !detailsReady()) return fpKick(2000);
     const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.rt-loader.show');
