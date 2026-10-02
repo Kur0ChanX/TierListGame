@@ -1841,3 +1841,13 @@ html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1
 .intro-start.hit::after{inset:-3px; border:2px solid #ffe066; animation:introRing2 .38s ease-out both}
 @keyframes introTap{0%{transform:scale(.95)}50%{transform:scale(1.06); filter:brightness(1.4)}100%{transform:scale(1); filter:brightness(1.15)}}
 @keyframes introRing2{from{opacity:.9; transform:scale(1)}to{opacity:0; transform:scale(1.12, 1.45)}}
+
+/* v225: scelta della voce */
+.vc-set{margin-left:auto; height:30px; padding:0 10px; border-radius:999px; border:0; background:none; color:var(--sub); font:600 .72rem/1 inherit; cursor:pointer; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.vs-eng{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px}
+.vs-e,.vs-chip{display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 12px; border-radius:14px; border:1px solid color-mix(in srgb, var(--text) 14%, transparent); background:color-mix(in srgb, var(--text) 4%, transparent); color:var(--text); text-align:left; cursor:pointer; font:inherit}
+.vs-e b,.vs-chip b{font-size:.85rem} .vs-e small,.vs-chip small{font-size:.7rem; color:var(--sub)}
+.vs-e.on,.vs-chip.on{border-color:var(--accent); box-shadow:inset 0 0 0 1.5px var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent)}
+.vs-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:6px; margin:4px 0 10px}
+.vs-chip.vs-load{animation:vcPulse 1s ease-in-out infinite}
+.vs-ai[hidden],.vs-ph[hidden]{display:none}

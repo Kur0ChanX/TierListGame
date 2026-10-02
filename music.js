@@ -436,6 +436,13 @@
       const cover = document.getElementById('coverBlock'), card = document.getElementById('modalCard');
       if(card && g){ (cover || card.querySelector('.modal-head')).insertAdjacentHTML('afterend', barHtml(g)); wireBar(g); }
       if(apCard()) playFor(g);
+      else if(g && !(window.rtCalm && rtCalm())){        // v225: Auto spento: preparo in silenzio l'elenco dei brani (e YouTube se serve), così premendo ▶ parte subito
+        const id = g.id;
+        (window.rtSettle ? rtSettle(2200) : new Promise(res=> setTimeout(res, 2200))).then(()=>{
+          if(typeof currentModalGame === 'undefined' || !currentModalGame || currentModalGame.id !== id || (cur.id === id && cur.list.length)) return;
+          tracksFor(g).then(l=>{ if(l && l[0] && !isIA(l[0])) loadYT().catch(()=>{}); }).catch(()=>{});
+        });
+      }
     }catch(e){}
     return r;
   };
