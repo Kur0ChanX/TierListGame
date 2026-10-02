@@ -87,7 +87,7 @@
     const hits = ax.filter(a=> has.has(a.k)), miss = ax.filter(a=> !has.has(a.k));
     const ti = topList().indexOf(g.id);
     const sub2 = ti >= 0 ? `👑 N. ${ti + 1} dei tuoi top: è il metro con cui misuro tutto il resto` : known === 'love' ? 'La % rispecchia quello che sai già: lo uso per imparare i tuoi gusti' : `Ha ${hits.length} dei tuoi ${ax.length} gusti più forti`;
-    const topBtn = `<div class="gs2-topb"><button class="btn${ti >= 0 ? ' on' : ''}" type="button" data-gtop="${g.id}">${ti >= 0 ? '👑 Nei miei top (tocca per togliere)' : '👑 È tra i miei giochi top'}</button><button class="btn" type="button" data-gtopall="1">📋 I miei top</button><button class="btn" type="button" data-brain="1">🧠 Cosa ho imparato</button></div>`;
+    const topBtn = `<div class="gs2-topb"><button class="btn${ti >= 0 ? ' on' : ''}" type="button" data-gtop="${g.id}">${ti >= 0 ? '😍 Gioco che amo (tocca per togliere)' : '😍 È un gioco che amo'}</button><button class="btn" type="button" data-gtopall="1">📋 Giochi che amo</button><button class="btn" type="button" data-brain="1">🧠 Cosa ho imparato</button></div>`;
     const top = `<div class="gs2-top${approved ? ' appr' : ''}"><div class="gs2-ring" style="--p:${pct}"><b>${pct}%</b></div><div class="gs2-verd"><b>${approved && known !== 'love' ? 'Approvato dal procione!' : word}</b><span>${sub2}</span>${approved ? '<small>Sintonia altissima con il tuo DNA di giocatore</small>' : ''}</div>${approved ? '<img class="gs2-appr" src="icons/approved.webp" alt="Approvato" width="86" height="91" loading="lazy">' : ''}</div>`;
     const nearHtml = near.length ? `<div class="gs2-near">💞 Somiglia a giochi che ami: ${near.map(x=> `<b>${esc(x.g.name)}</b>`).join(', ')}</div>` : '';
     const hitHtml = hits.length ? `<div class="gs2-h">✓ Ha queste cose che ami</div><div class="gs2-list">${hits.map(a=> bar(a, true)).join('')}</div>` : '';
@@ -127,7 +127,7 @@
     const id = +b.dataset.gtop, t = topList(), i = t.indexOf(id);
     if(i >= 0) t.splice(i, 1); else t.push(id);
     topSave(t);
-    try{ window.XUI && XUI.toast(i >= 0 ? 'Tolto dai tuoi top' : '👑 Aggiunto ai tuoi top (n. ' + t.length + ') — riordinali in «I miei top»', 2600); }catch(x){}
+    try{ window.XUI && XUI.toast(i >= 0 ? 'Tolto dai giochi che ami' : '😍 Aggiunto ai giochi che ami (n. ' + t.length + ') — riordinali in «Giochi che amo»', 2600); }catch(x){}
     reopen(id);
   });
   // nella scheda del gioco, subito dopo il verdetto d'acquisto

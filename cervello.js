@@ -227,7 +227,7 @@
     return `<div class="rb" id="rtBar">
       <div class="rb-row">
         ${b('fav', '⭐', 'Preferito', isFav(g))}
-        ${b('heart', '<img src="icons/top-procione-64.webp" srcset="icons/top-procione-64.webp 1x, icons/top-procione-128.webp 2x" alt="" width="28" height="28" style="border-radius:50%">', 'Nel cuore', inHeart(g))}
+        ${b('heart', '<img src="icons/top-procione-64.webp" srcset="icons/top-procione-64.webp 1x, icons/top-procione-128.webp 2x" alt="" width="28" height="28" style="border-radius:50%">', 'Gioco che amo', inHeart(g))}
         ${REACT.map(x=> b(x.k, x.ic, x.n, !!r[x.k])).join('')}
       </div>
       <div class="rb-st">${ST.map(([k, ic, n])=> `<button type="button" class="rb-s${st === k ? ' on' : ''}" data-rs="${k}"><span>${ic}</span>${n}</button>`).join('')}</div>
@@ -263,7 +263,7 @@
       if(k === 'fav' || k === 'heart') changed();
       refreshBar(g);
       const nb = document.querySelector('#rtBar [data-rb="' + k + '"]'); if(nb && on) pop(nb);
-      const names = {fav: 'Preferito', heart: 'Nel cuore 😍 (tra i tuoi top)', like: 'Mi piace', dislike: 'Non mi piace', notgenre: 'Non è il mio genere: lo terrò a mente per tutto il genere', letdown: 'Ti ha deluso', replay: 'Lo rigiocheresti'};
+      const names = {fav: 'Preferito', heart: 'Gioco che amo 😍', like: 'Mi piace', dislike: 'Non mi piace', notgenre: 'Non è il mio genere: lo terrò a mente per tutto il genere', letdown: 'Ti ha deluso', replay: 'Lo rigiocheresti'};
       toast(on ? '✓ ' + names[k] + ' — il cervello ha imparato' : 'Tolto: ' + names[k].split(' —')[0].split(':')[0], 1800);
     }
   }, true);

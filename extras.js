@@ -99,7 +99,7 @@
   if(stb) stb.addEventListener('click', ()=> alt.scrollTo({top:0, behavior:'smooth'}));
   window.rtAltMode = ()=> state.view === 'list' && MODE !== 'table';
   // v233: nelle viste a copertine e a schede (dove non ci sono le intestazioni della tabella) una riga discreta per ordinare
-  const SORTS = [['id', '🏆 Classifica', 1], ['heart', '😍 Nel cuore', -1], ['fav', '⭐ Preferiti', -1], ['tier', 'Tier', 1], ['score', 'Voto', -1], ['ysort', 'Anno', -1], ['name', 'A-Z', 1]];
+  const SORTS = [['id', '🏆 Classifica', 1], ['heart', '😍 Giochi che amo', -1], ['fav', '⭐ Preferiti', -1], ['tier', 'Tier', 1], ['score', 'Voto', -1], ['ysort', 'Anno', -1], ['name', 'A-Z', 1]];
   try{ const sv = LS.get('jrpg_alt_sort', null); if(sv && SORTS.some(x=> x[0] === sv.k)){ state.sortKey = sv.k; state.sortDir = sv.d === -1 ? -1 : 1; } }catch(e){}
   const sortBar = document.createElement('div'); sortBar.id = 'altSort'; sortBar.className = 'alt-sort'; sortBar.style.display = 'none';
   alt.parentNode.insertBefore(sortBar, alt);

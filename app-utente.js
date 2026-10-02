@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v234', date:'2026-10-02', time:'14:01', items:[
+    'Tabella: toccando la ★ in alto si apre il menu «Metti in cima»: 😍 Giochi che amo, ⭐ Preferiti, 💕 Storia romantica, 🤝 Legame speciale, 🤯 Storia sorprendente, 💉 Effetto dopamina, ✅ Stato, 🏆 Classifica normale. Toccando di nuovo la stessa voce l\'ordine si inverte.',
+    'Il procione con gli occhi a cuore ora si chiama ovunque «Gioco che amo» (prima «Nel cuore» / «Nei miei top»).',
+    'L\'icona «Storia sorprendente» ora è 🤯 (prima ✨, si confondeva con la stella dei preferiti).',
+    'Tolto il pallino colorato prima del nome (era lo stato del gioco: In corso, Giocato, Da giocare, Mollato). Lo stato resta nella scheda del gioco e si può ordinare dal menu della ★.',
+  ]},
   {version:'v233', date:'2026-10-02', time:'13:40', items:[
     'Viste a copertine e a schede: sopra i giochi c\'è una riga discreta «Ordina»: 🏆 Classifica · 😍 Nel cuore (il procione con gli occhi a cuore: prima i tuoi «Nel cuore», poi i preferiti) · ⭐ Preferiti · Tier · Voto · Anno · A-Z. Toccando di nuovo lo stesso tasto si inverte l\'ordine (↑). La scelta resta salvata.',
     'Vista a schede: il procione «Nel cuore» ora è accanto alla stella dei preferiti, prima del nome.',
