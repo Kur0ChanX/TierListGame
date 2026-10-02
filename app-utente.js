@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v225', date:'2026-10-02', time:'11:07', items:[
+    'Voce della lettura: la voce robotica era quella del telefono, perché a settembre 2026 Google ha cambiato i modelli della voce AI (Gemini 3.8) e il vecchio modo di chiamarla non funzionava più. Ora uso i modelli nuovi (e, se non rispondono, quelli vecchi) e ricordo quale funziona.',
+    'Accanto ad «Auto» c\'è il nome della voce (es. «Charon ▾»): si apre «Voce della lettura» con il motore (✨ Voce AI oppure 📱 Voce del telefono) e 16 voci AI, 8 maschili e 8 femminili; toccandone una la senti subito. Con il telefono puoi scegliere tra le sue voci italiane.',
+    'Se la voce AI non va, ora lo dico chiaramente (manca la chiave, chiave non valida, quota finita) invece di passare in silenzio alla voce del telefono.',
+    'Parte molto prima: la storia viene letta a pezzi. Il primo è corto (una frase) e arriva in un paio di secondi; i successivi si preparano mentre ascolti. Ogni pezzo resta salvato: la seconda volta parte subito.',
+    'Musica: con «Auto» spento, dopo 2 secondi nella scheda preparo in silenzio l\'elenco dei brani (e YouTube se serve), così premendo ▶ parte prima.',
+  ]},
   {version:'v224', date:'2026-10-02', time:'12:10', items:[
     'Apertura dell\'app: la locandina «Inizia a frugare» non si muove più quando il telefono passa a schermo intero (prima la finestra cambiava altezza e la locandina si spostava, con la banda bianca sotto). Ora resta ferma e l\'app si apre solo a finestra assestata; sfondo scuro anche prima del caricamento.',
     'Tasto «Inizia a frugare»: fermo finché non lo tocchi; al tocco si schiaccia e rimbalza restando nello schermo. Vibrazione appena tocchi e suono che parte subito (tre note brevi, nessuna coda).',
