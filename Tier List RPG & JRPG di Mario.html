@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raccoon Tier — Tier List RPG & JRPG di Mario</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="build" content="v214">
+<meta name="build" content="v215">
 <meta name="theme-color" content="#161221">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -59,7 +59,7 @@ document.addEventListener('click',function(e){if(window.__rtReady||Date.now()-t0
 <!-- PROFILO: distintivo giocatore -->
 <symbol id="g-profile" viewBox="0 0 32 32"><path d="M16 2.5 27.5 7v8.3c0 7-4.7 11.6-11.5 14.2C9.2 26.9 4.5 22.300 4.500 15.300V7z" fill="url(#gg-cyan)"/><circle cx="16" cy="12.6" r="4.3" fill="#fff" fill-opacity=".95"/><path d="M8.300 23.200c1.400-4.200 4.500-6 7.700-6s6.300 1.800 7.700 6c-2 2.400-4.700 4-7.700 5.100-3-1.100-5.700-2.700-7.700-5.100z" fill="#fff" fill-opacity=".95"/><path d="M16 2.500 27.500 7v5C22 9.800 10 9.800 4.500 12V7z" fill="url(#gg-hl)" opacity=".7"/><path d="M16 2.500 27.500 7v8.300c0 7-4.700 11.600-11.500 14.200C9.200 26.900 4.500 22.300 4.500 15.300V7z" fill="none" stroke="url(#gg-rim)" stroke-width=".9"/></symbol>
 <!-- NOVITA: gemma sfaccettata -->
-<symbol id="g-gem" viewBox="0 0 32 32"><path d="M9.500 5h13l6.500 7.500L16 28.500 3 12.500z" fill="url(#gg-pink)"/><path d="M3 12.500h26M9.500 5 12.500 12.500 16 28.500M22.500 5l-3 7.500L16 28.500" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M9.500 5h13l1.800 4.300H7.700z" fill="#fff" fill-opacity=".38"/><path d="M12.500 12.500 16 28.500l-8.500-10z" fill="#fff" fill-opacity=".14"/><path d="M9.500 5h13l6.500 7.500L16 28.500 3 12.500z" fill="none" stroke="url(#gg-rim)" stroke-width=".9" stroke-linejoin="round"/><path d="M26.500 2.500v4M24.500 4.500h4" stroke="#fff" stroke-width="1.100" stroke-linecap="round"/></symbol>
+<symbol id="g-bell" viewBox="0 0 32 32"><path d="M16 4.200c-5 0-8.400 3.700-8.400 8.800v5.300L5 22.600h22l-2.600-4.300V13c0-5.100-3.400-8.800-8.400-8.800z" fill="url(#gg-gold)"/><path d="M12.300 24.200a3.700 3.700 0 0 0 7.400 0z" fill="url(#gg-orange)"/><path d="M10.200 12.600c.3-3 2.400-5.400 5.300-5.800" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.400" stroke-linecap="round"/><path d="M16 4.200c-5 0-8.400 3.700-8.400 8.800v5.300L5 22.600h22l-2.600-4.300V13c0-5.100-3.400-8.800-8.400-8.800z" fill="none" stroke="url(#gg-rim)" stroke-width=".9" stroke-linejoin="round"/><circle cx="16" cy="3.600" r="1.500" fill="url(#gg-gold)"/></symbol><symbol id="g-gem" viewBox="0 0 32 32"><path d="M9.500 5h13l6.500 7.500L16 28.500 3 12.500z" fill="url(#gg-pink)"/><path d="M3 12.500h26M9.500 5 12.500 12.500 16 28.500M22.500 5l-3 7.500L16 28.500" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-linejoin="round"/><path d="M9.500 5h13l1.800 4.300H7.700z" fill="#fff" fill-opacity=".38"/><path d="M12.500 12.500 16 28.500l-8.500-10z" fill="#fff" fill-opacity=".14"/><path d="M9.500 5h13l6.500 7.500L16 28.500 3 12.500z" fill="none" stroke="url(#gg-rim)" stroke-width=".9" stroke-linejoin="round"/><path d="M26.500 2.500v4M24.500 4.500h4" stroke="#fff" stroke-width="1.100" stroke-linecap="round"/></symbol>
 <!-- TEMA: sfera giorno/notte -->
 <symbol id="g-orb" viewBox="0 0 32 32"><path d="M16 3.500a12.500 12.500 0 0 0 0 25z" fill="url(#gg-gold)"/><path d="M16 3.500a12.500 12.500 0 0 1 0 25z" fill="url(#gg-indigo)"/><circle cx="21.500" cy="12" r="1" fill="#fff"/><circle cx="23" cy="19" r=".7" fill="#fff" fill-opacity=".8"/><circle cx="16" cy="16" r="12.500" fill="url(#gg-orb)"/><circle cx="16" cy="16" r="12.500" fill="none" stroke="url(#gg-rim)" stroke-width=".9"/></symbol>
 <!-- FILTRI: cursori da console -->
@@ -162,6 +162,7 @@ document.addEventListener('click',function(e){if(window.__rtReady||Date.now()-t0
       <h1><img class="brand-logo" src="icons/logo-nuovo.png" alt="Frugu Frugu Raccoon Tier" width="105" height="56"><span class="sr-only">Raccoon Tier — Tier List RPG &amp; JRPG di Mario</span></h1>
       <button class="iconbtn lbl" id="fsBtn" aria-label="Schermo intero" title="Schermo intero (nasconde barra del browser e orario)"><span class="ib-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-screen"/></svg></span><span class="ib-lb">Schermo</span></button>
       <button class="iconbtn lbl" id="profileBtn" aria-label="Profilo"><span class="ib-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-profile"/></svg></span><span class="ib-lb">Profilo</span></button>
+      <button class="iconbtn lbl" id="bellBtn" aria-label="Avvisi"><span class="ib-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-bell"/></svg></span><span class="ib-lb">Avvisi</span><b class="ib-badge" id="bellBadge" hidden></b></button>
       <button class="iconbtn lbl" id="changelogBtn" aria-label="News del programma"><span class="ib-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-gem"/></svg></span><span class="ib-lb">News</span></button>
       <button class="iconbtn lbl" id="themeBtn" aria-label="Cambia tema"><span class="ib-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-orb"/></svg></span><span class="ib-lb">Tema</span></button>
       <button class="iconbtn lbl" id="filtersBtn" aria-label="Mostra/nascondi filtri"><span class="ib-ic"><svg class="gi" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><use href="#g-sliders"/></svg></span><span class="ib-lb">Filtri</span><b class="ib-badge" id="filtersBadge" hidden></b></button>
@@ -441,6 +442,7 @@ document.addEventListener('click',function(e){if(window.__rtReady||Date.now()-t0
 <script src="cervello.js"></script>
 <script src="tratti.js"></script>
 <script src="pagine.js"></script>
+<script src="avvisi.js"></script>
 <script src="motion.js"></script>
 </body>
 </html>

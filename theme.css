@@ -1321,7 +1321,7 @@ details.dna-cat[open]>summary.dna-ct::after{transform:rotate(180deg)}
 .gl-yes{color:#c084fc}.gl-no{color:#f59e0b}
 /* v201: cartoncino dell'apertura «stile iPhone» (solo transform/opacity: fluido a 60/120 Hz) */
 .rt-ghost{position:fixed;inset:0;z-index:2147483000;pointer-events:none;contain:strict}
-.rt-ghost-p{position:absolute;left:0;top:0;width:100vw;height:100vh;background:var(--bg,#0b0b14);transform-origin:0 0;will-change:transform,opacity;border-radius:0;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.rt-ghost-p{position:absolute;left:0;top:0;width:100vw;height:100vh;background:var(--card,#1c1c24);transform-origin:0 0;will-change:transform,opacity;border-radius:0;box-shadow:0 10px 40px rgba(0,0,0,.35)}
 .rt-ghost-i{position:absolute;object-fit:cover;border-radius:18px;transform-origin:0 0;will-change:transform;box-shadow:0 18px 50px rgba(0,0,0,.45)}
 html.mo-off .rt-ghost{display:none}
 /* v201: chiusura della scheda con la curva di iOS */
@@ -1643,3 +1643,43 @@ td.fav{white-space:nowrap}
 @keyframes introRing{from{opacity:1; transform:scale(1)}to{opacity:0; transform:scale(1.9)}}
 #intro.entering .intro-frame{transition:transform .5s cubic-bezier(.32,.72,0,1), opacity .45s ease; transform:scale(1.12); opacity:0}
 #intro.entering .intro-bg{transition:opacity .45s ease; opacity:0}
+/* v215: notifiche che restano (avvisi.js) */
+.rt-note{position:fixed; left:50%; bottom:calc(var(--navh,0px) + 14px + env(safe-area-inset-bottom,0px)); z-index:100750; width:min(94vw,440px); display:flex; align-items:center; gap:6px;
+  padding:6px 6px 6px 4px; border-radius:20px; background:color-mix(in srgb,var(--pk-card,var(--card,#1c1c24)) 92%,transparent); color:var(--text,#fff);
+  border:1px solid rgba(var(--a1rgb,124,92,255),.45); box-shadow:0 18px 40px -12px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04) inset, 0 0 24px -6px rgba(var(--a1rgb,124,92,255),.55);
+  -webkit-backdrop-filter:blur(14px) saturate(1.3); backdrop-filter:blur(14px) saturate(1.3);
+  transform:translate(-50%, 140%); opacity:0; pointer-events:none; transition:transform .42s cubic-bezier(.32,1.4,.5,1), opacity .2s ease}
+.rt-note.show{transform:translate(-50%,0); opacity:1; pointer-events:auto}
+html.mo-off .rt-note{transition:opacity .15s}
+.rn-main{flex:1; min-width:0; display:flex; align-items:center; gap:10px; border:0; background:none; color:inherit; text-align:left; padding:6px 4px 6px 8px; cursor:pointer; font:inherit; -webkit-tap-highlight-color:transparent}
+.rn-main:active{transform:scale(.98)}
+.rn-ic{flex-shrink:0; width:38px; height:38px; display:grid; place-items:center; font-size:1.25rem; border-radius:12px; background:rgba(var(--a1rgb,124,92,255),.22)}
+.rn-tx{flex:1; min-width:0; font-size:.88rem; line-height:1.3; font-weight:600}
+.rn-go{flex-shrink:0; font-size:1.5rem; line-height:1; opacity:.7; padding:0 4px}
+.rn-more{flex-shrink:0; font:700 .7rem/1 inherit; padding:5px 7px; border-radius:999px; background:rgba(var(--a3rgb,255,110,199),.25)}
+.rn-x{flex-shrink:0; width:34px; height:34px; border-radius:50%; border:0; background:rgba(127,127,127,.18); color:inherit; font-size:.85rem; cursor:pointer}
+/* campanella: dondola quando c'è qualcosa di nuovo */
+#bellBtn.has-new .ib-ic svg{transform-origin:50% 12%; animation:bellRing 2.8s ease-in-out infinite}
+@keyframes bellRing{0%,70%,100%{transform:rotate(0)} 74%{transform:rotate(14deg)} 79%{transform:rotate(-12deg)} 84%{transform:rotate(8deg)} 89%{transform:rotate(-5deg)} 94%{transform:rotate(2deg)}}
+html.mo-off #bellBtn.has-new .ib-ic svg{animation:none}
+/* elenco degli avvisi */
+.rn-list{display:flex; flex-direction:column; gap:6px; margin:4px 0 10px}
+.rn-row{display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:1px solid var(--glass-line,rgba(127,127,127,.2)); background:rgba(127,127,127,.07); color:inherit; border-radius:14px; padding:8px 10px; font:inherit; cursor:pointer; position:relative}
+.rn-row.new{background:rgba(var(--a1rgb,124,92,255),.14); border-color:rgba(var(--a1rgb,124,92,255),.4)}
+.rn-rt{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px} .rn-rt b{font-size:.86rem; line-height:1.3; font-weight:600} .rn-rt small{opacity:.65; font-size:.72rem}
+.rn-dot{width:9px; height:9px; border-radius:50%; background:#ff5c8a; box-shadow:0 0 8px #ff5c8a; flex-shrink:0}
+/* con il popup in basso, i pulsanti tondi non ci finiscono sotto */
+body:has(.rt-note.show) .scrolltop-fab, body:has(.rt-note.show) .au-badge{transform:translateY(-74px)}
+/* v215: con 6 icone in alto (anche «Schermo», nel browser) le stringo un po' per non coprire il logo */
+@media (max-width:430px){
+  .topbar-row1:has(#fsBtn:not([style*="none"])) .iconbtn.lbl{width:41px !important}
+  .topbar-row1:has(#fsBtn:not([style*="none"])) .iconbtn.lbl .ib-ic{width:36px !important; height:36px !important}
+  .topbar-row1:has(#fsBtn:not([style*="none"])) .iconbtn.lbl .ib-lb{font-size:.6rem}
+  .topbar-row1:has(#fsBtn:not([style*="none"])) h1{margin-right:4px !important}
+  .topbar-row1:has(#fsBtn:not([style*="none"])) .brand-logo{width:92px; height:auto}
+}
+@media (max-width:380px){
+  .topbar-row1:has(#fsBtn:not([style*="none"])) .brand-logo{width:66px}
+  .topbar-row1:has(#fsBtn:not([style*="none"])) .iconbtn.lbl{width:38px !important}
+  .topbar-row1:has(#fsBtn:not([style*="none"])) .iconbtn.lbl .ib-ic{width:34px !important; height:34px !important}
+}

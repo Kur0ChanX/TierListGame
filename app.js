@@ -673,13 +673,15 @@ setTimeout(function fill(){
   const idle = f=> (window.requestIdleCallback ? requestIdleCallback(f, {timeout: 4000}) : setTimeout(f, 200));
   const total = GAMES.length;
   let ks;
-  if(total <= 6000) ks = [...new Set(GAMES.filter(g=> !g.custom).map(g=> textShard(g.id)))];
+  // v215: prima i pezzi con i TUOI giochi (preferiti, giocati, nel cuore): sono quelli che apri di più
+  let mineK = []; try{ const top = new Set((window.rtLSro ? rtLSro('jrpg_top', []) : []) || []); mineK = [...new Set(GAMES.filter(g=> !g.custom && (FAVS.has(g.id) || STATUSES[g.id] || top.has(g.id))).map(g=> textShard(g.id)))]; }catch(e){}
+  if(total <= 6000) ks = [...new Set(mineK.concat(GAMES.filter(g=> !g.custom).map(g=> textShard(g.id))))];
   else { let mine = []; try{ mine = GAMES.filter(g=> FAVS.has(g.id) || STATUSES[g.id]); }catch(e){} ks = [...new Set(mine.map(g=> textShard(g.id)))]; }
   ks = ks.filter(k=> !RT_TEXT.have.has(k));
   let i = 0;
-  const step = ()=>{ if(i >= ks.length) return; if(document.hidden){ setTimeout(step, 3000); return; } const k = ks[i++]; textLoad(k).then(()=> setTimeout(()=> idle(step), 600)); };
+  const step = ()=>{ if(i >= ks.length) return; if(document.hidden){ setTimeout(step, 3000); return; } const k = ks[i++]; textLoad(k).then(()=> setTimeout(()=> idle(step), 350)); };
   idle(step);
-}, 7000);
+}, 2500);          // v215: prima partiva dopo 7 s, e chi apriva un gioco subito aspettava i testi (locandina sola sul nero per ~0,7 s)
 // compatibilità: chi aspettava «i dettagli» li ha già (indice)
 if(DATA_V3) setTimeout(()=>{ try{ window.dispatchEvent(new Event('details-ready')); }catch(e){} }, 0);
 // ---- formato vecchio (fino alla v208): dettagli in 4 pezzi, se qualcuno li ha ancora ----
@@ -1143,6 +1145,11 @@ function srcIcon(g){
 function methodLabel(m){ return m==='V' ? 'Metacritic / aggregato verificato' : 'Stima community / recensori specializzate'; }
 
 function showToast(msg, ms, onTap){
+  // v215: gli avvisi IMPORTANTI (con un'azione o lunghi) diventano notifiche che restano finché le tocchi, e finiscono nella 🔔 (avvisi.js)
+  if(typeof onTap === 'function' || (+ms || 0) >= 7000){
+    if(typeof window.rtNotify === 'function'){ window.rtNotify(msg, onTap); return; }
+    (window.__rtNotifQ = window.__rtNotifQ || []).push([msg, onTap]); return;
+  }
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   t._tap = typeof onTap === 'function' ? onTap : null; t.classList.toggle('tappable', !!t._tap);          // palloncino con azione: toccandolo si apre la cosa di cui parla
