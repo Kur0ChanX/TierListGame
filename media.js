@@ -186,6 +186,7 @@
     body.querySelector('#cvwGo').addEventListener('click', ()=>{ try{ localStorage.setItem(WAIT, JSON.stringify({id: g.id, t: Date.now(), out: 1})); }catch(e){} const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); });
     body.querySelector('#cvwPaste').addEventListener('click', ()=>{ const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); WEB.paste(g); });
   };
+  window.rtWebPaste = g=> WEB.paste(g);      // v228: per gli avvisi «Hai copiato un'immagine…» anche dopo aver riaperto l'app
   WEB.paste = async g=>{
     if(!navigator.clipboard){ toast('Questo telefono non mi lascia leggere gli appunti: usa «Condividi immagine» o «Carica dal telefono»', 4000); return; }
     try{

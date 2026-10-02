@@ -3,6 +3,9 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v228', date:'2026-10-02', time:'11:42', items:[
+    'Avvisi della campanella 🔔: toccandoli dopo aver riaperto l\'app non succedeva nulla (quello che dovevano aprire era tenuto solo finché l\'app restava aperta). Ora si aprono sempre: «Oggi: novità per te» apre Oggi per te, un gioco in offerta o un\'uscita apre la scheda del gioco, «Hai copiato un\'immagine per…» apre la scheda e incolla l\'immagine come locandina.',
+  ]},
   {version:'v227', date:'2026-10-02', time:'11:30', items:[
     'Musica della scheda: nell\'elenco dei brani (☰) ogni brano ha 📌 «parti sempre da qui». Il brano scelto resta per sempre e l\'elenco si blocca 🔒 (nessun aggiornamento automatico lo cambia). Dietro «⋯» il lucchetto sblocca o blocca i brani.',
     'Player in home: nuovo tasto 🔊 con il volume e il lucchetto (lo stesso volume della scheda: impostato, resta bloccato anche riaprendo l\'app). Chiudendo la scheda la musica non resta più abbassata.',

@@ -40,7 +40,7 @@
     cur = id;
     $('.rn-ic').textContent = iconOf(n.msg);
     $('.rn-tx').textContent = textOf(n.msg) || n.msg;
-    $('.rn-go').hidden = !acts.has(id);
+    $('.rn-go').hidden = !actOf(id);
     const more = queue.filter(q=> q !== id).length; $('.rn-more').hidden = !more; $('.rn-more').textContent = '+' + more;
     // v216: niente «void offsetWidth» (ricalcolava la pagina intera): due fotogrammi e poi entra
     if(el.classList.contains('show')){ el.classList.remove('show'); requestAnimationFrame(()=> requestAnimationFrame(()=> el.classList.add('show'))); } else requestAnimationFrame(()=> el.classList.add('show'));
@@ -49,7 +49,25 @@
   function hide(){ cur = null; el.classList.remove('show'); }
   function next(){ const id = queue.shift(); if(id == null){ hide(); return; } show(id); }
   function markRead(id){ const n = list.find(x=> x.id === id); if(n && !n.read){ n.read = true; save(); paintBadge(); } }
-  function run(id){ markRead(id); const fn = acts.get(id); if(fn){ try{ fn(); }catch(e){} } }
+  // v228: dopo aver riaperto l'app le azioni degli avvisi vecchi non c'erano più (erano solo in memoria) e il tocco non portava da nessuna parte.
+  // Ora, se manca, l'azione si ricava dal testo: «novità per te» → Oggi per te; un gioco nominato (offerta, immagine copiata, uscita…) → la sua scheda.
+  let names = null;
+  function smart(msg){
+    const m = String(msg || '');
+    if(/novit[àa] per te|^\W*oggi:/i.test(m)){ const it = (window.XMENU || []).find(x=> /Oggi/.test(x.html || '')); if(it) return ()=> it.run(); }
+    if(typeof GAMES !== 'undefined' && GAMES.length && typeof openModal === 'function'){
+      if(!names) names = GAMES.filter(g=> g && g.name && g.name.length > 3).map(g=> [g.name.toLowerCase(), g.id]).sort((a, b)=> b[0].length - a[0].length);
+      const low = m.toLowerCase(), hit = names.find(([n])=> low.includes(n));
+      if(hit){
+        const id = hit[1];
+        if(/hai copiato un'immagine/i.test(m)) return ()=>{ const g = GAMES.find(x=> x.id === id); if(g){ openModal(g); setTimeout(()=>{ try{ window.rtWebPaste && rtWebPaste(g); }catch(e){} }, 500); } };
+        return ()=>{ const g = GAMES.find(x=> x.id === id); if(g) openModal(g); };
+      }
+    }
+    return null;
+  }
+  const actOf = id=>{ if(acts.has(id)) return acts.get(id); const n = list.find(x=> x.id === id); return n ? smart(n.msg) : null; };
+  function run(id){ markRead(id); const fn = actOf(id); if(fn){ try{ fn(); }catch(e){} } }
   $('.rn-main').addEventListener('click', e=>{ e.stopPropagation(); const id = cur; if(id == null) return; run(id); next(); });
   $('.rn-x').addEventListener('click', e=>{ e.stopPropagation(); const id = cur; if(id != null) markRead(id); next(); });
 
@@ -76,14 +94,14 @@
     const U = window.XUI; if(!U || !U.sheet) return;
     hide(); queue.length = 0;
     const draw = ()=>{
-      const rows = list.length ? list.map(n=> `<button type="button" class="rn-row${n.read ? '' : ' new'}" data-rn="${esc(n.id)}"><span class="rn-ic">${esc(iconOf(n.msg))}</span><span class="rn-rt"><b>${esc(textOf(n.msg) || n.msg)}</b><small>${esc(ago(n.t))}${acts.has(n.id) ? ' · tocca per aprire' : ''}</small></span>${n.read ? '' : '<i class="rn-dot" aria-label="nuovo"></i>'}</button>`).join('') : '<div class="lp-sub" style="text-align:center;padding:24px 0">🦝 Nessun avviso: tutto tranquillo.</div>';
+      const rows = list.length ? list.map(n=> `<button type="button" class="rn-row${n.read ? '' : ' new'}" data-rn="${esc(n.id)}"><span class="rn-ic">${esc(iconOf(n.msg))}</span><span class="rn-rt"><b>${esc(textOf(n.msg) || n.msg)}</b><small>${esc(ago(n.t))}${actOf(n.id) ? ' · tocca per aprire' : ''}</small></span>${n.read ? '' : '<i class="rn-dot" aria-label="nuovo"></i>'}</button>`).join('') : '<div class="lp-sub" style="text-align:center;padding:24px 0">🦝 Nessun avviso: tutto tranquillo.</div>';
       return `<div class="rn-list">${rows}</div>${list.length ? '<div class="lp-tools"><button class="btn" type="button" id="rnAll">✓ Segna tutti come letti</button><button class="btn" type="button" id="rnClear">🧹 Svuota</button></div>' : ''}`;
     };
     const body = U.sheet('xNotifs', '🔔 Avvisi', draw());
     const wire = ()=>{
       body.querySelectorAll('[data-rn]').forEach(b=> b.addEventListener('click', ()=>{
         const id = b.dataset.rn;
-        if(acts.has(id)){ const sh = document.getElementById('xNotifs'); if(sh) sh.classList.remove('show'); run(id); }
+        if(actOf(id)){ const sh = document.getElementById('xNotifs'); if(sh) sh.classList.remove('show'); run(id); }
         else { markRead(id); b.classList.remove('new'); const d = b.querySelector('.rn-dot'); if(d) d.remove(); }
       }));
       const a = body.querySelector('#rnAll'); if(a) a.addEventListener('click', ()=>{ list.forEach(x=> x.read = true); save(); paintBadge(); body.innerHTML = draw(); wire(); });
