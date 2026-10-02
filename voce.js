@@ -59,7 +59,7 @@
       if(r.status === 429){       // Google dice quanto aspettare («23s») e se è finita la quota del minuto o del giorno
         const rd = det.map(d=> d && d.retryDelay).filter(Boolean)[0], hm = /retry in ([\d.]+)\s*s/i.exec(m); e.retryMs = rd ? parseFloat(rd) * 1000 : hm ? parseFloat(hm[1]) * 1000 : 0;
         const ids = []; det.forEach(d=> ((d && d.violations) || []).forEach(v=> ids.push(String(v.quotaId || v.quotaMetric || '')))); const txt = ids.join(' ') + ' ' + m;
-        e.perDay = /PerDay|per day|daily/i.test(txt) && !/PerMinute|per minute/i.test(txt);      // v252: Google mette «riprova tra 60 s» anche quando è finita la quota del GIORNO: conta il tipo di quota, non l'attesa
+        e.perDay = (/PerDay|per[ _]day|daily/i.test(txt) && !/PerMinute|per[ _]minute/i.test(txt)) || /limit:\s*0\b/i.test(m);      // v253: «limit: 0» = per questo modello la quota gratuita non c'è proprio: inutile aspettare      // v252: Google mette «riprova tra 60 s» anche quando è finita la quota del GIORNO: conta il tipo di quota, non l'attesa
       }
       throw e;
     }
@@ -340,16 +340,36 @@
       <div class="lp-sub vs-help" hidden>Apri <a href="https://console.cloud.google.com/apis/library/texttospeech.googleapis.com" target="_blank" rel="noopener">questa pagina di Google</a>, scegli il progetto della tua chiave Gemini e premi «Abilita». Poi torna qui e tocca una voce.</div>
       <div data-pane="ai"><div class="an-h">👨 Voci maschili</div><div class="vs-grid">${VOICES.filter(v=> v.g === 'u').map(chip).join('')}</div>
         <div class="an-h">👩 Voci femminili</div><div class="vs-grid">${VOICES.filter(v=> v.g === 'd').map(chip).join('')}</div>
-        <div class="lp-sub">Tocca una voce: la scelgo e te la faccio sentire. Ogni storia letta resta salvata sul telefono: la seconda volta parte subito e non consuma.</div></div>
+        <div class="lp-sub">Tocca una voce: la scelgo e te la faccio sentire. Ogni storia letta resta salvata sul telefono: la seconda volta parte subito e non consuma.</div>
+        <button type="button" class="btn" data-vdiag>🩺 Controlla Gemini</button><div class="lp-sub vs-diag"></div></div>
       <div data-pane="cloud"><div class="vs-cloud"></div></div>
       <div data-pane="gtr"><button type="button" class="btn" data-gtr-try>▶️ Senti la voce</button></div>
       <div data-pane="phone"><div class="an-h">Voci italiane di questo telefono</div><div class="vs-grid">${phone.length ? phone.map(v=> `<button type="button" class="vs-chip" data-pv="${esc(v.name)}"><b>${esc(v.name.replace(/^(Microsoft|Google)\s*/i, ''))}</b><small>${v.localService ? 'sul telefono' : 'online'}</small></button>`).join('') : '<div class="lp-sub">Il telefono non ha voci italiane installate.</div>'}</div></div>`);
     b.querySelectorAll('[data-eng]').forEach(x=> x.addEventListener('click', ()=>{ ls.set(ENG_K, x.dataset.eng); Object.keys(warned).forEach(k=> delete warned[k]); Object.keys(skip).forEach(k=> delete skip[k]); if(x.dataset.eng === 'cloud' && !b.querySelector('[data-cv]')) fillCloud(b); paintSet(); }));
     b.querySelectorAll('[data-vv]').forEach(x=> x.addEventListener('click', ()=>{ ls.set(VOICE_K, x.dataset.vv); paintSet(); sample(x, async my=>{ const bl = await aiAudio(SAMPLE, x.dataset.vv); await playBlob(bl, my); }); }));
     b.querySelectorAll('[data-pv]').forEach(x=> x.addEventListener('click', ()=>{ ls.set(PV_K, x.dataset.pv); paintSet(); stop(); browserSpeak(SAMPLE, ()=>{}); }));
+    const dg = b.querySelector('[data-vdiag]'); if(dg) dg.addEventListener('click', ()=> diagnose(dg, b.querySelector('.vs-diag')));
     const gt = b.querySelector('[data-gtr-try]'); if(gt) gt.addEventListener('click', ()=>{ stop(); const my = ++token; audio = noRefAudio(gtrUrl(SAMPLE)); audio.onended = ()=> duck(false); audio.play().then(()=> duck(true), ()=>{ try{ XUI.toast('🔊 Google Traduttore non risponde ora', 3000); }catch(_){} }); });
     if(engine() === 'cloud') fillCloud(b);
     paintSet();
+  }
+  // v253: «Controlla Gemini»: prova ogni modello una volta con una frase corta e mostra la risposta di Google così com'è (per capire perché non va)
+  async function diagnose(bt, box){
+    if(!box) return;
+    if(typeof geminiKey !== 'function' || !geminiKey()){ box.textContent = 'Manca la chiave Gemini (⚙️ Impostazioni → AI).'; return; }
+    bt.disabled = true; box.innerHTML = '';
+    const today = new Date().toDateString();
+    for(const [m, kind] of MODELS){
+      const row = document.createElement('div'); row.textContent = '⏳ ' + m + '…'; box.appendChild(row);
+      try{ await callModel(m, kind, 'Ciao.', voiceId()); row.textContent = '✅ ' + m + ': funziona'; badModels.delete(m); delete coolUntil[m]; if(dayOut[m] === today) delete dayOut[m]; }
+      catch(e){
+        const what = e.status === 429 ? (e.perDay ? 'quota del giorno finita' : 'occupato' + (e.retryMs ? ' (riprova tra ' + Math.round(e.retryMs / 1000) + ' s)' : '')) : e.status === 404 ? 'modello non trovato' : e.status === -1 ? 'nessuna connessione' : 'errore ' + e.status;
+        row.textContent = '❌ ' + m + ': ' + what + ' — ' + String(e.message || '').slice(0, 220);
+      }
+    }
+    try{ ls.set(DAY_K, JSON.stringify({day: today, m: MODELS.map(([x])=> x).filter(x=> dayOut[x] === today)})); }catch(e){}
+    const t = document.createElement('div'); t.textContent = 'Fai una foto a questo elenco e mandala a Claude.'; box.appendChild(t);
+    bt.disabled = false;
   }
   const esc = t=> String(t == null ? '' : t).replace(/[&<>"]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
