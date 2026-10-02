@@ -171,7 +171,7 @@
         get(i + 1);
         const ok = await new Promise(res=>{
           audio = new Audio(URL.createObjectURL(blob)); audio.onended = ()=> res(true); audio.onerror = ()=> res(false);
-          audio.play().then(()=>{ if(my === token && state !== 'play'){ state = 'play'; duck(true); paint(); } }, ()=> res(false));     // il browser può rifiutare l'avvio automatico: resta il tasto
+          audio.play().then(()=>{ if(my === token && state !== 'play'){ state = 'play'; duck(true); paint(); try{ window.rtMusic && rtMusic.ensure && rtMusic.ensure(g); }catch(e){} } }, ()=> res(false));      // v232: con «Auto» della musica acceso, la musica parte insieme alla voce (se non era già partita)     // il browser può rifiutare l'avvio automatico: resta il tasto
         });
         try{ URL.revokeObjectURL(audio.src); }catch(e){}
         if(my !== token) return;
