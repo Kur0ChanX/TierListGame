@@ -267,7 +267,7 @@
     // GENERI dalle fonti (Wikidata, RAWG, Steam): i generi che le fonti sanno riconoscere diventano quelli del gioco (si aggiungono i confermati, si tolgono quelli che nessuna fonte conferma).
     // JRPG/WRPG, «a turni», Crossover, Remake, Guerra, Gacha… non si possono verificare e restano. Se le fonti non dicono nulla di preciso (solo «RPG») non si cambia niente.
     {
-      const VER = new Set(['ACT','ADV','COM','DRA','FAN','SCI','HOR','MYS','PSY','THR','ROM','SOL','SPO','SUP','MEC','MUS','MAH']);      // versione Anime: solo i generi «larghi» che Wikidata sa riconoscere
+      const VER = new Set(['ACT','ADV','COM','DRA','FAN','SCI','HOR','MYS','PSY','THR','ROM','SOL','SPO','SUP','MEC','MUS','MAH','DOC']);      // versione Anime: solo i generi «larghi» che Wikidata sa riconoscere
       const info = c=> TAG_INFO[c] || EXTRA_GENRE_INFO[c];
       const hy = x=> String(x).replace(/[-_]/g, ' ');
       const raw = [].concat((src.rawg && src.rawg.genres) || [], ((src.rawg && src.rawg.tags) || []).map(t=> t.name), (src.steam && src.steam.genres) || []).filter(Boolean);
@@ -742,6 +742,10 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
   };
   // voto reale di un titolo (per la ricerca di nuovi giochi): Metacritic da Wikipedia → Metacritic da RAWG → OpenCritic. null = nessuna fonte lo conferma
   window.rtScoreCheck = async function(c){
+    // versione Anime: prima AniList (il voto «vero» di anime e manga); per i film occidentali restano Metacritic e le altre fonti
+    if(c.kind !== 'animazione' && window.SearchHub && SearchHub.anilistFind){
+      try{ const a = await SearchHub.anilistFind(c.name, c.kind); if(a && a.score){ if(!c.kind && a.kind) c.kind = a.kind; return {st: {}, score: a.score, vs: 'AniList', info: {year: a.year}}; } }catch(e){}
+    }
     const src = await gather({name: c.name, plat: c.plat || '', year: c.year || '', tags: [], custom: true}, true);
     const base = {st: src.st, info: {year: (src.rawg && src.rawg.year) || null, ocReviews: (src.oc && src.oc.reviews) || null}};      // v212: anche l'anno vero (RAWG) per le proposte di Novità
     if(src.voti && src.voti.s) return Object.assign(base, {score: src.voti.s, vs: 'Metacritic (sito ufficiale)'});

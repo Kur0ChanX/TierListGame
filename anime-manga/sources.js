@@ -132,7 +132,7 @@
   async function once(url, o){
     const ctrl = new AbortController(), tm = setTimeout(()=> ctrl.abort(), o.timeout || 12000);
     try{
-      const r = await fetch(url, {signal: ctrl.signal, headers: o.headers});
+      const r = await fetch(url, {signal: ctrl.signal, headers: o.headers, method: o.method || 'GET', body: o.body});      // versione Anime: AniList vuole POST
       if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; e.retryAfter = parseInt(r.headers.get('retry-after') || '0', 10) || 0; throw e; }
       const txt = await r.text();
       if(o.as === 'text') return txt;
@@ -144,11 +144,12 @@
   // H.fetch(url, {as:'json'|'text', direct, relays, timeout, retries, headers, cache})
   H.fetch = async function(url, o){
     o = Object.assign({as: 'json', direct: true, relays: true, timeout: 12000, retries: 1, cache: true}, o || {});
-    const ck = o.as + ':' + url, hit = cache.get(ck);
+    if(o.body) o.relays = false;                                          // i ponti pubblici non inoltrano le richieste POST
+    const ck = o.as + ':' + url + (o.body ? '#' + o.body : ''), hit = cache.get(ck);
     if(o.cache && hit && Date.now() - hit.t < 10 * 60e3) return hit.v;
     const host = hostOf(url), attempts = []; let lastErr = null, usedRelay = false;
     if(H.bypassCache) o.cache = false;                                    // la diagnostica deve provare il sito vero, non la memoria
-    const pdays = o.cache && o.persist !== false && TTL[host], pk = pdays ? o.as + ':' + pkey(url) : '';
+    const pdays = o.cache && o.persist !== false && TTL[host], pk = pdays ? o.as + ':' + pkey(url + (o.body ? '#' + o.body : '')) : '';
     let stale = null;
     if(pk){
       const hitP = await pGet(pk);
@@ -512,11 +513,11 @@
     throw last;
   }
   M.reddit = async ctx=>{
-    const words = foc(ctx).map(c=> ENG[c]).filter(Boolean);
+    const words = foc(ctx).map(c=> AL[c] && (AL[c].g || AL[c].t)).filter(Boolean);      // versione Anime: generi di AniList in inglese
     const qs0 = [];
-    (ctx.seeds || []).slice(0, 3).forEach(s=> qs0.push('games like ' + s));
-    shuffle(words).slice(0, 2).forEach(w=>{ qs0.push('underrated ' + w + ' games hidden gems'); qs0.push('best ' + w + ' games you never heard of'); });
-    if(!qs0.length) qs0.push('underrated games hidden gems', 'best hidden gem games ' + ri(2005, 2024));
+    (ctx.seeds || []).slice(0, 3).forEach(s=> qs0.push('anime like ' + s));
+    shuffle(words).slice(0, 2).forEach(w=>{ qs0.push('underrated ' + w + ' anime hidden gems'); qs0.push('best ' + w + ' manga you never heard of'); });
+    if(!qs0.length) qs0.push('underrated anime hidden gems', 'best hidden gem manga', 'underrated anime ' + ri(1990, 2024));
     const q = pickOne(qs0);
     const s = await redditJson('/search.json?q=' + encodeURIComponent(q) + '&sort=top&t=all&limit=6&type=link&raw_json=1');
     const threads = ((s.data && s.data.children) || []).map(c=> c.data).filter(d=> d && d.num_comments >= 8).slice(0, 2);
@@ -535,7 +536,7 @@
     const out = [];
     for(const n of names){
       if(out.length >= 12) break;
-      try{ const v = await H.verifyGame(n); if(v) out.push({name: v.name, plat: '', year: v.year, score: null, tier: 'B', tags: [], story: '', fitIf: '', forum: 'Consigliato dai giocatori su Reddit (thread «' + String(q).slice(0, 60) + '»)'}); }catch(e){}
+      try{ const v = await H.anilistFind(n); if(v) out.push({name: n, kind: v.kind, plat: v.format, year: v.year ? String(v.year) : '', score: v.score, tier: v.score != null ? tierOf(v.score) : 'B', tags: v.tags.slice(0, 4), story: '', fitIf: '', forum: 'Consigliato dagli appassionati su Reddit (thread «' + String(q).slice(0, 60) + '»)'}); }catch(e){}      // versione Anime: il nome deve esistere su AniList
     }
     return out;
   };
@@ -549,7 +550,52 @@
     const top = list.slice(0, Math.max(60, Math.min(list.length, 900)));        // già ordinati per qualità
     return shuffle(top).slice(0, 40).map(r=>{ const sc = r[3] || null; return {name: r[0], plat: r[2] || '', year: r[1] ? String(r[1]) : '', score: sc, tier: sc != null ? tierOf(sc) : 'B', tags: String(r[4]).split(',').filter(Boolean).slice(0, 3), story: '', fitIf: ''}; });
   };
+  // ---------- versione Anime: AniList e MyAnimeList (Jikan), le fonti vere per anime e manga ----------
+  // codice del tag → genere (g) o tag (t) di AniList, come in tools/build-data.js
+  const AL = {ACT: {g: 'Action'}, ADV: {g: 'Adventure'}, COM: {g: 'Comedy'}, DRA: {g: 'Drama'}, FAN: {g: 'Fantasy'}, SCI: {g: 'Sci-Fi'}, HOR: {g: 'Horror'}, MYS: {g: 'Mystery'},
+    PSY: {g: 'Psychological'}, THR: {g: 'Thriller'}, ROM: {g: 'Romance'}, SOL: {g: 'Slice of Life'}, SPO: {g: 'Sports'}, SUP: {g: 'Supernatural'}, MEC: {g: 'Mecha'}, MUS: {g: 'Music'},
+    MAH: {g: 'Mahou Shoujo'}, SHO: {t: 'Shounen'}, SEI: {t: 'Seinen'}, SHJ: {t: 'Shoujo'}, JOS: {t: 'Josei'}, KID: {t: 'Kids'}, ISE: {t: 'Isekai'}, SCH: {t: 'School'}, MAR: {t: 'Martial Arts'},
+    POW: {t: 'Super Power'}, HIS: {t: 'Historical'}, MIL: {t: 'Military'}, SUR: {t: 'Survival'}, GAM: {t: 'Gambling'}, IYA: {t: 'Iyashikei'}, FOO: {t: 'Food'}, IDO: {t: 'Idol'},
+    TIM: {t: 'Time Manipulation'}, VAM: {t: 'Vampire'}, CRI: {t: 'Crime'}, DYS: {t: 'Post-Apocalyptic'}, WEB: {t: 'Long Strip'}};
+  const AL_FMT = {TV: 'Serie TV', TV_SHORT: 'Serie breve', OVA: 'OVA', ONA: 'Serie web', MOVIE: 'Film', SPECIAL: 'Speciale', MANGA: 'Manga', ONE_SHOT: 'One-shot'};
+  const alCodes = m=>{ const gs = m.genres || [], ts = (m.tags || []).filter(t=> t.rank >= 60).map(t=> t.name); return Object.keys(AL).filter(c=> AL[c].g ? gs.includes(AL[c].g) : ts.includes(AL[c].t)); };
+  const alKind = m=> m.type === 'MANGA' ? (['KR', 'CN', 'TW'].includes(m.countryOfOrigin) ? 'manhwa' : 'manga') : (m.format === 'MOVIE' ? 'film' : 'anime');
+  M.anilist = async ctx=>{
+    const fl = foc(ctx).filter(c=> AL[c]), code = fl.length ? pickOne(fl) : null, type = Math.random() < .6 ? 'ANIME' : 'MANGA';
+    const q = 'query($p:Int,$t:MediaType,$s:[MediaSort],$g:[String],$tg:[String]){Page(page:$p,perPage:40){media(type:$t,sort:$s,genre_in:$g,tag_in:$tg,isAdult:false,averageScore_greater:60){id type format countryOfOrigin title{romaji english} seasonYear startDate{year} averageScore genres tags{name rank} studios(isMain:true){nodes{name}}}}}';
+    const v = {p: ri(1, 8), t: type, s: [pickOne(['SCORE_DESC', 'POPULARITY_DESC', 'TRENDING_DESC', 'FAVOURITES_DESC'])]};
+    if(code){ if(AL[code].g) v.g = [AL[code].g]; else v.tg = [AL[code].t]; }
+    const j = await H.json('https://graphql.anilist.co', {method: 'POST', headers: {'Content-Type': 'application/json', Accept: 'application/json'}, body: JSON.stringify({query: q, variables: v}), relays: false, timeout: 15000});
+    return ((((j || {}).data || {}).Page || {}).media || []).map(m=>{
+      const sc = m.averageScore || null, st = ((m.studios || {}).nodes || [])[0];
+      return {name: cleanTitle((m.title && (m.title.english || m.title.romaji)) || ''), plat: (AL_FMT[m.format] || 'Serie') + (st ? ' · ' + st.name : ''), year: String(m.seasonYear || (m.startDate || {}).year || ''), score: sc, tier: sc != null ? tierOf(sc) : 'B', tags: alCodes(m).slice(0, 4), kind: alKind(m), story: '', fitIf: ''};
+    }).filter(c=> c.name);
+  };
+  // voto verificato di un titolo su AniList (media degli utenti, 0-100): il titolo trovato deve somigliare davvero al nome cercato
+  H.anilistFind = async (name, kind)=>{
+    const type = (kind === 'manga' || kind === 'manhwa') ? 'MANGA' : (kind === 'anime' || kind === 'film') ? 'ANIME' : null;
+    const q = 'query($s:String,$t:MediaType){Page(perPage:6){media(search:$s,type:$t,isAdult:false){id type format countryOfOrigin title{romaji english native} synonyms seasonYear startDate{year} averageScore genres tags{name rank}}}}';
+    const j = await H.json('https://graphql.anilist.co', {method: 'POST', headers: {'Content-Type': 'application/json', Accept: 'application/json'}, body: JSON.stringify({query: q, variables: {s: String(name || '').replace(/\s*\([^)]*\)/g, ''), t: type}}), relays: false, timeout: 15000});
+    const n0 = norm(name).replace(/\s+/g, ''), list = ((((j || {}).data || {}).Page || {}).media || []);
+    const m = list.find(x=> [x.title && x.title.english, x.title && x.title.romaji].concat(x.synonyms || []).filter(Boolean).some(t=> norm(t).replace(/\s+/g, '') === n0)) || null;
+    if(!m) return null;
+    return {id: m.id, score: m.averageScore || null, year: m.seasonYear || (m.startDate || {}).year || null, kind: alKind(m), tags: alCodes(m), format: AL_FMT[m.format] || ''};
+  };
+  // MyAnimeList via Jikan (gratuito, senza chiave): id dei generi di MAL
+  const MAL = {ACT: 1, ADV: 2, COM: 4, MYS: 7, DRA: 8, FAN: 10, HIS: 13, HOR: 14, KID: 15, MAR: 17, MEC: 18, MUS: 19, ROM: 22, SCH: 23, SCI: 24, SHJ: 25, SHO: 27, SPO: 30, POW: 31, VAM: 32,
+    SOL: 36, SUP: 37, MIL: 38, PSY: 40, THR: 41, SEI: 42, JOS: 43, FOO: 47, ISE: 62, IYA: 63};
+  const malKind = (t, type)=> t === 'manga' ? (/manhwa|manhua/i.test(type || '') ? 'manhwa' : 'manga') : (/movie/i.test(type || '') ? 'film' : 'anime');
+  M.jikan = async ctx=>{
+    const fl = foc(ctx).filter(c=> MAL[c]), code = fl.length ? pickOne(fl) : null, t = Math.random() < .6 ? 'anime' : 'manga';
+    const j = await H.json('https://api.jikan.moe/v4/' + t + '?sfw=true&min_score=6.5&order_by=' + pickOne(['score', 'members', 'favorites']) + '&sort=desc&page=' + ri(1, 10) + (code ? '&genres=' + MAL[code] : ''), {timeout: 15000});
+    return ((j && j.data) || []).map(a=>{
+      const sc = a.score ? Math.round(a.score * 10) : null, gs = [].concat(a.genres || [], a.themes || [], a.demographics || []).map(x=> x.mal_id);
+      const name = cleanTitle(a.title_english || a.title || ''), y = (a.aired && a.aired.prop && a.aired.prop.from && a.aired.prop.from.year) || (a.published && a.published.prop && a.published.prop.from && a.published.prop.from.year) || a.year || '';
+      return {name, plat: (a.type === 'TV' ? 'Serie TV' : a.type === 'Movie' ? 'Film' : a.type || '') + ((a.studios || [])[0] ? ' · ' + a.studios[0].name : ''), year: String(y || ''), score: sc, tier: sc != null ? tierOf(sc) : 'B', tags: Object.keys(MAL).filter(c=> gs.includes(MAL[c])).slice(0, 4), kind: malKind(t, a.type), story: '', fitIf: ''};
+    }).filter(c=> c.name);
+  };
   const DIRECT_INFO = {
+    anilist: {name: 'AniList', key: 'anilist'}, jikan: {name: 'MyAnimeList', key: 'jikan'},
     scoperte: {name: 'Scoperte del procione', key: 'scoperte'},
     cheapshark: {name: 'CheapShark', key: 'cheapshark'}, wikicat: {name: 'Wikipedia (categorie)', key: 'wikipedia'}, wikisearch: {name: 'Wikipedia (ricerca)', key: 'wikipedia'},
     wikidata: {name: 'Wikidata', key: 'wikidata'}, rawgnew: {name: 'RAWG (uscite)', key: 'rawg'}, rawgsimilar: {name: 'RAWG (affini)', key: 'rawg'}, steamspy: {name: 'SteamSpy', key: 'steamspy'}, steamsearch: {name: 'Steam', key: 'steam'}, gog: {name: 'GOG', key: 'gog'},
@@ -560,7 +606,7 @@
   // Criterio: affidabilità dei dati (voti e giochi reali) · velocità (locale = istantaneo) · nessun rischio di blocco. Un numero alto pesa di più: la fonte gira meno spesso.
   // Se una fonte dà molti giochi nuovi sale, se dà zero scende (vedi H.scout).
   H.PRIORITY = {
-    discover: ['scoperte', 'rawgnew', 'rawg', 'steamsearch', 'gog', 'cheapshark', 'wikicat', 'wikidata', 'wikisearch', 'steamspy', 'reddit', 'rawgsimilar'],
+    discover: ['anilist', 'jikan', 'scoperte', 'rawgnew', 'rawg', 'steamsearch', 'gog', 'cheapshark', 'wikicat', 'wikidata', 'wikisearch', 'steamspy', 'reddit', 'rawgsimilar'],
     // dove prendere i DATI di un gioco (il primo che li ha vince; gli altri servono da conferma): dal più sicuro al meno
     info: {
       lingua: ['facts.js (Steam ufficiale)', 'Steam', 'PCGamingWiki', 'it.wikipedia'],

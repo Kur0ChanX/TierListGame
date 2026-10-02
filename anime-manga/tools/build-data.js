@@ -30,7 +30,7 @@ function deriveCuts(scores){
   return cuts;
 }
 const tierWith = (cuts, s) => { for (const t of TIER_ORDER.slice(0, 7)) if (s >= cuts[t]) return t; return 'F'; };
-const FILM_TAGS = {Action: 'ACT', Adventure: 'ADV', Comedy: 'COM', Drama: 'DRA', Fantasy: 'FAN', Horror: 'HOR', Mystery: 'MYS', Romance: 'ROM', 'Sci-Fi': 'SCI', Thriller: 'THR', Music: 'MUS', Musical: 'MUS', Sport: 'SPO', War: 'MIL', History: 'HIS', Crime: 'CRI', Family: 'FAM'};
+const FILM_TAGS = {Action: 'ACT', Adventure: 'ADV', Comedy: 'COM', Drama: 'DRA', Fantasy: 'FAN', Horror: 'HOR', Mystery: 'MYS', Romance: 'ROM', 'Sci-Fi': 'SCI', Thriller: 'THR', Music: 'MUS', Musical: 'MUS', Sport: 'SPO', War: 'MIL', History: 'HIS', Crime: 'CRI', Family: 'FAM', Documentary: 'DOC'};
 
 // ---------------------------------------------------------------- generi e temi (codice, etichetta italiana, icona, gruppo, come si riconosce in AniList)
 const TAGDEFS = [
@@ -51,6 +51,7 @@ const TAGDEFS = [
   ['MEC', 'Mecha', '🤖', 'Generi', {g: 'Mecha'}],
   ['MUS', 'Musicale', '🎵', 'Generi', {g: 'Music'}],
   ['MAH', 'Magical girl', '🪄', 'Generi', {g: 'Mahou Shoujo'}],
+  ['DOC', 'Documentario', '🎥', 'Generi', {}],      // AniList non lo ha: arriva da IMDb/Wikidata o a mano
   ['ECC', 'Ecchi', '😳', 'Generi', {g: 'Ecchi'}],
   ['SHO', 'Shonen', '🥊', 'Pubblico', {t: ['Shounen']}],
   ['SEI', 'Seinen', '🕶️', 'Pubblico', {t: ['Seinen']}],
@@ -79,7 +80,7 @@ const TAGDEFS = [
   ['WEB', 'Webtoon (a colori)', '📱', 'Formato', {t: ['Full Color', 'Long Strip'], min: 60}]
 ];
 // ordine dei generi (il primo è il «genere principale» mostrato per primo): prima i più caratteristici, poi i larghi
-const GENRE_ORDER = ['MEC', 'SPO', 'MAH', 'MUS', 'HOR', 'ROM', 'ACT', 'ADV', 'SCI', 'FAN', 'PSY', 'THR', 'MYS', 'SUP', 'DRA', 'COM', 'SOL', 'ECC'];
+const GENRE_ORDER = ['DOC', 'MEC', 'SPO', 'MAH', 'MUS', 'HOR', 'ROM', 'ACT', 'ADV', 'SCI', 'FAN', 'PSY', 'THR', 'MYS', 'SUP', 'DRA', 'COM', 'SOL', 'ECC'];
 const AUDIENCE = ['SHO', 'SEI', 'SHJ', 'JOS', 'KID', 'FAM'];
 function tagsOf(m){
   const tagRank = new Map((m.tags || []).filter(t => !t.isMediaSpoiler).map(t => [t.name, t.rank]));
@@ -322,7 +323,7 @@ function matchAlFilm(f){
   return null;
 }
 // generi di Wikidata (P136) → codici dei nostri generi; IMDb dà al massimo 3 generi, Wikidata ne aggiunge altri
-const WD_GENRE = [[/comedy/, 'COM'], [/adventure/, 'ADV'], [/fantasy/, 'FAN'], [/drama/, 'DRA'], [/romance|romantic/, 'ROM'], [/music/, 'MUS'], [/science fiction|sci-fi/, 'SCI'], [/action/, 'ACT'], [/horror/, 'HOR'], [/thriller/, 'THR'], [/mystery|detective/, 'MYS'], [/crime|gangster/, 'CRI'], [/\bwar\b/, 'MIL'], [/histor/, 'HIS'], [/family|children/, 'FAM'], [/sport/, 'SPO'], [/superhero/, 'POW'], [/martial arts/, 'MAR'], [/musical/, 'MUS']];
+const WD_GENRE = [[/documentar/, 'DOC'], [/comedy/, 'COM'], [/adventure/, 'ADV'], [/fantasy/, 'FAN'], [/drama/, 'DRA'], [/romance|romantic/, 'ROM'], [/music/, 'MUS'], [/science fiction|sci-fi/, 'SCI'], [/action/, 'ACT'], [/horror/, 'HOR'], [/thriller/, 'THR'], [/mystery|detective/, 'MYS'], [/crime|gangster/, 'CRI'], [/\bwar\b/, 'MIL'], [/histor/, 'HIS'], [/family|children/, 'FAM'], [/sport/, 'SPO'], [/superhero/, 'POW'], [/martial arts/, 'MAR'], [/musical/, 'MUS']];
 function filmTags(f, am){
   const t = new Set(); (f.genres || '').split(',').forEach(g => { if (FILM_TAGS[g]) t.add(FILM_TAGS[g]); });
   ((f.wd && f.wd.wdGenres) || []).forEach(g => { for (const [re, code] of WD_GENRE) if (re.test(g.toLowerCase())) t.add(code); });

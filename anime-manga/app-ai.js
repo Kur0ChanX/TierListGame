@@ -26,7 +26,7 @@ function showDuplicateBanner(g){
   }
   el.innerHTML = `<div class="dup-card" role="alertdialog" aria-live="assertive">
     <div class="dup-icon">⚠️</div>
-    <div class="dup-title">Il gioco è già nel tuo database!</div>
+    <div class="dup-title">Il titolo è già nel tuo database!</div>
     <div class="dup-name">${escHtml(g.name)}</div>
     <div class="dup-sub">Non è stato aggiunto di nuovo, così non hai doppioni.</div>
     <div class="dup-actions"><button class="dup-open" data-dup-open>Apri la scheda</button><button class="dup-ok" data-dup-close>OK</button></div>
@@ -38,7 +38,7 @@ function askToolAddCustomGame(input, sourceLabel){
   input = input || {};
   sourceLabel = sourceLabel || 'Chiedi';
   const name = String(input.name || '').trim();
-  if(!name) throw new Error('serve il nome del gioco da aggiungere');
+  if(!name) throw new Error('serve il nome del titolo da aggiungere');
   const existing = findDuplicateGame(name);
   if(existing){
     showDuplicateBanner(existing);
@@ -62,6 +62,7 @@ function askToolAddCustomGame(input, sourceLabel){
   };
   const doc = {
     name,
+    kind: KIND_BY_ID[input.kind] ? input.kind : undefined,
     plat: input.plat ? String(input.plat) : null,
     year: input.year ? String(input.year) : null,
     tier,
@@ -90,14 +91,14 @@ function askToolAddCustomGame(input, sourceLabel){
 const ENRICH_TRIED = 'atl_enrich_tried';
 let enrichQueueIds = new Set(), enrichTimer = 0, enrichRunning = false;
 function customDocFromGame(g, enrich){
-  return {name: g.name, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, m: g.m === 'V' ? 'V' : undefined, vs: g.vs || undefined, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
+  return {name: g.name, kind: g.kind || undefined, plat: g.plat === '—' ? null : g.plat, year: g.year || null, tier: g.tier, score: g.score, m: g.m === 'V' ? 'V' : undefined, vs: g.vs || undefined, tags: g.tags || [], story: g.story || '', note: g.note || '', label: g.label || null,
     pros: (g.proscons && g.proscons.pros) || [], cons: (g.proscons && g.proscons.cons) || [], enrich: enrich || undefined};
 }
 function buildEnrichPrompt(games){
-  const list = games.map(g=> `- id ${g.id}: "${g.name}" (${g.year || 'anno n.d.'}, ${g.plat}), tier ${g.tier}, voto ${g.score}, generi: ${(g.tags || []).map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', ') || 'n.d.'}${g.story ? '. Trama: ' + g.story : ''}`).join('\n');
-  return todayLine() + `Per ciascuno di questi videogiochi cerca informazioni ATTENDIBILI (Metacritic, HowLongToBeat, Wikipedia, recensioni) e compila la scheda. Se di un gioco non trovi dati sicuri, metti null nei campi incerti: NON inventare.
+  const list = games.map(g=> `- id ${g.id}: "${g.name}" (${g.year || 'anno n.d.'}, ${g.plat}${g.kind && KIND_BY_ID[g.kind] ? ', ' + KIND_BY_ID[g.kind].full : ''}), tier ${g.tier}, voto ${g.score}, generi: ${(g.tags || []).map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t).join(', ') || 'n.d.'}${g.story ? '. Trama: ' + g.story : ''}`).join('\n');
+  return todayLine() + `Per ciascuno di questi titoli (anime, film d'animazione, manga o manhwa) cerca informazioni ATTENDIBILI (AniList, MyAnimeList, Wikipedia, AnimeClick.it, recensioni) e compila la scheda. Se di un titolo non trovi dati sicuri, metti null nei campi incerti: NON inventare.
 ${list}
-Rispondi SOLO con un array JSON valido, un oggetto per gioco (nell'ordine dato), con questi campi: id (numero), storyTag (RARO. Il voto del gioco NON conta: un gioco mediocre può meritarlo e un capolavoro no. Cerca sulle fonti se questo gioco ha qualcosa di unico che quasi nessun altro ha: una storia affascinante o memorabile, oppure una meccanica/idea che travolge. Assegnalo solo in quel caso: "romance" = storia d'amore centrale e memorabile, "affinity" = legame tra personaggi che è il cuore del gioco, "wow" = colpi di scena/momenti sorprendenti entrati nella storia del medium. Per la MAGGIOR PARTE dei giochi la risposta giusta è null: il tag deve andare al massimo a 1 gioco su 4), storyTagNote (una frase che dice COSA lo rende unico, null se storyTag è null), dopamine (RARO, indipendente dal voto: true SOLO se una meccanica o un loop di ricompense è unico e travolgente, tipo "ancora un turno" fino all'alba, anche se il resto del gioco è modesto; per la maggior parte dei giochi è false, al massimo 1 su 5), dopaLoop (se dopamine: 3-4 passi del ciclo con un'emoji ciascuno, es. ["⚔️ Battaglia","⭐ Ricompensa","🔓 Sblocco","🔁 Sfida più dura"], altrimenti null), dopaHook (una frase: perché non riesci a smettere, null se dopamine è false), dopaWatch (una frase: quando può stancare, null se dopamine è false), eraScore (voto 0-100 all'uscita), todayScore (voto 0-100 oggi), agingNote (1-2 frasi su come regge oggi, citando gli anni, senza "recente"/"da poco"), gameplayScore (0-10), gameplayNote (una frase sul gameplay), whyLikeIt (una frase impersonale che spiega cosa rende appagante il gioco; niente riferimenti a persone tipo «gli piacerà»), hoursMain (ore indicative per finire la storia principale o la run/campagna principale; nei giochi senza trama vera (roguelite, tattici, puzzle, arcade) indica la durata di UNA run o campagna (1-3h), MAI le ore per sbloccare tutto (quelle vanno in hoursCompletionist)), hoursCompletionist (ore completista), lengthVerdict (una frase sulla durata), remaster (una frase su edizioni/remaster esistenti), language (una frase su testi e doppiaggio in italiano, solo se lo trovi in una fonte), story (trama RICCA e dettagliata: 5-8 frasi, circa 600-900 caratteri, con ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler sul finale; mai 2-3 righe), difficulty (1-5), grind (1-5: quanta ripetizione/farming serve; conta anche sblocchi di contenuti, squadre, armi e meta-progressione dei roguelite: mai lasciarlo vuoto se ci sono sblocchi; 1 = nessuno, 3 = qualche sblocco, 5 = molto grinding), storyWeight (1-5: 1 = trama assente o minima, 5 = la storia è il cuore del gioco; deve essere COERENTE con le ore storia), pace ("L" lento, "M" medio, "V" veloce), italian ("D" testi e doppiaggio italiani, "S" solo testi, "F" solo fan-translation, "N" nessuno; null se non trovi una fonte esplicita), cost ("S" economico/spesso in sconto, "M" medio, "H" prezzo pieno alto), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "cerchi una trama profonda": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), pros (3-4 punti di forza), cons (2-3 difetti), similarTo (3-4 titoli REALI e davvero affini per gameplay, atmosfera e struttura, consigliati da fonti o giocatori; es. per Bastion: Hades, Transistor, Tunic, Death's Door; MAI giochi di generi incompatibili come horror o sport; array vuoto se non sei sicuro).`;
+Rispondi SOLO con un array JSON valido, un oggetto per titolo (nell'ordine dato), con questi campi: id (numero), storyTag (RARO. Il voto NON conta: un titolo mediocre può meritarlo e un capolavoro no. Assegnalo solo se ha qualcosa di unico che quasi nessun altro ha: "romance" = storia d'amore centrale e memorabile, "affinity" = legame tra personaggi che è il cuore della storia, "wow" = colpi di scena/momenti entrati nella storia dell'animazione o del fumetto. Per la MAGGIOR PARTE dei titoli la risposta giusta è null: al massimo 1 su 4), storyTagNote (una frase che dice COSA lo rende unico, null se storyTag è null), dopamine (RARO, indipendente dal voto: true SOLO se crea una dipendenza da «ancora un episodio / ancora un capitolo» fuori dal comune; per la maggior parte dei titoli è false, al massimo 1 su 5), dopaLoop (se dopamine: 3-4 passi del ciclo con un'emoji ciascuno, es. ["🔥 Scontro","😱 Cliffhanger","▶️ Episodio dopo","💥 Rivelazione"], altrimenti null), dopaHook (una frase: perché non riesci a smettere, null se dopamine è false), dopaWatch (una frase: quando può stancare, null se dopamine è false), eraScore (voto 0-100 all'uscita), todayScore (voto 0-100 oggi), agingNote (1-2 frasi su come regge oggi, citando gli anni, senza "recente"/"da poco"), gameplayScore (0-10: qualità della realizzazione, cioè animazione e regia per anime e film, disegni e impaginazione per manga e manhwa), gameplayNote (una frase sulla realizzazione: animazione, regia o disegni), whyLikeIt (una frase impersonale che spiega cosa lo rende appagante; niente riferimenti a persone tipo «gli piacerà»), hoursMain (ore indicative per vederlo o leggerlo tutto: episodi × durata per le serie, durata per i film, circa 15-20 minuti a volume per i manga), hoursCompletionist (ore con seguiti, film e storie extra della stessa saga), lengthVerdict (una frase sulla durata: episodi, stagioni o volumi), remaster (una frase su remake, nuove edizioni, versioni restaurate o adattamenti esistenti), language (una frase su doppiaggio, sottotitoli o edizione italiana, solo se lo trovi in una fonte), story (trama RICCA e dettagliata: 5-8 frasi, circa 600-900 caratteri, con ambientazione, protagonisti, premessa e svolgimento generale, senza spoiler sul finale; mai 2-3 righe), difficulty (1-5: quanto è impegnativo da seguire), grind (1-5: quanti filler, episodi o capitoli lenti e di riempimento; 1 = nessuno, 5 = moltissimi), storyWeight (1-5: 1 = trama minima, 5 = la storia è il cuore di tutto), pace ("L" lento, "M" medio, "V" veloce), italian ("D" doppiaggio italiano ufficiale, "S" solo sottotitoli o edizione italiana ufficiale, "F" solo fansub/scan amatoriali, "N" niente; null se non trovi una fonte esplicita), cost ("S" gratis o negli abbonamenti più comuni, "M" a pagamento o noleggio, "H" difficile da trovare o costoso), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi uno shonen con combattimenti spettacolari e pochi filler": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "non sopporti i ritmi lenti": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), pros (3-4 punti di forza), cons (2-3 difetti), similarTo (3-4 titoli REALI e davvero affini per temi, atmosfera e tono, consigliati da fonti o appassionati; es. per Frieren: Mushishi, Violet Evergarden, Natsume Yuujinchou; MAI titoli di toni incompatibili; array vuoto se non sei sicuro).`;
 }
 function queueEnrich(id){
   enrichQueueIds.add(id); clearTimeout(enrichTimer);
@@ -110,7 +111,7 @@ async function runEnrich(ids, opts){
   const todo = ids.map(id=> GAMES.find(g=> g.id === id)).filter(g=> g && g.custom);
   const useProgress = opts.progress && window.Progress;
   try{
-    if(useProgress) Progress.begin('Completo le schede dei giochi…');
+    if(useProgress) Progress.begin('Completo le schede dei titoli…');
     for(let i = 0; i < todo.length; i += 6){
       const part = todo.slice(i, i + 6);
       let arr = null;
@@ -161,21 +162,21 @@ function customNeedingEnrich(){
   const tried = (()=>{ try{ return JSON.parse(localStorage.getItem(ENRICH_TRIED) || '{}') || {}; }catch(e){ return {}; } })();
   return GAMES.filter(g=> g.custom && !(g.enrich && (g.enrich.eraScore != null || g.enrich.agingNote || g.enrich.gameplayNote)) && !(tried[g.id] && (Date.now() - new Date(tried[g.id]).getTime()) < 2 * 864e5));
 }
-window.completeCustomGames = ()=>{ const n = customNeedingEnrich(); if(!n.length){ showToast('Tutti i giochi aggiunti hanno già simboli e dettagli'); return; } return runEnrich(n.map(g=> g.id), {progress:true}); };
+window.completeCustomGames = ()=>{ const n = customNeedingEnrich(); if(!n.length){ showToast('Tutti i titoli aggiunti hanno già simboli e dettagli'); return; } return runEnrich(n.map(g=> g.id), {progress:true}); };
 // lavoro "una tantum", in silenzio: completa tutti i giochi aggiunti che ne sono privi (fino a 40 per volta); una volta completati non si rifà più
 setTimeout(()=>{ try{ const n = customNeedingEnrich(); if(n.length && llmAvailable()) runEnrich(n.slice(0, 40).map(g=> g.id)); }catch(e){} }, 12000);
 const ASK_TOOLS = [
   {
     name: 'search_games',
-    description: 'Cerca nel database personale di Mario (765 RPG/JRPG) per nome, tag/genere, tier, voto minimo, stato o preferiti. Ordina i risultati per compatibilità con i gusti di Mario quando può calcolarla. Restituisce fino a 20 giochi con id, nome, piattaforma, anno, tier, voto, tag, stato, preferito, un riassunto "fa per te se...", ore di gioco e percentuale di compatibilità DNA.',
+    description: 'Cerca nel database personale di Mario (anime, film d\'animazione, manga e manhwa) per titolo, genere/tag, tier, voto minimo, stato o preferiti. Ordina i risultati per compatibilità con i gusti di Mario quando può calcolarla. Restituisce fino a 20 titoli con id, nome, formato, anno, tier, voto, tag, stato, preferito, un riassunto "fa per te se...", durata indicativa e percentuale di compatibilità DNA.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: {type:'string', description:'testo da cercare nel nome del gioco'},
-        tags: {type:'array', items:{type:'string'}, description:'generi/tag da filtrare in italiano (es. "Tattico", "Souls-like", "Mondo aperto"); un gioco basta che ne abbia UNO'},
+        query: {type:'string', description:'testo da cercare nel titolo'},
+        tags: {type:'array', items:{type:'string'}, description:'generi/tag da filtrare in italiano (es. "Shonen", "Isekai", "Slice of Life"); un titolo basta che ne abbia UNO'},
         tier: {type:'string', description:'tier esatto: S+, S, A, B, C, D, E, F'},
         minScore: {type:'number', description:'voto minimo da 0 a 100'},
-        status: {type:'string', description:'played, playing, backlog o dropped'},
+        status: {type:'string', description:'played (visto/letto), playing (in corso), backlog (da vedere/leggere) o dropped (abbandonato)'},
         favoritesOnly: {type:'boolean', description:'true per restituire solo i preferiti di Mario'},
         limit: {type:'number', description:'numero massimo di risultati, default 10, max 20'}
       }
@@ -184,55 +185,56 @@ const ASK_TOOLS = [
   },
   {
     name: 'get_game_details',
-    description: 'Dati completi di un gioco del database dato il suo id: etichetta (difficoltà, grinding, ore, lingua italiana, quando giocarlo oggi), compatibilità DNA con i gusti di Mario, dove trovarlo in abbonamento oggi, pro e contro, storia senza spoiler.',
-    inputSchema: {type:'object', properties:{ id:{type:'number', description:'id del gioco, ottenuto da search_games'} }, required:['id']},
+    description: 'Dati completi di un titolo del database dato il suo id: etichetta (impegno, parti lente/filler, durata, italiano, quando guardarlo o leggerlo oggi), compatibilità DNA con i gusti di Mario, dove trovarlo oggi, pro e contro, trama senza spoiler.',
+    inputSchema: {type:'object', properties:{ id:{type:'number', description:'id del titolo, ottenuto da search_games'} }, required:['id']},
     execute: (input)=> askToolGetGameDetails(input)
   },
   {
     name: 'get_taste_profile',
-    description: 'Riassume i gusti di Mario finora: giochi preferiti/giocati/droppati e i generi/tag che preferisce. Utile PRIMA di consigliare un gioco nuovo per capire cosa gli piace davvero.',
+    description: 'Riassume i gusti di Mario finora: titoli preferiti, visti/letti e abbandonati, e i generi/tag che preferisce. Utile PRIMA di consigliare un titolo nuovo per capire cosa gli piace davvero.',
     inputSchema: {type:'object', properties:{}},
     execute: ()=> askToolGetTasteProfile()
   },
   {
     name: 'set_favorite',
-    description: 'Aggiunge o rimuove un gioco dai preferiti di Mario, salvandolo davvero nel database (non solo a parole). Usalo SOLO quando Mario chiede esplicitamente di aggiungere/togliere un gioco dai preferiti.',
+    description: 'Aggiunge o rimuove un titolo dai preferiti di Mario, salvandolo davvero nel database (non solo a parole). Usalo SOLO quando Mario chiede esplicitamente di aggiungere/togliere un titolo dai preferiti.',
     inputSchema: {type:'object', properties:{ id:{type:'number'}, value:{type:'boolean', description:'true = aggiungi ai preferiti, false = rimuovi; se omesso inverte lo stato attuale'} }, required:['id']},
     execute: (input)=> askToolSetFavorite(input)
   },
   {
     name: 'set_status',
-    description: 'Imposta lo stato di un gioco nel database di Mario: played (giocato), playing (in corso), backlog (da giocare), dropped (droppato), oppure stringa vuota per rimuovere lo stato. Usalo SOLO quando Mario chiede esplicitamente di aggiornare lo stato di un gioco.',
+    description: 'Imposta lo stato di un titolo nel database di Mario: played (visto/letto), playing (in corso), backlog (da vedere/leggere), dropped (abbandonato), oppure stringa vuota per rimuovere lo stato. Usalo SOLO quando Mario chiede esplicitamente di aggiornare lo stato di un titolo.',
     inputSchema: {type:'object', properties:{ id:{type:'number'}, status:{type:'string', description:'played, playing, backlog, dropped, oppure "" per rimuovere lo stato'} }, required:['id']},
     execute: (input)=> askToolSetStatus(input)
   },
   {
     name: 'log_missing_game',
-    description: 'Annota che hai parlato di un gioco assente dal database, SENZA aggiungerlo ancora: usalo quando lo nomini solo di sfuggita o Mario non ha ancora deciso se vuole tenerlo. Se invece Mario dice esplicitamente "aggiungilo"/"mettilo nel database", usa add_custom_game al suo posto, non questo.',
-    inputSchema: {type:'object', properties:{ name:{type:'string'}, plat:{type:'string', description:'piattaforma, se nota'}, reason:{type:'string', description:'perché potrebbe interessare a Mario, in una frase'} }, required:['name']},
+    description: 'Annota che hai parlato di un titolo assente dal database, SENZA aggiungerlo ancora: usalo quando lo nomini solo di sfuggita o Mario non ha ancora deciso se vuole tenerlo. Se invece Mario dice esplicitamente "aggiungilo"/"mettilo nel database", usa add_custom_game al suo posto, non questo.',
+    inputSchema: {type:'object', properties:{ name:{type:'string'}, plat:{type:'string', description:'formato (serie TV, film, manga…), se noto'}, reason:{type:'string', description:'perché potrebbe interessare a Mario, in una frase'} }, required:['name']},
     execute: (input)=> askToolLogMissingGame(input)
   },
   {
     name: 'add_custom_game',
-    description: 'Aggiunge davvero un nuovo gioco alla libreria personale di Mario, con tutte le informazioni di un gioco già catalogato (comparirà nella classifica, nella scheda "Etichetta", nel DNA di compatibilità, ecc. su ogni suo dispositivo). Usalo SOLO quando Mario chiede esplicitamente di aggiungere/salvare un gioco che search_games conferma NON essere già presente. Compila tu i campi con quello che sai davvero del gioco (tier e voto sono una TUA stima onesta, non inventare dettagli inventati di sana pianta se non li conosci — lascia i campi opzionali vuoti piuttosto che inventare).',
+    description: 'Aggiunge davvero un nuovo titolo (anime, film d\'animazione, manga o manhwa) alla libreria personale di Mario, con tutte le informazioni di un titolo già catalogato (comparirà nella classifica, nella scheda "Etichetta", nel DNA di compatibilità, ecc. su ogni suo dispositivo). Usalo SOLO quando Mario chiede esplicitamente di aggiungere/salvare un titolo che search_games conferma NON essere già presente. Compila tu i campi con quello che sai davvero (tier e voto sono una TUA stima onesta; lascia vuoti i campi opzionali piuttosto che inventare).',
     inputSchema: {
       type: 'object',
       properties: {
-        name: {type:'string', description:'titolo esatto del gioco'},
-        plat: {type:'string', description:'piattaforme, es. "PS5 / PC"'},
-        year: {type:'string', description:'anno di uscita'},
-        tier: {type:'string', enum:['S+','S','A','B','C','D','E','F','ND'], description:'la tua stima onesta di quanto sia un buon RPG/JRPG (ND se non hai un voto Metacritic/OpenCritic verificato)'},
+        name: {type:'string', description:'titolo esatto (quello più usato in Italia, altrimenti quello inglese)'},
+        kind: {type:'string', enum: KINDS.map(k=> k.id), description:'tipo: ' + KINDS.map(k=> k.id + ' = ' + k.full).join('; ')},
+        plat: {type:'string', description:'formato e studio o autore, es. "Serie TV · Bones", "Film · Studio Ghibli", "Manga · Eiichiro Oda"'},
+        year: {type:'string', description:'anno di uscita (per le serie lunghe: primo e ultimo anno, es. "2009–2010")'},
+        tier: {type:'string', enum:['S+','S','A','B','C','D','E','F','ND'], description:'la tua stima onesta di quanto è valido (ND se non hai un voto AniList/MyAnimeList verificato)'},
         score: {type:'number', description:'voto stimato 0-100, coerente con il tier'},
         tags: {type:'array', items:{type:'string', enum: TAG_ORDER.slice()}, description:'generi (il primo è il principale): ' + genreGlossary(TAG_ORDER)},
-        story: {type:'string', description:'1-2 frasi di trama senza spoiler pesanti, nello stesso stile narrativo degli altri giochi del database'},
-        hours: {type:'number', description:'ore indicative per finire la storia principale'},
-        difficulty: {type:'number', description:'difficoltà 1-5'},
-        grind: {type:'number', description:'quanto grinding richiede, 1-5'},
-        storyWeight: {type:'number', description:'quanto peso ha la storia rispetto al gameplay, 1-5'},
+        story: {type:'string', description:'1-2 frasi di trama senza spoiler pesanti, nello stesso stile degli altri titoli del database'},
+        hours: {type:'number', description:'ore indicative per vederlo o leggerlo tutto'},
+        difficulty: {type:'number', description:'quanto è impegnativo da seguire, 1-5'},
+        grind: {type:'number', description:'quanti episodi/capitoli di riempimento (filler) o parti lente, 1-5'},
+        storyWeight: {type:'number', description:'quanto conta la trama, 1-5'},
         pace: {type:'string', enum:['L','M','V'], description:'ritmo: L=lento, M=medio, V=veloce'},
-        italian: {type:'string', enum:['D','S','F','N'], description:'lingua italiana: D=testi e doppiaggio ufficiali, S=solo testi/sottotitoli ufficiali, F=solo fan-translation, N=solo inglese/altro'},
-        cost: {type:'string', enum:['S','M','H'], description:'fascia di prezzo indicativa: S=economico, M=medio, H=costoso'},
-        pros: {type:'array', items:{type:'string'}, description:'3-4 punti di forza concreti del gioco, frasi brevi'},
+        italian: {type:'string', enum:['D','S','F','N'], description:'italiano: D=doppiaggio italiano ufficiale, S=solo sottotitoli o edizione italiana ufficiale, F=solo fansub/scan amatoriali, N=niente in italiano'},
+        cost: {type:'string', enum:['S','M','H'], description:'quanto è facile trovarlo: S=gratis o negli abbonamenti più comuni, M=a pagamento o noleggio, H=difficile da trovare o costoso (edizioni fuori catalogo)'},
+        pros: {type:'array', items:{type:'string'}, description:'3-4 punti di forza concreti, frasi brevi'},
         cons: {type:'array', items:{type:'string'}, description:'2-3 difetti o punti deboli concreti, frasi brevi'},
         fitIf: {type:'string', description:'completa: "fa per te se..." in una frase'},
         avoidIf: {type:'string', description:'completa: "lascia stare se..." in una frase'}
@@ -243,21 +245,21 @@ const ASK_TOOLS = [
   }
 ];
 function todayLine(){
-  return 'Data di oggi: ' + new Date().toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) + '. Nei testi che scrivi NON usare espressioni legate al tempo che invecchiano ("uscito da poco", "recentissimo", "troppo presto per giudicare"): indica sempre l\'anno di uscita. Parla SOLO di giochi già usciti e realmente esistenti: se non conosci con certezza un dato (voto, ore, lingua, data di uscita) NON inventarlo, scrivi che non è noto.\n';
+  return 'Data di oggi: ' + new Date().toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) + '. Nei testi che scrivi NON usare espressioni legate al tempo che invecchiano ("uscito da poco", "recentissimo", "troppo presto per giudicare"): indica sempre l\'anno di uscita. Parla SOLO di titoli già usciti e realmente esistenti: se non conosci con certezza un dato (voto, episodi, volumi, edizione italiana, data di uscita) NON inventarlo, scrivi che non è noto.\n';
 }
 function askInstructions(){
-  return todayLine() + `Sei l'assistente integrato nel database personale di giochi RPG/JRPG di Mario (${GAMES.length} giochi catalogati con voti, tag, "etichetta" stile valori nutrizionali, compatibilità DNA con i suoi gusti, e dove trovarli in abbonamento oggi). Rispondi sempre in italiano, in modo breve e colloquiale, come in una chat — evita elenchi puntati lunghi se non richiesti esplicitamente.
+  return todayLine() + `Sei l'assistente integrato nel database personale di anime, film d'animazione, manga e manhwa di Mario (${GAMES.length} titoli catalogati con voti, tag, "etichetta" stile valori nutrizionali, compatibilità DNA con i suoi gusti, e dove trovarli oggi). Rispondi sempre in italiano, in modo breve e colloquiale, come in una chat — evita elenchi puntati lunghi se non richiesti esplicitamente.
 Hai questi strumenti sul SUO database, usali sempre invece di inventare voti, tag o dettagli:
-- search_games: cerca giochi per nome, genere/tag, tier, voto minimo, preferiti o stato.
-- get_game_details: dettagli completi di un gioco (etichetta, DNA, abbonamenti, pro/contro, storia).
-- get_taste_profile: cosa piace a Mario finora — usalo prima di consigliare un gioco nuovo.
-- set_favorite / set_status: se Mario ti chiede di segnare un gioco come preferito, giocato, in corso, da giocare o droppato, USA questi strumenti per farlo davvero, non solo a parole.
-- log_missing_game: se nomini di sfuggita un gioco che NON trovi con search_games e Mario non ha ancora deciso, annotalo con questo strumento senza aggiungerlo.
-- add_custom_game: quando Mario ti chiede consigli su giochi NON nel suo database e ne vuole aggiungere uno alla sua libreria (o te lo chiede esplicitamente, es. "aggiungilo", "mettilo nel database", "salvalo"), verifica prima con search_games che non ci sia già, poi usa add_custom_game per inserirlo DAVVERO con tutte le informazioni che conosci (piattaforma, anno, generi, un tuo voto/tier onesto, trama breve, e se puoi anche difficoltà/ore/lingua italiana) — comparirà nella sua classifica su ogni dispositivo esattamente come un gioco già catalogato. Non aggiungere mai un gioco senza che Mario lo abbia chiaramente chiesto.
-Quando ti chiede "consigliami qualcosa di nuovo" o "cosa mi manca", puoi anche attingere alla tua conoscenza generale di RPG/JRPG oltre al suo database (non sei limitato ai 765 titoli già catalogati): proponi titoli che potrebbero piacergli in base a get_taste_profile, verifica con search_games che non li abbia già, e offriti di aggiungerli con add_custom_game se gli interessano.
-Quando nomini un gioco che hai trovato nel database con search_games, get_game_details o add_custom_game, scrivi il suo id tra doppie graffe subito dopo il nome, così: Nome del gioco{{123}} — diventerà un link cliccabile nella pagina. Non farlo per giochi che non sono (ancora) nel database.
-Se Mario allega una foto (es. copertina vista in un negozio) o ti dà solo un nome, riconosci il titolo e come PRIMA cosa verifica con search_games se è già nel database: se c'è, dillo subito (con il link) e NON aggiungerlo. Poi valuta se può piacergli in base ai suoi gusti reali, non a supposizioni generiche.
-Quando Mario chiede se conviene comprare un gioco (o "vale la pena?", "lo prendo?"), usa get_game_details e riporta il campo verdictAcquisto (esito e motivi) senza contraddirlo: è lo stesso verdetto che vede nella scheda del gioco.`;
+- search_games: cerca titoli per nome, genere/tag, tier, voto minimo, preferiti o stato.
+- get_game_details: dettagli completi di un titolo (etichetta, DNA, dove vederlo, pro/contro, trama).
+- get_taste_profile: cosa piace a Mario finora — usalo prima di consigliare un titolo nuovo.
+- set_favorite / set_status: se Mario ti chiede di segnare un titolo come preferito, visto/letto, in corso, da vedere/leggere o abbandonato, USA questi strumenti per farlo davvero, non solo a parole.
+- log_missing_game: se nomini di sfuggita un titolo che NON trovi con search_games e Mario non ha ancora deciso, annotalo con questo strumento senza aggiungerlo.
+- add_custom_game: quando Mario vuole aggiungere alla sua libreria un titolo che NON è nel database (o te lo chiede esplicitamente, es. "aggiungilo", "mettilo nel database", "salvalo"), verifica prima con search_games che non ci sia già, poi usa add_custom_game per inserirlo DAVVERO con tutte le informazioni che conosci (tipo, formato e studio/autore, anno, generi, un tuo voto/tier onesto, trama breve, e se puoi anche durata ed edizione italiana) — comparirà nella sua classifica su ogni dispositivo esattamente come un titolo già catalogato. Non aggiungere mai un titolo senza che Mario lo abbia chiaramente chiesto.
+Quando ti chiede "consigliami qualcosa di nuovo" o "cosa mi manca", puoi anche attingere alla tua conoscenza generale di anime e manga oltre al suo database: proponi titoli che potrebbero piacergli in base a get_taste_profile, verifica con search_games che non li abbia già, e offriti di aggiungerli con add_custom_game se gli interessano.
+Quando nomini un titolo che hai trovato nel database con search_games, get_game_details o add_custom_game, scrivi il suo id tra doppie graffe subito dopo il nome, così: Nome del titolo{{123}} — diventerà un link cliccabile nella pagina. Non farlo per titoli che non sono (ancora) nel database.
+Se Mario allega una foto (es. copertina di un volume vista in fumetteria, una locandina) o ti dà solo un nome, riconosci il titolo e come PRIMA cosa verifica con search_games se è già nel database: se c'è, dillo subito (con il link) e NON aggiungerlo. Poi valuta se può piacergli in base ai suoi gusti reali, non a supposizioni generiche.
+Quando Mario chiede se conviene comprare un titolo (es. i volumi di un manga o un'edizione home video: "vale la pena?", "lo prendo?"), usa get_game_details e riporta il campo verdictAcquisto (esito e motivi) senza contraddirlo: è lo stesso verdetto che vede nella scheda.`;
 }
 function askFormatText(text){
   let t = escHtml(text);
@@ -310,7 +312,7 @@ function renderAskThread(){
   } else if(askBusy){
     html += `<div class="ask-thinking">Sto pensando…</div>`;
   }
-  thread.innerHTML = html || (!llmAvailable() ? `<div class="ask-thinking">Per usare Chiedi: incolla qui sopra la tua chiave Gemini e premi "Salva e verifica". Poi potrai scrivere, dettare a voce, scattare una foto o caricarne una dalla galleria.</div>` : `<div class="ask-thinking">Chiedimi consigli sui giochi (es. "3 JRPG tattici come Final Fantasy Tactics"), oppure allega la foto di una copertina vista in negozio.</div>`);
+  thread.innerHTML = html || (!llmAvailable() ? `<div class="ask-thinking">Per usare Chiedi: incolla qui sopra la tua chiave Gemini e premi "Salva e verifica". Poi potrai scrivere, dettare a voce, scattare una foto o caricarne una dalla galleria.</div>` : `<div class="ask-thinking">Chiedimi consigli su anime e manga (es. "3 anime come Frieren"), oppure allega la foto di una copertina vista in fumetteria.</div>`);
   thread.scrollTop = thread.scrollHeight;
   thread.querySelectorAll('.ask-gamelink').forEach(chip=>{
     chip.addEventListener('click', ()=>{
@@ -368,7 +370,7 @@ async function sendAskMessage(){
     if(e && e.code === 'cancelled'){
       if(e.text) askHistory.push({role:'assistant', content: e.text});
     } else {
-      showToast(llmErrorText(e) + (img ? ' Scrivi il nome del gioco al posto della foto.' : ''), img ? 6000 : 0);
+      showToast(llmErrorText(e) + (img ? ' Scrivi il titolo al posto della foto.' : ''), img ? 6000 : 0);
     }
     renderAskThread();
   } finally {
@@ -386,7 +388,7 @@ async function sendAskMessage(){
       askSample.limits().then(lim=>{
         askImagesSupported = !!(lim && lim.images);
         const hint = document.querySelector('.ask-hint');
-        if(hint && !askImagesSupported) hint.textContent = 'Chiedi consigli, confronta giochi o aggiungine di nuovi. I tasti 📷/📸 provano a inviare la foto, ma in alcune viste (es. browser del telefono) la piattaforma potrebbe rifiutarla: in tal caso scrivi il nome del gioco.';
+        if(hint && !askImagesSupported) hint.textContent = 'Chiedi consigli, confronta titoli o aggiungine di nuovi. I tasti 📷/📸 provano a inviare la foto, ma in alcune viste (es. browser del telefono) la piattaforma potrebbe rifiutarla: in tal caso scrivi il nome del gioco.';
       }).catch(()=>{});
     }
   }).catch(()=>{});
@@ -497,6 +499,7 @@ let novitaGenreErrorMsg = null;
 let novitaGenreEverFetched = false;
 let novitaGenreSkippedListOpen = false;
 const NOVITA_TAG_ENUM = TAG_ORDER.slice();      // versione Anime: i generi stanno nei dati (meta.tags)
+const NOVITA_DIRECT = ['anilist', 'jikan', 'reddit'];      // fonti dirette per anime e manga (le altre sono di videogiochi)
 function novitaKnownNames(){
   const s = new Set();
   GAMES.forEach(g=> s.add(g.name.toLowerCase().trim()));
@@ -505,22 +508,22 @@ function novitaKnownNames(){
   novitaGenreQueue.forEach(c=> s.add(String(c.name||'').toLowerCase().trim()));
   return s;
 }
-function novitaGameplaySearchUrl(name){ return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(name + ' gameplay screenshot'); }
-function novitaYoutubeUrl(name){ return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' gameplay ita'); }
-// Recensioni in italiano: ricerca ristretta ai principali siti italiani di videogiochi
+function novitaGameplaySearchUrl(name){ return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(name + ' anime manga'); }
+function novitaYoutubeUrl(name){ return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' trailer ita'); }
+// Recensioni in italiano: ricerca ristretta ai principali siti italiani di anime e manga
 function itReviewsUrl(name){
-  const sites = ['multiplayer.it','everyeye.it','spaziogames.it','gamesvillage.it','techgaming.it','gamerclick.it','thegamesmachine.it','it.ign.com'];
+  const sites = ['animeclick.it','mangaforever.net','everyeye.it','lospaziobianco.it','nerdpool.it','badtaste.it','it.ign.com','comicsbox.it'];
   return 'https://www.google.com/search?hl=it&lr=lang_it&q=' + encodeURIComponent('"' + name.replace(/\s*\([^)]*\)/g, '') + '" recensione (' + sites.map(s=> 'site:' + s).join(' OR ') + ')');
 }
 function novitaReviewSearchUrl(name){ return itReviewsUrl(name); }
 function novitaTasteSummaryText(){
   const t = askToolGetTasteProfile();
-  if(t.note) return 'Mario non ha ancora segnato abbastanza preferiti/giocati per un profilo affidabile: proponi un mix vario di RPG/JRPG ben considerati, di epoche e piattaforme diverse.';
+  if(t.note) return 'Mario non ha ancora segnato abbastanza preferiti/giocati per un profilo affidabile: proponi un mix vario di anime e manga ben considerati, di epoche e generi diversi.';
   const parts = [];
   if(t.topTags.length) parts.push('generi preferiti: ' + t.topTags.join(', '));
-  if(t.avgLikedScore != null) parts.push('voto medio dei giochi che ama: ' + t.avgLikedScore + '/100');
-  if(t.likedGames.length) parts.push('esempi di giochi che ama: ' + t.likedGames.slice(0,8).map(g=>g.name).join(', '));
-  if(t.droppedGames.length) parts.push('giochi droppati (evita cose simili): ' + t.droppedGames.map(g=>g.name).join(', '));
+  if(t.avgLikedScore != null) parts.push('voto medio dei titoli che ama: ' + t.avgLikedScore + '/100');
+  if(t.likedGames.length) parts.push('esempi di titoli che ama: ' + t.likedGames.slice(0,8).map(g=>g.name).join(', '));
+  if(t.droppedGames.length) parts.push('titoli abbandonati (evita cose simili): ' + t.droppedGames.map(g=>g.name).join(', '));
   return parts.join('. ');
 }
 function novitaExcludeListText(excludeNames){
@@ -568,26 +571,29 @@ function novitaCheckShown(c, rerender, isCurrent){
   });
 }
 const novitaTierOf = s=> s >= 95 ? 'S+' : s >= 90 ? 'S' : s >= 85 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : s >= 40 ? 'E' : 'F';
+// versione Anime: i campi chiesti all'AI per ogni proposta (stessi nomi dei videogiochi, significato da anime/manga)
+function novitaFieldsText(codes, nTags){
+  return `name (titolo esatto: quello più usato in Italia, altrimenti quello inglese), kind (uno tra: ${KINDS.map(k=> k.id + ' = ' + k.full).join('; ')}), plat (formato e studio o autore, es. "Serie TV · Bones", "Film · Studio Ghibli", "Manga · Eiichiro Oda"), year (anno di uscita; per le serie: primo e ultimo anno, es. "2009–2010"), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier, come la media degli utenti di AniList), tags (${nTags} valori tra questi codici, con il loro significato: ${genreGlossary(codes)}. Il primo è il genere principale; assegna un tag SOLO se è davvero centrale), story (UNA sola frase sulla premessa, senza spoiler: la trama completa viene scritta dopo, quando il titolo viene aggiunto), hours (ore indicative per vederlo o leggerlo tutto, numero), difficulty (1-5: quanto è impegnativo da seguire), pace ("L","M" o "V"), italian ("D"=doppiaggio italiano ufficiale, "S"=solo sottotitoli o edizione italiana ufficiale, "F"=solo fansub/scan amatoriali, "N"=niente in italiano), cost ("S"=gratis o negli abbonamenti più comuni, "M"=a pagamento o noleggio, "H"=difficile da trovare o costoso), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi uno shonen con combattimenti spettacolari e pochi filler": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "non sopporti i ritmi lenti": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).`;
+}
 function buildNovitaPrompt(count, excludeNames){
-  return todayLine() + `Suggerisci ${count} RPG/JRPG (di qualunque epoca e piattaforma, anche poco conosciuti) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
+  return todayLine() + `Suggerisci ${count} titoli tra anime, film d'animazione, manga e manhwa (di qualunque epoca, anche poco conosciuti) che NON sono in questo elenco di titoli che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso o come stagione/sequel dello stesso titolo): ${novitaExcludeListText(excludeNames)}.
 Gusti di Mario: ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
-name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (1-3 valori tra questi codici, con il loro significato: ${genreGlossary(NOVITA_TAG_ENUM)}), story (UNA sola frase sulla premessa: la trama completa viene scritta dopo, quando il gioco viene aggiunto), hours (ore indicative per finire la storia principale o la run/campagna principale; nei giochi senza trama vera (roguelite, tattici, puzzle, arcade) indica la durata di UNA run o campagna (1-3h), MAI le ore per sbloccare tutto (quelle vanno in hoursCompletionist), numero), difficulty (1-5), pace ("L","M" o "V"), italian ("D"=testi e doppiaggio italiani, "S"=solo testi/sottotitoli italiani ufficiali, "F"=solo fan-translation, "N"=nessun italiano ufficiale), cost ("S","M" o "H"), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "cerchi una trama profonda": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
-Scegli titoli realmente esistenti, con dati il più possibile accurati. Varia epoche/piattaforme tra le ${count} proposte.`;
+${novitaFieldsText(NOVITA_TAG_ENUM, '1-3')}
+Scegli titoli realmente esistenti, con dati il più possibile accurati. Varia epoche, tipi (serie, film, manga) e generi tra le ${count} proposte.`;
 }
 function buildNovitaGenrePrompt(count, excludeNames, selectedTags, includeOther){
   const labels = selectedTags.map(t=> TAG_INFO[t] ? TAG_INFO[t].label : t);
-  const anyGenre = selectedTags.length >= 60;                 // quasi tutti i generi selezionati = nessuna restrizione
+  const anyGenre = selectedTags.length >= 40;                 // quasi tutti i generi selezionati = nessuna restrizione
   const scopeLine = (labels.length && !anyGenre)
-    ? `Suggerisci SOLO videogiochi che rientrano in almeno uno di questi generi/stili: ${labels.join(', ')}.${includeOther ? ' Includi anche giochi molto simili a questi generi anche se non ci rientrano perfettamente, o stili affini non elencati qui.' : ' Scarta tutto ciò che non rientra chiaramente in questi generi.'} IMPORTANTE: NON limitarti agli RPG — se un genere qui sopra non è un gioco di ruolo (es. sport, corse, sparatutto, strategia, puzzle...), proponi comunque giochi di QUEL genere anche se non hanno alcun elemento da RPG.`
-    : `Includi videogiochi di QUALSIASI genere possibile (non solo RPG), di ogni tipo, epoca e piattaforma: varia il più possibile tra i ${count} suggerimenti.`;
-  const consoleLine = NOVITA_CONSOLE_SELECTED.size ? `PIATTAFORME: suggerisci SOLO giochi usciti su almeno una di queste piattaforme: ${NOVITA_CONSOLES.map(c=> c[0]).filter(n=> NOVITA_CONSOLE_SELECTED.has(n)).join(', ')} (giochi validi e apprezzati di ogni epoca, anche retro e poco noti; indica in plat le piattaforme reali). ` : 'PIATTAFORME: qualsiasi console o PC, di ogni epoca (anche retro), purché giochi validi e apprezzati. ';
-  return todayLine() + consoleLine + `Suggerisci ${count} videogiochi (di qualunque genere, epoca e piattaforma, anche poco conosciuti — NON limitarti a RPG/JRPG) che NON sono in questo elenco di giochi che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso): ${novitaExcludeListText(excludeNames)}.
+    ? `Suggerisci SOLO titoli che rientrano in almeno uno di questi generi/temi: ${labels.join(', ')}.${includeOther ? ' Includi anche titoli molto simili a questi generi anche se non ci rientrano perfettamente, o temi affini non elencati qui.' : ' Scarta tutto ciò che non rientra chiaramente in questi generi.'}`
+    : `Includi titoli di QUALSIASI genere, tipo ed epoca: varia il più possibile tra i ${count} suggerimenti.`;
+  return todayLine() + `Suggerisci ${count} titoli tra anime, film d'animazione, manga e manhwa (di qualunque epoca, anche poco conosciuti) che NON sono in questo elenco di titoli che Mario ha già nel suo database o ha già rifiutato (non riproporli, nemmeno con nome leggermente diverso o come stagione/sequel dello stesso titolo): ${novitaExcludeListText(excludeNames)}.
 ${scopeLine}
-Non scartare un gioco valido solo perché non rientra esattamente nei codici di genere che uso per le etichette (${genreGlossary(NOVITA_GENRE_ALL_CODES)}): includilo comunque e assegna i tag più vicini possibile, oppure lascia l'elenco tags vuoto se nessuno si adatta bene — la categorizzazione delle etichette non deve mai essere un motivo per escludere un gioco valido.
-Contesto sui gusti abituali di Mario, soprattutto orientati a RPG/JRPG (utile SOLO per spiegare perché un titolo potrebbe piacergli comunque, MAI per restringere la ricerca al genere RPG, che qui è solo una delle tante opzioni possibili): ${novitaTasteSummaryText()}
+Non scartare un titolo valido solo perché non rientra esattamente nei codici di genere che uso per le etichette: includilo comunque e assegna i tag più vicini possibile, oppure lascia l'elenco tags vuoto se nessuno si adatta bene.
+Contesto sui gusti di Mario (utile per spiegare perché un titolo potrebbe piacergli, MAI per restringere la ricerca): ${novitaTasteSummaryText()}
 Rispondi SOLO con un array JSON valido (nessun testo prima o dopo, nessun blocco di codice), con esattamente ${count} oggetti, ognuno con questi campi:
-name (titolo esatto e corretto), plat (piattaforme, es "PS5 / PC"), year (anno di uscita), tier (una tua stima onesta tra S+, S, A, B, C, D, E, F), score (voto 0-100 coerente col tier), tags (0-3 valori tra questi codici, con il loro significato: ${genreGlossary(NOVITA_GENRE_ALL_CODES)}. Assegna un tag SOLO se quel genere è centrale nel gioco: meglio 1-2 tag precisi che 3 vaghi, e mai ADV per giochi d'azione, RPG, sandbox o open world; oppure elenco vuoto se nessuno si adatta), story (UNA sola frase sulla premessa: la trama completa viene scritta dopo, quando il gioco viene aggiunto), hours (ore indicative per finire la storia principale o la run/campagna principale; nei giochi senza trama vera (roguelite, tattici, puzzle, arcade) indica la durata di UNA run o campagna (1-3h), MAI le ore per sbloccare tutto (quelle vanno in hoursCompletionist), numero), difficulty (1-5), pace ("L","M" o "V"), italian ("S"=sottotitoli/doppiaggio ufficiale in italiano,"F"=fan-translation,"N"=solo inglese/altro), cost ("S","M" o "H"), fitIf (completa la frase «Fa per te se…» in SECONDA PERSONA singolare, es. "cerchi un tattico a turni senza grinding": inizia con un verbo alla seconda persona come ami, cerchi, vuoi, preferisci; NON ripetere «Fa per te se» e MAI la terza persona tipo «gli piacerà»), avoidIf (completa la frase «Lascia stare se…» in SECONDA PERSONA singolare, es. "cerchi una trama profonda": inizia con un verbo alla seconda persona come cerchi, vuoi, odi, non sopporti; NON ripetere «Lascia stare se» e MAI la terza persona), pros (array di 3-4 punti di forza concreti, frasi brevi), cons (array di 2-3 difetti concreti, frasi brevi).
+${novitaFieldsText(NOVITA_GENRE_ALL_CODES, '0-3')}
 Scegli titoli realmente esistenti, con dati il più possibile accurati.`;
 }
 function parseNovitaJson(text){
@@ -610,6 +616,7 @@ function cleanNovitaCandidate(raw, tagEnum){
   if(!name) return null;
   return {
     name,
+    kind: KIND_BY_ID[raw.kind] ? raw.kind : '',
     plat: raw.plat ? String(raw.plat) : '',
     year: raw.year ? String(raw.year) : '',
     tier: TIERS_LIST.includes(raw.tier) ? raw.tier : 'B',
@@ -646,14 +653,14 @@ function dedupeNovitaCandidates(arr, known, tagEnum){
 // Se una fonte sbaglia o non trova nulla non ci si ferma: si passa alla successiva. Accetta ogni gioco da 5/10 in su (50/100) o senza voto.
 // Il pulsante «Basta frugare! Mostra bottino» (nel box di caricamento) interrompe subito e restituisce ciò che è stato trovato.
 const NOVITA_STRATEGIES = [
-  {key:'metacritic', src:'Metacritic e OpenCritic', hint:"Cerca nelle classifiche e nelle liste di Metacritic e OpenCritic (anche i giochi con voti medi)."},
-  {key:'steam', src:'Steam', hint:"Cerca sulle pagine dello store Steam e nei suoi elenchi per tag/genere (recensioni almeno 'Nella media')."},
-  {key:'wikipedia', src:'Wikipedia', hint:"Cerca nelle liste e nelle categorie di Wikipedia (elenchi di videogiochi per genere, piattaforma e anno)."},
-  {key:'riviste', src:'RPGFan, RPGamer e riviste', hint:"Cerca su RPGFan, RPGamer, Eurogamer, IGN, Multiplayer.it e nelle liste 'best of' delle riviste."},
-  {key:'reddit', src:'Reddit e forum', hint:"Cerca nelle discussioni di Reddit (r/patientgamers, r/JRPG, r/rpg_gamers, r/gaming), ResetEra e forum specializzati: giochi consigliati dagli utenti, anche di nicchia."},
-  {key:'igdb', src:'IGDB e MobyGames', hint:"Cerca su IGDB e MobyGames, includendo titoli poco noti e retro."},
-  {key:'retro', src:'giochi retro e di nicchia', hint:"Concentrati su titoli usciti prima del 2005 e su giochi di nicchia o dimenticati."},
-  {key:'indie', src:'indie e novità recenti', hint:"Concentrati su indie di qualità e su titoli usciti negli ultimi anni."}
+  {key:'anilist', src:'AniList', hint:"Cerca nelle classifiche e nelle liste di AniList (anche i titoli con voti medi e quelli di nicchia)."},
+  {key:'mal', src:'MyAnimeList', hint:"Cerca nelle classifiche, nelle stagioni e nelle raccomandazioni di MyAnimeList."},
+  {key:'wikipedia', src:'Wikipedia', hint:"Cerca nelle liste e nelle categorie di Wikipedia (elenchi di anime e manga per genere, studio, rivista e anno)."},
+  {key:'riviste', src:'AnimeClick, Anime News Network e riviste', hint:"Cerca su AnimeClick.it, Anime News Network, MangaForever e nelle liste 'i migliori' delle riviste."},
+  {key:'reddit', src:'Reddit e forum', hint:"Cerca nelle discussioni di Reddit (r/anime, r/manga, r/Animesuggest, r/manhwa) e nei forum: titoli consigliati dagli appassionati, anche di nicchia."},
+  {key:'premi', src:'premi e riviste giapponesi', hint:"Cerca tra i vincitori e i candidati di premi come Tezuka, Shogakukan, Kodansha Manga Award, Japan Media Arts Festival, Annecy e Crunchyroll Anime Awards."},
+  {key:'retro', src:'classici e titoli dimenticati', hint:"Concentrati su titoli usciti prima del 2005 e su classici di culto o dimenticati."},
+  {key:'nuovi', src:'uscite degli ultimi anni', hint:"Concentrati su anime e manga di qualità usciti negli ultimi anni."}
 ];
 // gruppi di generi da far ruotare tra le richieste (mescolati): così la ricerca non si incastra su un solo tipo di gioco
 function novitaFocusSets(codes, size){
@@ -671,7 +678,7 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets, ex
   const stopP = new Promise(res=>{ wake = res; });
   const P = window.Progress;
   const say = t=>{ try{ P && P.log && P.log(t); }catch(e){} };
-  if(P){ P.begin('Frugu Frugu cerca nuovi giochi…'); P.counter && P.counter(0, MAX); P.onStop && P.onStop(()=>{ stopped = true; wake(); }); say('Frugu Frugu si tuffa nel bidone…'); }
+  if(P){ P.begin('Frugu Frugu cerca nuovi titoli…'); P.counter && P.counter(0, MAX); P.onStop && P.onStop(()=>{ stopped = true; wake(); }); say('Frugu Frugu si tuffa nel bidone…'); }
   const nn = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
   const know = new Set(); try{ novitaKnownNames().forEach(n=> know.add(nn(n))); }catch(e){}
   const tf = extraOpts.tagFilter ? new Set(extraOpts.tagFilter) : null;
@@ -686,12 +693,12 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets, ex
     });
     return found.length - before;
   };
-  const crit = "\nCRITERIO: includi qualsiasi gioco reale valutato almeno 5/10 (50/100 su Metacritic/Steam), oppure senza voto ma apprezzato dalla community; scarta solo quelli sotto il 5/10. Per ogni titolo: se non conosci un dato, stima con onestà ma NON inventare giochi inesistenti.";
+  const crit = "\nCRITERIO: includi qualsiasi titolo reale valutato almeno 5/10 (50/100 su AniList o MyAnimeList), oppure senza voto ma apprezzato dagli appassionati; scarta solo quelli sotto il 5/10. Per ogni titolo: se non conosci un dato, stima con onestà ma NON inventare titoli inesistenti.";
   const runAi = (st, focus)=>{
     const need = Math.min(14, MAX - found.length + 4);
     const excl = found.length ? '\nNON riproporre nemmeno questi titoli appena trovati: ' + found.map(c=> c.name).join('; ') + '.' : '';
-    const fo = focus && focus.length ? '\nGIRO DI RICERCA: in questo giro privilegia giochi di questi generi/stili: ' + focus.map(c=> TAG_INFO[c] ? TAG_INFO[c].label : c).join(', ') + '. VARIETÀ: al massimo 2 titoli dello stesso sottogenere e nessuna raffica di giochi dello stesso tipo (es. non solo Metroidvania): alterna generi, epoche e piattaforme.' : '\nVARIETÀ: al massimo 2 titoli dello stesso sottogenere; alterna generi, epoche e piattaforme.';
-    return askLLM(makePrompt(need) + '\nFONTE DI QUESTA RICERCA (" ' + st.src + ' "): ' + st.hint + crit + fo + excl, {}, {search: true, fast: true, silent: true, label: 'Cerco nuovi giochi…'})
+    const fo = focus && focus.length ? '\nGIRO DI RICERCA: in questo giro privilegia titoli di questi generi/temi: ' + focus.map(c=> TAG_INFO[c] ? TAG_INFO[c].label : c).join(', ') + '. VARIETÀ: al massimo 2 titoli dello stesso sottogenere e nessuna raffica di titoli dello stesso tipo (es. non solo isekai): alterna generi, epoche e tipi (serie, film, manga).' : '\nVARIETÀ: al massimo 2 titoli dello stesso sottogenere; alterna generi, epoche e tipi (serie, film, manga).';
+    return askLLM(makePrompt(need) + '\nFONTE DI QUESTA RICERCA (" ' + st.src + ' "): ' + st.hint + crit + fo + excl, {}, {search: true, fast: true, silent: true, label: 'Cerco nuovi titoli…'})
       .then(r=>{ const arr = parseNovitaJson(r && r.text); if(!arr) throw new Error('risposta AI non leggibile'); return arr; })
       .catch(e=>{ aiErrors++; lastErr = e; throw e; });
   };
@@ -721,8 +728,8 @@ async function fetchNovitaBatch(){
   novitaLoading = true; novitaErrorMsg = null; renderNovitaCard();
   const excludeNames = novitaKnownNames();
   try{
-    // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), limitata ai generi RPG/JRPG
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: ['scoperte', 'wikicat', 'wikidata', 'steamspy', 'steamsearch', 'gog', 'rawg', 'rawgnew', 'reddit']});
+    // Stessa richiesta di "Novità per genere" (che funziona meglio con Gemini), su tutti i generi
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, TAG_ORDER.slice(), false), NOVITA_BATCH_COUNT, null, novitaFocusSets(TAG_ORDER.slice(), 4), {tagFilter: TAG_ORDER.slice(), directKeys: NOVITA_DIRECT});
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -746,7 +753,7 @@ async function fetchNovitaGenreBatch(){
   const excludeNames = novitaKnownNames();
   const selectedTags = Array.from(NOVITA_GENRE_SELECTED);
   try{
-    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, selectedTags, novitaGenreIncludeOther), NOVITA_BATCH_COUNT, null, novitaFocusSets(selectedTags, 4), selectedTags.length >= 60 ? {} : {tagFilter: selectedTags, directKeys: SearchHub.directKeys.filter(k=> k !== 'cheapshark')});
+    const arr = await novitaSearchParallel(n=> buildNovitaGenrePrompt(n, excludeNames, selectedTags, novitaGenreIncludeOther), NOVITA_BATCH_COUNT, null, novitaFocusSets(selectedTags, 4), selectedTags.length >= 40 ? {directKeys: NOVITA_DIRECT} : {tagFilter: selectedTags, directKeys: NOVITA_DIRECT});
     if(!arr || !arr.length) throw new Error('NOVITA_EMPTY');
     const deduped = dedupeNovitaCandidates(arr, novitaKnownNames(), NOVITA_GENRE_ALL_CODES);
     if(!deduped.length) throw new Error('NOVITA_EMPTY');
@@ -808,7 +815,7 @@ function novitaCardHtml(c, ids){
 function novitaIntroHtml(){
   return `<div class="novita-intro">
     <div class="novita-intro-icon">${giIcon('lens')}</div>
-    <div><b>Trova nuovi giochi da aggiungere</b><br>Frugu Frugu rovista tra Steam, GOG, Wikipedia, RAWG e l'elenco settimanale dei giochi da scoprire, e ti propone RPG/JRPG che non hai ancora nel database, in base ai tuoi gusti. Per ognuno trovi copertina, foto gameplay, un video gameplay in italiano e le recensioni ITA da controllare prima di decidere: sei sempre tu a scegliere se aggiungerlo.</div>
+    <div><b>Trova nuovi titoli da aggiungere</b><br>Frugu Frugu rovista tra AniList, MyAnimeList e Reddit, e ti propone anime, film e manga che non hai ancora nel database, in base ai tuoi gusti. Per ognuno trovi copertina, immagini, un trailer in italiano e le recensioni ITA da controllare prima di decidere: sei sempre tu a scegliere se aggiungerlo.</div>
     <button class="btn primary" id="novitaFindBtn">${giIcon('lens')} Fruga altri titoli</button>
     <button class="btn" id="novitaGenreGoBtn">${giIcon('genres')} Fruga per genere</button>
   </div>`;
@@ -868,7 +875,7 @@ function renderNovitaSkippedListInto(panel, refreshFn){
       const key = e.currentTarget.closest('.novita-skip-row').dataset.key;
       const c = NOVITA_SKIPPED_DETAILS[key];
       if(!c) return;
-      try{ askToolAddCustomGame(c, 'Novità'); }catch(err){ showToast((err && err.message) || 'Non sono riuscito ad aggiungere il gioco.'); }
+      try{ askToolAddCustomGame(c, 'Novità'); }catch(err){ showToast((err && err.message) || 'Non sono riuscito ad aggiungere il titolo.'); }
       delete NOVITA_SKIPPED_DETAILS[key];
       NOVITA_SKIPPED.delete(key);
       saveNovitaSkipped(); saveNovitaSkippedDetails();
@@ -917,7 +924,7 @@ function novitaAdvanceLike(){
   try{
     askToolAddCustomGame(c, 'Novità');
   }catch(e){
-    showToast((e && e.message) || 'Non sono riuscito ad aggiungere il gioco.');
+    showToast((e && e.message) || 'Non sono riuscito ad aggiungere il titolo.');
   }
   novitaQueue.splice(novitaQueue.indexOf(c), 1);
   renderNovitaCard();
@@ -933,7 +940,7 @@ function novitaAcceptAll(kind){
   const q = kind === 'genre' ? novitaGenreQueue : novitaQueue;
   const list = novitaVisible(q).slice();
   if(list.length < 2) return;
-  if(!confirm('Aggiungo alla tua libreria tutti i ' + list.length + ' giochi proposti? Poi vedrai l\'elenco di quelli accettati.')) return;
+  if(!confirm('Aggiungo alla tua libreria tutti i ' + list.length + ' titoli proposti? Poi vedrai l\'elenco di quelli accettati.')) return;
   const label = kind === 'genre' ? 'Novità per genere' : 'Novità';
   const items = []; let failed = 0;
   window.__bulkAdd = true;
@@ -947,7 +954,7 @@ function novitaAcceptAll(kind){
   });
   window.__bulkAdd = false;
   novitaReport = {kind, items, failed};
-  try{ showToast(items.length + ' giochi aggiunti' + (failed ? ' (' + failed + ' saltati: doppioni o errori)' : ''), 3500); }catch(e){}
+  try{ showToast(items.length + ' titoli aggiunti' + (failed ? ' (' + failed + ' saltati: doppioni o errori)' : ''), 3500); }catch(e){}
   (kind === 'genre' ? renderNovitaGenreCard : renderNovitaCard)();
 }
 function novitaReportHtml(r){
@@ -983,9 +990,8 @@ function novitaGenrePickerHtml(){
   const activeCount = NOVITA_GENRE_SELECTED.size;
   const consoleChips = NOVITA_CONSOLES.map(([n,y])=> `<button class="genre-chip${NOVITA_CONSOLE_SELECTED.has(n)?' active':''}" type="button" data-console-chip="${escHtml(n)}">${escHtml(n)}${y ? ` <small>${y}</small>` : ''}</button>`).join('');
   return `<div class="novita-genre-picker">
-    <div class="novita-genre-section"><div class="novita-genre-section-title">🎮 Console (in ordine di uscita) · ${NOVITA_CONSOLE_SELECTED.size ? NOVITA_CONSOLE_SELECTED.size + ' scelte' : 'nessuna scelta = tutte'}</div><div class="genre-chip-grid">${consoleChips}</div>
-      <div class="novita-genre-picker-actions"><button class="btn small" type="button" id="novitaConsoleClearBtn">Tutte le console</button></div></div>
-    <div class="novita-genre-picker-label">Sono selezionati TUTTI i generi videoludici (così la ricerca non ne salta nessuno): togli la spunta a quelli che NON ti interessano, es. "Sportivi", oppure usa i pulsanti qui sotto.</div>
+    <!-- versione Anime: niente scelta delle console -->
+    <div class="novita-genre-picker-label">Sono selezionati TUTTI i generi (così la ricerca non ne salta nessuno): togli la spunta a quelli che NON ti interessano, es. "Sportivo", oppure usa i pulsanti qui sotto.</div>
     <div class="novita-genre-picker-actions">
       <button class="btn small" type="button" id="novitaGenreSelectAllBtn">✅ Seleziona tutti</button>
       <button class="btn small" type="button" id="novitaGenreDeselectAllBtn">⬜ Deseleziona tutti</button>
@@ -1034,7 +1040,7 @@ function novitaGenreAdvanceLike(){
   try{
     askToolAddCustomGame(c, 'Novità per genere');
   }catch(e){
-    showToast((e && e.message) || 'Non sono riuscito ad aggiungere il gioco.');
+    showToast((e && e.message) || 'Non sono riuscito ad aggiungere il titolo.');
   }
   novitaGenreQueue.splice(novitaGenreQueue.indexOf(c), 1);
   renderNovitaGenreCard();
@@ -1074,7 +1080,7 @@ function wireNovitaGenreTopbar(){
 }
 
 const DATA_BUILD_DATE = '2026-10-02';
-const DATA_BUILD_VERSION = 'a4';
+const DATA_BUILD_VERSION = 'a5';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

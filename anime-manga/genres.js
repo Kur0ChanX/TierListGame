@@ -5,7 +5,7 @@
   const WD = 'https://www.wikidata.org/w/api.php';
   // etichette inglesi dei generi di Wikidata → codici dei tag anime (meta.tags nei dati)
   const MAP = [
-    [/\baction\b/i, 'ACT'], [/adventure/i, 'ADV'], [/comedy|comedic|humor/i, 'COM'], [/drama/i, 'DRA'],
+    [/documentar/i, 'DOC'], [/\baction\b/i, 'ACT'], [/adventure/i, 'ADV'], [/comedy|comedic|humor/i, 'COM'], [/drama/i, 'DRA'],
     [/fantasy/i, 'FAN'], [/science fiction|sci-fi|cyberpunk|space opera/i, 'SCI'], [/horror/i, 'HOR'],
     [/mystery|whodunit/i, 'MYS'], [/psycholog/i, 'PSY'], [/thriller/i, 'THR'], [/romance|romantic|love story/i, 'ROM'],
     [/slice of life/i, 'SOL'], [/sport/i, 'SPO'], [/supernatural|occult|ghost/i, 'SUP'], [/mecha|giant robot|real robot|super robot/i, 'MEC'],

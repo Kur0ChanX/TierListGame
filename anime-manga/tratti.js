@@ -46,7 +46,7 @@
     MYS: ['MYST'], PSY: ['MIND'], THR: ['MYST', 'DARK'], CRI: ['MYST', 'DARK'], HOR: ['ATMO', 'DARK'], GOR: ['DARK'],
     SUR: ['DARK'], DYS: ['SOCIETY', 'DARK'], MIL: ['SOCIETY', 'STRAT'], HIS: ['LORE'], MUS: ['MUSIC'], IDO: ['MUSIC'],
     SPO: ['SPORT', 'GROWTH'], ISE: ['ISEKAI', 'WORLD'], GAM: ['STRAT'], MEC: ['MECHA'], TIM: ['TWIST'], VAM: ['ATMO'],
-    FAM: ['COZY'], KID: ['COZY'], FOO: ['COZY'], SHO: ['FRIEND', 'GROWTH'], SHJ: ['ROMANCE'], JOS: ['ROMANCE'], SEI: ['MIND']
+    FAM: ['COZY'], KID: ['COZY'], FOO: ['COZY'], SHO: ['FRIEND', 'GROWTH'], SHJ: ['ROMANCE'], JOS: ['ROMANCE'], SEI: ['MIND'], DOC: ['MIND']
   };
 
   const mnrm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');

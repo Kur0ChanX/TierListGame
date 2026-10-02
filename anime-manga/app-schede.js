@@ -278,6 +278,7 @@ function syncCustomGames(snap){
     const entry = {
       id,
       name: String(v.name),
+      kind: KIND_BY_ID[v.kind] ? v.kind : undefined,      // versione Anime: anime, film, animazione, manga, manhwa
       plat: v.plat ? String(v.plat) : '—',
       year: v.year ? String(v.year) : '',
       ysort: parseInt(v.year, 10) || 0,
@@ -1109,7 +1110,7 @@ function soundtrackHtml(g){
 function findSimilarGames(g, n){
   // Affinità reale, non solo «stesso tag»: genere principale, tag condivisi, saga, stessa epoca, stessa struttura (ritmo, peso storia, difficoltà),
   // e nessun genere incompatibile (mai horror per chi guarda un action indie, mai sport per un JRPG…). Meglio pochi consigli buoni che quattro sbagliati.
-  const EXCL = [['HOR', 'GOR'], ['SPO'], ['MEC'], ['KID'], ['ECC', 'HAR'], ['IDO'], ['MAH']];      // versione Anime
+  const EXCL = [['HOR', 'GOR'], ['SPO'], ['MEC'], ['KID'], ['ECC', 'HAR'], ['IDO'], ['MAH'], ['DOC']];      // versione Anime
   const gt = new Set(g.tags || []);
   const gYear = g.ysort || (parseInt(String(g.year || '').slice(0,4), 10) || null);
   const gs = new Set((g.plat || '').toLowerCase().split(/[\/,]/).map(x=> x.trim()).filter(Boolean));
@@ -1154,7 +1155,7 @@ function sagaQuietAdd(c){
   const name = String(c.name || '').trim(); if(!name || !COVER_DB) return false;
   if(typeof findDuplicateGame === 'function' && findDuplicateGame(name)) return false;
   const id = nextCustomGameId(), sc = clampIntOrNull(c.score, 0, 100);
-  const doc = {name, plat: c.plat ? String(c.plat) : null, year: c.year ? String(c.year) : null, tier: 'ND', score: sc != null ? Math.min(sc, 79) : 70, tags: Array.isArray(c.tags) ? c.tags.filter(t=> TAG_INFO[t]).slice(0, 3) : [], story: '',
+  const doc = {name, kind: KIND_BY_ID[c.kind] ? c.kind : undefined, plat: c.plat ? String(c.plat) : null, year: c.year ? String(c.year) : null, tier: 'ND', score: sc != null ? Math.min(sc, 79) : 70, tags: Array.isArray(c.tags) ? c.tags.filter(t=> TAG_INFO[t]).slice(0, 3) : [], story: '',
     note: 'Aggiunto da Mario tramite "Aggiorna saghe" il ' + new Date().toLocaleDateString('it-IT') + ' — nessun Metacritic trovato: voto e dettagli sono una stima automatica, non della classifica ufficiale curata a mano.', label: {}, pros: [], cons: [], addedAt: new Date().toISOString()};
   try{ COVER_DB.doc('customGames/' + String(id)).set(doc).catch(()=>{}); }catch(e){ return false; }
   try{ queueEnrich(id); }catch(e){}

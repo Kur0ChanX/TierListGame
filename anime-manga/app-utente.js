@@ -3,6 +3,12 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'a5', date:'2026-10-02', time:'17:54', items:[
+    'Chiedi e Novità parlano di anime, manga e film (non più di videogiochi): istruzioni, schede da compilare, esempi e recensioni da siti italiani di anime e manga',
+    'Nuove fonti per trovare titoli: AniList, MyAnimeList e Reddit (discussioni su anime e manga); il voto verificato ora arriva da AniList',
+    'I titoli aggiunti salvano il tipo (anime, film, animazione, manga, manhwa) e finiscono nella lista giusta',
+    'Nuovo genere: 🎥 Documentario (assegnato a «Is the Man Who Is Tall Happy?»)'
+  ]},
   {version:'a4', date:'2026-10-02', time:'17:41', items:[
     'Generi degli anime riconosciuti ovunque: controllo dei dati, intelligenza artificiale (Novità e Chiedi), titoli simili e verifica su Wikidata non usano più i generi dei videogiochi',
     'I tre film «Justice League - Crisi sulle Terre infinite» ora si chiamano Parte 1, 2 e 3'
