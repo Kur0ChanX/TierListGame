@@ -857,6 +857,8 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     if(typeof detailsReady === 'function' && !detailsReady()) return auSchedule(1500);   // aspetta che i dettagli dei giochi siano caricati (altrimenti confronterebbe con dati vuoti)
     const calm = document.visibilityState === 'visible' && navigator.onLine !== false && !(navigator.connection && navigator.connection.saveData) && !document.querySelector('.modal-backdrop.show, .dup-backdrop.show, .rt-loader.show');
     if(!calm){ return auSchedule(30000); }
+    // v216: se stai usando il programma proprio adesso (tocchi, scorri), Update+ aspetta che ti fermi: il suo lavoro non deve mai capitare sotto il tuo dito
+    try{ if(typeof rtLastInput !== 'undefined' && Date.now() - rtLastInput < 4000) return auSchedule(2500); }catch(e){}
     const ai = useAI(), day = dayLoad();
     if(ai && day.n >= auCap()){ auPause = 'Limite giornaliero raggiunto (' + day.n + ' giochi): riprendo domani.'; return auSchedule(30 * 60e3); }
     auPause = '';

@@ -391,7 +391,7 @@
     const body = sheet('xTaste', gi('dna') + ' I tuoi gusti', `${intro}
       <div class="tg-status">${m.n >= 3 ? `Ho imparato da <b>${m.n}</b> giochi` : 'Per ora conto solo su quello che mi hai detto'} · ${m.n >= 25 ? '🟢 profilo affidabile' : m.n >= 10 ? '🟡 profilo discreto: più giochi segni, meglio è' : '🔴 profilo ancora debole: segna altri giochi'}</div>
       ${mech}
-      ${window.rtRadar ? window.rtRadar(null) : ''}
+      ${window.rtRadar ? String(window.rtRadar(null) || "").replace('id="gsCard"', 'id="gsTaste"') : ''}
       <h4>Generi e stile che ti piacciono</h4>${pos.map(x=> bar(...x)).join('') || '<small>ancora poco chiaro</small>'}
       <h4>Tendi a evitare</h4>${neg.map(x=> bar(...x)).join('') || '<small>niente di netto</small>'}
       ${tol.length ? '<h4>Nonostante…</h4>' + tol.map(t=> `<div class="tg-tol">${esc(t)}</div>`).join('') : ''}

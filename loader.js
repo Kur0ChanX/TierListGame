@@ -217,3 +217,53 @@
   const idle = window.requestIdleCallback || (f=> setTimeout(f, 4000));
   idle(()=>{ try{ if(!(navigator.connection && navigator.connection.saveData)){ const i = new Image(); i.src = GIF; } }catch(e){} });
 })();
+
+// ---- v216: REGISTRATORE DI LENTEZZA (per capire cosa rallenta il TUO telefono, che io non posso provare) ----
+// 1) quanto passa davvero da ogni tocco al disegno della pagina (Event Timing) — con cosa avevi toccato;
+// 2) ogni blocco del telefono oltre 150 ms (Long Animation Frames) — con le funzioni del programma che l'hanno causato.
+// Si legge in ✨ → «🐢 Rapporto lentezza» (con «Copia» per mandarlo a Claude). Resta solo su questo dispositivo (rt_slow), niente dati personali.
+(function(){
+  try{
+    const K = 'rt_slow', sup = (window.PerformanceObserver && PerformanceObserver.supportedEntryTypes) || [];
+    let D = {taps: [], loaf: []}; try{ D = Object.assign(D, JSON.parse(localStorage.getItem(K) || '{}') || {}); }catch(e){}
+    let saveT = 0; const save = ()=>{ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ D.taps = D.taps.slice(-80); D.loaf = D.loaf.slice(-60); localStorage.setItem(K, JSON.stringify(D)); }catch(e){} }, 2000); };
+    const view = ()=>{ try{ return (typeof state !== 'undefined' && state.view) || ''; }catch(e){ return ''; } };
+    const what = el=>{ try{ if(!el || !el.closest) return '?'; const t = el.closest('.view-tab[data-view]'); if(t) return 'barra:' + t.dataset.view; if(el.closest('#askTab')) return 'barra:chiedi'; const g = el.closest('[data-gid],[data-id]'); if(g) return 'gioco'; const b = el.closest('button,[id]'); return b ? (b.id ? '#' + b.id : (b.className || b.tagName).toString().split(' ')[0].slice(0, 24)) : el.tagName; }catch(e){ return '?'; } };
+    if(sup.includes('event')){
+      new PerformanceObserver(l=> l.getEntries().forEach(e=>{
+        if(!/^(pointerdown|pointerup|click|keydown)$/.test(e.name) || e.duration < 100) return;
+        D.taps.push({t: Date.now(), ev: e.name, ms: Math.round(e.duration), attesa: Math.round(e.processingStart - e.startTime), lavoro: Math.round(e.processingEnd - e.processingStart), su: what(e.target), v: view()}); save();
+      })).observe({type: 'event', durationThreshold: 104, buffered: true});
+    }
+    if(sup.includes('long-animation-frame')){
+      new PerformanceObserver(l=> l.getEntries().forEach(e=>{
+        if(e.duration < 150) return;
+        const sc = (e.scripts || []).slice().sort((a, b)=> b.duration - a.duration).slice(0, 3).map(s=> ({f: (s.sourceFunctionName || s.invoker || '?').toString().slice(0, 40) + ' @' + String(s.sourceURL || '').split('/').pop().split('?')[0], ms: Math.round(s.duration)}));
+        const js = (e.scripts || []).reduce((s, x)=> s + x.duration, 0);
+        D.loaf.push({t: Date.now(), ms: Math.round(e.duration), js: Math.round(js), disegno: Math.round(e.duration - js), v: view(), sc}); save();
+      })).observe({type: 'long-animation-frame', buffered: true});
+    }
+    function report(){
+      const b = (document.querySelector('meta[name="build"]') || {}).content || '';
+      const n = (()=>{ try{ return GAMES.length; }catch(e){ return '?'; } })();
+      const hh = t=> new Date(t).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+      const L = ['Rapporto lentezza Raccoon Tier ' + b + ' · ' + n + ' giochi · ' + (navigator.hardwareConcurrency || '?') + ' core · ' + (navigator.deviceMemory || '?') + ' GB · ' + innerWidth + 'x' + innerHeight + ' · ' + (matchMedia('(display-mode: fullscreen)').matches ? 'app' : 'browser'), ''];
+      L.push('TOCCHI LENTI (dal tocco al disegno, ms · attesa prima di partire · lavoro):');
+      D.taps.slice(-30).reverse().forEach(x=> L.push(hh(x.t) + '  ' + x.ms + ' ms  [attesa ' + x.attesa + ', lavoro ' + x.lavoro + ']  ' + x.ev + ' su ' + x.su + '  (pagina: ' + (x.v || '?') + ')'));
+      if(!D.taps.length) L.push('  nessuno sopra 100 ms');
+      L.push('', 'BLOCCHI DEL TELEFONO (ms totali · di cui codice · di cui disegno → funzioni):');
+      D.loaf.slice(-30).reverse().forEach(x=> L.push(hh(x.t) + '  ' + x.ms + ' ms  [codice ' + x.js + ', disegno ' + x.disegno + ']  (' + (x.v || '?') + ')  ' + x.sc.map(s=> s.f + ' ' + s.ms + 'ms').join(' | ')));
+      if(!D.loaf.length) L.push('  nessuno sopra 150 ms');
+      return L.join('\n');
+    }
+    window.rtSlowReport = report;
+    function open(){
+      const U = window.XUI; if(!U || !U.sheet) return;
+      const txt = report();
+      const body = U.sheet('xSlow', '🐢 Rapporto lentezza', `<div class="lp-sub">Qui il programma annota da solo ogni tocco lento e ogni blocco del telefono, con la parte del programma che l'ha causato. <b>Usa l'app normalmente per qualche minuto</b>, poi tocca «Copia» e incolla il testo a Claude.</div><pre style="white-space:pre-wrap;font-size:.68rem;line-height:1.35;max-height:52vh;overflow:auto;background:rgba(127,127,127,.1);padding:8px;border-radius:10px">${String(txt).replace(/[&<>]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]))}</pre><div class="lp-tools"><button class="btn primary" type="button" id="slCopy">📋 Copia</button><button class="btn" type="button" id="slClear">🧹 Ricomincia</button></div>`);
+      body.querySelector('#slCopy').addEventListener('click', async e=>{ try{ await navigator.clipboard.writeText(report()); e.target.textContent = '✓ Copiato'; }catch(x){ try{ const ta = document.createElement('textarea'); ta.value = report(); document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); e.target.textContent = '✓ Copiato'; }catch(y){ e.target.textContent = 'Copia non riuscita'; } } });
+      body.querySelector('#slClear').addEventListener('click', ()=>{ D = {taps: [], loaf: []}; try{ localStorage.removeItem(K); }catch(e){} open(); });
+    }
+    (window.XMENU = window.XMENU || []).push({html: '🐢 Rapporto lentezza (per Claude)', run: open});
+  }catch(e){}
+})();

@@ -42,7 +42,8 @@
     $('.rn-tx').textContent = textOf(n.msg) || n.msg;
     $('.rn-go').hidden = !acts.has(id);
     const more = queue.filter(q=> q !== id).length; $('.rn-more').hidden = !more; $('.rn-more').textContent = '+' + more;
-    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    // v216: niente «void offsetWidth» (ricalcolava la pagina intera): due fotogrammi e poi entra
+    if(el.classList.contains('show')){ el.classList.remove('show'); requestAnimationFrame(()=> requestAnimationFrame(()=> el.classList.add('show'))); } else requestAnimationFrame(()=> el.classList.add('show'));
     try{ window.rtHaptic && rtHaptic('soft'); }catch(e){}
   }
   function hide(){ cur = null; el.classList.remove('show'); }
