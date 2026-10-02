@@ -3,6 +3,13 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v243', date:'2026-10-02', time:'22:22', items:[
+    'Avvisi nuovi: non più il fumetto azzurro ma una scheda di vetro scuro con icona colorata, comparsa animata e una barra sottile che mostra quanto resta.',
+    'Nuova versione: l\'avviso è una scheda con la scintilla che brilla; toccandolo il programma si aggiorna e, appena riparte, ti apre le News.',
+    'Voce della lettura: 4 motori. ✨ Gemini, ☁️ Google Cloud (voci HD con la stessa chiave Gemini: partono subito e non si fermano), 🌐 Google Traduttore (senza chiave, voce unica) e 📱 Telefono. Ogni motore mostra solo le voci che ha davvero.',
+    'La voce non si blocca più a metà: con Gemini al massimo 3 richieste (Google gratis ne concede poche al minuto, e prima si fermava ad aspettare), e mentre suona un pezzo il successivo è già pronto.',
+    'Storie senza spoiler: le regole per l\'AI ora vietano colpi di scena, identità e parentele nascoste, morti, tradimenti e finale. Le trame riscritte con le vecchie regole (come quella di Final Fantasy X) tornano a quella originale.',
+  ]},
   {version:'v242', date:'2026-10-02', time:'21:52', items:[
     '🧹 Sospetti messi da parte: i giochi aggiunti per adulti, spazzatura o scherzi, demo e prologhi, soundtrack e titoli asiatici sconosciuti non compaiono più nella lista. Non sono cancellati: li trovi nel menu ✨ → «🧹 Sospetti messi da parte» (stanza «Dati e manutenzione») e in Novità col pulsante «🧹 Sospetti». Per ognuno: 🔍 guardalo, ♻️ rimettilo nella lista, 🗑️ eliminalo.',
     'Frugu Frugu: le proposte sospette non finiscono più tra quelle da accettare ma nella pila «🦝 Da Frugu» dei Sospetti, dove puoi guardarle e aggiungerle lo stesso.',
@@ -888,6 +895,8 @@ const CHANGELOG = [
   ]}
 ];
 const changelogBackdrop = document.getElementById('changelogBackdrop');
+// v243: dopo «Nuova versione → tocca per aggiornare» il programma riparte e mostra subito le News
+setTimeout(()=>{ try{ if(localStorage.getItem('rt_open_news') === '1'){ localStorage.removeItem('rt_open_news'); setTimeout(()=>{ try{ openChangelog(); }catch(e){} }, 1800); } }catch(e){} }, 0);
 const changelogCard = document.getElementById('changelogCard');
 function openChangelog(){
   changelogCard.innerHTML = `

@@ -1914,3 +1914,34 @@ html:fullscreen .view-tabs{padding-left:18px !important; padding-right:18px !imp
 /* v236: a destra serve un po' più di spazio (l'angolo tagliava «Statistiche») */
 @media (display-mode: fullscreen) and (max-width:760px){ .view-tabs{padding-left:20px !important; padding-right:28px !important} }
 html:fullscreen .view-tabs{padding-left:20px !important; padding-right:28px !important}
+/* v243 — avvisi «smart»: scheda di vetro con icona in un cerchio sfumato, testo pulito, comparsa a molla e barra del tempo */
+html body .toast.toast,html body .tt-card.tt-card{display:flex !important; align-items:center; gap:12px; text-align:left !important; width:max-content; max-width:min(92vw,420px) !important;
+  padding:10px 14px 12px 10px !important; border-radius:18px !important; overflow:hidden;
+  background:linear-gradient(135deg,rgba(28,26,40,.88),rgba(18,17,28,.92)) !important; color:#f5f3ff !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  box-shadow:0 18px 44px -14px rgba(0,0,0,.75), 0 0 0 1px rgba(var(--a1rgb,124,92,255),.25), 0 0 28px -8px rgba(var(--a1rgb,124,92,255),.6) !important;
+  -webkit-backdrop-filter:blur(16px) saturate(1.4); backdrop-filter:blur(16px) saturate(1.4);
+  font:500 .86rem/1.35 inherit; letter-spacing:.01em}
+.toast{transform:translate(-50%,24px) scale(.94) !important; opacity:0; transition:transform .5s cubic-bezier(.22,1.4,.36,1), opacity .25s ease !important}
+.toast.show{transform:translate(-50%,0) scale(1) !important; opacity:1}
+.tt-ic{flex:none; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:1.1rem;
+  background:linear-gradient(140deg,rgba(var(--a1rgb,124,92,255),.95),rgba(var(--a3rgb,255,110,199),.85)); box-shadow:0 4px 14px -4px rgba(var(--a1rgb,124,92,255),.9), inset 0 1px 0 rgba(255,255,255,.35)}
+.tt-tx{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; white-space:normal}
+.tt-tx b{font-weight:700; font-size:.92rem} .tt-tx small{opacity:.72; font-size:.76rem; font-weight:500}
+.tt-bar{position:absolute; left:0; bottom:0; height:3px; width:100%; transform-origin:left; background:linear-gradient(90deg,rgba(var(--a1rgb,124,92,255),1),rgba(var(--a3rgb,255,110,199),1)); opacity:.85}
+.toast.show .tt-bar{animation:ttBar var(--tt-ms,1800ms) linear forwards}
+@keyframes ttBar{from{transform:scaleX(1)} to{transform:scaleX(0)}}
+.toast.show .tt-ic{animation:ttPop .55s cubic-bezier(.22,1.6,.36,1) both}
+@keyframes ttPop{0%{transform:scale(.3) rotate(-25deg)} 100%{transform:scale(1) rotate(0)}}
+/* nuova versione: scheda con scintilla che brilla, entra dal basso */
+.rt-newver.tt-card{position:fixed; left:50%; bottom:calc(var(--navh,0px) + 18px + env(safe-area-inset-bottom,0px)); z-index:100950; cursor:pointer; font-family:inherit;
+  animation:ttIn .6s cubic-bezier(.22,1.4,.36,1) both; transform:translateX(-50%)}
+.rt-newver.tt-card:active{transform:translateX(-50%) scale(.97)}
+.rt-newver.busy .tt-spark{animation:ttSpin 1s linear infinite}
+.tt-go{flex:none; font-size:1.6rem; line-height:1; opacity:.6}
+.tt-spark{animation:ttGlow 2.4s ease-in-out infinite}
+@keyframes ttIn{from{opacity:0; transform:translate(-50%,40px) scale(.9)} to{opacity:1; transform:translate(-50%,0) scale(1)}}
+@keyframes ttGlow{0%,100%{box-shadow:0 4px 14px -4px rgba(var(--a1rgb,124,92,255),.9)} 50%{box-shadow:0 0 22px 2px rgba(var(--a3rgb,255,110,199),.85)}}
+@keyframes ttSpin{to{transform:rotate(360deg)}}
+html[data-pack] .toast.toast,html[data-pack] .tt-card.tt-card{background:linear-gradient(135deg,rgba(28,26,40,.9),rgba(18,17,28,.94)) !important; color:#f5f3ff !important; border:1px solid rgba(255,255,255,.12) !important; border-radius:max(14px,min(var(--pk-r,18px),22px)) !important; box-shadow:0 18px 44px -14px rgba(0,0,0,.75), 0 0 0 1px rgba(var(--a1rgb,124,92,255),.25), 0 0 28px -8px rgba(var(--a1rgb,124,92,255),.6) !important}
+html.mo-off .toast,html.mo-off .tt-card,html.mo-off .tt-ic{animation:none !important; transition:opacity .15s !important}

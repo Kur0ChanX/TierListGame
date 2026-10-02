@@ -1165,7 +1165,12 @@ function showToast(msg, ms, onTap){
     (window.__rtNotifQ = window.__rtNotifQ || []).push([msg, onTap]); return;
   }
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
+  // v243: scheda «smart» — icona (la prima emoji del testo) in un cerchio colorato, testo pulito, barra del tempo che si consuma
+  { const m = /^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u200D(?:\p{Extended_Pictographic})|\p{Regional_Indicator})*)\s*/u.exec(String(msg)), ic = m ? m[1] : '✨', tx = m ? String(msg).slice(m[0].length) : String(msg);
+    const e = s=> String(s).replace(/[&<>]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+    t.innerHTML = '<span class="tt-ic">' + e(ic) + '</span><span class="tt-tx">' + e(tx) + '</span><i class="tt-bar"></i>';
+    t.style.setProperty('--tt-ms', (ms || 1800) + 'ms'); t.classList.remove('show'); void t.offsetWidth; }
+  t.classList.add('show');
   t._tap = typeof onTap === 'function' ? onTap : null; t.classList.toggle('tappable', !!t._tap);          // palloncino con azione: toccandolo si apre la cosa di cui parla
   clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms || 1800);
 }
