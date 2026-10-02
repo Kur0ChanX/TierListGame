@@ -763,8 +763,8 @@ td.method svg.gi{width:19px !important; height:19px !important; display:inline-b
 .tg-row{display:grid; grid-template-columns:130px 1fr 34px; gap:6px; align-items:center; font-size:.8rem; margin:3px 0} .tg-row i{height:8px; border-radius:99px} .tg-row i.p{background:linear-gradient(90deg,#22c55e,#86efac)} .tg-row i.n{background:linear-gradient(90deg,#ef4444,#fca5a5)}
 .tg-tol{font-size:.8rem; padding:6px 9px; margin:4px 0; border-radius:10px; background:rgba(var(--a1rgb),.1)} .tg-recs{display:flex; flex-wrap:wrap; gap:6px}
 #xTaste h4{margin:12px 0 4px}
-html.rt-tinted #modalBackdrop.show{background:radial-gradient(ellipse at 15% 0%, rgba(var(--rt-tint),.6), transparent 62%), radial-gradient(ellipse at 90% 100%, rgba(var(--a2rgb),.5), transparent 60%), rgba(8,6,20,.5) !important; animation:rtTintIn .6s ease both}
-html.rt-tinted #modalCard{box-shadow:0 0 0 2px rgba(var(--rt-tint),.55), 0 20px 60px rgba(var(--rt-tint),.35) !important}
+#modalBackdrop.rt-tinted.show{background:radial-gradient(ellipse at 15% 0%, rgba(var(--rt-tint),.6), transparent 62%), radial-gradient(ellipse at 90% 100%, rgba(var(--a2rgb),.5), transparent 60%), rgba(8,6,20,.5) !important; animation:rtTintIn .6s ease both}
+#modalBackdrop.rt-tinted #modalCard{box-shadow:0 0 0 2px rgba(var(--rt-tint),.55), 0 20px 60px rgba(var(--rt-tint),.35) !important}
 @keyframes rtTintIn{from{opacity:0} to{opacity:1}}
 .anim-cv{width:100%; height:auto; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.35); margin:8px 0}
 .showcase{position:fixed; inset:0; z-index:100000; background:#000; overflow:hidden; cursor:pointer}
@@ -877,8 +877,8 @@ tr.rt-noanim, tr.rt-noanim *{animation:none !important}
 @property --a2rgb{syntax:'<number>#'; inherits:true; initial-value:176,76,245}
 @property --a3rgb{syntax:'<number>#'; inherits:true; initial-value:255,110,199}
 @property --rt-tint{syntax:'<number>#'; inherits:true; initial-value:124,92,255}
-:root{transition:--a1rgb .7s ease, --a2rgb .7s ease, --a3rgb .7s ease, --rt-tint .7s ease}
-html.rt-tinted #modalBackdrop.show{animation:none !important}
+/* v222: niente più transizione dei colori sulla radice (ricalcolava gli stili di tutta la pagina a ogni fotogramma) */
+#modalBackdrop.rt-tinted.show{animation:none !important}
 
 /* player musica: piccolo grip per spostarlo/bloccarlo, e si fa discreto quando non lo usi */
 .rm-g{flex:none; width:22px; height:30px; border:0; border-radius:10px; background:rgba(255,255,255,.10); color:#fff; font-size:.9rem; line-height:1; padding:0; opacity:.8; touch-action:none}
@@ -1711,7 +1711,7 @@ body.rt-gopen .badge.Splus, body.rt-gopen .row-top::after{animation-play-state:p
 #modalCard > *:nth-child(n+9){content-visibility:auto; contain-intrinsic-size:auto 240px}
 /* v218: sfondo della scheda «alla copertina», stile moderno: non più un colore piatto ma 4 bagliori morbidi (i 3 colori della copertina) sopra al fondo scuro.
    I colori passano dolcemente da un gioco all'altro (--a1rgb/a2rgb/a3rgb sono animate). Solo sfondo statico: nessun costo mentre scorri. */
-html.rt-tinted .modal-card, html.rt-tinted:not(.fx-on) .modal-card{
+#modalBackdrop.rt-tinted .modal-card, html:not(.fx-on) #modalBackdrop.rt-tinted .modal-card{
   background:
     radial-gradient(125% 52% at 10% -8%, rgba(var(--a1rgb),.52), transparent 64%),
     radial-gradient(95% 48% at 108% 8%, rgba(var(--a2rgb),.36), transparent 62%),
@@ -1728,7 +1728,7 @@ html .modal-card.x-tinted, html:not(.fx-on) .modal-card.x-tinted{
     radial-gradient(110% 40% at 55% 112%, rgba(var(--x-tint),.22), transparent 62%),
     var(--card) !important;
 }
-html[data-theme="light"].rt-tinted .modal-card{background:
+html[data-theme="light"] #modalBackdrop.rt-tinted .modal-card{background:
     radial-gradient(125% 52% at 10% -8%, rgba(var(--a1rgb),.30), transparent 64%),
     radial-gradient(95% 48% at 108% 8%, rgba(var(--a2rgb),.22), transparent 62%),
     radial-gradient(85% 42% at -10% 55%, rgba(var(--a3rgb),.12), transparent 66%),

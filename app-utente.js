@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v222', date:'2026-10-02', time:'09:59', items:[
+    'PROBLEMA ALLA RADICE trovato: la funzione «tema dalla copertina» cambiava i colori di TUTTA l\'app animandoli per 0,7 s. Quei colori sono ereditati da ~1650 elementi, quindi a ogni fotogramma, mentre la scheda si apriva (e quando si chiudeva), il telefono ricalcolava gli stili di tutta la pagina: per questo le animazioni «non avevano influenza». Ora i colori stanno solo sulla scheda (~500 elementi) e non c\'è più l\'animazione sulla radice. Nel telefono simulato lento: calcolo degli stili all\'apertura da ~530 a ~65 ms, disegno da ~685 a ~310 ms.',
+    'Sincronizzazione: la parte pesante (160-260 ms) non parte più mentre usi l\'app: aspetta almeno 5 minuti dall\'ultima volta e che tu non tocchi lo schermo; le modifiche non inviate partono quando lasci l\'app. All\'avvio parte dopo 6 s e a schermo fermo.',
+    'Controllato anche l\'aspect ratio delle locandine: la cornice è sempre 3:4 (non si adatta più all\'immagine), quindi non sposta niente quando la copertina arriva.'
+  ]},
   {version:'v221', date:'2026-10-02', time:'09:40', items:[
     'Apertura del gioco senza «doppio colpo»: la scheda è piena fin dal primo fotogramma (prima si vedeva la lista attraverso la scheda che sfumava) e compare insieme alla locandina: aspetta pochi millesimi che la miniatura sia pronta e poi parte l\'animazione già con la locandina dentro. Vale per tutti gli stili.',
     'Player nella scheda: i tasti sono di nuovo tondi (con il tasto «Auto» la riga era troppo larga e li schiacciava a uovo).',
