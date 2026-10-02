@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raccoon Tier — Tier List RPG & JRPG di Mario</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="build" content="v238">
+<meta name="build" content="v239">
 <meta name="theme-color" content="#0a0620">
 <style>html,body{background:#0a0620}</style>
 <link rel="preload" as="image" href="icons/intro.jpg" fetchpriority="high">
@@ -356,8 +356,9 @@ document.addEventListener('click',function(e){if(window.__rtReady||Date.now()-t0
           <input type="text" id="ocKeyInput" name="rt-ocKeyInput" data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="-webkit-text-security:disc" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Incolla qui la chiave RapidAPI">
         </label>
         <label>Ponte personale (facoltativo): indirizzo del tuo Cloudflare Worker, per far funzionare Steam, GOG e Reddit
-          <input type="text" id="relayUrlInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://nome.tuo-account.workers.dev/">
+          <span class="rt-relay-row"><input type="text" id="relayUrlInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://nome.tuo-account.workers.dev/"><button class="btn" id="keysTestAllBtn" type="button" title="Prova Gemini, RAWG, OpenCritic, ponte e token GitHub">🧪 Prova tutto</button></span>
         </label>
+        <div class="ask-engine-status" id="keysTestAll" hidden></div>
         <div class="ask-engine-actions"><button class="btn primary" id="geminiSaveBtn">Salva e verifica</button><button class="btn" id="geminiClearBtn">Rimuovi</button></div>
         <div class="ask-engine-actions"><button class="btn" id="keysCopyBtn" title="Copia Gemini, RAWG, OpenCritic e ponte per incollarli su un altro dispositivo">📤 Copia le mie chiavi</button><button class="btn" id="keysEncBtn" title="Salva le chiavi (cifrate con la tua password) nel tuo GitHub">☁️ Salva chiavi</button><button class="btn" id="keysRecBtn" title="Utente e password: le chiavi tornano da sole su questo dispositivo">🔑 Accedi / Nuovo utente</button><button class="btn" id="keysQrBtn" title="Mostra un QR da inquadrare con un altro dispositivo">📱 QR</button><button class="btn" id="keysPasteBtn" title="Incolla il codice copiato dall'altro dispositivo">📥 Incolla le chiavi</button></div>
         <div class="ask-engine-status" id="geminiStatus">La chiave resta solo su questo dispositivo, nel browser.</div>

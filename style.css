@@ -466,6 +466,10 @@ label.cover-pill.busy input[type=file]{pointer-events:none;}
 .ask-engine-body label{display:flex;flex-direction:column;gap:4px}
 .ask-engine-body input,.ask-engine-body select{font:inherit;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);background:var(--row-alt,#fff);color:inherit}
 .ask-engine-actions{display:flex;gap:8px}
+.rt-relay-row{display:flex;gap:8px;align-items:stretch}
+.rt-relay-row input{flex:1;min-width:0}
+.rt-relay-row .btn{flex:none;white-space:nowrap}
+#keysTestAll{white-space:pre-line;line-height:1.5}
 .ask-engine-status{font-size:.8rem;opacity:.9}
 
 .novita-topbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
