@@ -95,7 +95,12 @@ html.no-row-th .row-th{display:none} html.no-row-th .ttl-tx{max-width:100%}
 .x-thumb .x-ph i{display:none}
 .discover-cover{background:linear-gradient(160deg, #2a1c52, #140f26)}
 
-/* ---- apertura animata ---- */
-.intro-art{position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); width:82%; max-width:440px; text-align:center; animation:introPop 1.1s cubic-bezier(.2,1.4,.4,1) both}
-.intro-art img{width:100%; height:auto; display:block; filter:drop-shadow(0 12px 34px rgba(0,0,0,.55))}
-@keyframes introPop{from{opacity:0; transform:translate(-50%,-46%) scale(.86)}to{opacity:1; transform:translate(-50%,-50%) scale(1)}}
+/* ---- apertura animata: immagine a tutto riquadro (icons/intro.svg, animata al suo interno) ---- */
+.intro-bg{background-image:url(icons/intro.svg)}
+.intro-img{object-fit:cover; object-position:50% 50%}
+.intro-frame{background:#0b0524}
+/* logo: si rimpicciolisce da solo se lo spazio accanto ai pulsanti è poco */
+.topbar-row1 h1{flex:1 1 0 !important; min-width:0; margin:0 6px 0 0 !important; justify-content:flex-start}
+h1 picture{display:block; min-width:0; max-width:100%}
+.brand-logo,.topbar-row1 .brand-logo{height:auto; width:auto; max-height:54px; max-width:100%}
+@media (max-width:430px){ .brand-logo,.topbar-row1 .brand-logo{max-height:48px} }
