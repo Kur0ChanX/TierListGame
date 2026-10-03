@@ -102,18 +102,40 @@
   let piperLib = null, piperQ = Promise.resolve(), onProg = null;
   async function piperLoad(){
     if(!piperLib){
-      piperLib = import('https://cdn.jsdelivr.net/npm/@diffusionstudio/vits-web@1.0.3/+esm').then(m=>{ PIPER.forEach(p=>{ try{ if(m.PATH_MAP && !m.PATH_MAP[p.id]) m.PATH_MAP[p.id] = p.path; }catch(e){} }); return m; });
+      piperLib = import(VW).then(m=>{ PIPER.forEach(p=>{ try{ if(m.PATH_MAP && !m.PATH_MAP[p.id]) m.PATH_MAP[p.id] = p.path; }catch(e){} }); return m; });
       piperLib.catch(()=>{ piperLib = null; });
     }
     try{ return await piperLib; }catch(e){ throw err('non riesco a scaricare la voce offline (serve internet la prima volta)', {status: -1}); }
   }
   const piperDone = ()=> (ls.get(PDL_K) || '').split(',').filter(Boolean);
+  // v255: la voce offline lavora in un «aiutante» separato (Web Worker): prima girava insieme all'app e la bloccava finché non finiva di leggere
+  const VW = 'https://cdn.jsdelivr.net/npm/@diffusionstudio/vits-web@1.0.3/+esm';
+  let wk = null, wseq = 0, noWorker = false; const wjobs = {};
+  function worker(){
+    if(wk) return wk;
+    const src = `import * as m from '${VW}';
+const P = ${JSON.stringify(PIPER.map(p=> [p.id, p.path]))}; P.forEach(([id, path])=>{ try{ if(m.PATH_MAP && !m.PATH_MAP[id]) m.PATH_MAP[id] = path; }catch(e){} });
+self.onmessage = async e=>{ const {n, text, voice} = e.data;
+  try{ const b = await m.predict({text, voiceId: voice}, pr=>{ if(pr && pr.total) self.postMessage({n, p: Math.round(pr.loaded / pr.total * 100)}); }); self.postMessage({n, blob: b}); }
+  catch(x){ self.postMessage({n, err: String(x && x.message || x)}); } };
+self.postMessage({ready: 1});`;
+    const fail = why=>{ Object.keys(wjobs).forEach(k=>{ wjobs[k].rej(err(why, {status: -1})); delete wjobs[k]; }); try{ wk && wk.terminate(); }catch(e){} wk = null; };
+    wk = new Worker(URL.createObjectURL(new Blob([src], {type: 'text/javascript'})), {type: 'module'});
+    wk.onmessage = e=>{ const d = e.data || {}; if(d.ready) return; const j = wjobs[d.n]; if(!j) return; if(d.p != null){ if(onProg) onProg(d.p); return; } delete wjobs[d.n]; if(d.err) j.rej(err('la voce offline non è riuscita a leggere (' + d.err.slice(0, 80) + ')')); else j.res(d.blob); };
+    wk.onerror = ev=>{ try{ ev.preventDefault(); }catch(e){} fail('non riesco a scaricare la voce offline (serve internet la prima volta)'); };
+    return wk;
+  }
   function piperAudio(text, voice){
     const p = piperQ.catch(()=>{}).then(async ()=>{
-      const m = await piperLoad();
       let b;
-      try{ b = await m.predict({text, voiceId: voice}, pr=>{ if(onProg && pr && pr.total) onProg(Math.round(pr.loaded / pr.total * 100)); }); }
-      catch(e){ throw err('la voce offline non è riuscita a leggere (' + String(e && e.message || e).slice(0, 80) + ')'); }
+      try{ if(noWorker) throw err('no'); const w = worker(); b = await new Promise((res, rej)=>{ const n = ++wseq; wjobs[n] = {res, rej}; w.postMessage({n, text, voice}); }); }
+      catch(e){
+        noWorker = true; try{ wk && wk.terminate(); }catch(x){} wk = null;      // l'aiutante non va su questo telefono: da ora leggo come prima
+        // riserva: se l'aiutante separato non parte (alcuni browser), leggo come prima
+        const m = await piperLoad();
+        try{ b = await m.predict({text, voiceId: voice}, pr=>{ if(onProg && pr && pr.total) onProg(Math.round(pr.loaded / pr.total * 100)); }); }
+        catch(x){ throw err('la voce offline non è riuscita a leggere (' + String(x && x.message || x).slice(0, 80) + ')'); }
+      }
       if(!piperDone().includes(voice)) ls.set(PDL_K, piperDone().concat(voice).join(','));
       return b;
     });

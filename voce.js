@@ -41,7 +41,7 @@
   const voiceId = ()=>{ const v = ls.get(VOICE_K); return VOICES.some(x=> x.id === v) ? v : 'Charon'; };
   const STYLE = 'narratore italiano caldo e coinvolgente, ritmo disteso, pause naturali';
   // modelli in ordine: [modello, tipo di chiamata]
-  const MODELS = [['gemini-3.8-flash-tts', 'ix'], ['gemini-3.8-flash-lite-tts', 'ix'], ['gemini-3.1-flash-tts-preview', 'gc'], ['gemini-2.5-flash-preview-tts', 'gc'], ['gemini-2.5-pro-preview-tts', 'gc']];
+  const MODELS = [['gemini-3.8-flash-tts', 'ix'], ['gemini-3.8-flash-lite-tts', 'ix'], ['gemini-3.1-flash-tts-preview', 'gc'], ['gemini-2.5-flash-preview-tts', 'gc']];      // v255: tolto il modello Pro (consuma troppo, limiti subito)
   const b64 = d=>{ const bin = atob(d), u = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
   function findAudio(o, depth){        // cerca nella risposta il pezzo audio (forma nuova «steps[].content[]» o vecchia «inlineData»)
     if(!o || typeof o !== 'object' || depth > 8) return null;
@@ -150,11 +150,13 @@
     return out;
   }
   // ---- Google Cloud Voce (Text-to-Speech ufficiale): usa la chiave Gemini se nel suo progetto Google è attiva la «Cloud Text-to-Speech API»
-  const CV_K = 'jrpg_tts_cloud_voice', CVL_K = 'rt_tts_cloud_voices';
+  const CV_K = 'jrpg_tts_cloud_voice', CVL_K = 'rt_tts_cloud_voices', GCK_K = 'jrpg_gcloud_key';
+  // v255: chiave propria per Google Cloud Voce (se manca uso quella di Gemini)
+  const cloudKey = ()=> (ls.get(GCK_K) || '').trim() || (typeof geminiKey === 'function' ? geminiKey() : '') || '';
   const cloudErr = (st, m)=>{ if(st === 403 && /disabled|not been used|SERVICE_DISABLED|has not been enabled/i.test(m)) return 'nel progetto Google della tua chiave va attivata la «Cloud Text-to-Speech API» (una volta sola, gratis fino a 1 milione di caratteri al mese)'; if(st === 403 && /blocked|API_KEY_SERVICE_BLOCKED|restrict/i.test(m)) return 'la tua chiave Gemini è limitata solo a Gemini, quindi la voce Google Cloud non la accetta'; if(st === 400 && /api key/i.test(m) || st === 401 || st === 403) return 'la chiave non è accettata dalla voce Google Cloud'; if(st === 429) return 'troppe richieste, riprova tra un minuto'; return m || ('errore ' + st); };
   async function cloudFetch(url, body){
-    if(typeof geminiKey !== 'function' || !geminiKey()) throw Object.assign(new Error('manca la chiave Gemini (⚙️ Impostazioni → AI)'), {fatal: true});
-    let r; try{ r = await fetch(url, {method: body ? 'POST' : 'GET', headers: Object.assign({'x-goog-api-key': geminiKey()}, body ? {'Content-Type': 'application/json'} : {}), body: body ? JSON.stringify(body) : undefined}); }
+    if(!cloudKey()) throw Object.assign(new Error('manca la chiave di Google Cloud (incollala qui sotto)'), {fatal: true});
+    let r; try{ r = await fetch(url, {method: body ? 'POST' : 'GET', headers: Object.assign({'x-goog-api-key': cloudKey()}, body ? {'Content-Type': 'application/json'} : {}), body: body ? JSON.stringify(body) : undefined}); }
     catch(e){ throw Object.assign(new Error('rete non disponibile'), {status: -1}); }
     if(!r.ok){ let m = ''; try{ const j = await r.json(); m = (j.error && j.error.message) || ''; }catch(e){} const e = new Error(cloudErr(r.status, m)); e.status = r.status; e.fatal = r.status === 403 || r.status === 401; throw e; }
     return r.json();
@@ -230,7 +232,10 @@
   // Ordine: quella scelta → Google Traduttore → telefono. L'avviso compare una volta sola per voce.
   const NAMES = {ai: 'Voce Gemini', cloud: 'Voce Google Cloud', gtr: 'Voce Google Traduttore', phone: 'Voce del telefono', azure: 'Voce Microsoft Azure', eleven: 'Voce ElevenLabs', cart: 'Voce Cartesia', piper: 'Voce offline Piper'};
   // v254: la voce offline (se già scaricata) viene prima del Traduttore come riserva
-  const chainOf = e=>{ if(e === 'phone') return ['phone']; const pip = e !== 'piper' && VP() && VP().ready('piper') ? ['piper'] : []; return e === 'gtr' ? ['gtr', 'phone'] : [e].concat(pip, ['gtr', 'phone']); };
+  // v255: ordine di priorità dell'utente: Google Cloud → Gemini → Azure → Cartesia → ElevenLabs. Se la voce scelta non va, provo le altre (solo quelle con la chiave), poi Traduttore e telefono.
+  const PRIO = ['cloud', 'ai', 'azure', 'cart', 'eleven'];
+  const hasKeyFor = e=> e === 'cloud' ? !!cloudKey() : e === 'ai' ? (typeof geminiKey === 'function' && !!geminiKey()) : !!(VP() && VP().ready(e));
+  const chainOf = e=>{ if(e === 'phone') return ['phone']; if(e === 'gtr') return ['gtr', 'phone']; return [e].concat(PRIO.filter(x=> x !== e && hasKeyFor(x)), ['gtr', 'phone']); };
   const warned = {}, skip = {};
   async function play(g, txt){
     stop(); const my = ++token; state = 'load'; paint();
@@ -257,10 +262,10 @@
   // Risultato: {done} se ha letto tutto, altrimenti {left: testo non ancora letto, why: motivo}.
   async function runChain(eng, text0, my, g){
     const text = text0.slice(0, eng === 'ai' ? 3800 : 6000);
-    const parts = eng === 'ai' ? plan(text, [280, 900, 2800]) : eng === 'piper' ? plan(text, [160, 500, 700, 700, 700, 700, 700, 700, 700, 700]) : (eng === 'cloud' || isVP(eng)) ? plan(text, [220, 1400, 1400, 1400, 1400]) : gtrParts(text);
+    const parts = eng === 'ai' ? plan(text, [220, 650, 900, 900, 900, 900, 900]) : eng === 'piper' ? plan(text, [160, 500, 700, 700, 700, 700, 700, 700, 700, 700]) : (eng === 'cloud' || isVP(eng)) ? plan(text, [220, 1400, 1400, 1400, 1400]) : gtrParts(text);
     const make = eng === 'ai' ? (t=> aiAudio(t, null, my).then(b=> URL.createObjectURL(b))) : eng === 'cloud' ? (t=> cloudAudio(t).then(b=> URL.createObjectURL(b))) : isVP(eng) ? (t=> (VP() ? VP().audio(eng, t) : Promise.reject(new Error('voce non caricata'))).then(b=> URL.createObjectURL(b))) : (t=> Promise.resolve(gtrUrl(t)));
     const mk = src=>{ if(eng === 'gtr') return noRefAudio(src); const a = new Audio(); a.preload = 'auto'; a.src = src; try{ a.load(); }catch(e){} return a; };
-    const jobs = [], AHEAD = eng === 'ai' ? parts.length : eng === 'piper' ? 1 : 2;
+    const jobs = [], AHEAD = eng === 'ai' || eng === 'piper' ? 1 : 2;      // v255: Gemini prepara solo il pezzo successivo mentre legge (prima chiedeva tutto insieme e Google rispondeva «aspetta»)
     const get = i=>{ if(i >= parts.length) return null; if(!jobs[i]){ jobs[i] = make(parts[i]); jobs[i].catch(()=>{}); } return jobs[i]; };
     const left = i=> parts.slice(i).join(' ') + (text0.length > text.length ? ' ' + text0.slice(text.length) : '');
     onWait = sec=>{ if(my === token){ const b = btn(); if(b) b.querySelector('span').textContent = 'Gemini occupato, riprovo tra ' + sec + ' s…'; } };
@@ -300,7 +305,10 @@
     end(); paintSet();
   }
   function playBlob(blob, my){ return new Promise(res=>{ if(my !== token) return res(); audio = new Audio(URL.createObjectURL(blob)); audio.onended = ()=>{ duck(false); res(); }; audio.onerror = ()=> res(); audio.play().then(()=> duck(true), ()=> res()); }); }
+  // v255: il tasto accanto ad «Auto» mostra subito il motore scelto (prima restava quello vecchio fino al riavvio)
+  function engLabel(){ const e = engine(); return e === 'ai' ? 'Gemini · ' + voiceId() : {cloud: 'Google Cloud', gtr: 'Traduttore', phone: 'Telefono', azure: 'Azure', eleven: 'ElevenLabs', cart: 'Cartesia', piper: 'Offline'}[e] || e; }
   function paintSet(){
+    try{ const vs = document.getElementById('vcSet'); if(vs) vs.textContent = engLabel() + ' ▾'; }catch(e){}
     const b = document.querySelector('#xVoce .x-body'); if(!b) return;
     const e = engine();
     b.querySelectorAll('[data-eng]').forEach(x=> x.classList.toggle('on', x.dataset.eng === e));
@@ -310,7 +318,7 @@
     b.querySelectorAll('[data-pv]').forEach(x=> x.classList.toggle('on', !!cur && x.dataset.pv === cur.name));
     const st = b.querySelector('.vs-st'), hasKey = typeof geminiKey === 'function' && !!geminiKey(), err = ls.get(ERR_K), ok = ls.get(OK_K), cerr = ls.get(ERR_K + '_cloud');
     if(st) st.textContent = e === 'ai' ? (!hasKey ? '⚠️ Serve la chiave Gemini (⚙️ Impostazioni → AI).' : err ? '⚠️ Ultimo tentativo: ' + err + '.' : ok ? '✅ Voce Gemini funzionante (' + ok + ').' : 'Tocca una voce per sentirla (la prima volta ci vogliono alcuni secondi).')
-      : e === 'cloud' ? (!hasKey ? '⚠️ Serve la chiave Gemini (⚙️ Impostazioni → AI): Google Cloud usa la stessa.' : cerr ? '⚠️ ' + cerr + '.' : 'Voci HD di Google: partono in un attimo e non si fermano. Tocca una voce per sentirla.')
+      : e === 'cloud' ? (!cloudKey() ? '🔑 Incolla qui sotto la chiave di Google Cloud.' : cerr ? '⚠️ ' + cerr + '.' : 'Voci HD di Google: partono in un attimo e non si fermano. Tocca una voce per sentirla.')
       : e === 'gtr' ? 'Voce unica di Google Traduttore: senza chiave, sempre disponibile. Non ha altre voci da scegliere.'
       : isVP(e) ? (VP() ? VP().status(e) : '')
       : 'Voce del telefono: subito pronta, anche senza internet.';
@@ -335,18 +343,22 @@
     const phone = ((window.speechSynthesis && speechSynthesis.getVoices()) || []).filter(v=> /^it(-|_|$)/i.test(v.lang));
     const b = XUI.sheet('xVoce', '🔊 Voce della lettura', `
       <div class="vs-eng vs-eng4">
-        <button type="button" class="vs-e" data-eng="ai"><b>✨ Gemini</b><small>naturale, come una persona</small></button>
         <button type="button" class="vs-e" data-eng="cloud"><b>☁️ Google Cloud</b><small>voci HD, parte subito</small></button>
+        <button type="button" class="vs-e" data-eng="ai"><b>✨ Gemini</b><small>naturale, come una persona</small></button>
+        ${VP() ? ['azure', 'cart', 'eleven', 'piper'].map(id=> `<button type="button" class="vs-e" data-eng="${id}"><b>${VP().INFO[id].btn}</b><small>${VP().INFO[id].sub}</small></button>`).join('') : ''}
         <button type="button" class="vs-e" data-eng="gtr"><b>🌐 Google Traduttore</b><small>senza chiave, voce unica</small></button>
-        <button type="button" class="vs-e" data-eng="phone"><b>📱 Telefono</b><small>anche senza internet</small></button>
-        ${VP() ? VP().ids.map(id=> `<button type="button" class="vs-e" data-eng="${id}"><b>${VP().INFO[id].btn}</b><small>${VP().INFO[id].sub}</small></button>`).join('') : ''}</div>
+        <button type="button" class="vs-e" data-eng="phone"><b>📱 Telefono</b><small>anche senza internet</small></button></div>
+      <div class="lp-sub">Se la voce scelta non va, provo da solo le altre in quest'ordine (solo quelle con la chiave).</div>
       <div class="lp-sub vs-st"></div>
       <div class="lp-sub vs-help" hidden>Apri <a href="https://console.cloud.google.com/apis/library/texttospeech.googleapis.com" target="_blank" rel="noopener">questa pagina di Google</a>, scegli il progetto della tua chiave Gemini e premi «Abilita». Poi torna qui e tocca una voce.</div>
       <div data-pane="ai"><div class="an-h">👨 Voci maschili</div><div class="vs-grid">${VOICES.filter(v=> v.g === 'u').map(chip).join('')}</div>
         <div class="an-h">👩 Voci femminili</div><div class="vs-grid">${VOICES.filter(v=> v.g === 'd').map(chip).join('')}</div>
         <div class="lp-sub">Tocca una voce: la scelgo e te la faccio sentire. Ogni storia letta resta salvata sul telefono: la seconda volta parte subito e non consuma.</div>
         <button type="button" class="btn" data-vdiag>🩺 Controlla Gemini</button><div class="lp-sub vs-diag"></div></div>
-      <div data-pane="cloud"><div class="vs-cloud"></div></div>
+      <div data-pane="cloud"><details class="vp-how"${ls.get(GCK_K) ? '' : ' open'}><summary>🔑 ${ls.get(GCK_K) ? 'Chiave Google Cloud salvata · cambia' : 'Chiave di Google Cloud'}</summary>
+        <div class="lp-sub">Incolla la chiave del progetto Google Cloud dove è attiva la «Cloud Text-to-Speech API». Se la lasci vuota uso la chiave di Gemini.</div>
+        <input type="text" class="vp-in" data-gck autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="-webkit-text-security:disc" placeholder="Incolla qui la chiave" value="${esc(ls.get(GCK_K) || '')}">
+        <button type="button" class="btn" data-gcsave>💾 Salva e carica le voci</button></details><div class="vs-cloud"></div></div>
       <div data-pane="gtr"><button type="button" class="btn" data-gtr-try>▶️ Senti la voce</button></div>
       ${VP() ? VP().ids.map(id=> `<div data-pane="${id}"><div class="vp-box" data-vpbox="${id}"></div></div>`).join('') : ''}
       <div data-pane="phone"><div class="an-h">Voci italiane di questo telefono</div><div class="vs-grid">${phone.length ? phone.map(v=> `<button type="button" class="vs-chip" data-pv="${esc(v.name)}"><b>${esc(v.name.replace(/^(Microsoft|Google)\s*/i, ''))}</b><small>${v.localService ? 'sul telefono' : 'online'}</small></button>`).join('') : '<div class="lp-sub">Il telefono non ha voci italiane installate.</div>'}</div></div>`);
@@ -356,7 +368,11 @@
     const dg = b.querySelector('[data-vdiag]'); if(dg) dg.addEventListener('click', ()=> diagnose(dg, b.querySelector('.vs-diag')));
     const gt = b.querySelector('[data-gtr-try]'); if(gt) gt.addEventListener('click', ()=>{ stop(); const my = ++token; audio = noRefAudio(gtrUrl(SAMPLE)); audio.onended = ()=> duck(false); audio.play().then(()=> duck(true), ()=>{ try{ XUI.toast('🔊 Google Traduttore non risponde ora', 3000); }catch(_){} }); });
     if(engine() === 'cloud') fillCloud(b);
-    if(VP()) VP().ids.forEach(id=> VP().pane(id, b.querySelector('[data-vpbox="' + id + '"]'), {sample, playBlob, paint: paintSet, SAMPLE}));
+    const filled = {};
+    const fillVP = id=>{ if(!VP() || !isVP(id) || filled[id]) return; filled[id] = 1; VP().pane(id, b.querySelector('[data-vpbox="' + id + '"]'), {sample, playBlob, paint: paintSet, SAMPLE}); };
+    fillVP(engine());
+    b.querySelectorAll('[data-eng]').forEach(x=> x.addEventListener('click', ()=> fillVP(x.dataset.eng)));
+    const gs = b.querySelector('[data-gcsave]'); if(gs) gs.addEventListener('click', ()=>{ const v = b.querySelector('[data-gck]').value.trim(); if(v) ls.set(GCK_K, v); else try{ localStorage.removeItem(GCK_K); }catch(e){} ls.set(CVL_K, ''); ls.set(ERR_K + '_cloud', ''); fillCloud(b, true); });
     paintSet();
   }
   // v253: «Controlla Gemini»: prova ogni modello una volta con una frase corta e mostra la risposta di Google così com'è (per capire perché non va)
@@ -387,7 +403,7 @@
       const head = card.querySelector('.modal-head'); if(!head || card.querySelector('.vc-row')) return r;
       if(!cur || cur.id !== g.id){ stop(); autoFor = null; }
       cur = g;
-      head.insertAdjacentHTML('afterend', `<div class="vc-row"><button type="button" class="vc-btn" id="vcBtn" data-s="${state}"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path class="vc-p" d="M8 5v14l11-7z"/><path class="vc-s" d="M7 7h10v10H7z"/></svg><span>Ascolta la storia</span></button><button type="button" role="switch" class="vc-auto" id="vcAuto" aria-label="Avvio automatico della lettura"><i></i><b>Auto</b></button><button type="button" class="vc-set" id="vcSet" aria-label="Scegli la voce" title="Scegli la voce">${engine() === 'ai' ? voiceId() : {cloud: 'Google Cloud', gtr: 'Traduttore', phone: 'Telefono', azure: 'Azure', eleven: 'ElevenLabs', cart: 'Cartesia', piper: 'Offline'}[engine()]} ▾</button></div>`);
+      head.insertAdjacentHTML('afterend', `<div class="vc-row"><button type="button" class="vc-btn" id="vcBtn" data-s="${state}"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path class="vc-p" d="M8 5v14l11-7z"/><path class="vc-s" d="M7 7h10v10H7z"/></svg><span>Ascolta la storia</span></button><button type="button" role="switch" class="vc-auto" id="vcAuto" aria-label="Avvio automatico della lettura"><i></i><b>Auto</b></button><button type="button" class="vc-set" id="vcSet" aria-label="Scegli la voce" title="Scegli la voce">${engLabel()} ▾</button></div>`);
       paint();
       btn().addEventListener('click', ()=>{ if(state === 'idle') play(cur); else stop(); });
       document.getElementById('vcSet').addEventListener('click', openSettings);
