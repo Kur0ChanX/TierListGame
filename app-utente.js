@@ -3,6 +3,10 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v254', date:'2026-10-03', time:'07:05', items:[
+    'Quattro voci nuove per «Ascolta la storia» (tocca il nome della voce accanto ad Auto): 🟦 Microsoft Azure (500.000 lettere gratis al mese, voci italiane molto naturali), 🎙️ ElevenLabs (la più naturale, 10.000 lettere al mese), ⚡ Cartesia (velocissima, 20.000 crediti al mese) e 📦 Offline (Piper: senza chiave, si scarica una volta e funziona anche senza internet).',
+    'Ogni voce ha i passi per avere la chiave gratuita e un campo dove incollarla: la chiave resta solo su questo telefono. Se la voce offline è già scaricata, diventa la riserva al posto di Google Traduttore.'
+  ]},
   {version:'v253', date:'2026-10-03', time:'01:51', items:[
     'Voce: nella finestra «Voce della lettura» (tasto con il nome della voce, accanto ad Auto) c\'è «🩺 Controlla Gemini». Prova ogni modello di voce Gemini e mostra la risposta di Google: così si vede subito perché non legge.',
     'Voce Gemini: se Google dice che per un modello la quota gratuita è zero, l\'app non aspetta più e passa subito a un altro modello.'
