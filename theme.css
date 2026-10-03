@@ -1850,6 +1850,8 @@ html:not(.mo-off) #filtersPanel.open{animation:fpIn .2s cubic-bezier(.22,1,.36,1
 .vs-e b,.vs-chip b{font-size:.85rem} .vs-e small,.vs-chip small{font-size:.7rem; color:var(--sub)}
 .vs-e.on,.vs-chip.on{border-color:var(--accent); box-shadow:inset 0 0 0 1.5px var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent)}
 .vs-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:6px; margin:4px 0 10px}
+.vp-box .vp-how{margin:4px 0 10px} .vp-box .vp-how summary{cursor:pointer; font-weight:600; padding:6px 0}
+.vp-in{display:block; width:100%; box-sizing:border-box; margin:6px 0; padding:10px 12px; border-radius:12px; border:1px solid color-mix(in srgb, var(--text) 18%, transparent); background:color-mix(in srgb, var(--text) 5%, transparent); color:var(--text); font:inherit}
 .vs-chip.vs-load{animation:vcPulse 1s ease-in-out infinite}
 .vs-ai[hidden],.vs-ph[hidden]{display:none}
 
