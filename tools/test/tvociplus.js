@@ -19,9 +19,11 @@ await p.goto('file:///home/user/TierListGame/Tier%20List%20RPG%20%26%20JRPG%20di
 await p.evaluate(()=>{ localStorage.setItem('jrpg_story_auto','off'); speechSynthesis.speak=u=>{window.__robot=(window.__robot||0)+1; setTimeout(()=>u.onend&&u.onend(),10);}; openModal(GAMES.find(x=>x.story)||GAMES[3]); }); await p.waitForTimeout(700);
 await p.evaluate(()=>document.getElementById('vcSet').click()); await p.waitForTimeout(400);
 console.log('motori:', await p.evaluate(()=>[...document.querySelectorAll('#xVoce [data-eng]')].map(x=>x.dataset.eng).join(',')));
+console.log('catena con chiavi:', await p.evaluate(()=>{ localStorage.setItem('jrpg_azure_key','x'); localStorage.setItem('jrpg_cartesia_key','x'); localStorage.setItem('jrpg_gcloud_key','x'); localStorage.setItem('jrpg_gemini_key','x'); localStorage.setItem('jrpg_tts_engine','cart'); document.getElementById('vcSet').click(); const t=document.getElementById('vcSet').textContent; ['jrpg_azure_key','jrpg_cartesia_key','jrpg_gcloud_key','jrpg_gemini_key'].forEach(k=>localStorage.removeItem(k)); return t; }));
 for(const [id,k] of [['azure','AZ'],['eleven','EL'],['cart','CA']]){
   seen.length=0;
   await p.evaluate(id=>document.querySelector(`#xVoce [data-eng="${id}"]`).click(), id); await p.waitForTimeout(200);
+  console.log(id,'tasto dice:', await p.evaluate(()=>document.getElementById('vcSet').textContent));
   console.log(id,'senza chiave →', await p.evaluate(()=>document.querySelector('#xVoce .vs-st').textContent));
   await p.evaluate(([id,k])=>{ const bx=document.querySelector(`[data-vpbox="${id}"]`); bx.querySelector('[data-vk]').value='FINTA-'+k; bx.querySelector('[data-vsave]').click(); }, [id,k]); await p.waitForTimeout(1200);
   const vv=await p.evaluate(id=>[...document.querySelectorAll(`[data-vpbox="${id}"] [data-vpv]`)].map(x=>x.dataset.vpv+(x.classList.contains('on')?'*':'')).join(','), id);
@@ -37,6 +39,6 @@ mode='bad'; await p.evaluate(()=>{ localStorage.setItem('jrpg_tts_engine','eleve
 await p.evaluate(()=>{ rtStory.stop(); rtStory.play(GAMES.find(x=>x.story)||GAMES[3]); }); await p.waitForTimeout(1500);
 console.log('chiave sbagliata → errore:', await p.evaluate(()=>rtVociPlus.err('eleven')), '| riserva robot:', await p.evaluate(()=>window.__robot||0));
 if(process.env.PIPER){ mode='ok'; await p.evaluate(()=>{ rtStory.stop(); localStorage.setItem('jrpg_tts_engine','piper'); });
-  const t0=Date.now(); const r=await p.evaluate(async()=>{ try{ const bl=await rtVociPlus.audio('piper','Ciao, sono la voce offline.'); return 'blob '+bl.type+' '+bl.size; }catch(e){ return 'ERRORE '+e.message; } });
+  const t0=Date.now(); const r=await p.evaluate(async()=>{ let ticks=0, maxGap=0, last=performance.now(); const iv=setInterval(()=>{ const n=performance.now(); maxGap=Math.max(maxGap,n-last); last=n; ticks++; },50); try{ const bl=await rtVociPlus.audio('piper','Ciao, sono la voce offline. Questa frase è un po\' più lunga per vedere se l\'app resta libera.'); clearInterval(iv); return 'blob '+bl.type+' '+bl.size+' | blocco più lungo dell\'app: '+Math.round(maxGap)+' ms'; }catch(e){ clearInterval(iv); return 'ERRORE '+e.message; } });
   console.log('piper →', r, ((Date.now()-t0)/1000).toFixed(1)+'s', '| pronta:', await p.evaluate(()=>rtVociPlus.ready('piper'))); }
 console.log('ERR',errs);await b.close();})();

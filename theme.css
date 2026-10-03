@@ -1916,6 +1916,10 @@ html:fullscreen .view-tabs{padding-left:18px !important; padding-right:18px !imp
 /* v236: a destra serve un po' più di spazio (l'angolo tagliava «Statistiche») */
 @media (display-mode: fullscreen) and (max-width:760px){ .view-tabs{padding-left:20px !important; padding-right:28px !important} }
 html:fullscreen .view-tabs{padding-left:20px !important; padding-right:28px !important}
+/* v255: «Statistiche» si leggeva ancora «Statisti»: barra un po' più stretta a destra in ogni modo (app installata, a schermo intero o nel browser) */
+@media (max-width:760px), (hover:none) and (pointer:coarse){ .view-tabs{padding-left:14px !important; padding-right:30px !important} .view-tabs > .view-tab:last-child{flex:1.3 0 62px} .view-tabs > .view-tab:last-child .vt-short{transform:translateX(-6px); letter-spacing:-.01em} }
+@media (display-mode: fullscreen) and (max-width:760px){ .view-tabs{padding-left:20px !important; padding-right:44px !important} }
+html:fullscreen .view-tabs{padding-left:20px !important; padding-right:44px !important}
 /* v243 — avvisi «smart»: scheda di vetro con icona in un cerchio sfumato, testo pulito, comparsa a molla e barra del tempo */
 html body .toast.toast,html body .tt-card.tt-card{display:flex !important; align-items:center; gap:12px; text-align:left !important; width:max-content; max-width:min(92vw,420px) !important;
   padding:10px 14px 12px 10px !important; border-radius:18px !important; overflow:hidden;
@@ -1972,6 +1976,8 @@ html.mo-off .toast,html.mo-off .tt-card,html.mo-off .tt-ic{animation:none !impor
 .pv3-line{right:16px;background:rgba(127,127,127,.22)}
 .pv3-fill{width:calc((100% - 32px) * var(--f,0));background:linear-gradient(90deg,var(--m1),var(--m2));transition:width .45s cubic-bezier(.22,1,.36,1),background .3s;box-shadow:0 0 12px color-mix(in srgb,var(--m2) 60%,transparent)}
 .pv3-track:not(.has) .pv3-fill{opacity:0}
+.pv3-val{position:absolute;top:-8px;left:calc(16px + (100% - 32px) * var(--f,0));transform:translateX(-50%);z-index:2;font-size:.7rem;font-weight:800;padding:1px 6px;border-radius:8px;background:linear-gradient(135deg,var(--m1),var(--m2));color:#fff;pointer-events:none;transition:left .45s cubic-bezier(.22,1,.36,1);opacity:0}
+.pv3-track.half .pv3-val{opacity:1} .pv3-q small{font-weight:500;opacity:.7}
 .pv3 .pv-v{position:relative;z-index:1;width:30px !important;height:30px !important;padding:0;border-radius:50% !important;border:1.5px solid rgba(127,127,127,.4) !important;background:var(--card,#1c1c24) !important;color:inherit !important;font-size:.8rem !important;font-weight:800;display:grid;place-items:center;cursor:pointer;transition:transform .3s cubic-bezier(.22,1.4,.36,1),background .25s,border-color .25s,box-shadow .25s}
 .pv3 .pv-v span{pointer-events:none}
 .pv3 .pv-v.lit{background:color-mix(in srgb,var(--m1) 55%,var(--card,#1c1c24)) !important;border-color:transparent !important;color:#fff !important}

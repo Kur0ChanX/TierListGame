@@ -1,7 +1,7 @@
 // ---- Sincronizzazione automatica dei dati personali tra dispositivi, tramite un Gist privato del tuo GitHub ----
 // Il token (permesso "gist" soltanto) resta solo in questo browser. Non viene mai sincronizzato.
 (function(){
-  const NOSYNC = ['jrpg_gemini_key','jrpg_rawg_key','jrpg_opencritic_key','jrpg_azure_key','jrpg_azure_region','jrpg_eleven_key','jrpg_cartesia_key','jrpg_audit_turbo','jrpg_sync_token','jrpg_sync_gist','jrpg_sync_meta','jrpg_catalog_gist','jrpg_catalog_at','jrpg_catalog_pub','jrpg_keys_user','jrpg_relay_url','jrpg_engine','jrpg_filters_open','jrpg_ask_requests','jrpg_active_profile','jrpg_db_askRequests','jrpg_triad_acct','jrpg_triad_server','jrpg_triad_photos','jrpg_triad_autoart'];
+  const NOSYNC = ['jrpg_gemini_key','jrpg_rawg_key','jrpg_opencritic_key','jrpg_azure_key','jrpg_azure_region','jrpg_eleven_key','jrpg_cartesia_key','jrpg_gcloud_key','jrpg_audit_turbo','jrpg_sync_token','jrpg_sync_gist','jrpg_sync_meta','jrpg_catalog_gist','jrpg_catalog_at','jrpg_catalog_pub','jrpg_keys_user','jrpg_relay_url','jrpg_engine','jrpg_filters_open','jrpg_ask_requests','jrpg_active_profile','jrpg_db_askRequests','jrpg_triad_acct','jrpg_triad_server','jrpg_triad_photos','jrpg_triad_autoart'];
   const GIST_DESC = 'TierListGame dati (sync automatica)';
   const FILE = 'tierlist-data.json';
   const API = 'https://api.github.com';

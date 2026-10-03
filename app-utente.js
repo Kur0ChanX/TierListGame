@@ -3,6 +3,14 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v255', date:'2026-10-03', time:'11:17', items:[
+    'Voce Gemini più affidabile: legge a pezzi piccoli e prepara solo il pezzo successivo mentre parla (prima chiedeva tutto insieme e Google rispondeva «aspetta»). Tolto il modello Pro, che consumava troppo.',
+    'Google Cloud Voce ha la sua chiave: incollala nel riquadro ☁️ Google Cloud (se la lasci vuota usa quella di Gemini).',
+    'Voci in ordine di priorità: Google Cloud, Gemini, Azure, Cartesia, ElevenLabs. Se quella scelta non va, l\'app prova da sola le altre (solo quelle con la chiave), poi Traduttore e telefono.',
+    'Il tasto accanto ad «Auto» mostra subito il motore scelto, senza riavviare. Le voci nuove si caricano solo quando le apri e la voce offline lavora a parte, così l\'app non si blocca.',
+    'Previsione: anche mezzi voti (es. 7,5). Tocca o trascina tra due perline.',
+    'Barra in basso: «Statistiche» spostata un po\' a sinistra, ora si legge tutta.'
+  ]},
   {version:'v254', date:'2026-10-03', time:'07:05', items:[
     'Quattro voci nuove per «Ascolta la storia» (tocca il nome della voce accanto ad Auto): 🟦 Microsoft Azure (500.000 lettere gratis al mese, voci italiane molto naturali), 🎙️ ElevenLabs (la più naturale, 10.000 lettere al mese), ⚡ Cartesia (velocissima, 20.000 crediti al mese) e 📦 Offline (Piper: senza chiave, si scarica una volta e funziona anche senza internet).',
     'Ogni voce ha i passi per avere la chiave gratuita e un campo dove incollarla: la chiave resta solo su questo telefono. Se la voce offline è già scaricata, diventa la riserva al posto di Google Traduttore.'

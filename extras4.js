@@ -186,13 +186,13 @@
     // v250: niente quadratini: un cerchio che si riempie (animato) e una barra con 10 perline; colori viola/indaco/rosa che si scaldano col voto
     const shownN = my != null && pr != null ? pr : now, d = my != null ? my - shownN : 0;
     const pal = n=> n <= 3 ? ['#64748b', '#94a3b8'] : n <= 5 ? ['#4f46e5', '#818cf8'] : n <= 7 ? ['#7c3aed', '#c084fc'] : n <= 8 ? ['#8b5cf6', '#ec4899'] : ['#a855f7', '#fb7185'];
-    const [c1, c2] = pal(shownN), [m1, m2] = pal(my || shownN);
+    const [c1, c2] = pal(shownN), [m1, m2] = pal(my || shownN), fv = n=> String(n).replace('.', ',');      // v255: anche mezzi voti (7,5)
     let h = `<div class="pv-box pv3" style="--c1:${c1};--c2:${c2};--m1:${m1};--m2:${m2}">
       <div class="pv3-head"><div class="pv3-ring" style="--p:${shownN * 10}"><b>${shownN}</b><small>/10</small></div>
         <div class="pv3-txt"><div class="pv3-k">🔮 Previsione</div><div class="pv-top"><b>Previsione:</b> ${shownN}/10 · <small>${esc(words(shownN))}</small></div>
-        ${my != null ? `<div class="pv-res">Il tuo voto: <b>${my}/10</b> · ${Math.abs(d) <= 1 ? '🎯 previsione azzeccata' : d > 0 ? 'ti è piaciuto più del previsto (+' + d + ')' : 'ti è piaciuto meno del previsto (' + d + ')'}</div>` : '<div class="pv3-sub">Dai tuoi gusti. Il tuo voto insegna al cervello.</div>'}</div></div>
-      <div class="pv3-q">${my != null ? 'Cambia voto' : (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : 'L\'hai giocato? Il tuo voto')}</div>
-      <div class="pv-votes pv3-track${my != null ? ' has' : ''}" style="--f:${my != null ? ((my - 1) / 9).toFixed(4) : 0}"><i class="pv3-line"></i><i class="pv3-fill"></i>${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}${my != null && n < my ? ' lit' : ''}" data-vote="${n}" aria-pressed="${my === n ? 'true' : 'false'}" aria-label="Voto ${n}"><span>${n}</span></button>`).join('')}</div>`;
+        ${my != null ? `<div class="pv-res">Il tuo voto: <b>${fv(my)}/10</b> · ${Math.abs(d) <= 1 ? '🎯 previsione azzeccata' : d > 0 ? 'ti è piaciuto più del previsto (+' + fv(d) + ')' : 'ti è piaciuto meno del previsto (' + fv(d) + ')'}</div>` : '<div class="pv3-sub">Dai tuoi gusti. Il tuo voto insegna al cervello.</div>'}</div></div>
+      <div class="pv3-q">${my != null ? 'Cambia voto' : (st === 'played' || st === 'dropped' || st === 'playing' ? 'Quanto ti è piaciuto?' : 'L\'hai giocato? Il tuo voto')} <small>· ½ voto: tocca tra due perline</small></div>
+      <div class="pv-votes pv3-track${my != null ? ' has' : ''}${my != null && my % 1 ? ' half' : ''}" style="--f:${my != null ? ((my - 1) / 9).toFixed(4) : 0}"><i class="pv3-line"></i><i class="pv3-fill"></i><b class="pv3-val">${my != null ? fv(my) : ''}</b>${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=> `<button type="button" class="pv-v${my === n ? ' on' : ''}${my != null && n < my ? ' lit' : ''}" data-vote="${n}" aria-pressed="${my === n ? 'true' : 'false'}" aria-label="Voto ${n}"><span>${n}</span></button>`).join('')}</div>`;
     return h + '</div>';
   }
   // v250: tocchi una perlina o fai scorrere il dito: la barra si riempie con un'animazione, poi salvo
@@ -201,11 +201,14 @@
     const box = tr.closest('.pv3'); if(box){ box.style.setProperty('--m1', m1); box.style.setProperty('--m2', m2); }
     tr.classList.add('has'); tr.style.setProperty('--f', ((n - 1) / 9).toFixed(4));
     tr.querySelectorAll('[data-vote]').forEach(b=>{ const v = +b.dataset.vote; b.classList.toggle('on', v === n); b.classList.toggle('lit', v < n); });
+    const val = tr.querySelector('.pv3-val'); if(val) val.textContent = String(n).replace('.', ',');
+    tr.classList.toggle('half', n % 1 !== 0);
   }
   function wireTrack(card, g, save){
     const tr = card.querySelector('.pv3-track'); if(!tr) return;
     let drag = false, last = 0;
-    const at = x=>{ const bs = [...tr.querySelectorAll('[data-vote]')]; let best = null, bd = 1e9; bs.forEach(b=>{ const r = b.getBoundingClientRect(), dd = Math.abs(r.left + r.width / 2 - x); if(dd < bd){ bd = dd; best = b; } }); return best ? +best.dataset.vote : 0; };
+    // v255: la posizione del dito tra la prima e l'ultima perlina dà il voto a mezzi punti (sopra una perlina = voto intero, in mezzo = ,5)
+    const at = x=>{ const bs = tr.querySelectorAll('[data-vote]'); if(!bs.length) return 0; const a = bs[0].getBoundingClientRect(), z = bs[bs.length - 1].getBoundingClientRect(), x0 = a.left + a.width / 2, x1 = z.left + z.width / 2; const t = Math.max(0, Math.min(1, (x - x0) / Math.max(1, x1 - x0))); return Math.round((1 + t * 9) * 2) / 2; };
     tr.addEventListener('pointerdown', e=>{ drag = true; last = at(e.clientX); paintTrack(tr, last); try{ tr.setPointerCapture(e.pointerId); }catch(x){} try{ window.rtHaptic && rtHaptic('tick'); }catch(x){} });
     tr.addEventListener('pointermove', e=>{ if(!drag) return; const n = at(e.clientX); if(n && n !== last){ last = n; paintTrack(tr, n); try{ window.rtHaptic && rtHaptic('tick'); }catch(x){} } });
     const end = ()=>{ if(!drag) return; drag = false; if(last) save(last); };
