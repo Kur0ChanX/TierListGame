@@ -181,7 +181,7 @@
   const coverLocked = g=>{ try{ return !!(window.rtMediaLock && (window.rtMediaLock(g) || {}).cover); }catch(e){ return false; } };
   async function saveAutoCover(g, url, opts){
     if(coverLocked(g) && !(opts && opts.force)) return false;     // v199: locandina 🔒 scelta da te: niente la cambia, nemmeno i pulsanti vecchi
-    USER_COVERS[String(g.id)] = url;
+    USER_COVERS[String(g.id)] = url; USER_COVER_AUTO[String(g.id)] = 1;
     try{ if(COVER_DB) await COVER_DB.doc('covers/' + String(g.id)).set({url, name: g.name, auto: true, updatedAt: new Date().toISOString()}); }catch(e){}
   }
 

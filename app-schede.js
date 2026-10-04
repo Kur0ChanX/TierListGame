@@ -2,6 +2,7 @@
 // ---- Copertine: archivio interno della pagina (assets) + indice nel database (db, collezione "covers") ----
 var USER_COVERS = {};      // id gioco -> url dell'immagine caricata
 var USER_COVER_IDS = {};   // id gioco -> id asset (per sostituire senza lasciare file orfani)
+var USER_COVER_AUTO = {};  // id gioco -> 1 se la locandina l'ha messa il programma (auto:true), non tu
 var COVER_ASSETS = null, COVER_DB = null, currentModalGame = null, coverBusy = false;
 var COVER_STATE = 'pending'; // 'pending' | 'ready' | 'unavailable'
 function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -23,6 +24,7 @@ function coverFitLoad(img){ const fr = img.closest('.cover-frame'); if(fr && fr.
 // v213: gli indirizzi «/_blob/…» esistono solo dentro Claude: altrove non si caricano mai (155 giochi della lista base). Li considero mancanti,
 // così si cerca la copertina vera, e non si prova più a caricarli (prima ogni copertina rotta nella griglia veniva ritentata all'infinito).
 const isDeadCover = u=> !u || /^\/?_blob\//.test(String(u));
+function userCoverManual(g){ const id = String(g.id); return !!USER_COVERS[id] && !USER_COVER_AUTO[id]; }      // v256: locandina caricata/incollata da te (non cercata dal programma)
 function effectiveCover(g){ const u = USER_COVERS[String(g.id)], e = g.enrich && g.enrich.coverUrl; return (!isDeadCover(u) && u) || (!isDeadCover(e) && e) || null; }
 function coverPlaceholderHtml(g){
   const platShort = (g.plat||'').split('/')[0].trim();
@@ -455,15 +457,16 @@ function makeLocalDb(){
 function attachDbListeners(){
     try{
       COVER_DB.collection('covers').onSnapshot(snap=>{
-        const next = {}, nextIds = {};
+        const next = {}, nextIds = {}, nextAuto = {};
         snap.docs.forEach(d=>{
           const v = d.data();
           if(!v) return;
+          if(v.auto) nextAuto[d.id] = 1;
           if(typeof v.asset === 'string' && /^[0-9a-f]{32}$/.test(v.asset)){ next[d.id] = localBlobs()[v.asset] || ('/_blob/' + v.asset); nextIds[d.id] = v.asset; }
           else if(typeof v.url === 'string' && /^https?:\/\//i.test(v.url)){ next[d.id] = v.url; }
         });
         const changed = JSON.stringify(Object.keys(next).sort().map(k=> k + '=' + next[k].length)) !== JSON.stringify(Object.keys(USER_COVERS || {}).sort().map(k=> k + '=' + String(USER_COVERS[k]).length));
-        USER_COVERS = next; USER_COVER_IDS = nextIds;
+        USER_COVERS = next; USER_COVER_IDS = nextIds; USER_COVER_AUTO = nextAuto;
         if(currentModalGame && modalBackdrop.classList.contains('show') && !coverBusy) refreshCover(currentModalGame);
         // v215: le tue copertine arrivano dall'archivio grande un attimo DOPO il primo disegno: se sono cambiate ridisegno la lista/griglia (in sottofondo, senza scatti)
         if(changed){ try{ if(typeof renderWhenIdle === 'function') renderWhenIdle({list: true}); }catch(e){} }

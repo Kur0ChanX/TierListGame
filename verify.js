@@ -926,6 +926,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     const shell = body=> `<div class="lp-card"><div class="lp-head"><b>🔎 Controllo dati</b><button class="btn" data-ui-close>Chiudi</button></div>${body}</div>`;
     const head = `<div class="lp-sub">Controllati <b>${st.done}</b> giochi su ${st.total} · oggi ${st.today}/${st.cap}${useAI() ? '' : ' · <b>senza chiave Gemini controllo solo voto, anno, generi e lingua</b>'}. ${auPause ? '<br>⏸️ ' + escHtml(auPause) : ''}<br><b>Non cambia nulla senza il tuo ok.</b> Le proposte vengono da fonti aperte e da Gemini con ricerca web; controllale prima di applicarle.</div>
       <label class="ask-toggle"><input type="checkbox" id="fpOn" ${updatePlusOn() ? 'checked' : ''}> ${giIcon('upplus')} Update+ all\'avvio: aggiorna tutte le info e la locandina di ogni gioco, una volta sola <small>(${updatePlusStats().done}/${updatePlusStats().total} fatti)</small></label>
+      ${window.rtUpdateAll ? '<div class="lp-tools"><button class="btn primary" id="upAllBtn" type="button">⚡ Aggiorna tutti i giochi (Update V+ + locandine + carosello)</button></div>' : ''}
       <label class="ask-toggle"><input type="checkbox" id="auOn" ${auditOn() ? 'checked' : ''}> Controlla da solo in background</label>${window.rtCalm && rtCalm() ? '<div class="lp-sub">🧘 La <b>Modalità calma</b> è accesa: queste due caselle restano ferme finché non la spegni. Toccane una e te la spengo io.</div>' : ''}
       <div class="lp-tools"><button class="btn${tab==='todo'?' primary':''}" data-tab="todo">📝 Da approvare (${todo.length})</button><button class="btn${tab==='clean'?' primary':''}" data-tab="clean">✅ Controllati (${clean.length})</button><button class="btn${tab==='done'?' primary':''}" data-tab="done">↩️ Applicate (${Object.keys(undo).length})</button><button class="btn${auTurbo()?' primary':''}" id="auTurbo" title="Un gioco ogni ~12 secondi, fino a 800 al giorno (usa più quota Gemini)">⚡ Turbo ${auTurbo()?'acceso':'spento'}</button><button class="btn" id="auReset" title="Cancella lo storico dei controlli e ricomincia">↻ Ricomincia</button></div>`;
     let body;
@@ -940,6 +941,7 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
       if(!confirm('La «Modalità calma» è accesa: blocca Update+ all\'avvio e il controllo in background.\n\nLa spengo e attivo questa casella?')){ cb.checked = false; return false; }
       try{ localStorage.setItem('rt_calm', 'off'); }catch(e){} return true; };
     el.querySelector('#auOn').addEventListener('change', e=>{ if(!calmOk(e.target)) return; auditSetOn(e.target.checked); openAuditPanel(tab); });
+    const ua = el.querySelector('#upAllBtn'); if(ua) ua.addEventListener('click', ()=> window.rtUpdateAll.open());
     el.querySelector('#fpOn').addEventListener('change', e=>{ if(!calmOk(e.target)) return; updatePlusSetOn(e.target.checked); openAuditPanel(tab); });
     el.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click', ()=> openAuditPanel(b.dataset.tab)));
     el.querySelector('#auTurbo').addEventListener('click', ()=>{ try{ localStorage.setItem('jrpg_audit_turbo', auTurbo() ? '0' : '1'); }catch(e){} auDelay = auBase(); if(auditOn()) auSchedule(2000); openAuditPanel(tab); });
@@ -1126,10 +1128,18 @@ Rispondi SOLO con un oggetto JSON valido con questi campi: hoursMain (ore indica
     try{ g = latest(g); if(typeof currentModalGame !== 'undefined' && currentModalGame && currentModalGame.id === g.id) openModal(g); }catch(e){}
     return r;
   };
+  // v256: come «Update V+» della scheda ma senza avvisi, barra e riapertura della scheda: lo usa «Aggiorna tutti i giochi» (aggiorna-tutti.js)
+  window.updatePlusQuiet = async function(g){
+    g = latest(g);
+    const r = await updatePlus(g, true);
+    try{ g = latest(g); if(g.custom && typeof runEnrich === 'function' && !(g.enrich && (g.enrich.eraScore != null || g.enrich.agingNote || g.enrich.gameplayNote))) await runEnrich([g.id], {force: true}); }catch(e){}
+    return r;
+  };
   let fpTimer = 0, fpBusy = false, fpDone = 0;
   function fpKick(ms){ clearTimeout(fpTimer); fpTimer = setTimeout(fpStep, ms == null ? 4000 : ms); }
   async function fpStep(){
     if(fpBusy) return;
+    if(window.__rtBulkUpdate) return fpKick(20000);                  // v256: «Aggiorna tutti i giochi» è in corso: il giro automatico aspetta
     if(!updatePlusOn() && !fpQueue.length) return;                  // v217: i giochi appena aggiunti da te si completano anche con Update+ spento / modalità calma
     if(window.__catalogPending) return fpKick(2500);          // prima scarico il catalogo condiviso: Update+ non riparte da zero su un dispositivo nuovo
     if(typeof detailsReady === 'function' && !detailsReady()) return fpKick(2000);

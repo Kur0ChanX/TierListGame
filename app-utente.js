@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v256', date:'2026-10-04', time:'03:50', items:[
+    'Nuovo «⚡ Aggiorna tutti i giochi» (tocca il contatore Update+ in home → Controllo dati): fa Update V+ su ogni gioco, uno dopo l\'altro, come se premessi il pulsante in ogni scheda. Ha barra di avanzamento, tempo che manca, Pausa/Ferma, e se chiudi l\'app riprende da dove era.',
+    'Rinfresca anche locandina e foto del carosello, ma SOLO dove non le hai scelte tu: le locandine bloccate 🔒, caricate o incollate da te e le schermate bloccate restano com\'erano. Una locandina da Wikipedia/RAWG non sostituisce mai una che c\'è già e funziona.',
+    'Alla fine puoi rifare solo i giochi dove nessuna fonte aveva risposto («Riprova i non riusciti»). Mentre gira, lo schermo resta acceso e l\'Update+ automatico aspetta.'
+  ]},
   {version:'v255', date:'2026-10-03', time:'11:17', items:[
     'Voce Gemini più affidabile: legge a pezzi piccoli e prepara solo il pezzo successivo mentre parla (prima chiedeva tutto insieme e Google rispondeva «aspetta»). Tolto il modello Pro, che consumava troppo.',
     'Google Cloud Voce ha la sua chiave: incollala nel riquadro ☁️ Google Cloud (se la lasci vuota usa quella di Gemini).',

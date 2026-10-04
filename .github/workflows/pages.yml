@@ -25,7 +25,7 @@ jobs:
         run: |
           mkdir _site
           cp "Tier List RPG & JRPG di Mario.html" _site/index.html
-          cp style.css theme.css packs.css packs.js icone.js voti.js gusto.js dna.js media.js idee.js ordine.js cervello.js voce.js sospetti.js gioco-ora.js voci-plus.js motion.js app.js app-schede.js app-utente.js app-ai.js chiavi-cifrate.js acquisto.js cinema.js guida.js shots.js gemini.js loader.js sources.js facts.js discoveries.js sync.js genres.js verify.js fx.js extras.js extras2.js extras3.js extras4.js qrcode.min.js music.js pet.js radar.js ost.js quality.js palettes.js intro.js giochi.js tratti.js pagine.js avvisi.js archivio.js manifest.webmanifest sw.js _site/
+          cp style.css theme.css packs.css packs.js icone.js voti.js gusto.js dna.js media.js idee.js ordine.js cervello.js voce.js sospetti.js gioco-ora.js voci-plus.js aggiorna-tutti.js motion.js app.js app-schede.js app-utente.js app-ai.js chiavi-cifrate.js acquisto.js cinema.js guida.js shots.js gemini.js loader.js sources.js facts.js discoveries.js sync.js genres.js verify.js fx.js extras.js extras2.js extras3.js extras4.js qrcode.min.js music.js pet.js radar.js ost.js quality.js palettes.js intro.js giochi.js tratti.js pagine.js avvisi.js archivio.js manifest.webmanifest sw.js _site/
           cp -r icons _site/icons
           cp -r dati _site/dati
           cp -r packs _site/packs
