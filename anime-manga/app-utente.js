@@ -3,6 +3,11 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'a8', date:'2026-10-04', time:'03:56', items:[
+    'Nuove liste: 🎬 Film (2549 film con attori, es. Il padrino, Il cavaliere oscuro) e 🍿 Serie TV (768 serie e miniserie, es. Breaking Bad, Chernobyl), con voto IMDb ponderato, regia o rete, anni, episodi, durata e locandina da Wikipedia',
+    'Nuovi generi: 👤 Biografico, 🤠 Western, 🎩 Noir',
+    'Chiedi e Novità sanno che ci sono anche film e serie dal vivo'
+  ]},
   {version:'a7', date:'2026-10-02', time:'18:45', items:[
     'Impostazioni: nuova chiave TMDB (va bene la chiave corta o il token lungo) per trame in italiano, locandine, durata e «dove guardarlo»; tolte RAWG e OpenCritic (erano dei videogiochi)',
     'Update V+ e «Aggiorna info» rifatti per anime, manga e film: voto da AniList (poi MyAnimeList e TMDB), anni e durata da AniList o TMDB, trama da TMDB in italiano, AniList e Wikipedia, doppiaggio da it.wikipedia, «dove guardarlo» da TMDB/JustWatch',

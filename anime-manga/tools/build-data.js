@@ -30,7 +30,7 @@ function deriveCuts(scores){
   return cuts;
 }
 const tierWith = (cuts, s) => { for (const t of TIER_ORDER.slice(0, 7)) if (s >= cuts[t]) return t; return 'F'; };
-const FILM_TAGS = {Action: 'ACT', Adventure: 'ADV', Comedy: 'COM', Drama: 'DRA', Fantasy: 'FAN', Horror: 'HOR', Mystery: 'MYS', Romance: 'ROM', 'Sci-Fi': 'SCI', Thriller: 'THR', Music: 'MUS', Musical: 'MUS', Sport: 'SPO', War: 'MIL', History: 'HIS', Crime: 'CRI', Family: 'FAM', Documentary: 'DOC'};
+const FILM_TAGS = {Action: 'ACT', Adventure: 'ADV', Comedy: 'COM', Drama: 'DRA', Fantasy: 'FAN', Horror: 'HOR', Mystery: 'MYS', Romance: 'ROM', 'Sci-Fi': 'SCI', Thriller: 'THR', Music: 'MUS', Musical: 'MUS', Sport: 'SPO', War: 'MIL', History: 'HIS', Crime: 'CRI', Family: 'FAM', Documentary: 'DOC', Biography: 'BIO', Western: 'WES', 'Film-Noir': 'NOI'};
 
 // ---------------------------------------------------------------- generi e temi (codice, etichetta italiana, icona, gruppo, come si riconosce in AniList)
 const TAGDEFS = [
@@ -51,7 +51,10 @@ const TAGDEFS = [
   ['MEC', 'Mecha', '🤖', 'Generi', {g: 'Mecha'}],
   ['MUS', 'Musicale', '🎵', 'Generi', {g: 'Music'}],
   ['MAH', 'Magical girl', '🪄', 'Generi', {g: 'Mahou Shoujo'}],
-  ['DOC', 'Documentario', '🎥', 'Generi', {}],      // AniList non lo ha: arriva da IMDb/Wikidata o a mano
+  ['DOC', 'Documentario', '🎥', 'Generi', {}],
+  ['BIO', 'Biografico', '👤', 'Generi', {}],      // film e serie dal vivo (IMDb «Biography»)
+  ['WES', 'Western', '🤠', 'Generi', {}],
+  ['NOI', 'Noir', '🎩', 'Generi', {}],      // AniList non lo ha: arriva da IMDb/Wikidata o a mano
   ['ECC', 'Ecchi', '😳', 'Generi', {g: 'Ecchi'}],
   ['SHO', 'Shonen', '🥊', 'Pubblico', {t: ['Shounen']}],
   ['SEI', 'Seinen', '🕶️', 'Pubblico', {t: ['Seinen']}],
@@ -80,7 +83,7 @@ const TAGDEFS = [
   ['WEB', 'Webtoon (a colori)', '📱', 'Formato', {t: ['Full Color', 'Long Strip'], min: 60}]
 ];
 // ordine dei generi (il primo è il «genere principale» mostrato per primo): prima i più caratteristici, poi i larghi
-const GENRE_ORDER = ['DOC', 'MEC', 'SPO', 'MAH', 'MUS', 'HOR', 'ROM', 'ACT', 'ADV', 'SCI', 'FAN', 'PSY', 'THR', 'MYS', 'SUP', 'DRA', 'COM', 'SOL', 'ECC'];
+const GENRE_ORDER = ['NOI', 'WES', 'BIO', 'DOC', 'MEC', 'SPO', 'MAH', 'MUS', 'HOR', 'ROM', 'ACT', 'ADV', 'SCI', 'FAN', 'PSY', 'THR', 'MYS', 'SUP', 'DRA', 'COM', 'SOL', 'ECC'];
 const AUDIENCE = ['SHO', 'SEI', 'SHJ', 'JOS', 'KID', 'FAM'];
 function tagsOf(m){
   const tagRank = new Map((m.tags || []).filter(t => !t.isMediaSpoiler).map(t => [t.name, t.rank]));

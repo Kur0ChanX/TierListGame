@@ -252,7 +252,7 @@
     opts = opts || {}; const say = opts.onStep || (()=>{});
     { let hit = null; const ADD = (url, source)=>{ if(!hit) hit = {url, source}; };
       // versione Anime: prima la locandina ufficiale di AniList (anime e manga) e di TMDB (film, serie, animazione; serve la chiave)
-      try{ if(window.SearchHub && SearchHub.anilistMedia && g.kind !== 'animazione'){ say('AniList…'); const a = await SearchHub.anilistMedia(g); if(a && a.cover) ADD(a.cover, 'AniList'); } }catch(e){}
+      try{ if(window.SearchHub && SearchHub.anilistMedia && !['animazione', 'filmlive', 'serie'].includes(g.kind)){ say('AniList…'); const a = await SearchHub.anilistMedia(g); if(a && a.cover) ADD(a.cover, 'AniList'); } }catch(e){}
       try{ if(window.SearchHub && SearchHub.tmdb && SearchHub.tmdb.has() && g.kind !== 'manga' && g.kind !== 'manhwa'){ say('TMDB…'); const t = await SearchHub.tmdbMedia(g); if(t && t.poster) ADD(t.poster, 'TMDB'); } }catch(e){}
       if(hit) return hit; }
     let wd = null;
@@ -273,7 +273,7 @@
       if(u) return {url: u, source: 'Libretro'};
     }
     say('Wikipedia…');
-    try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); if(u) return {url: u, source: 'Wikipedia'}; }catch(e){}
+    try{ const u = (g.enw || (wd && wd.enwiki)) ? await wikiPageImage(g.enw || wd.enwiki) : await searchCover(g.name); if(u) return {url: u, source: 'Wikipedia'}; }catch(e){}
     // ultima possibilità: immagine ufficiale del titolo su RAWG (non è una box art, ma è sempre del titolo giusto)
     try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(await enN(g)); if(i && i.cover) return {url: i.cover, source: 'RAWG'}; } }catch(e){}
     return null;
@@ -283,7 +283,7 @@
     const say = onStep || (()=>{}), out = [], add = (url, source)=>{ if(url && !out.some(o=> o.url === url)) out.push({url, source}); };
     { const ADD = add;
       // versione Anime: prima la locandina ufficiale di AniList (anime e manga) e di TMDB (film, serie, animazione; serve la chiave)
-      try{ if(window.SearchHub && SearchHub.anilistMedia && g.kind !== 'animazione'){ say('AniList…'); const a = await SearchHub.anilistMedia(g); if(a && a.cover) ADD(a.cover, 'AniList'); } }catch(e){}
+      try{ if(window.SearchHub && SearchHub.anilistMedia && !['animazione', 'filmlive', 'serie'].includes(g.kind)){ say('AniList…'); const a = await SearchHub.anilistMedia(g); if(a && a.cover) ADD(a.cover, 'AniList'); } }catch(e){}
       try{ if(window.SearchHub && SearchHub.tmdb && SearchHub.tmdb.has() && g.kind !== 'manga' && g.kind !== 'manhwa'){ say('TMDB…'); const t = await SearchHub.tmdbMedia(g); if(t && t.poster) ADD(t.poster, 'TMDB'); } }catch(e){}
     }
     let wd = null; say('Wikidata…'); try{ wd = await wikidataInfo(await enN(g)); }catch(e){}
@@ -292,7 +292,7 @@
       const B = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${id}/`; add(B + 'library_600x900_2x.jpg', 'Steam HD'); add(B + 'library_600x900.jpg', 'Steam'); add(B + 'header.jpg', 'Steam (orizzontale)'); });
     const sys = lrSystems(g.plat);
     if(sys.length){ say('Libretro…'); const urls = []; lrTitles([wd && wd.label, window.SearchHub && SearchHub.enNameSync ? SearchHub.enNameSync(g) : g.name, g.name]).forEach(t=> sys.forEach(sy=> LR_REG.forEach(r=> urls.push(LR + encodeURIComponent(sy) + '/Named_Boxarts/' + encodeURIComponent(lrSafe(t) + ' ' + r + '.png'))))); urls.slice(0, 40).forEach(u=> add(u, 'Libretro')); }
-    say('Wikipedia…'); try{ const u = wd && wd.enwiki ? await wikiPageImage(wd.enwiki) : await searchCover(g.name); add(u, 'Wikipedia'); }catch(e){}
+    say('Wikipedia…'); try{ const u = (g.enw || (wd && wd.enwiki)) ? await wikiPageImage(g.enw || wd.enwiki) : await searchCover(g.name); add(u, 'Wikipedia'); }catch(e){}
     ((wd && wd.img) || []).slice(0, 2).forEach(f=> add('https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(f) + '?width=600', 'Wikimedia'));
     try{ if(window.SearchHub && SearchHub.rawg && SearchHub.rawg.has()){ say('RAWG…'); const i = await SearchHub.rawg.info(await enN(g)); if(i && i.cover) add(i.cover, 'RAWG'); } }catch(e){}
     say('Controllo quali immagini esistono…');

@@ -21,7 +21,10 @@ const KINDS = [
   {id:'film', icon:'film', emoji:'🎞️', label:'Film anime', full:'Film d\'animazione giapponesi', watch:true},
   {id:'animazione', icon:'castle', emoji:'🏰', label:'Animazione', full:'Animazione occidentale (Disney, Pixar, DreamWorks…)', watch:true},
   {id:'manga', icon:'book', emoji:'📚', label:'Manga', full:'Manga', watch:false},
-  {id:'manhwa', icon:'webtoon', emoji:'📱', label:'Manhwa', full:'Manhwa e manhua (fumetti coreani e cinesi)', watch:false}
+  {id:'manhwa', icon:'webtoon', emoji:'📱', label:'Manhwa', full:'Manhwa e manhua (fumetti coreani e cinesi)', watch:false},
+  // film e serie DAL VIVO (con attori): dati da IMDb e Wikidata (tools/fetch-live.js + add-live.js)
+  {id:'filmlive', icon:'cam', emoji:'🎬', label:'Film', full:'Film (con attori)', watch:true},
+  {id:'serie', icon:'screen', emoji:'🍿', label:'Serie TV', full:'Serie e miniserie TV (con attori)', watch:true}
 ];
 const KIND_BY_ID = {}; KINDS.forEach(k=>{ KIND_BY_ID[k.id] = k; });
 const isWatch = g=> !g || !KIND_BY_ID[g.kind] || KIND_BY_ID[g.kind].watch;

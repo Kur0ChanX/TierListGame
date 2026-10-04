@@ -46,7 +46,7 @@
     MYS: ['MYST'], PSY: ['MIND'], THR: ['MYST', 'DARK'], CRI: ['MYST', 'DARK'], HOR: ['ATMO', 'DARK'], GOR: ['DARK'],
     SUR: ['DARK'], DYS: ['SOCIETY', 'DARK'], MIL: ['SOCIETY', 'STRAT'], HIS: ['LORE'], MUS: ['MUSIC'], IDO: ['MUSIC'],
     SPO: ['SPORT', 'GROWTH'], ISE: ['ISEKAI', 'WORLD'], GAM: ['STRAT'], MEC: ['MECHA'], TIM: ['TWIST'], VAM: ['ATMO'],
-    FAM: ['COZY'], KID: ['COZY'], FOO: ['COZY'], SHO: ['FRIEND', 'GROWTH'], SHJ: ['ROMANCE'], JOS: ['ROMANCE'], SEI: ['MIND'], DOC: ['MIND']
+    FAM: ['COZY'], KID: ['COZY'], FOO: ['COZY'], SHO: ['FRIEND', 'GROWTH'], SHJ: ['ROMANCE'], JOS: ['ROMANCE'], SEI: ['MIND'], DOC: ['MIND'], BIO: ['CHAR', 'GROWTH'], WES: ['JOURNEY', 'ATMO'], NOI: ['MYST', 'ATMO', 'DARK']
   };
 
   const mnrm = t=> String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -58,7 +58,8 @@
     const n = +g.n || 0, kind = g.kind || '';
     if(kind === 'anime' || kind === 'animazione'){ if(n >= 100) out.add('LONG'); else if(n && n <= 13) out.add('SHORT'); }
     if(kind === 'manga' || kind === 'manhwa'){ if(n >= 60) out.add('LONG'); else if(n && n <= 3) out.add('SHORT'); }
-    if(kind === 'film') out.add('SHORT');
+    if(kind === 'film' || kind === 'filmlive') out.add('SHORT');
+    if(kind === 'serie'){ if(n >= 100) out.add('LONG'); else if(n && n <= 10) out.add('SHORT'); }
     return out;
   }
   // tratti dai TESTI (pro, perché piace, trama…) + dai TAG: {mx: [...], cbt: 1 se si parla di combattimenti}

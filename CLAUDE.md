@@ -36,3 +36,6 @@ Commit → push sul branch di sessione → PR → squash merge → controllo del
 
 ## Generi mancanti (regola dell'utente)
 Se un'opera ha un genere fondamentale che nel sistema non esiste, NON adattarla a tag simili: aggiungi il nuovo genere alla lista ufficiale. Versione Anime: voce in `meta.tags` dei dati (load()+save() di `anime-manga/tools/data-io.js`) E in `TAGDEFS` di `anime-manga/tools/build-data.js` (altrimenti la prossima ricostruzione dei dati lo perde); se serve, aggiungilo anche alla tabella tag → tratti in `anime-manga/tratti.js`.
+
+## Versione Anime: film e serie dal vivo
+Kind `filmlive` (Film) e `serie` (Serie TV). Si rigenerano con `NODE_USE_ENV_PROXY=1 AM_CACHE=<cartella fuori dal repo> node anime-manga/tools/fetch-live.js` (IMDb + Wikidata), poi `node anime-manga/tools/add-live.js` (unisce ai dati, tiene gli id) e `node anime-manga/tools/live-covers.js` (locandine da Wikipedia).
