@@ -389,28 +389,41 @@
     if(!out.length && fb && fb.length) out.push(fb[0]);            // la ricerca era già filtrata per quel genere
     return out.slice(0, 3);
   }
+  // v241 anti-spazzatura: il voto degli utenti RAWG (stelline ×20) gonfiava giochi sconosciuti a 96-99 → ora il voto è SOLO quello Metacritic;
+  // fuori i giochi per adulti e quelli che quasi nessuno ha in libreria (titoli fatti in un weekend, asset flip).
+  const RAWG_ADULT = /^(nsfw|hentai|sexual-content|nudity|erotic|eroge|adult|adults-only|18|porn|lewd|fan-service|sexy)$/;
+  const rawgJunk = g=>{
+    if(g.esrb_rating && g.esrb_rating.slug === 'adults-only') return 'adulti';
+    if((g.tags || []).some(t=> RAWG_ADULT.test(String(t.slug || '')))) return 'adulti';
+    if(/\b(hentai|nukige|nsfw|18\+|sex|waifu|lewd)\b/i.test(g.name || '')) return 'adulti';
+    if(!g.metacritic && !((g.added || 0) >= 250 && (g.ratings_count || 0) >= 40 && (g.rating || 0) >= 3.3)) return 'poco conosciuto';
+    return '';
+  };
+  H.rawgJunk = rawgJunk;
   function rawgItem(g, fb){
-    const mc = g.metacritic || 0, rt = g.rating && g.ratings_count >= 20 ? Math.round(g.rating * 20) : 0;
-    const score = mc || rt || null;
+    const mc = g.metacritic || 0;
+    const score = mc || null;
     return {name: cleanTitle(g.name), plat: (g.platforms || []).map(x=> x.platform && x.platform.name).filter(Boolean).slice(0, 4).join(' / '), year: (g.released || '').slice(0, 4), score, tier: score != null ? tierOf(score) : 'B', tags: rawgTags(g, fb), story: '', fitIf: ''};
   }
   const rawgOk = c=> c.name && (c.score == null || c.score >= 50);
+  // v242: i sospetti non si buttano più: escono segnati (sus) e Frugu li mette nella pila «🧹 Sospetti» invece che tra le proposte
+  const rawgList = (j, fl)=> (j.results || []).map(g=>{ const jk = rawgJunk(g), it = rawgItem(g, fl); if(jk) it.sus = jk === 'adulti' ? 'adulti' : 'raro'; return it; }).filter(rawgOk);
   M.rawg = async ctx=>{           // scoperta: ogni giro cambia anni, generi e ordinamento, così non si ripete mai
     const fl = foc(ctx), slugs = [...new Set(fl.map(c=> RAWG_SLUG[c]).filter(Boolean))].sort(()=> Math.random() - .5).slice(0, 2);
     const y1 = ri(1985, 2023), noMc = Math.random() < .4;
-    const params = {page_size: '40', page: String(ri(1, 6)), ordering: noMc ? '-rating' : pickOne(['-added', '-metacritic', '-released']), dates: y1 + '-01-01,' + (y1 + ri(2, 6)) + '-12-31'};
+    const params = {page_size: '40', page: String(ri(1, 6)), ordering: noMc ? '-added' : pickOne(['-added', '-metacritic', '-released']), dates: y1 + '-01-01,' + (y1 + ri(2, 6)) + '-12-31'};
     if(!noMc) params.metacritic = '50,100';
     if(slugs.length) params.genres = slugs.join(',');
     let j = await rawgGet('games', params);
     if(!(j.results || []).length){ params.page = '1'; j = await rawgGet('games', params); }
-    return (j.results || []).map(g=> rawgItem(g, fl)).filter(rawgOk);
+    return rawgList(j, fl);
   };
   M.rawgnew = async ctx=>{        // uscite dell'ultimo anno e in arrivo
     const fl = foc(ctx), slugs = [...new Set(fl.map(c=> RAWG_SLUG[c]).filter(Boolean))].slice(0, 2), d = x=> x.toISOString().slice(0, 10), now = Date.now();
     const params = {page_size: '40', page: String(ri(1, 4)), ordering: '-added', dates: d(new Date(now - 365 * 864e5)) + ',' + d(new Date(now + 240 * 864e5))};
     if(slugs.length) params.genres = slugs.join(',');
     const j = await rawgGet('games', params);
-    return (j.results || []).map(g=> rawgItem(g, fl)).filter(rawgOk);
+    return rawgList(j, fl);
   };
   M.rawgsimilar = async ctx=>{    // giochi affini ai preferiti: stessi generi e stessi tag distintivi su RAWG
     const seeds = ctx.seeds || []; if(!seeds.length) throw skipErr('nessun preferito da cui partire');
@@ -428,10 +441,40 @@
     // la chiave viaggia in un'intestazione: solo accesso diretto, mai dai ponti pubblici
     return H.json('https://opencritic-api.p.rapidapi.com/' + path, {timeout: 12000, relays: false, retries: 1, headers: {'x-rapidapi-key': ocKey(), 'x-rapidapi-host': 'opencritic-api.p.rapidapi.com'}});
   }
+  // Via SENZA chiave (come il giro notturno): Wikidata dà il numero OpenCritic del gioco (P2864), la pagina pubblica opencritic.com/game/<n>/x contiene il voto.
+  // La pagina non ha CORS: passa dal ponte personale (opencritic.com è tra i siti consentiti del ponte v2) o dai ponti pubblici. La usa quando la chiave RapidAPI manca o risponde 429/403.
+  const OCB = 'rt_oc_block';
+  const ocBlocked = ()=> (ls.get(OCB, 0) || 0) > Date.now();
+  const ocKeyFail = e=>{ const m = String(e && e.message || ''); if(e && e.skip) return false; if(/HTTP (429|403|401)|troppe richieste|quota|not subscribed/i.test(m) || [429, 403, 401].includes(e && e.status)){ ls.set(OCB, Date.now() + 12 * 36e5); return true; } return false; };
+  const ocUseKey = ()=> !!ocKey() && !ocBlocked();
+  async function ocPubId(name){
+    const lit = t=> '"' + String(t).replace(/["\\]/g, '') + '"@en';
+    const base = String(name || '').trim(), short = base.split(/:| - /)[0].trim();
+    const vals = [base]; if(short && short !== base && short.length > 3) vals.push(short);
+    const q = 'SELECT ?o ?l WHERE { VALUES ?l { ' + vals.map(lit).join(' ') + ' } ?g wdt:P2864 ?o . { ?g rdfs:label ?l } UNION { ?g skos:altLabel ?l } } LIMIT 6';
+    const j = await H.json('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), {headers: {Accept: 'application/sparql-results+json'}, timeout: 20000, cache: true});
+    const b = (j && j.results && j.results.bindings) || [];
+    const hit = b.find(x=> x.l && x.l.value === base) || b[0];
+    return hit ? hit.o.value : null;
+  }
+  async function ocPubPage(id){
+    const t = await H.text('https://opencritic.com/game/' + encodeURIComponent(id) + '/x', {timeout: 15000, cache: true});
+    const ld = /"ratingValue"\s*:\s*([0-9.]+)/.exec(t), sc = /topCriticScore&q;:([0-9.]+)/.exec(t), nr = /numReviews&q;:([0-9]+)/.exec(t), ti = /<title>([^<]*?) Reviews - OpenCritic/.exec(t);
+    const v = ld ? +ld[1] : (sc ? +sc[1] : -1);
+    return {score: Math.round(v), reviews: nr ? +nr[1] : null, name: ti ? ti[1].trim() : ''};
+  }
   H.opencritic = {
-    has: ()=> !!ocKey(),
+    has: ()=> !!ocKey() || !!(H.hasCustomRelay && H.hasCustomRelay()),
     usage: ()=> ocUsage().n,
-    async ping(){ const j = await ocGet('game/search?criteria=' + encodeURIComponent('Dark Souls')); return Array.isArray(j); },
+    mode: ()=> ocUseKey() ? 'chiave RapidAPI' : 'pagina pubblica (senza chiave)',
+    async pubPing(){ const p = await ocPubPage('8785'); if(!(p.score > 0)) throw new Error('pagina pubblica senza voto'); return true; },
+    async ping(){
+      if(ocUseKey()){
+        try{ const j = await ocGet('game/search?criteria=' + encodeURIComponent('Dark Souls')); if(Array.isArray(j)) return 'chiave'; }
+        catch(e){ if(!ocKeyFail(e)) throw e; }
+      }
+      await H.opencritic.pubPing(); return 'pubblica';
+    },
     // cerca il gioco per nome (titolo praticamente uguale) e ne legge il voto medio dei critici.
     // Per risparmiare le ~200 richieste gratuite al giorno: la risposta (anche «non trovato») si ricorda 45 / 14 giorni e, se l'id è noto, si salta la ricerca.
     async info(name){
@@ -440,6 +483,15 @@
       if(e && Date.now() - e.t < (e.r ? 45 : 14) * 864e5) return e.r || null;
       const save = r=>{ C[key] = {t: Date.now(), r: r || null}; const ks = Object.keys(C); if(ks.length > 700) ks.sort((a, b)=> C[a].t - C[b].t).slice(0, ks.length - 700).forEach(k=> delete C[k]); ls.set('rt_oc_cache', C); return r || null; };
       let id = e && e.r && e.r.id, hitName = e && e.r && e.r.name;
+      const viaPub = async ()=>{
+        const pid = id || await ocPubId(name); if(!pid) return save(null);
+        const p = await ocPubPage(pid); const nm = p.name || hitName || name;
+        return save(p.score >= 20 ? {id: pid, name: nm, score: p.score, reviews: p.reviews, tier: '', url: 'https://opencritic.com/game/' + pid + '/' + String(nm).toLowerCase().replace(/[^a-z0-9]+/g, '-')} : null);
+      };
+      if(!ocUseKey()) return viaPub();
+      try{ return await ocKeyInfo(); }
+      catch(err){ if(ocKeyFail(err)) return viaPub(); throw err; }
+      async function ocKeyInfo(){
       if(!id){
         const list = await ocGet('game/search?criteria=' + encodeURIComponent(name)); if(!Array.isArray(list) || !list.length) return save(null);
         const t = key, hit = list.find(x=> clean(x.name) === t) || list.find(x=> (x.dist == null || x.dist <= 0.15) && clean(x.name) === t.replace(/ (remastered|remake|definitive edition)$/, ''));
@@ -449,6 +501,7 @@
       const d = await ocGet('game/' + id); if(!d) return save(null);
       const sc = Math.round(d.topCriticScore >= 0 ? d.topCriticScore : (d.medianScore >= 0 ? d.medianScore : -1));
       return save(sc >= 20 ? {id, name: d.name || hitName, score: sc, reviews: d.numReviews || d.numTopCriticReviews || null, tier: d.tier || '', url: 'https://opencritic.com/game/' + id + '/' + String(d.name || hitName).toLowerCase().replace(/[^a-z0-9]+/g, '-')} : null);
+      }
     }
   };
   H.rawg = {
@@ -486,7 +539,7 @@
         const params = {tags: tags.slice(0, k).map(t=> t.slug).join(','), ordering: '-metacritic', metacritic: '55,100', page_size: '20'};
         if(gen && k > 1) params.genres = gen;
         const j = await rawgGet('games', params);
-        const list = (j.results || []).filter(g=> g.id !== info.id).map(g=> rawgItem(g, [])).filter(rawgOk);
+        const list = (j.results || []).filter(g=> g.id !== info.id && !rawgJunk(g)).map(g=> rawgItem(g, [])).filter(rawgOk);
         if(list.length >= 4 || k === 1) return list;
       }
       return [];

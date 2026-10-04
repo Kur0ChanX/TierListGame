@@ -224,7 +224,7 @@ const ASK_TOOLS = [
         tier: {type:'string', enum:['S+','S','A','B','C','D','E','F','ND'], description:'la tua stima onesta di quanto sia un buon RPG/JRPG (ND se non hai un voto Metacritic/OpenCritic verificato)'},
         score: {type:'number', description:'voto stimato 0-100, coerente con il tier'},
         tags: {type:'array', items:{type:'string', enum:['TAC','ACT','DUN','TUR','MON','CARD','WAR','CROSS','VN','MECH','METR','SOUL','HOR','REMAKE','LIFE','ROG']}, description:'generi: TAC=tattico a griglia, ACT=action-RPG, DUN=dungeon crawler, TUR=a turni classico, MON=cattura mostri, CARD=carte, WAR=guerra su larga scala, CROSS=crossover, VN=visual novel ibrido, MECH=mecha, METR=metroidvania, SOUL=soulslike, HOR=horror, REMAKE=remake/remaster, LIFE=vita/crafting, ROG=roguelike'},
-        story: {type:'string', description:'1-2 frasi di trama senza spoiler pesanti, nello stesso stile narrativo degli altri giochi del database'},
+        story: {type:'string', description:'4-6 frasi che fanno venire voglia di iniziarlo: ambientazione, protagonisti e premessa delle prime ore, chiudendo con i misteri aperti. ZERO spoiler (niente colpi di scena, identità o parentele nascoste, morti, tradimenti, vero cattivo, finale), nello stesso stile narrativo degli altri giochi del database'},
         hours: {type:'number', description:'ore indicative per finire la storia principale'},
         difficulty: {type:'number', description:'difficoltà 1-5'},
         grind: {type:'number', description:'quanto grinding richiede, 1-5'},
@@ -534,8 +534,12 @@ function novitaExcludeListText(excludeNames){
 const NOVITA_UNVERIFIED_MAX = 79;
 async function novitaVerifyScores(list, say, isStopped){
   if(typeof rtScoreCheck !== 'function' || !list.length) return;
-  say && say('Controllo i voti reali su Metacritic…');
-  let i = 0; const probs = new Map();          // fonte → motivo (una volta sola)
+  say && say('Trovati! Ora controllo il voto vero di ognuno (Metacritic, OpenCritic…): ci vuole un po\'. Puoi premere «Basta frugare» quando vuoi.');
+  let i = 0, done = 0; const probs = new Map();          // fonte → motivo (una volta sola)
+  const P = window.Progress;
+  const tick = ()=>{ try{ P && P.counter && P.counter(done, list.length, 'Voti controllati'); P && P.set && P.set(Math.round(done / list.length * 100)); }catch(e){} };
+  try{ P && P.restart && P.restart(0, 'Frugu Frugu controlla i voti veri…'); }catch(e){}
+  tick();
   const one = async ()=>{
     while(i < list.length && !(isStopped && isStopped())){
       const c = list[i++];
@@ -543,6 +547,7 @@ async function novitaVerifyScores(list, say, isStopped){
       try{ r = await Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 15000))]); }catch(e){}
       try{ if(r && r.st) Object.keys(r.st).forEach(k=>{ const x = r.st[k]; if(x && (x.state === 'err' || x.state === 'off')) probs.set(x.name, x.why); }); }catch(e){}
       if(r || !(isStopped && isStopped())) novitaApplyCheck(c, r);
+      done++; tick();
     }
   };
   await Promise.all([one(), one(), one(), one()]);
@@ -564,8 +569,97 @@ function novitaCheckShown(c, rerender, isCurrent){
   Promise.race([rtScoreCheck(c), new Promise(res=> setTimeout(()=> res(null), 20000))]).catch(()=> null).then(r=>{
     novitaApplyCheck(c, r);
     if(r === null) c._chkTimeout = true;
-    try{ if(isCurrent() === c) rerender(); }catch(e){}
+    try{ if(isCurrent() === c && !novitaPatchCard(c)) rerender(); }catch(e){}
   });
+}
+// v249: arrivato il voto vero aggiorno SOLO la riga del voto e i generi della proposta in vista (prima si ridisegnava tutta la pagina: la scheda tremava di 1-2 pixel)
+// v250: le proposte in ELENCO (come la tabella dei giochi accettati): ✓ / ✕ su ogni riga, «Accetta tutte» in alto,
+// tieni premuto una riga (o tocca il nome) per aprire «Guarda meglio» con locandina, foto, gameplay e recensioni. «Una alla volta» resta disponibile.
+const novitaListMode = ()=>{ try{ return localStorage.getItem('jrpg_novita_mode') !== 'card'; }catch(e){ return true; } };
+function novitaModeHtml(){
+  const l = novitaListMode();
+  return `<div class="nl-mode" role="tablist"><button type="button" data-nl-mode="list" class="${l ? 'on' : ''}">☰ Elenco</button><button type="button" data-nl-mode="card" class="${l ? '' : 'on'}">🃏 Una alla volta</button></div>`;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest && e.target.closest('[data-nl-mode]'); if(!b) return;
+  try{ localStorage.setItem('jrpg_novita_mode', b.dataset.nlMode); }catch(x){}
+  if(b.closest('#novitaGenrePanel')) renderNovitaGenreCard(); else renderNovitaCard();
+});
+function novitaRowHtml(c){
+  const t = (c.tags || []).filter(x=> TAG_INFO[x]).slice(0, 2).map(x=> TAG_INFO[x].icon + ' ' + escHtml(TAG_INFO[x].label)).join(' · ');
+  const chk = c._chk !== true ? '<i class="nl-chk" title="controllo il voto vero…">⏳</i>' : c.m === 'V' ? '<i class="nl-ok" title="voto verificato">✔</i>' : '';
+  return `<div class="nl-row" data-nl-name="${escHtml(c.name)}">
+    <div class="nl-main" data-nl-peek><b>${escHtml(c.name)}</b><small>${escHtml(c.year || '?')} · ${escHtml(c.plat || '?')}${t ? ' · ' + t : ''}</small></div>
+    <div class="nl-sc"><span class="badge ${TIER_LABEL[c.tier] || ''}">${escHtml(c.tier || '?')}</span><small>${c.score != null ? c.score : '–'}${chk}</small></div>
+    <button type="button" class="nl-btn nl-no" data-nl-act="no" aria-label="Non fa per me">✕</button>
+    <button type="button" class="nl-btn nl-yes" data-nl-act="yes" aria-label="Aggiungi alla libreria">✓</button>
+  </div>`;
+}
+function novitaListHtml(q){
+  const v = novitaVisible(q);
+  return `${novitaModeHtml()}<div class="nl-head"><b class="nl-count">${v.length} ${v.length === 1 ? 'proposta' : 'proposte'}</b>${v.length >= 2 ? `<button class="btn primary" type="button" data-accept-all>${giIcon('check')} Accetta tutte (<span class="nl-n">${v.length}</span>)</button>` : ''}</div>
+    <div class="nl-list">${v.map(novitaRowHtml).join('')}</div>
+    <div class="discover-hint">✓ aggiungi · ✕ scarta · <b>tieni premuto</b> (o tocca il nome) per vedere locandina, gameplay e recensioni</div>`;
+}
+function wireNovitaList(panel, kind, rerender){
+  const list = panel.querySelector('.nl-list'); if(!list) return;
+  const q = ()=> kind === 'genre' ? novitaGenreQueue : novitaQueue;
+  const find = row=> q().find(x=> x.name === row.dataset.nlName);
+  const counts = ()=>{ const n = novitaVisible(q()).length; const c = panel.querySelector('.nl-count'); if(c) c.textContent = n + ' ' + (n === 1 ? 'proposta' : 'proposte'); const a = panel.querySelector('.nl-n'); if(a) a.textContent = n; if(n < 2){ const b = panel.querySelector('[data-accept-all]'); if(b) b.remove(); } };
+  const act = (row, yes)=>{
+    const c = find(row); if(!c || row._gone) return;
+    if(yes){ try{ askToolAddCustomGame(c, kind === 'genre' ? 'Novità per genere' : 'Novità'); }catch(e){ showToast((e && e.message) || 'Non sono riuscito ad aggiungere il gioco.'); return; } }
+    else novitaSkipCandidate(c);
+    const i = q().indexOf(c); if(i >= 0) q().splice(i, 1);
+    row._gone = 1; try{ window.rtHaptic && rtHaptic('soft'); }catch(e){}
+    if(!novitaVisible(q()).length){ rerender(); return; }
+    counts();
+    try{ const nf = panel.querySelector('.nf-row'), h2 = novitaFilterHtml(q()); if(nf && h2){ nf.outerHTML = h2; wireNovitaFilter(panel, rerender); } }catch(e){}       // numeri dei generi aggiornati sul posto
+    let reduce = false; try{ reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+    if(!row.animate || reduce){ row.remove(); return; }
+    const h = row.offsetHeight;
+    const a = row.animate([{transform: 'none', opacity: 1}, {transform: 'translateX(' + (yes ? 48 : -48) + 'px)', opacity: 0}], {duration: 180, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards'});
+    a.onfinish = ()=>{ row.style.overflow = 'hidden'; const b = row.animate([{height: h + 'px', marginBottom: getComputedStyle(row).marginBottom}, {height: '0px', marginBottom: '0px', paddingTop: '0px', paddingBottom: '0px'}], {duration: 200, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards'}); b.onfinish = ()=> row.remove(); };
+  };
+  const peek = row=>{ const c = find(row); if(!c || !window.rtSus) return; try{ window.rtHaptic && rtHaptic('tick'); }catch(e){} rtSus.peek(c, {like: ()=> act(row, true), nope: ()=> act(row, false)}); };
+  list.addEventListener('click', e=>{
+    const row = e.target.closest('.nl-row'); if(!row) return;
+    if(row._lp){ row._lp = 0; e.preventDefault(); return; }               // dopo la pressione lunga non conto il tocco
+    const b = e.target.closest('[data-nl-act]'); if(b){ act(row, b.dataset.nlAct === 'yes'); return; }
+    if(e.target.closest('[data-nl-peek]')) peek(row);
+  });
+  // pressione lunga (0,45 s) su qualunque punto della riga
+  let tm = 0, sx = 0, sy = 0, cur = null;
+  const cancel = ()=>{ clearTimeout(tm); tm = 0; if(cur) cur.classList.remove('nl-press'); cur = null; };
+  list.addEventListener('pointerdown', e=>{
+    const row = e.target.closest('.nl-row'); if(!row || e.target.closest('[data-nl-act]')) return;
+    cancel(); cur = row; sx = e.clientX; sy = e.clientY; row.classList.add('nl-press');
+    tm = setTimeout(()=>{ const r = cur; cancel(); if(r){ r._lp = 1; peek(r); setTimeout(()=>{ r._lp = 0; }, 700); } }, 450);
+  });
+  list.addEventListener('pointermove', e=>{ if(tm && (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10)) cancel(); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev=> list.addEventListener(ev, ()=>{ if(tm) cancel(); }));
+  list.addEventListener('contextmenu', e=>{ if(e.target.closest('.nl-row')) e.preventDefault(); });
+}
+function novitaPatchCard(c){
+  const card = document.getElementById('novitaCard'), t = card && card.querySelector('.discover-title');
+  if(!t || t.textContent !== String(c.name)) return false;
+  const tmp = document.createElement('div'); tmp.innerHTML = novitaCardHtml(c);
+  ['.novita-meta', '.modal-tags'].forEach(sel=>{ const a = card.querySelector(sel), b = tmp.querySelector(sel); if(a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; });
+  return true;
+}
+// v249: passaggio morbido tra una proposta e la successiva (prima cambiava di colpo): la scheda scivola via (a destra se la aggiungi, a sinistra se la scarti) e la nuova entra dal basso
+function novitaSwap(dir, run){
+  const card = document.getElementById('novitaCard');
+  let reduce = false; try{ reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  const done = ()=>{ run(); const n = document.getElementById('novitaCard'); if(n && n.animate && !reduce){ try{ n.animate([{transform: 'translateY(14px) scale(.97)', opacity: 0}, {transform: 'none', opacity: 1}], {duration: 280, easing: 'cubic-bezier(.16,1,.3,1)'}); }catch(e){} } };
+  if(!card || !card.animate || reduce){ done(); return; }
+  if(card._out) return; card._out = 1;
+  try{ const a = card.animate([{transform: 'none', opacity: 1}, {transform: 'translateX(' + (dir * 70) + 'px) rotate(' + (dir * 3) + 'deg)', opacity: 0}], {duration: 190, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards'}); a.onfinish = done; a.oncancel = done; }catch(e){ done(); }
+}
+// v249: lo spazio della proposta non si restringe passando a un gioco con meno righe: il resto della pagina non salta su e giù
+function novitaHoldHeight(panel){
+  const st = panel && panel.querySelector('.discover-stage'); if(!st) return;
+  st.style.minHeight = ''; const h = st.offsetHeight; panel._nvH = Math.max(panel._nvH || 0, h); st.style.minHeight = panel._nvH + 'px';
 }
 const novitaTierOf = s=> s >= 95 ? 'S+' : s >= 90 ? 'S' : s >= 85 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : s >= 40 ? 'E' : 'F';
 function buildNovitaPrompt(count, excludeNames){
@@ -683,7 +777,10 @@ async function novitaSearchParallel(makePrompt, total, strategies, focusSets, ex
       const k = c.name.toLowerCase().trim(), k2 = nn(c.name);
       if(seen.has(k) || seen.has(k2) || found.length >= MAX) return;
       if(c.score != null && c.score < 50) return;                 // sotto il 5/10: spazzatura
-      seen.add(k); seen.add(k2); c.viaSource = srcName || ''; found.push(c);
+      if(/\b(hentai|nukige|nsfw|eroge|18\+|porn)\b/i.test(c.name)){ c.sus = 'adulti'; }   // v241: niente giochi per adulti da nessuna fonte
+      seen.add(k); seen.add(k2); c.viaSource = srcName || '';
+      { const sus = window.rtSus && rtSus.check(c); if(sus){ rtSus.addFrugu(c, sus); return; } }   // v242: i sospetti vanno nella pila a parte (🧹 Sospetti)
+      found.push(c);
     });
     return found.length - before;
   };
@@ -769,11 +866,15 @@ let NOVITA_VIEW_FILTER = new Set();
 function novitaVisible(q){ return NOVITA_VIEW_FILTER.size ? q.filter(c=> (c.tags || []).some(t=> NOVITA_VIEW_FILTER.has(t))) : q; }
 function currentNovitaGame(){ novitaQueue = novitaQueue.filter(c=> !findDuplicateGame(c.name)); return novitaVisible(novitaQueue)[0] || null; }
 function currentNovitaGenreGame(){ novitaGenreQueue = novitaGenreQueue.filter(c=> !findDuplicateGame(c.name)); return novitaVisible(novitaGenreQueue)[0] || null; }
+const NOVITA_CHIP_ORDER = [];
 function novitaFilterHtml(queue){
   const cnt = {}; queue.forEach(c=> (c.tags || []).forEach(t=>{ if(TAG_INFO[t]) cnt[t] = (cnt[t] || 0) + 1; }));
-  const codes = Object.keys(cnt).sort((a, b)=> cnt[b] - cnt[a]);
-  if(codes.length < 2 && !NOVITA_VIEW_FILTER.size) return '';
-  return `<div class="nf-row"><span class="nf-lbl">Filtra per genere:</span>${codes.map(t=> `<button type="button" class="genre-chip${NOVITA_VIEW_FILTER.has(t) ? ' active' : ''}" data-nf="${t}">${TAG_INFO[t].icon} ${escHtml(TAG_INFO[t].label)} <small>${cnt[t]}</small></button>`).join('')}${NOVITA_VIEW_FILTER.size ? '<button type="button" class="genre-chip" data-nf-clear>✕ Tutti</button>' : ''}</div>`;
+  // v249: ordine dei generi fisso per tutta la sessione (prima si rimescolavano a ogni gioco aggiunto e le righe saltavano); quelli finiti restano spenti al loro posto
+  const fresh = Object.keys(cnt).filter(t=> !NOVITA_CHIP_ORDER.includes(t)).sort((a, b)=> cnt[b] - cnt[a]);
+  NOVITA_CHIP_ORDER.push(...fresh);
+  const codes = NOVITA_CHIP_ORDER.filter(t=> TAG_INFO[t]);
+  if(Object.keys(cnt).length < 2 && !NOVITA_VIEW_FILTER.size) return '';
+  return `<div class="nf-row"><span class="nf-lbl">Filtra per genere:</span>${codes.map(t=> `<button type="button" class="genre-chip${NOVITA_VIEW_FILTER.has(t) ? ' active' : ''}${cnt[t] ? '' : ' nf-zero'}" data-nf="${t}"${cnt[t] || NOVITA_VIEW_FILTER.has(t) ? '' : ' disabled'}>${TAG_INFO[t].icon} ${escHtml(TAG_INFO[t].label)} <small>${cnt[t] || 0}</small></button>`).join('')}${NOVITA_VIEW_FILTER.size ? '<button type="button" class="genre-chip" data-nf-clear>✕ Tutti</button>' : ''}</div>`;
 }
 function novitaFilteredEmptyHtml(queue){
   return `<div class="discover-empty"><div class="discover-empty-icon">🔎</div><div>Nessuna proposta con questi generi (ne hai ${queue.length} in attesa con altri generi).</div></div>${novitaFilterHtml(queue)}`;
@@ -799,6 +900,7 @@ function novitaCardHtml(c, ids){
     <div class="modal-tags">${c.tags.slice(0,3).map(t=> TAG_INFO[t] ? `<span class="tagpill">${TAG_INFO[t].icon} ${TAG_INFO[t].label}</span>` : '').join('')}</div>
     ${c.fitIf ? `<div class="novita-why novita-clamp"><b>Potrebbe piacerti perché</b> ${escHtml(c.fitIf)}</div>` : ''}
     <div class="novita-links">
+      <button class="novita-link-btn nv-peek" type="button" data-nv-peek>🔍 Guarda meglio</button>
       <a class="novita-link-btn" href="${novitaYoutubeUrl(c.name)}" target="_blank" rel="noopener">▶️ Gameplay ITA</a>
       <a class="novita-link-btn" href="${novitaReviewSearchUrl(c.name)}" target="_blank" rel="noopener">📰 Recensione ITA</a>
       <a class="novita-link-btn" href="${coverSearchUrl({name:c.name})}" target="_blank" rel="noopener">🖼️ Locandina</a>
@@ -829,8 +931,17 @@ function novitaDoneHtml(){
   </div>`;
 }
 function novitaSkippedTopbarHtml(count, btnId){
-  return `<div class="novita-topbar">${llmEngineSelectHtml()}${count ? `<button class="btn" id="${btnId}">📋 Scartati (${count})</button>` : ''}</div>`;
+  const sus = window.rtSus ? rtSus.fruguCount() + rtSus.parkCount() : 0;
+  return `<div class="novita-topbar">${llmEngineSelectHtml()}${count ? `<button class="btn" id="${btnId}">📋 Scartati (${count})</button>` : ''}${sus ? `<button class="btn" type="button" data-sus-open>🧹 Sospetti (${sus})</button>` : ''}</div>`;
 }
+// v242: «🔍 Guarda meglio» sulla proposta in vista + «🧹 Sospetti» nella barra in alto (valgono per Novità e Novità per genere)
+document.addEventListener('click', e=>{
+  const s = e.target.closest && e.target.closest('[data-sus-open]'); if(s){ if(window.rtSus) rtSus.open(rtSus.fruguCount() ? 'fru' : 'lib'); return; }
+  const b = e.target.closest && e.target.closest('[data-nv-peek]'); if(!b || !window.rtSus) return;
+  const genre = !!b.closest('#novitaGenrePanel');
+  const c = genre ? currentNovitaGenreGame() : currentNovitaGame(); if(!c) return;
+  rtSus.peek(c, genre ? {like: ()=> novitaGenreAdvanceLike(), nope: ()=> novitaGenreAdvanceSkip()} : {like: ()=> novitaAdvanceLike(), nope: ()=> novitaAdvanceSkip()});
+});
 function novitaSkippedListHtml(){
   const keys = Object.keys(NOVITA_SKIPPED_DETAILS);
   if(!keys.length) return `<div class="discover-empty"><div class="discover-empty-icon">📋</div><div>Non hai ancora scartato nessuna proposta.</div><button class="btn novita-back-btn">← Torna</button></div>`;
@@ -900,18 +1011,18 @@ function renderNovitaCard(){
     wireNovitaCard(); wireNovitaTopbar();
     return;
   }
-  panel.innerHTML = `<div class="novita-wrap">${topBar}
+  if(novitaListMode()){ panel.innerHTML = `<div class="novita-wrap">${topBar}${novitaListHtml(novitaQueue)}${novitaFilterHtml(novitaQueue)}</div>`; wireNovitaCard(); wireNovitaTopbar(); wireNovitaAccept(panel, 'novita', renderNovitaCard); wireNovitaList(panel, 'novita', renderNovitaCard); return; }
+  panel.innerHTML = `<div class="novita-wrap">${topBar}${novitaModeHtml()}
     <div class="discover-stage">${novitaCardHtml(c)}</div>
     <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaQueue)}${novitaFilterHtml(novitaQueue)}
   </div>`;
-  wireNovitaCard(); wireNovitaTopbar(); wireNovitaAccept(panel, 'novita', renderNovitaCard);
+  wireNovitaCard(); wireNovitaTopbar(); wireNovitaAccept(panel, 'novita', renderNovitaCard); novitaHoldHeight(panel);
   novitaCheckShown(c, renderNovitaCard, currentNovitaGame);
 }
 function novitaAdvanceSkip(){
   const c = currentNovitaGame(); if(!c) return;
   novitaSkipCandidate(c);
-  novitaQueue.splice(novitaQueue.indexOf(c), 1);
-  renderNovitaCard();
+  novitaSwap(-1, ()=>{ const i = novitaQueue.indexOf(c); if(i >= 0) novitaQueue.splice(i, 1); renderNovitaCard(); });
 }
 function novitaAdvanceLike(){
   const c = currentNovitaGame(); if(!c) return;
@@ -920,8 +1031,7 @@ function novitaAdvanceLike(){
   }catch(e){
     showToast((e && e.message) || 'Non sono riuscito ad aggiungere il gioco.');
   }
-  novitaQueue.splice(novitaQueue.indexOf(c), 1);
-  renderNovitaCard();
+  novitaSwap(1, ()=>{ const i = novitaQueue.indexOf(c); if(i >= 0) novitaQueue.splice(i, 1); renderNovitaCard(); });
 }
 
 // ---- «Accetta tutto»: aggiunge in un colpo solo tutte le proposte visibili e mostra poi l'elenco essenziale di ciò che è stato accettato ----
@@ -1017,18 +1127,18 @@ function renderNovitaGenreCard(){
     wireNovitaGenreCard(); wireNovitaGenreTopbar();
     return;
   }
-  panel.innerHTML = `<div class="novita-wrap">${topBar}
+  if(novitaListMode()){ panel.innerHTML = `<div class="novita-wrap">${topBar}${novitaListHtml(novitaGenreQueue)}${novitaFilterHtml(novitaGenreQueue)}</div>`; wireNovitaGenreCard(); wireNovitaGenreTopbar(); wireNovitaAccept(panel, 'genre', renderNovitaGenreCard); wireNovitaList(panel, 'genre', renderNovitaGenreCard); return; }
+  panel.innerHTML = `<div class="novita-wrap">${topBar}${novitaModeHtml()}
     <div class="discover-stage">${novitaCardHtml(c, {nope:'novitaGenreNopeBtn', like:'novitaGenreLikeBtn'})}</div>
     <div class="discover-hint">Controlla copertina, foto, video e recensioni prima di decidere · ${novitaVisible(novitaGenreQueue).length} da vedere in questo giro</div>${novitaAcceptAllHtml(novitaGenreQueue)}${novitaFilterHtml(novitaGenreQueue)}
   </div>`;
-  wireNovitaGenreCard(); wireNovitaGenreTopbar(); wireNovitaAccept(panel, 'genre', renderNovitaGenreCard);
+  wireNovitaGenreCard(); wireNovitaGenreTopbar(); wireNovitaAccept(panel, 'genre', renderNovitaGenreCard); novitaHoldHeight(panel);
   novitaCheckShown(c, renderNovitaGenreCard, currentNovitaGenreGame);
 }
 function novitaGenreAdvanceSkip(){
   const c = currentNovitaGenreGame(); if(!c) return;
   novitaSkipCandidate(c);
-  novitaGenreQueue.splice(novitaGenreQueue.indexOf(c), 1);
-  renderNovitaGenreCard();
+  novitaSwap(-1, ()=>{ const i = novitaGenreQueue.indexOf(c); if(i >= 0) novitaGenreQueue.splice(i, 1); renderNovitaGenreCard(); });
 }
 function novitaGenreAdvanceLike(){
   const c = currentNovitaGenreGame(); if(!c) return;
@@ -1037,8 +1147,7 @@ function novitaGenreAdvanceLike(){
   }catch(e){
     showToast((e && e.message) || 'Non sono riuscito ad aggiungere il gioco.');
   }
-  novitaGenreQueue.splice(novitaGenreQueue.indexOf(c), 1);
-  renderNovitaGenreCard();
+  novitaSwap(1, ()=>{ const i = novitaGenreQueue.indexOf(c); if(i >= 0) novitaGenreQueue.splice(i, 1); renderNovitaGenreCard(); });
 }
 function wireNovitaGenreCard(){
   wireNovitaFilter(document.getElementById('novitaGenrePanel'), renderNovitaGenreCard);
@@ -1074,8 +1183,8 @@ function wireNovitaGenreTopbar(){
   if(btn) btn.addEventListener('click', ()=>{ novitaGenreSkippedListOpen = true; renderNovitaGenreCard(); });
 }
 
-const DATA_BUILD_DATE = '2026-10-02';
-const DATA_BUILD_VERSION = 'v238';
+const DATA_BUILD_DATE = '2026-10-03';
+const DATA_BUILD_VERSION = 'v255';
 (function renderBuildLine(){
   const el = document.getElementById('buildLine');
   if(!el) return;

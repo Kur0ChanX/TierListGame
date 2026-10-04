@@ -3,9 +3,17 @@
 Questo file serve a un'altra istanza di Claude Code (altro account) per continuare **esattamente** dove ci siamo fermati, come se la sessione fosse la stessa.
 Leggi PRIMA questo file, poi `CLAUDE.md` (regole fisse) e, solo quando serve, `docs/ARCHITETTURA.md` (con Grep sulla voce, mai tutto).
 
-Ultimo aggiornamento: v209 (1 ottobre 2026). Sito: https://kur0chanx.github.io/TierListGame/ · Repo: `kur0chanx/TierListGame`.
+Ultimo aggiornamento: v243 (2 ottobre 2026). Sito: https://kur0chanx.github.io/TierListGame/ · Repo: `kur0chanx/TierListGame`.
 
 ---------------------------------------------------------------------
+
+## 0. Stato attuale (v250, 3/10/2026) — leggi prima questo
+- v250: Novità in elenco (✓/✕ per riga, pressione lunga = «Guarda meglio»), barretta «Controllo i giochi nuovi 2/60», Previsione con anello e perline animate, voce Gemini senza attese lunghe, locandina incollata da sola dagli appunti.
+- v249: tasto «🎮 Sto giocando ora» (`gioco-ora.js`), voce a catena di riserva + Google Traduttore riparato, Previsione grande in cima a «Per te», scheda che non torna su dopo un voto, barra delle linguette sotto il titolo, musica che resta ferma, pagina Novità senza salti/tremolii, avvisi in fila. Da provare sul telefono vero: foto dello schermo e dettatura.
+- v237–v243 fatti: «🧪 Prova tutto» nelle impostazioni; OpenCritic senza chiave (Wikidata + pagina pubblica via ponte); Frugu anti-spazzatura; `sospetti.js` (sospetti messi da parte + «🔍 Guarda meglio»); avvisi nuovi (scheda di vetro); voce con 4 motori (Gemini, Google Cloud, Google Traduttore, telefono) e lettore a catena; prompt delle trame ZERO spoiler + pulizia una tantum `jrpg_ovstory243`.
+- v244–v248: **riscritte TUTTE le 765 trame dei giochi di base** (campo `story`, 79–115 parole, con accenti, senza spoiler: ambientazione, protagonisti, premessa e domande finali). Corretti anche errori delle trame vecchie (nomi sbagliati, anni, rivelazioni di fine gioco). Il punto 7.0 è chiuso. Se l'utente segnala uno spoiler o un errore su un gioco, correggi solo quel gioco (load()/save()).
+- Da qui NON si leggono i gist dell'utente (API GitHub limitata al repo): i giochi aggiunti stanno solo sul suo telefono.
+- Le voci Microsoft Edge NON si possono usare (bisognerebbe fingersi il browser Edge: bloccato).
 
 ## 1. Chi è l'utente e come parlargli
 - **Mario**, italiano, **non programmatore**. Usa il telefono (Android, schermo 120 Hz) e il programma come app installata.
@@ -77,6 +85,7 @@ Ancora da fare, in quest'ordine (ognuno con le sue prove):
 v195 DNA del giocatore e giochi simili · v196 locandina/schermate con blocco, 5 canzoni · v197 griglia senza sfarfallio · v198 sintonia con somiglianza ai giochi amati, DNA a categorie, canzoni originali, lettore nuovo · v199 anti rate-limit (SW), 👑 top, locandina bloccata ovunque, carosello una foto alla volta, anteprima a pressione lunga · v200 scheda fluida, «A colpo d'occhio» a riquadri, tratti DNA nuovi cercati nel catalogo · v201 nome inglese da Steam per tutte le ricerche, carosello infinito, apertura stile iOS · v202 service worker a versioni, avvio con nuovi tentativi · v203 cervello dei gusti + barra icone + valutazioni · v204 scheda in 3 parti, un solo pulsante locandina · v205 locandine da Steam (id dal server), valutazioni a tasti + Fine, riordino ↕️, riquadri storia/dopamina, DNA senza salti · v206 intro/tocchi robusti, questo file · v207 «Cosa ti ha preso» rifatto con gioco veloce a carte e 💖 motivi principali, linguette più in alto con evidenziatore · v208 STABILITÀ: via il blocco di 40 s all'avvio e di 12 s con «Più adatti a te», reti di sicurezza (cartoncino, tocchi in attesa), schermo intero anche nell'app installata · v209 struttura per 20.000+ giochi (indice a tabella + testi a pezzi + tratti precalcolati), 😍 nella lista, «Ni» nel DNA, `tools/mappa.js`.
 
 ## 7. Cose ancora da fare (backlog, in ordine di valore)
+0. ✅ (v244–v248, fatto) **Storie dei giochi (richiesta dell'utente, v243)**: ogni trama deve far venire voglia di iniziare il gioco, SENZA spoiler (niente colpi di scena, identità/parentele nascoste, morti, tradimenti, vero cattivo, finale: es. in FF X non dire che Sin è il padre di Tidus). Oggi 256 trame su 765 hanno meno di 60 parole (48 meno di 40): vanno portate a 80–120 parole. Controllare anche le altre per spoiler. Dati SOLO con `tools/data-io.js` (load/save), a blocchi, con l'anno al posto di frasi legate al tempo.
 1. **Verificare sul telefono vero** (l'utente prova): fluidità a 120 Hz dell'apertura scheda, intro/News, locandina di Dragon Quest XI S, riordino ↕️, valutazioni.
 2. «Cosa ti ha preso»: fatto in v207 (gioco veloce). Idea successiva: proporre il gioco veloce in automatico quando segni un gioco come Giocato o 😍.
 3. **Unire gli osservatori della scheda** (13 moduli agganciano `openModal`, altri 10 `MutationObserver`): un'unica pipeline di montaggio; lavoro delicato, prima scrivere test.

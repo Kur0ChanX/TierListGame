@@ -899,6 +899,8 @@ function showAddedBanner(name, tags, newLists){
   if(inJrpg) parts.push('🎮 JRPG / RPG');
   const where = parts.length ? parts.join(' · ') : '🌐 Tutti';
   el.innerHTML = `<div class="added-title">✅ Aggiunto alla tua libreria!</div><div class="added-name">${escHtml(name)}</div><div class="added-where">Lo trovi in: ${where}</div>`;
+  // v249: sul telefono la conferma usa lo stesso avviso degli altri (prima due avvisi diversi si sovrapponevano nello stesso punto)
+  if(window.matchMedia && matchMedia('(max-width: 760px)').matches){ showToast('✅ Aggiunto alla tua libreria: ' + name, 2600); return; }
   el.classList.add('show');
   clearTimeout(el._h); el._h = setTimeout(()=> el.classList.remove('show'), 3200);
 }
@@ -1165,9 +1167,23 @@ function showToast(msg, ms, onTap){
     (window.__rtNotifQ = window.__rtNotifQ || []).push([msg, onTap]); return;
   }
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
+  // v249: due avvisi di fila non si cancellano a vicenda: il secondo aspetta che il primo si sia letto (almeno 1,3 s), uno dopo l'altro
+  { const now = Date.now();
+    if(t.classList.contains('show') && t._msg === String(msg)) return;
+    if(t.classList.contains('show') && now < (t._minUntil || 0)){
+      t._q = (t._q || []).filter(x=> x[0] !== String(msg)); t._q.push([String(msg), ms]); if(t._q.length > 3) t._q.shift();
+      if(!t._qT) t._qT = setTimeout(function nextT(){ t._qT = 0; const n = (t._q || []).shift(); if(!n) return; t._minUntil = 0; showToast(n[0], n[1]); if(t._q.length) t._qT = setTimeout(nextT, Math.max(300, (t._minUntil || 0) - Date.now())); }, t._minUntil - now);
+      return;
+    }
+    t._msg = String(msg); t._minUntil = now + Math.min(1300, ms || 1800); }
+  // v243: scheda «smart» — icona (la prima emoji del testo) in un cerchio colorato, testo pulito, barra del tempo che si consuma
+  { const m = /^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u200D(?:\p{Extended_Pictographic})|\p{Regional_Indicator})*)\s*/u.exec(String(msg)), ic = m ? m[1] : '✨', tx = m ? String(msg).slice(m[0].length) : String(msg);
+    const e = s=> String(s).replace(/[&<>]/g, c=> ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+    t.innerHTML = '<span class="tt-ic">' + e(ic) + '</span><span class="tt-tx">' + e(tx) + '</span><i class="tt-bar"></i>';
+    t.style.setProperty('--tt-ms', (ms || 1800) + 'ms'); t.classList.remove('show'); void t.offsetWidth; }
+  t.classList.add('show');
   t._tap = typeof onTap === 'function' ? onTap : null; t.classList.toggle('tappable', !!t._tap);          // palloncino con azione: toccandolo si apre la cosa di cui parla
-  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms || 1800);
+  clearTimeout(t._h); t._h = setTimeout(()=>{ t.classList.remove('show'); t._msg = ''; }, ms || 1800);
 }
 
 const ROW_PAGE = 80;

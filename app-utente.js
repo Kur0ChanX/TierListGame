@@ -3,6 +3,82 @@
 // Aggiungere una riga in cima ogni volta che pubblico un aggiornamento, così la crescita del
 // programma si vede anche dentro l'app, non solo nei messaggi di chat.
 const CHANGELOG = [
+  {version:'v255', date:'2026-10-03', time:'11:17', items:[
+    'Voce Gemini più affidabile: legge a pezzi piccoli e prepara solo il pezzo successivo mentre parla (prima chiedeva tutto insieme e Google rispondeva «aspetta»). Tolto il modello Pro, che consumava troppo.',
+    'Google Cloud Voce ha la sua chiave: incollala nel riquadro ☁️ Google Cloud (se la lasci vuota usa quella di Gemini).',
+    'Voci in ordine di priorità: Google Cloud, Gemini, Azure, Cartesia, ElevenLabs. Se quella scelta non va, l\'app prova da sola le altre (solo quelle con la chiave), poi Traduttore e telefono.',
+    'Il tasto accanto ad «Auto» mostra subito il motore scelto, senza riavviare. Le voci nuove si caricano solo quando le apri e la voce offline lavora a parte, così l\'app non si blocca.',
+    'Previsione: anche mezzi voti (es. 7,5). Tocca o trascina tra due perline.',
+    'Barra in basso: «Statistiche» spostata un po\' a sinistra, ora si legge tutta.'
+  ]},
+  {version:'v254', date:'2026-10-03', time:'07:05', items:[
+    'Quattro voci nuove per «Ascolta la storia» (tocca il nome della voce accanto ad Auto): 🟦 Microsoft Azure (500.000 lettere gratis al mese, voci italiane molto naturali), 🎙️ ElevenLabs (la più naturale, 10.000 lettere al mese), ⚡ Cartesia (velocissima, 20.000 crediti al mese) e 📦 Offline (Piper: senza chiave, si scarica una volta e funziona anche senza internet).',
+    'Ogni voce ha i passi per avere la chiave gratuita e un campo dove incollarla: la chiave resta solo su questo telefono. Se la voce offline è già scaricata, diventa la riserva al posto di Google Traduttore.'
+  ]},
+  {version:'v253', date:'2026-10-03', time:'01:51', items:[
+    'Voce: nella finestra «Voce della lettura» (tasto con il nome della voce, accanto ad Auto) c\'è «🩺 Controlla Gemini». Prova ogni modello di voce Gemini e mostra la risposta di Google: così si vede subito perché non legge.',
+    'Voce Gemini: se Google dice che per un modello la quota gratuita è zero, l\'app non aspetta più e passa subito a un altro modello.'
+  ]},
+  {version:'v252', date:'2026-10-03', time:'01:49', items:[
+    'Voce Gemini: niente più «Gemini occupato, riprovo tra 60 s» all\'infinito. Quando un modello di voce Gemini ha finito la quota del giorno (o è occupato) l\'app passa SUBITO a un altro modello Gemini, che ha la sua quota. Aspetta solo se sono occupati tutti.'
+  ]},
+  {version:'v251', date:'2026-10-03', time:'01:24', items:[
+    'Voce Gemini di nuovo affidabile: quando Google dice «aspetta qualche secondo» l\'app aspetta (conto alla rovescia sul tasto, massimo 1 minuto) e riprova Gemini, invece di dire «non disponibile» e passare subito alle voci di riserva.'
+  ]},
+  {version:'v250', date:'2026-10-03', time:'00:37', items:[
+    'Novità in ELENCO: tutte le proposte in una lista con ✓ (aggiungi) e ✕ (scarta) su ogni gioco e «Accetta tutte» in alto. Tieni premuto un gioco (o tocca il nome) per vedere locandina, foto, gameplay e recensioni. «Una alla volta» resta disponibile in alto.',
+    'Il controllo dei giochi nuovi con Wikipedia/Wikidata non apre più un avviso grande per ogni gioco: una barretta piccola in basso mostra «2/60 · 3%» e l\'ultimo gioco aggiornato.',
+    'Previsione rifatta: un cerchio che si riempie con un\'animazione e una barra con 10 perline (tocchi o fai scorrere il dito), colori viola, indaco e rosa.',
+    'Voce Gemini: se Google chiede di aspettare (anche 60 secondi) non aspetto più: continuo subito con la voce di riserva.',
+    'Locandina da internet: la prima volta il telefono chiede il permesso di leggere gli appunti; da lì, dopo «Copia immagine», tornando nell\'app la locandina la metto io, senza toccare niente.'
+  ]},
+  {version:'v249', date:'2026-10-03', time:'00:19', items:[
+    'Nuovo tasto grande «🎮 Sto giocando ora» in ogni scheda: apre la Modalità gioco con tutti gli aiuti in un posto solo. Domanda a voce, foto dello schermo («capisco dove sei»), indizio/strategia/soluzione, passo passo da spuntare, «Dove eravamo?» per riprendere, equipaggiamento consigliato, cose da non perdere, appunti, tempo di gioco e link rapidi (video guida, soluzione, mappa, wiki, trofei). Le risposte si possono ascoltare.',
+    'Voce: se una voce non funziona la lettura non si ferma più, continua con la successiva (Google Traduttore, poi il telefono). Google Traduttore ora funziona di nuovo. Messaggio chiaro quando la chiave Gemini non vale per Google Cloud.',
+    'Previsione del voto più grande e colorata, in cima a «Per te». Toccando un voto (o un preferito, uno stato…) la scheda resta dov\'era invece di tornare su.',
+    'La barra «Per te / Il gioco / Altro» sta subito sotto il titolo: si vede appena apri la scheda e poi resta ferma in alto.',
+    'Musica: se la fermi resta ferma (anche aprendo altri giochi o tornando in home) finché non premi ▶.',
+    'Novità: passaggio morbido tra un gioco e l\'altro, niente più tremolio quando arriva il voto vero, la pagina sotto non salta più, i generi restano al loro posto; gli avvisi arrivano uno dopo l\'altro invece di sovrapporsi; «Guarda meglio» si apre già in alto senza saltare.'
+  ]},
+  {version:'v248', date:'2026-10-02', time:'23:04', items:[
+    'Trame riscritte (parte 5, fine): anche gli ultimi 165 giochi, compresi i grandi classici (Final Fantasy, Chrono Trigger, Persona, Xenoblade, Dragon Quest), hanno la presentazione nuova senza spoiler. Ora tutte le 765 trame dei giochi di base sono riscritte.'
+  ]},
+  {version:'v247', date:'2026-10-02', time:'22:58', items:[
+    'Trame riscritte (parte 4): altri 150 giochi con la presentazione nuova senza spoiler (600 in tutto), tra cui Final Fantasy, Dragon Quest, Pokémon, Shin Megami Tensei, Kingdom Hearts e Suikoden.'
+  ]},
+  {version:'v246', date:'2026-10-02', time:'22:52', items:[
+    'Trame riscritte (parte 3): altri 150 giochi con la presentazione nuova senza spoiler (450 in tutto), tra cui Tales, Star Ocean, Fire Emblem, Persona, Atelier, Ys e Wild Arms.'
+  ]},
+  {version:'v245', date:'2026-10-02', time:'22:42', items:[
+    'Trame riscritte (parte 2): altri 150 giochi hanno una presentazione nuova senza spoiler (300 in tutto). Corretti anche alcuni errori delle trame vecchie (nomi dei protagonisti, anni, rivelazioni di fine gioco tolte).'
+  ]},
+  {version:'v244', date:'2026-10-02', time:'22:34', items:[
+    'Trame riscritte (parte 1): 150 giochi con la trama più corta ora hanno una presentazione nuova di 80-120 parole, senza spoiler: ambientazione, protagonisti, inizio dell\'avventura e le domande che fanno venire voglia di giocare.'
+  ]},
+  {version:'v243', date:'2026-10-02', time:'22:22', items:[
+    'Avvisi nuovi: non più il fumetto azzurro ma una scheda di vetro scuro con icona colorata, comparsa animata e una barra sottile che mostra quanto resta.',
+    'Nuova versione: l\'avviso è una scheda con la scintilla che brilla; toccandolo il programma si aggiorna e, appena riparte, ti apre le News.',
+    'Voce della lettura: 4 motori. ✨ Gemini, ☁️ Google Cloud (voci HD con la stessa chiave Gemini: partono subito e non si fermano), 🌐 Google Traduttore (senza chiave, voce unica) e 📱 Telefono. Ogni motore mostra solo le voci che ha davvero.',
+    'La voce non si blocca più a metà: con Gemini al massimo 3 richieste (Google gratis ne concede poche al minuto, e prima si fermava ad aspettare), e mentre suona un pezzo il successivo è già pronto.',
+    'Storie senza spoiler: le regole per l\'AI ora vietano colpi di scena, identità e parentele nascoste, morti, tradimenti e finale. Le trame riscritte con le vecchie regole (come quella di Final Fantasy X) tornano a quella originale.',
+  ]},
+  {version:'v242', date:'2026-10-02', time:'21:52', items:[
+    '🧹 Sospetti messi da parte: i giochi aggiunti per adulti, spazzatura o scherzi, demo e prologhi, soundtrack e titoli asiatici sconosciuti non compaiono più nella lista. Non sono cancellati: li trovi nel menu ✨ → «🧹 Sospetti messi da parte» (stanza «Dati e manutenzione») e in Novità col pulsante «🧹 Sospetti». Per ognuno: 🔍 guardalo, ♻️ rimettilo nella lista, 🗑️ eliminalo.',
+    'Frugu Frugu: le proposte sospette non finiscono più tra quelle da accettare ma nella pila «🦝 Da Frugu» dei Sospetti, dove puoi guardarle e aggiungerle lo stesso.',
+    '🔍 Guarda meglio: su ogni proposta di Novità (e su quelle messe da parte) apri una scheda con locandina vera, foto e trailer da Steam, descrizione, italiano sì/no, voto, numero di recensioni, avviso per adulti e i link a gameplay ITA, recensioni ITA, foto, trailer e pagina Steam. Da lì puoi aggiungere o scartare.',
+  ]},
+  {version:'v241', date:'2026-10-02', time:'21:30', items:[
+    'OpenCritic funziona anche senza chiave: quando la chiave RapidAPI risponde «troppe richieste» (o manca), il voto arriva dalla pagina pubblica di OpenCritic, trovata con Wikidata e letta passando dal tuo ponte. La chiave si riprova da sola dopo 12 ore.',
+    'Controllo dati: le caselle «Update+ all\'avvio» e «Controlla da solo in background» erano grigie perché è accesa la Modalità calma. Ora si possono toccare: ti chiedo se spegnerla e la casella si attiva.',
+    'Frugu Frugu «cerca nuovi giochi»: meno spazzatura. Da RAWG non arrivano più giochi per adulti né titoli che quasi nessuno ha in libreria, e il voto delle stelline degli utenti (che dava 96-99 a giochi sconosciuti) non vale più come voto.',
+    'Frugu Frugu: arrivato a 60 giochi non era bloccato, stava controllando il voto vero di ognuno. Ora lo dice e mostra «Voti controllati: N / 60» con la barra che riparte da zero.',
+  ]},
+  {version:'v240', date:'2026-10-02', time:'21:08', items:[
+    'Pulsante «🧪 Prova tutto»: sul telefono i risultati finivano sotto, fuori dal riquadro visibile, e sembravano nascosti. Ora la pagina scorre da sola fino ai risultati, che stanno in un riquadro ben leggibile.',
+  ]},
+  {version:'v239', date:'2026-10-02', time:'21:03', items:[
+    'Impostazioni (⚙️ in «Chiedi»): accanto al campo del ponte Cloudflare c\'è il pulsante «🧪 Prova tutto». Salva quello che hai scritto e prova in un colpo Gemini, RAWG, OpenCritic, il ponte (con la sua versione) e il token GitHub: per ognuno ✅ funziona, ❌ errore o ➖ non inserito.',
+  ]},
   {version:'v238', date:'2026-10-02', time:'18:01', items:[
     'Nel menu ✨, in cima: «🌸 Prova l\'app Anime, Film e Manga». Apre Raccoon Anime, un\'app separata con la classifica di anime, film d\'animazione e manga (non appesantisce questa)'
   ]},
@@ -871,6 +947,8 @@ const CHANGELOG = [
   ]}
 ];
 const changelogBackdrop = document.getElementById('changelogBackdrop');
+// v243: dopo «Nuova versione → tocca per aggiornare» il programma riparte e mostra subito le News
+setTimeout(()=>{ try{ if(localStorage.getItem('rt_open_news') === '1'){ localStorage.removeItem('rt_open_news'); setTimeout(()=>{ try{ openChangelog(); }catch(e){} }, 1800); } }catch(e){} }, 0);
 const changelogCard = document.getElementById('changelogCard');
 function openChangelog(){
   changelogCard.innerHTML = `

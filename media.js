@@ -183,8 +183,22 @@
       <ol class="cvw-steps"><li><b>Tieni premuto</b> sulla foto</li><li>Tocca <b>«Condividi immagine»</b> e scegli <b>Raccoon Tier</b>: la metto io come locandina 🔒</li><li>Oppure tocca <b>«Copia immagine»</b> e torna qui: ti chiedo se usarla</li></ol>
       <div class="lp-tools"><a class="btn primary" id="cvwGo" href="${esc(url)}" target="_blank" rel="noopener">🌐 Apri la ricerca</a><button type="button" class="btn" id="cvwPaste">📋 Ho già copiato: incolla</button></div>
       <div class="lp-sub" style="opacity:.75">Se Raccoon Tier non compare tra le app di «Condividi», usa «Copia immagine» (il telefono aggiorna l'elenco delle app da solo, può volerci qualche giorno).</div>`);
-    body.querySelector('#cvwGo').addEventListener('click', ()=>{ try{ localStorage.setItem(WAIT, JSON.stringify({id: g.id, t: Date.now(), out: 1})); }catch(e){} const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); });
+    body.querySelector('#cvwGo').addEventListener('click', ()=>{ try{ localStorage.setItem(WAIT, JSON.stringify({id: g.id, t: Date.now(), out: 1})); }catch(e){} const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); WEB.arm(); });
     body.querySelector('#cvwPaste').addEventListener('click', ()=>{ const sh = document.getElementById('xCvWeb'); if(sh) sh.classList.remove('show'); WEB.paste(g); });
+  };
+  // v250: il massimo in automatico. Toccando «Apri la ricerca» chiedo SUBITO (una volta sola) il permesso di leggere gli appunti e mi segno cosa c'è adesso;
+  // al ritorno nell'app, se negli appunti c'è un'immagine NUOVA la metto io come locandina, senza tocchi. Senza permesso resta l'avviso da toccare.
+  const clipSig = async ()=>{ const items = await navigator.clipboard.read(); for(const it of items){ const ty = it.types.find(t=> /^image\//.test(t)); if(ty){ const b = await it.getType(ty); return {b, sig: ty + ':' + b.size}; } } return {b: null, sig: 'none'}; };
+  WEB.arm = ()=>{ WEB.prevSig = null; if(!navigator.clipboard || !navigator.clipboard.read) return; clipSig().then(r=>{ WEB.prevSig = r.sig; }).catch(()=>{ WEB.prevSig = 'none'; }); };
+  WEB.auto = async g=>{
+    if(!navigator.clipboard || !navigator.clipboard.read) return false;
+    try{ const st = navigator.permissions && await navigator.permissions.query({name: 'clipboard-read'}); if(st && st.state !== 'granted') return false; }catch(e){ return false; }
+    try{
+      const r = await clipSig(); if(!r.b) return false;
+      if(WEB.prevSig && WEB.prevSig === r.sig) return false;          // è ancora l'immagine di prima: non hai copiato niente di nuovo
+      WEB.prevSig = r.sig;
+      toast('📋 Immagine copiata: la metto come locandina di ' + g.name + ' 🔒', 2600); await putCover(g, r.b); return true;
+    }catch(e){ return false; }
   };
   window.rtWebPaste = g=> WEB.paste(g);      // v228: per gli avvisi «Hai copiato un'immagine…» anche dopo aver riaperto l'app
   WEB.paste = async g=>{
@@ -233,7 +247,9 @@
     if(!w || !w.out || Date.now() - w.t > 20 * 60e3) return;
     const g = byId(w.id); if(!g) return;
     try{ localStorage.setItem(WAIT, JSON.stringify({id: w.id, t: w.t})); }catch(e){}
-    setTimeout(()=>{ if(window.showToast) showToast('📋 Hai copiato un\'immagine per ' + g.name + '? Tocca per metterla come locandina', 9000, ()=> WEB.paste(g)); }, 600);
+    // l'app deve avere il «focus» per leggere gli appunti: provo appena torna in primo piano, altrimenti l'avviso da toccare
+    const go = async ()=>{ if(await WEB.auto(g)){ try{ localStorage.removeItem(WAIT); }catch(e){} return; } if(window.showToast) showToast('📋 Hai copiato un\'immagine per ' + g.name + '? Tocca per metterla come locandina', 9000, ()=> WEB.paste(g)); };
+    if(document.hasFocus()) setTimeout(go, 350); else window.addEventListener('focus', ()=> setTimeout(go, 250), {once: true});
   });
   function openMenu(g){
     const block = document.getElementById('coverBlock'); if(!block || !U.sheet) return;
